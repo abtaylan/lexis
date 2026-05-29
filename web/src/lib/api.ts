@@ -1,32 +1,46 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+// ============================================================
+// lib/api.ts — Backend ile uyumlu API katmanı
+// ============================================================
+
+import axios from 'axios';
 import type {
-  User, Word, WordCreate, WordReview, DictionaryEntry,
-  Stats, StudySchedule, PaginatedResponse
+  AuthResponse,
+  User,
+  Word,
+  WordCreate,
+  WordUpdate,
+  WordReview,
+  PaginatedWords,
+  Stats,
+  DailyProgress,
+  ScheduleItem,
+  ScheduleCreate,
+  AdminUser,
+  AdminUserDetail,
+  AdminStats,
+  Language,
+  DictionaryResult,
+  AnalyticsData,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-const api: AxiosInstance = axios.create({
+export const api = axios.create({
   baseURL: `${BASE_URL}/api/v1`,
   headers: { 'Content-Type': 'application/json' },
-  timeout: 10000,
 });
 
-// Request interceptor — attach token
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = localStorage.getItem('lexis_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
-// Response interceptor — handle 401
 api.interceptors.response.use(
   (res) => res,
-  (error: AxiosError) => {
+  (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
       localStorage.removeItem('lexis_token');
       localStorage.removeItem('lexis_user');
@@ -36,177 +50,188 @@ api.interceptors.response.use(
   }
 );
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
+// ── Auth API ─────────────────────────────────────────────────
 export const authApi = {
-  // POST /auth/login  — JSON body: { email, password }
-  login: async (data: { username: string; password: string }) => {
-    const res = await api.post<{ access_token: string; token_type: string }>(
-      '/auth/login',
-      { email: data.username, password: data.password }
-    );
+  register: async (data: {
+    email: string;
+    password: string;
+    display_name: string;
+    username?: string;
+    native_lang?: string;
+    learning_lang?: string;
+  }): Promise<{ message: string }> => {
+    const res = await api.post('/auth/register', data);
     return res.data;
   },
 
-  // POST /auth/register
-  register: async (data: {
-  email: string; username: string; password: string; display_name?: string;
-}) => {
-  const res = await api.post<{ message: string }>('/auth/register', {
-    email: data.email,
-    password: data.password,
-    display_name: data.display_name || data.username,
-  });
-  return res.data;
-},
+  login: async (data: { email: string; password: string }): Promise<AuthResponse> => {
+    const res = await api.post<AuthResponse>('/auth/login', data);
+    return res.data;
+  },
 
-  // GET /auth/me — we'll derive from token; backend may not have this
-  // Use /stats/summary as a proxy to verify token works
-  me: async (): Promise<User> => {
-    // Try a lightweight authenticated call to verify token
-    // Backend doesn't expose /auth/me so we store user from register/login response
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('lexis_user') : null;
-    if (saved) return JSON.parse(saved) as User;
-    throw new Error('No user in storage');
+  refresh: async (refresh_token: string): Promise<{ access_token: string }> => {
+    const res = await api.post('/auth/refresh', { refresh_token });
+    return res.data;
+  },
+
+  getMe: async (): Promise<User> => {
+    const res = await api.get<User>('/auth/me');
+    return res.data;
+  },
+
+  updateProfile: async (data: {
+    display_name?: string;
+    daily_goal?: number;
+    native_lang?: string;
+    learning_lang?: string;
+  }): Promise<User> => {
+    const res = await api.patch<User>('/auth/profile', data);
+    return res.data;
   },
 };
 
-// ─── Words ────────────────────────────────────────────────────────────────────
+// ── Languages API ─────────────────────────────────────────────
+export const languagesApi = {
+  getAll: async (): Promise<Language[]> => {
+    const res = await api.get('/languages');
+    return res.data.languages;
+  },
+};
+
+// ── Words API ─────────────────────────────────────────────────
 export const wordsApi = {
-  // GET /words?skip=0&limit=20&search=...&status=...
   getAll: async (params?: {
     page?: number;
     per_page?: number;
     search?: string;
-    tag?: string;
-    sort?: string;
-  }): Promise<PaginatedResponse<Word>> => {
-    const skip = ((params?.page ?? 1) - 1) * (params?.per_page ?? 20);
-    const res = await api.get<{ words: Word[]; total: number }>('/words', {
+    status?: string;
+    list_type?: string;
+  }): Promise<PaginatedWords> => {
+    const res = await api.get('/words', {
       params: {
-        skip,
-        limit: params?.per_page ?? 20,
+        page: params?.page ?? 1,
+        page_size: params?.per_page ?? 20,
         search: params?.search,
+        status: params?.status,
+        list_type: params?.list_type,
       },
     });
-    const total = res.data.total;
-    const perPage = params?.per_page ?? 20;
     return {
-      items: res.data.words,
-      total,
-      page: params?.page ?? 1,
-      per_page: perPage,
-      pages: Math.ceil(total / perPage),
+      items: res.data.items,
+      total: res.data.total,
+      page: res.data.page,
+      per_page: res.data.page_size,
+      pages: Math.ceil(res.data.total / res.data.page_size),
     };
   },
 
-  // GET /words/due/today
-  getDue: async (): Promise<Word[]> => {
-    const res = await api.get<Word[]>('/words/due/today');
-    return res.data;
-  },
-
-  // POST /words
   create: async (data: WordCreate): Promise<Word> => {
     const res = await api.post<Word>('/words', data);
     return res.data;
   },
 
-  // PATCH /words/{id}
-  update: async (id: string, data: Partial<WordCreate>): Promise<Word> => {
+  update: async (id: string, data: WordUpdate): Promise<Word> => {
     const res = await api.patch<Word>(`/words/${id}`, data);
     return res.data;
   },
 
-  // DELETE /words/{id}
   delete: async (id: string): Promise<void> => {
     await api.delete(`/words/${id}`);
   },
 
-  // POST /words/{id}/review
+  getDue: async (): Promise<Word[]> => {
+    const res = await api.get('/words/due/today');
+    return res.data.items;
+  },
+
   review: async (id: string, data: WordReview): Promise<Word> => {
-    const res = await api.post<Word>(`/words/${id}/review`, data);
+    const res = await api.post<Word>(`/words/${id}/review`, {
+      word_id: id,
+      success: data.success,
+    });
     return res.data;
-  },
-
-  // Favorite toggle — not in backend, handle locally or skip
-  toggleFavorite: async (id: string): Promise<Word> => {
-    const res = await api.patch<Word>(`/words/${id}`, { is_favorite: true });
-    return res.data;
-  },
-
-  getOne: async (id: string): Promise<Word> => {
-    // No single-word endpoint, get from list
-    const res = await api.get<{ words: Word[] }>('/words', { params: { limit: 1 } });
-    return res.data.words[0];
   },
 };
 
-// ─── Dictionary ───────────────────────────────────────────────────────────────
+// ── Dictionary API ────────────────────────────────────────────
 export const dictionaryApi = {
-  // GET /dictionary/lookup?word=...
-  lookup: async (word: string): Promise<DictionaryEntry> => {
-    const res = await api.get<DictionaryEntry>('/dictionary/lookup', { params: { word } });
+  lookup: async (word: string): Promise<DictionaryResult> => {
+    const res = await api.get<DictionaryResult>('/dictionary/lookup', {
+      params: { word },
+    });
     return res.data;
   },
 };
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
+// ── Stats API ─────────────────────────────────────────────────
 export const statsApi = {
-  // GET /stats/summary
-  get: async (): Promise<Stats> => {
+  getSummary: async (): Promise<Stats> => {
     const res = await api.get<Stats>('/stats/summary');
     return res.data;
   },
-
-  getHistory: async (days?: number) => {
-    // Not in backend — return empty
-    return [];
+  getHistory: async (days = 14): Promise<DailyProgress[]> => {
+    const res = await api.get<DailyProgress[]>('/stats/history', { params: { days } });
+    return res.data;
+  },
+  getAnalytics: async (): Promise<AnalyticsData> => {
+    const res = await api.get<AnalyticsData>('/stats/analytics');
+    return res.data;
   },
 };
 
-// ─── Schedule ─────────────────────────────────────────────────────────────────
+// ── Schedule API ──────────────────────────────────────────────
 export const scheduleApi = {
-  // GET /schedule
-  getAll: async (): Promise<StudySchedule[]> => {
-    const res = await api.get<StudySchedule[]>('/schedule');
+  getAll: async (): Promise<ScheduleItem[]> => {
+    const res = await api.get('/schedule');
+    return res.data.items;
+  },
+  create: async (data: ScheduleCreate): Promise<ScheduleItem> => {
+    const res = await api.post<ScheduleItem>('/schedule', data);
     return res.data;
   },
-
-  // POST /schedule
-  create: async (data: Omit<StudySchedule, 'id' | 'user_id'>): Promise<StudySchedule> => {
-    const res = await api.post<StudySchedule>('/schedule', data);
+  update: async (id: string, data: Partial<ScheduleCreate> & { is_active?: boolean }): Promise<ScheduleItem> => {
+    const res = await api.patch<ScheduleItem>(`/schedule/${id}`, data);
     return res.data;
   },
-
-  update: async (id: string, data: Partial<StudySchedule>): Promise<StudySchedule> => {
-    const res = await api.patch<StudySchedule>(`/schedule/${id}`, data);
-    return res.data;
-  },
-
-  // DELETE /schedule/{id}
   delete: async (id: string): Promise<void> => {
     await api.delete(`/schedule/${id}`);
   },
 };
 
-// ─── Admin ────────────────────────────────────────────────────────────────────
+// ── Admin API ─────────────────────────────────────────────────
 export const adminApi = {
-  // GET /admin/users
-  getUsers: async () => {
+  getUsers: async (): Promise<AdminUser[]> => {
     const res = await api.get('/admin/users');
+    return res.data.users;
+  },
+  getUserDetail: async (id: string): Promise<AdminUserDetail> => {
+    const res = await api.get<AdminUserDetail>(`/admin/users/${id}`);
     return res.data;
   },
-
-  // DELETE /admin/users/{id}
-  deleteUser: async (id: string): Promise<void> => {
+  createUser: async (data: {
+    email: string;
+    password: string;
+    display_name: string;
+    role: string;
+    daily_goal: number;
+    native_lang: string;
+    learning_lang: string;
+  }): Promise<{ message: string; id: string }> => {
+    const res = await api.post('/admin/users', data);
+    return res.data;
+  },
+  updateUserRole: async (id: string, role: 'user' | 'admin'): Promise<AdminUser> => {
+    const res = await api.patch<AdminUser>(`/admin/users/${id}/role`, null, { params: { role } });
+    return res.data;
+  },
+  deactivateUser: async (id: string): Promise<void> => {
     await api.delete(`/admin/users/${id}`);
   },
-
-  // GET /admin/stats
-  getGlobalStats: async (): Promise<Record<string, number>> => {
-    const res = await api.get('/admin/stats');
+  activateUser: async (id: string): Promise<void> => {
+    await api.patch(`/admin/users/${id}/activate`);
+  },
+  getStats: async (): Promise<AdminStats> => {
+    const res = await api.get<AdminStats>('/admin/stats');
     return res.data;
   },
 };
-
-export default api;

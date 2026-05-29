@@ -1,28 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, User, Lock, Mail } from 'lucide-react';
-import { authApi } from '@/lib/api';
+import { Eye, EyeOff, User, Lock, Mail, Globe, GraduationCap } from 'lucide-react';
+import { authApi, languagesApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { Button, Input, Card } from '@/components/ui';
-import type { User as UserType } from '@/types';
+import type { User as UserType, Language } from '@/types';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [form, setForm] = useState({ email: '', username: '', password: '', display_name: '' });
+  const [form, setForm] = useState({
+    email: '',
+    username: '',
+    password: '',
+    display_name: '',
+    native_lang: 'tr',
+    learning_lang: 'en',
+  });
+  const [languages, setLanguages] = useState<Language[]>([]);
   const [showPw, setShowPw] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Dilleri yükle
+  useEffect(() => {
+    languagesApi.getAll()
+      .then(setLanguages)
+      .catch(() => setLanguages([
+        { code: 'en', name_native: 'English', name_en: 'English', flag_emoji: '🇬🇧', is_active: true },
+        { code: 'tr', name_native: 'Türkçe',  name_en: 'Turkish', flag_emoji: '🇹🇷', is_active: true },
+      ]));
+  }, []);
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.email.includes('@')) e.email = 'Geçerli bir e-posta gir.';
     if (form.username.length < 3) e.username = 'En az 3 karakter olmalı.';
     if (form.password.length < 6) e.password = 'En az 6 karakter olmalı.';
+    if (form.native_lang === form.learning_lang) {
+      e.learning_lang = 'Öğrenmek istediğin dil ana dilinden farklı olmalı.';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -32,20 +53,36 @@ export default function RegisterPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      await authApi.register(form);
-      const tokenRes = await authApi.login({ username: form.email, password: form.password });
-      const user: UserType = {
-        id: '',
+      await authApi.register({
         email: form.email,
+        password: form.password,
+        display_name: form.display_name || form.username,
         username: form.username,
-        full_name: form.display_name,
-        is_admin: false,
-        daily_goal: 10,
-        created_at: new Date().toISOString(),
+        native_lang: form.native_lang,
+        learning_lang: form.learning_lang,
+      });
+
+      // FIX: login email ile çağrılıyor (eskiden yanlışlıkla username veriliyordu)
+      const tokenRes = await authApi.login({ email: form.email, password: form.password });
+      localStorage.setItem('lexis_token', tokenRes.access_token);
+      const me = await authApi.getMe();
+
+      const user: UserType = {
+        id:            me.id,
+        email:         me.email,
+        username:      me.username || form.username,
+        display_name:  me.display_name || form.display_name,
+        is_admin:      me.is_admin ?? me.role === 'admin',
+        role:          me.role,
+        daily_goal:    me.daily_goal ?? 5,
+        native_lang:   me.native_lang ?? form.native_lang,
+        learning_lang: me.learning_lang ?? form.learning_lang,
+        created_at:    me.created_at || new Date().toISOString(),
       };
       login(tokenRes.access_token, user);
       router.push('/dashboard');
     } catch (err: unknown) {
+      localStorage.removeItem('lexis_token');
       const axiosErr = err as { response?: { data?: { detail?: string | object } } };
       const detail = axiosErr?.response?.data?.detail;
       setErrors({ form: typeof detail === 'string' ? detail : 'Kayıt başarısız. Bu e-posta zaten kullanılıyor olabilir.' });
@@ -55,6 +92,9 @@ export default function RegisterPage() {
   };
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  const setSelect = (k: string) => (e: React.ChangeEvent<HTMLSelectElement>) =>
     setForm((p) => ({ ...p, [k]: e.target.value }));
 
   return (
@@ -107,6 +147,45 @@ export default function RegisterPage() {
           error={errors.password}
           required
         />
+
+        {/* ── Dil seçimi ── */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1.5">
+              <Globe size={14} /> Ana dilin
+            </label>
+            <select
+              value={form.native_lang}
+              onChange={setSelect('native_lang')}
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition bg-white"
+            >
+              {languages.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.flag_emoji} {l.name_native}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1.5">
+              <GraduationCap size={14} /> Öğrenmek istediğin
+            </label>
+            <select
+              value={form.learning_lang}
+              onChange={setSelect('learning_lang')}
+              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition bg-white"
+            >
+              {languages.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.flag_emoji} {l.name_native}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {errors.learning_lang && (
+          <p className="text-xs text-red-600 -mt-2">{errors.learning_lang}</p>
+        )}
 
         {errors.form && (
           <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">

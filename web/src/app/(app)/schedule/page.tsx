@@ -1,145 +1,331 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import {
+  Plus, Trash2, X, Clock, CalendarDays, ExternalLink, Loader2,
+  Sparkles, Flame, Zap, Coffee, Check,
+} from 'lucide-react';
 import { scheduleApi } from '@/lib/api';
-import { Button, Card, Toggle, Select, Input, Spinner, EmptyState } from '@/components/ui';
-import { PageHeader } from '@/components/layout/PageHeader';
+import type { ScheduleItem, ScheduleCreate } from '@/types';
 
-const DAYS = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
-const DAYS_FULL = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+const DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
-export default function SchedulePage() {
-  const qc = useQueryClient();
-  const { data: schedules, isLoading } = useQuery({
-    queryKey: ['schedule'],
-    queryFn: scheduleApi.getAll,
-  });
+const DAY_COLORS = [
+  { bg: 'bg-[#FAEEDA]', text: 'text-[#854F0B]', dot: 'bg-[#854F0B]' },
+  { bg: 'bg-[#E6F1FB]', text: 'text-[#185FA5]', dot: 'bg-[#185FA5]' },
+  { bg: 'bg-[#EAF3DE]', text: 'text-[#3B6D11]', dot: 'bg-[#3B6D11]' },
+  { bg: 'bg-[#EEEDFE]', text: 'text-[#534AB7]', dot: 'bg-[#534AB7]' },
+  { bg: 'bg-[#E1F5EE]', text: 'text-[#0F6E56]', dot: 'bg-[#0F6E56]' },
+  { bg: 'bg-[#E6F1FB]', text: 'text-[#185FA5]', dot: 'bg-[#185FA5]' },
+  { bg: 'bg-[#FAEEDA]', text: 'text-[#854F0B]', dot: 'bg-[#854F0B]' },
+];
 
-  const create = useMutation({
-    mutationFn: scheduleApi.create,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule'] }),
-  });
+const TASK_LINKS: Record<string, string> = {
+  'Teknik Makale': 'https://medium.com/tag/english-learning',
+  'Haber Okuma':   'https://www.bbc.co.uk/learningenglish',
+  'LingoClip':     'https://lingoclip.com/',
+  'Video Analizi': 'https://www.youtube.com/@TEDEd',
+  'Genel Tekrar':  'https://quizlet.com/',
+  'Kelime Tekrarı':'',
+  'Dizi/Film':     'https://www.netflix.com/',
+  'Podcast':       'https://www.bbc.co.uk/learningenglish/english/features/6-minute-english',
+};
 
-  const update = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof scheduleApi.update>[1] }) =>
-      scheduleApi.update(id, data),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule'] }),
-  });
+// ── Hazır program şablonları ──────────────────────────────────
+interface Template {
+  id: string;
+  name: string;
+  desc: string;
+  icon: React.ReactNode;
+  accent: string;
+  items: ScheduleCreate[];
+}
 
-  const remove = useMutation({
-    mutationFn: (id: string) => scheduleApi.delete(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule'] }),
-  });
+const link = (a: string) => TASK_LINKS[a] ?? '';
 
-  const [form, setForm] = useState({ day_of_week: 1, start_time: '09:00', end_time: '09:30' });
+const TEMPLATES: Template[] = [
+  {
+    id: 'yogun',
+    name: 'Yoğun',
+    desc: 'Her gün, sabah + akşam · ~hızlı ilerleme',
+    icon: <Flame className="w-5 h-5" />,
+    accent: '#854F0B',
+    items: [
+      { day_of_week: 1, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 1, time_slot: '20:00', activity: 'LingoClip',      duration_min: 20, link_url: link('LingoClip') },
+      { day_of_week: 2, time_slot: '08:00', activity: 'Haber Okuma',    duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 2, time_slot: '20:00', activity: 'Video Analizi',  duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 3, time_slot: '08:00', activity: 'Teknik Makale',  duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 3, time_slot: '20:00', activity: 'Podcast',        duration_min: 20, link_url: link('Podcast') },
+      { day_of_week: 4, time_slot: '08:00', activity: 'Haber Okuma',    duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 4, time_slot: '20:00', activity: 'Video Analizi',  duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 5, time_slot: '08:00', activity: 'Teknik Makale',  duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 5, time_slot: '20:00', activity: 'LingoClip',      duration_min: 20, link_url: link('LingoClip') },
+      { day_of_week: 6, time_slot: '10:00', activity: 'Dizi/Film',      duration_min: 45, link_url: link('Dizi/Film') },
+      { day_of_week: 0, time_slot: '10:00', activity: 'Genel Tekrar',   duration_min: 45, link_url: link('Genel Tekrar') },
+    ],
+  },
+  {
+    id: 'orta',
+    name: 'Dengeli',
+    desc: 'Hafta içi günde 1 oturum · sürdürülebilir',
+    icon: <Zap className="w-5 h-5" />,
+    accent: '#185FA5',
+    items: [
+      { day_of_week: 1, time_slot: '19:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 2, time_slot: '19:00', activity: 'Haber Okuma',   duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 3, time_slot: '19:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 4, time_slot: '19:00', activity: 'LingoClip',     duration_min: 20, link_url: link('LingoClip') },
+      { day_of_week: 5, time_slot: '19:00', activity: 'Genel Tekrar',  duration_min: 30, link_url: link('Genel Tekrar') },
+    ],
+  },
+  {
+    id: 'hafif',
+    name: 'Hafif',
+    desc: 'Haftada 3 gün · yoğun programa alternatif',
+    icon: <Coffee className="w-5 h-5" />,
+    accent: '#3B6D11',
+    items: [
+      { day_of_week: 1, time_slot: '20:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
+      { day_of_week: 3, time_slot: '20:00', activity: 'Video Analizi',  duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 6, time_slot: '11:00', activity: 'Genel Tekrar',   duration_min: 40, link_url: link('Genel Tekrar') },
+    ],
+  },
+];
 
-  const handleAdd = () => {
-    create.mutate({ ...form, is_active: true });
+const EMPTY_FORM: ScheduleCreate = { day_of_week: 1, time_slot: '09:00', activity: '', duration_min: 30, link_url: '' };
+
+// ── Şablon seçici modal ───────────────────────────────────────
+function TemplateModal({ hasExisting, onApply, onClose }: {
+  hasExisting: boolean;
+  onApply: (t: Template, replace: boolean) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [applying, setApplying] = useState<string | null>(null);
+  const [replace, setReplace]   = useState(true);
+
+  const apply = async (t: Template) => {
+    setApplying(t.id);
+    try { await onApply(t, replace); onClose(); }
+    finally { setApplying(null); }
   };
 
   return (
-    <div>
-      <PageHeader
-        title="Çalışma Programı"
-        subtitle="Hatırlatıcılar ve haftalık planlama"
-      />
-
-      {/* Add form */}
-      <Card className="mb-6">
-        <p className="text-sm font-semibold text-slate-700 mb-4">Yeni Program Ekle</p>
-        <div className="flex flex-wrap gap-3 items-end">
-          <Select
-            label="Gün"
-            value={form.day_of_week}
-            onChange={(e) => setForm((p) => ({ ...p, day_of_week: Number(e.target.value) }))}
-            options={DAYS_FULL.map((d, i) => ({ value: i, label: d }))}
-            wrapperClassName="w-36"
-          />
-          <Input
-            label="Başlangıç"
-            type="time"
-            value={form.start_time}
-            onChange={(e) => setForm((p) => ({ ...p, start_time: e.target.value }))}
-            wrapperClassName="w-32"
-          />
-          <Input
-            label="Bitiş"
-            type="time"
-            value={form.end_time}
-            onChange={(e) => setForm((p) => ({ ...p, end_time: e.target.value }))}
-            wrapperClassName="w-32"
-          />
-          <Button onClick={handleAdd} icon={<Plus size={16} />} loading={create.isPending}>
-            Ekle
-          </Button>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 sticky top-0 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#EEEDFE] flex items-center justify-center"><Sparkles className="w-4 h-4 text-[#534AB7]" /></div>
+            <h2 className="text-base font-semibold text-gray-900">Hazır Program Şablonları</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
         </div>
-      </Card>
 
-      {/* Weekly view */}
-      <div className="grid grid-cols-7 gap-2 mb-6">
-        {DAYS.map((day, i) => {
-          const daySchedules = schedules?.filter((s) => s.day_of_week === i) ?? [];
-          return (
-            <div key={day} className="text-center">
-              <p className="text-xs font-semibold text-slate-400 mb-2">{day}</p>
-              <div
-                className={`rounded-xl border-2 py-2 px-1 min-h-12 flex flex-col items-center justify-center gap-1 transition-colors ${
-                  daySchedules.some((s) => s.is_active)
-                    ? 'border-sky-200 bg-sky-50'
-                    : 'border-slate-100 bg-white'
-                }`}
-              >
-                {daySchedules.length === 0 ? (
-                  <span className="text-slate-200 text-lg">·</span>
-                ) : (
-                  daySchedules.map((s) => (
-                    <span key={s.id} className="text-xs text-sky-600 font-medium">
-                      {s.start_time.slice(0, 5)}
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+        <div className="px-6 py-4 space-y-3">
+          <p className="text-sm text-gray-500">Çalışma sıklığına göre bir şablon seç — program otomatik oluşturulur, sonra dilediğin gibi düzenleyebilirsin.</p>
 
-      {/* List */}
-      {isLoading ? (
-        <div className="flex justify-center py-8"><Spinner /></div>
-      ) : !schedules?.length ? (
-        <EmptyState
-          icon={<Calendar size={28} />}
-          title="Henüz program yok"
-          description="Düzenli çalışma için program ekle."
-        />
-      ) : (
-        <Card padding="none">
-          {schedules.map((s) => (
-            <div key={s.id} className="flex items-center gap-4 px-5 py-3.5 border-b border-slate-50 last:border-0">
-              <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-sm font-bold text-slate-500 flex-shrink-0">
-                {DAYS[s.day_of_week]}
+          {hasExisting && (
+            <label className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 cursor-pointer">
+              <input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} className="accent-[#534AB7]" />
+              Mevcut programı sil, şablonla değiştir
+            </label>
+          )}
+
+          {TEMPLATES.map((t) => (
+            <div key={t.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${t.accent}1a`, color: t.accent }}>{t.icon}</div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{t.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
+                    <p className="text-xs text-gray-400 mt-1">{t.items.length} etkinlik / hafta</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => apply(t)}
+                  disabled={applying !== null}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white shrink-0 transition-colors disabled:opacity-50"
+                  style={{ backgroundColor: t.accent }}
+                >
+                  {applying === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Uygula
+                </button>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-slate-700">{DAYS_FULL[s.day_of_week]}</p>
-                <p className="text-xs text-slate-400">{s.start_time.slice(0,5)} – {s.end_time.slice(0,5)}</p>
-              </div>
-              <Toggle
-                checked={s.is_active}
-                onChange={(v) => update.mutate({ id: s.id, data: { is_active: v } })}
-              />
-              <button
-                onClick={() => remove.mutate(s.id)}
-                className="p-2 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-              >
-                <Trash2 size={15} />
-              </button>
             </div>
           ))}
-        </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Etkinlik ekleme modalı ────────────────────────────────────
+function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => Promise<void>; onClose: () => void }) {
+  const [form, setForm] = useState<ScheduleCreate>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const set = (f: keyof ScheduleCreate, v: string | number) => setForm((p) => ({ ...p, [f]: v }));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.activity.trim()) { setError('Aktivite zorunludur.'); return; }
+    setSaving(true);
+    try { await onSave(form); onClose(); }
+    catch (err: any) { setError(err?.response?.data?.detail || 'Kaydedilemedi.'); }
+    finally { setSaving(false); }
+  };
+
+  const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition";
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#E1F5EE] flex items-center justify-center"><CalendarDays className="w-4 h-4 text-[#0F6E56]" /></div>
+            <h2 className="text-base font-semibold text-gray-900">Etkinlik Ekle</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Gün</label>
+            <select value={form.day_of_week} onChange={(e) => set('day_of_week', Number(e.target.value))} className={inputCls}>
+              {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Saat</label><input type="time" value={form.time_slot} onChange={(e) => set('time_slot', e.target.value)} className={inputCls} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">Süre (dk)</label><input type="number" min={5} step={5} value={form.duration_min} onChange={(e) => set('duration_min', Number(e.target.value))} className={inputCls} /></div>
+          </div>
+          <div><label className="block text-xs font-medium text-gray-600 mb-1">Aktivite *</label><input type="text" value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder="örn. Flashcard çalışması" className={inputCls} /></div>
+          <div><label className="block text-xs font-medium text-gray-600 mb-1">Link (opsiyonel)</label><input type="url" value={form.link_url ?? ''} onChange={(e) => set('link_url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
+          {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
+        </form>
+        <div className="flex gap-3 px-6 pb-6">
+          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">İptal</button>
+          <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">{saving ? 'Kaydediliyor…' : 'Kaydet'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Ana sayfa ─────────────────────────────────────────────────
+export default function SchedulePage() {
+  const [items, setItems]     = useState<ScheduleItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal]       = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+
+  const load = async () => {
+    setLoading(true);
+    try { setItems(await scheduleApi.getAll()); }
+    finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, []);
+
+  const handleCreate = async (data: ScheduleCreate) => { await scheduleApi.create(data); load(); };
+  const handleDelete = async (id: string) => {
+    if (!confirm('Bu programı silmek istediğine emin misin?')) return;
+    await scheduleApi.delete(id); load();
+  };
+  const handleToggle = async (item: ScheduleItem) => {
+    try { await scheduleApi.update(item.id, { is_active: !item.is_active }); load(); } catch { /* sessiz */ }
+  };
+
+  const applyTemplate = async (t: Template, replace: boolean) => {
+    if (replace) {
+      await Promise.all(items.map((it) => scheduleApi.delete(it.id).catch(() => {})));
+    }
+    // Sıralı ekle (rate-limit'e takılmamak için)
+    for (const it of t.items) {
+      await scheduleApi.create(it).catch(() => {});
+    }
+    await load();
+  };
+
+  const grouped = DAYS.map((day, i) => ({
+    day, dayIndex: i, color: DAY_COLORS[i],
+    items: items.filter((it) => it.day_of_week === i).sort((a, b) => a.time_slot.localeCompare(b.time_slot)),
+  }));
+
+  const totalItems = items.filter((it) => it.is_active !== false).length;
+  const activeDays = grouped.filter((g) => g.items.length > 0).length;
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Çalışma Programı</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{activeDays} aktif gün · {totalItems} etkinlik</p>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={() => setShowTemplates(true)} className="flex items-center gap-2 bg-[#EEEDFE] hover:bg-[#e0ddfc] text-[#534AB7] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+            <Sparkles className="w-4 h-4" />Şablonlar
+          </button>
+          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition-colors">
+            <Plus className="w-4 h-4" />Etkinlik Ekle
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">Yükleniyor…</span></div>
+        </div>
+      ) : items.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#EEEDFE] flex items-center justify-center"><Sparkles className="w-7 h-7 text-[#534AB7]" /></div>
+          <p className="text-sm font-medium text-gray-700">Henüz program yok</p>
+          <p className="text-xs text-gray-400 max-w-xs">Hazır bir şablonla hızlıca başla ya da kendi etkinliklerini ekle.</p>
+          <div className="flex gap-2 mt-2">
+            <button onClick={() => setShowTemplates(true)} className="flex items-center gap-2 bg-[#534AB7] hover:bg-[#473fa0] text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors">
+              <Sparkles className="w-4 h-4" />Şablon Seç
+            </button>
+            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl px-4 py-2 text-sm font-medium transition-colors">
+              <Plus className="w-4 h-4" />Elle Ekle
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {grouped.map(({ day, color, items: dayItems }) => {
+            const isEmpty = dayItems.length === 0;
+            return (
+              <div key={day} className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden ${isEmpty ? 'opacity-50' : ''}`}>
+                <div className={`px-4 py-3 flex items-center justify-between ${color.bg}`}>
+                  <div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${color.dot}`} /><span className={`text-xs font-semibold ${color.text}`}>{day}</span></div>
+                  {dayItems.length > 0 && <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/60 ${color.text}`}>{dayItems.length}</span>}
+                </div>
+                <div className="p-3 space-y-2">
+                  {isEmpty ? <p className="text-xs text-gray-400 text-center py-2">Etkinlik yok</p> : dayItems.map((item) => (
+                    <div key={item.id} className={`rounded-xl p-3 transition-colors group ${item.is_active === false ? 'bg-gray-50 opacity-50' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-1 text-xs font-semibold text-[#185FA5]"><Clock className="w-3 h-3" />{item.time_slot}<span className="font-normal text-gray-400 ml-0.5">· {item.duration_min}dk</span></div>
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300'}`} title="Aç/Kapat" />
+                          <button onClick={() => handleDelete(item.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="w-3 h-3" /></button>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium text-gray-800 truncate">{item.activity}</p>
+                      {item.link_url && (
+                        <a href={item.link_url} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-[#185FA5] transition-colors truncate">
+                          <ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{item.link_url.replace(/^https?:\/\//, '')}</span>
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
+
+      {showModal && <ScheduleModal onSave={handleCreate} onClose={() => setShowModal(false)} />}
+      {showTemplates && <TemplateModal hasExisting={items.length > 0} onApply={applyTemplate} onClose={() => setShowTemplates(false)} />}
     </div>
   );
 }

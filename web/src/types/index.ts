@@ -1,153 +1,220 @@
-// ─── Auth ────────────────────────────────────────────────────────────────────
+// ============================================================
+// types/index.ts — Backend ile uyumlu tip tanımları
+// ============================================================
+
+// ── Auth ─────────────────────────────────────────────────────
+
 export interface User {
   id: string;
   email: string;
   username: string;
-  full_name?: string;
+  display_name?: string;
   is_admin: boolean;
+  role?: 'user' | 'admin';
   daily_goal: number;
+  native_lang?: string;
+  learning_lang?: string;
   created_at: string;
 }
 
-export interface AuthTokens {
+export interface AuthResponse {
   access_token: string;
-  token_type: string;
+  refresh_token: string;
+  user: {
+    id: string;
+    email: string;
+    display_name: string;
+  };
 }
 
-export interface LoginForm {
-  username: string;
-  password: string;
+// ── Language ─────────────────────────────────────────────────
+
+export interface Language {
+  code: string;
+  name_native: string;
+  name_en: string;
+  flag_emoji?: string;
+  is_active: boolean;
 }
 
-export interface RegisterForm {
-  email: string;
-  username: string;
-  password: string;
-  full_name?: string;
-}
+// ── Word ─────────────────────────────────────────────────────
 
-// ─── Words ───────────────────────────────────────────────────────────────────
 export interface Word {
   id: string;
   user_id: string;
   word: string;
-  definition: string;
-  translation?: string;
-  example_sentence?: string;
-  pronunciation?: string;
-  part_of_speech?: string;
-  difficulty_level: 1 | 2 | 3 | 4 | 5;
-  // Spaced repetition
+  meaning: string;
+  meaning_tr?: string;
+  meaning_en?: string;
+  example?: string;
+  word_type?: string;
+  word_type_tr?: string;
+  list_type: 'active' | 'passive';
+  status: 'learning' | 'learned' | 'archived';
+  repetition_count: number;
+  last_reviewed_at?: string;
+  next_review_at?: string;
   ease_factor: number;
-  interval: number;
-  repetitions: number;
-  next_review: string;
-  last_reviewed?: string;
-  // Meta
-  is_favorite: boolean;
-  tags: string[];
+  interval_days: number;
   created_at: string;
-  updated_at: string;
 }
 
 export interface WordCreate {
   word: string;
-  definition?: string;
-  translation?: string;
-  example_sentence?: string;
-  pronunciation?: string;
-  part_of_speech?: string;
-  difficulty_level?: number;
-  tags?: string[];
+  meaning: string;
+  meaning_tr?: string;
+  meaning_en?: string;
+  example?: string;
+  word_type?: string;
+  word_type_tr?: string;
+  list_type: 'active' | 'passive';
+}
+
+export interface WordUpdate {
+  meaning?: string;
+  meaning_tr?: string;
+  meaning_en?: string;
+  example?: string;
+  word_type?: string;
+  word_type_tr?: string;
+  list_type?: 'active' | 'passive';
+  status?: 'learning' | 'learned' | 'archived';
 }
 
 export interface WordReview {
-  quality: 0 | 1 | 2 | 3 | 4 | 5; // SM-2 quality rating
+  success: boolean;
 }
 
-// ─── Dictionary ──────────────────────────────────────────────────────────────
-export interface DictionaryEntry {
-  word: string;
-  definition: string;
-  pronunciation?: string;
-  part_of_speech?: string;
-  example_sentence?: string;
-  audio_url?: string;
+// ── Dictionary ───────────────────────────────────────────────
+
+export interface DictionaryMeaning {
+  word_type: string;
+  word_type_tr: string;
+  meaning_en: string;
+  meaning_tr: string;
+  examples: string[];
 }
 
-// ─── Stats ───────────────────────────────────────────────────────────────────
-export interface Stats {
-  total_words: number;
-  words_due_today: number;
-  words_learned_today: number;
-  daily_goal: number;
-  streak_days: number;
-  longest_streak: number;
-  accuracy_rate: number;
-  total_reviews: number;
+export interface DictionaryResult {
+  meanings: DictionaryMeaning[];
+  error: string | null;
 }
+
+// ── Stats ────────────────────────────────────────────────────
 
 export interface DailyProgress {
   date: string;
-  words_studied: number;
-  correct_answers: number;
-  total_answers: number;
-  study_time_minutes: number;
+  words_added: number;
+  words_reviewed: number;
+  streak_day: number;
 }
 
-// ─── Quiz ────────────────────────────────────────────────────────────────────
-export interface QuizQuestion {
-  word: Word;
-  options: string[];
-  correct_answer: string;
-  question_type: 'meaning' | 'word' | 'fill_blank';
+export interface Stats {
+  total_words: number;
+  learned: number;
+  learning: number;
+  active_list: number;
+  passive_list: number;
+  current_streak: number;
+  today_added: number;
+  daily_goal: number;
+  daily_history: DailyProgress[];
 }
 
-export interface QuizResult {
-  session_id: string;
-  total_questions: number;
-  correct_answers: number;
-  score_percentage: number;
-  time_taken_seconds: number;
-  completed_at: string;
-}
+// ── Schedule ─────────────────────────────────────────────────
 
-// ─── Schedule ────────────────────────────────────────────────────────────────
-export interface StudySchedule {
+export interface ScheduleItem {
   id: string;
   user_id: string;
-  day_of_week: number; // 0=Sunday
-  start_time: string;
-  end_time: string;
+  day_of_week: number;
+  time_slot: string;
+  activity: string;
+  duration_min: number;
+  link_url?: string;
   is_active: boolean;
 }
 
-// ─── Flashcard ───────────────────────────────────────────────────────────────
-export type FlashcardSide = 'front' | 'back';
-
-export interface FlashcardSession {
-  words: Word[];
-  currentIndex: number;
-  reviewed: string[];
-  correct: string[];
+export interface ScheduleCreate {
+  day_of_week: number;
+  time_slot: string;
+  activity: string;
+  duration_min: number;
+  link_url?: string;
 }
 
-// ─── Admin ───────────────────────────────────────────────────────────────────
-export interface AdminUser extends User {
-  word_count: number;
-  last_active?: string;
+// ── Admin ────────────────────────────────────────────────────
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  display_name?: string;
+  username?: string;
+  role: 'user' | 'admin';
+  is_active: boolean;
+  native_lang?: string;
+  learning_lang?: string;
+  daily_goal?: number;
+  password_masked?: string;
+  created_at: string;
+  last_seen_at?: string;
 }
 
-// ─── API ─────────────────────────────────────────────────────────────────────
-export interface PaginatedResponse<T> {
-  items: T[];
+export interface AdminUserDetail extends AdminUser {
+  total_words: number;
+  learned: number;
+  learning: number;
+  words_today: number;
+  active_words: number;
+  passive_words: number;
+}
+
+export interface AdminStats {
+  total_users: number;
+  active_users: number;
+  total_words: number;
+  words_today: number;
+}
+
+// ── Pagination ───────────────────────────────────────────────
+
+export interface PaginatedWords {
+  items: Word[];
   total: number;
   page: number;
   per_page: number;
   pages: number;
 }
 
-export interface ApiError {
-  detail: string;
-  status_code?: number;
+
+// ── Analytics ────────────────────────────────────────────────
+
+export interface TypeBreakdown {
+  word_type: string;
+  total: number;
+  learned: number;
+  avg_repetition: number;
+  learn_rate: number;
+}
+
+export interface DailyAdded {
+  date: string;
+  added: number;
+}
+
+export interface DailyProgressRow {
+  date: string;
+  words_added: number;
+  words_reviewed: number;
+  streak_day: number;
+  goal: number;
+}
+
+export interface AnalyticsData {
+  totals: {
+    total: number; learned: number; learning: number;
+    archived: number; active: number; passive: number;
+  };
+  type_breakdown: TypeBreakdown[];
+  daily_added: DailyAdded[];
+  daily_progress: DailyProgressRow[];
 }

@@ -1,262 +1,260 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { CheckCircle2, XCircle, RotateCcw, BrainCircuit } from 'lucide-react';
-import { useWords, useReviewWord } from '@/hooks/useWords';
-import { Button, Card, Badge, Spinner, ProgressBar, EmptyState } from '@/components/ui';
-import { PageHeader } from '@/components/layout/PageHeader';
-import { clsx } from 'clsx';
+import { useEffect, useState, useCallback } from 'react';
+import { CheckCircle2, XCircle, Loader2, Trophy, RotateCcw, Brain } from 'lucide-react';
+import { wordsApi } from '@/lib/api';
 import type { Word } from '@/types';
+
+interface QuizCard {
+  word: Word;
+  options: string[];
+  correctIndex: number;
+}
 
 function shuffle<T>(arr: T[]): T[] {
   return [...arr].sort(() => Math.random() - 0.5);
 }
 
-function buildQuestions(words: Word[]) {
-  if (words.length < 4) return [];
-  return shuffle(words).map((word) => {
-    const distractors = shuffle(words.filter((w) => w.id !== word.id))
-      .slice(0, 3)
-      .map((w) => w.translation || w.definition || w.word);
-    const correct = word.translation || word.definition || '—';
-    const options = shuffle([correct, ...distractors]);
-    return { word, correct, options };
+function buildQuiz(words: Word[]): QuizCard[] {
+  return words.map((word) => {
+    const correct = word.meaning_tr || word.meaning;
+    const others = words
+      .filter((w) => w.id !== word.id)
+      .map((w) => w.meaning_tr || w.meaning)
+      .filter(Boolean);
+    const distractors = shuffle(others).slice(0, 3);
+    const allOptions = shuffle([correct, ...distractors]);
+    return { word, options: allOptions, correctIndex: allOptions.indexOf(correct) };
   });
 }
 
+// ── Oturum sonu ───────────────────────────────────────────────
+function DoneScreen({ score, total, onRestart }: { score: number; total: number; onRestart: () => void }) {
+  const pct = total > 0 ? Math.round((score / total) * 100) : 0;
+  const tier =
+    pct >= 80 ? { label: 'Mükemmel!', bg: '#EAF3DE', text: '#3B6D11', bar: '#3B6D11' } :
+    pct >= 50 ? { label: 'İyi İş!',   bg: '#FAEEDA', text: '#854F0B', bar: '#854F0B' } :
+                { label: 'Devam Et!', bg: '#FEE2E2', text: '#b91c1c', bar: '#ef4444' };
+
+  return (
+    <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 flex flex-col items-center gap-5 w-full max-w-sm text-center">
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: tier.bg }}>
+          <Trophy className="w-8 h-8" style={{ color: tier.text }} />
+        </div>
+        <div>
+          <p className="text-2xl font-bold text-gray-900">{tier.label}</p>
+          <p className="text-sm text-gray-500 mt-1">{total} soruyu tamamladın</p>
+        </div>
+
+        <div className="w-full grid grid-cols-2 gap-3">
+          <div className="rounded-xl p-3 bg-[#EAF3DE]">
+            <p className="text-2xl font-bold text-[#3B6D11]">{score}</p>
+            <p className="text-xs text-[#3B6D11] font-medium mt-0.5">Doğru</p>
+          </div>
+          <div className="rounded-xl p-3 bg-red-50">
+            <p className="text-2xl font-bold text-red-600">{total - score}</p>
+            <p className="text-xs text-red-600 font-medium mt-0.5">Yanlış</p>
+          </div>
+        </div>
+
+        <div className="w-full">
+          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+            <span>Başarı oranı</span>
+            <span className="font-semibold" style={{ color: tier.text }}>{pct}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-2 rounded-full transition-all duration-700"
+              style={{ width: `${pct}%`, backgroundColor: tier.bar }}
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={onRestart}
+          className="w-full flex items-center justify-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl py-3 text-sm font-medium transition-colors"
+        >
+          <RotateCcw className="w-4 h-4" />
+          Tekrar Çöz
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Ana Sayfa ─────────────────────────────────────────────────
 export default function QuizPage() {
-  const { data, isLoading } = useWords({ per_page: 50 });
-  const reviewWord = useReviewWord();
+  const [cards, setCards]           = useState<QuizCard[]>([]);
+  const [index, setIndex]           = useState(0);
+  const [selected, setSelected]     = useState<number | null>(null);
+  const [score, setScore]           = useState(0);
+  const [done, setDone]             = useState(false);
+  const [loading, setLoading]       = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError]           = useState('');
 
-  const questions = useMemo(() => {
-    if (!data?.items.length) return [];
-    return buildQuestions(data.items);
-  }, [data?.items]);
-
-  const [started, setStarted] = useState(false);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState(false);
-  const [score, setScore] = useState(0);
-  const [finished, setFinished] = useState(false);
-  const [wrongAnswers, setWrongAnswers] = useState<typeof questions>([]);
-
-  const question = questions[currentIndex];
-
-  const handleSelect = async (option: string) => {
-    if (revealed) return;
-    setSelected(option);
-    setRevealed(true);
-
-    const isCorrect = option === question.correct;
-    if (isCorrect) {
-      setScore((s) => s + 1);
-    } else {
-      setWrongAnswers((prev) => [...prev, question]);
-    }
-
-    // SM-2 review
-    await reviewWord.mutateAsync({
-      id: question.word.id,
-      data: { quality: isCorrect ? 5 : 1 },
-    });
-  };
-
-  const handleNext = () => {
-    if (currentIndex + 1 >= questions.length) {
-      setFinished(true);
-    } else {
-      setCurrentIndex((v) => v + 1);
-      setSelected(null);
-      setRevealed(false);
-    }
-  };
-
-  const handleRestart = () => {
-    setStarted(false);
-    setCurrentIndex(0);
-    setSelected(null);
-    setRevealed(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setDone(false);
+    setIndex(0);
     setScore(0);
-    setFinished(false);
-    setWrongAnswers([]);
+    setSelected(null);
+    setError('');
+    try {
+      const res = await wordsApi.getAll({ page: 1, per_page: 100 });
+      const pool = (res.items || []).filter((w) => (w.meaning_tr || w.meaning));
+      if (pool.length < 4) {
+        setError('Quiz için en az 4 kelime gerekiyor. Önce birkaç kelime ekle.');
+        return;
+      }
+      // Karıştır ve en fazla 20 soru al
+      const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 20);
+      setCards(buildQuiz(shuffled));
+    } catch {
+      setError('Kelimeler yüklenemedi.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const current = cards[index];
+
+  const handleAnswer = async (optionIndex: number) => {
+    if (selected !== null || submitting || !current) return;
+    setSelected(optionIndex);
+    const isCorrect = optionIndex === current.correctIndex;
+    if (isCorrect) setScore((s) => s + 1);
+    setSubmitting(true);
+    try {
+      await wordsApi.review(current.word.id, { success: isCorrect });
+    } catch { /* sessiz */ }
+    finally { setSubmitting(false); }
+
+    setTimeout(() => {
+      if (index + 1 >= cards.length) {
+        setDone(true);
+      } else {
+        setIndex((i) => i + 1);
+        setSelected(null);
+      }
+    }, 1000);
   };
 
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-64"><Spinner size="lg" /></div>;
-  }
-
-  if (!data?.items.length || questions.length < 4) {
+  // ── Loading ──
+  if (loading) {
     return (
-      <div>
-        <PageHeader title="Quiz" />
-        <EmptyState
-          icon={<BrainCircuit size={28} />}
-          title="Yeterli kelime yok"
-          description="Quiz için en az 4 kelime gerekiyor. Önce kelime ekle."
-        />
-      </div>
-    );
-  }
-
-  // Start screen
-  if (!started) {
-    return (
-      <div>
-        <PageHeader title="Quiz" subtitle="Bilgini test et" />
-        <Card padding="lg" className="max-w-md mx-auto text-center">
-          <div className="w-16 h-16 bg-violet-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <BrainCircuit size={30} className="text-violet-500" />
-          </div>
-          <h2 className="text-xl font-bold text-slate-800 mb-2">Quiz'e Hazır mısın?</h2>
-          <p className="text-slate-400 text-sm mb-6">
-            {questions.length} soruluk çoktan seçmeli quiz. Her doğru cevap SM-2 algoritmana yansıyacak.
-          </p>
-          <div className="grid grid-cols-2 gap-3 mb-6 text-left">
-            {[
-              { label: 'Soru sayısı', value: `${questions.length}` },
-              { label: 'Format', value: 'Çoktan seçmeli' },
-              { label: 'Güçlük', value: 'Karışık' },
-              { label: 'Etki', value: 'SM-2 günceller' },
-            ].map((item) => (
-              <div key={item.label} className="bg-slate-50 rounded-xl p-3">
-                <p className="text-xs text-slate-400">{item.label}</p>
-                <p className="font-semibold text-slate-700 text-sm">{item.value}</p>
-              </div>
-            ))}
-          </div>
-          <Button onClick={() => setStarted(true)} className="w-full" size="lg">
-            Quiz'i Başlat
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
-  // Results screen
-  if (finished) {
-    const pct = Math.round((score / questions.length) * 100);
-    const emoji = pct >= 90 ? '🏆' : pct >= 70 ? '🎉' : pct >= 50 ? '👍' : '💪';
-
-    return (
-      <div>
-        <PageHeader title="Quiz Sonuçları" />
-        <div className="max-w-md mx-auto space-y-4">
-          <Card padding="lg" className="text-center">
-            <div className="text-5xl mb-3">{emoji}</div>
-            <h2 className="text-2xl font-bold text-slate-800">{pct}% Başarı</h2>
-            <p className="text-slate-400 text-sm mt-1">{score} / {questions.length} doğru cevap</p>
-            <ProgressBar value={pct} color={pct >= 70 ? 'green' : 'amber'} size="md" showLabel className="mt-4" />
-          </Card>
-
-          {wrongAnswers.length > 0 && (
-            <Card>
-              <p className="text-sm font-semibold text-slate-700 mb-3">
-                Yanlış Cevaplanan ({wrongAnswers.length})
-              </p>
-              <div className="space-y-2">
-                {wrongAnswers.map(({ word, correct }) => (
-                  <div key={word.id} className="flex items-center gap-3 p-2.5 bg-red-50 rounded-xl text-sm">
-                    <XCircle size={16} className="text-red-400 flex-shrink-0" />
-                    <span className="font-semibold text-slate-700">{word.word}</span>
-                    <span className="text-slate-400">→</span>
-                    <span className="text-slate-600">{correct}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-          )}
-
-          <Button onClick={handleRestart} icon={<RotateCcw size={16} />} variant="secondary" className="w-full">
-            Tekrar Başlat
-          </Button>
+      <div className="p-6 flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-3 text-gray-400">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span className="text-sm">Yükleniyor…</span>
         </div>
       </div>
     );
   }
 
-  // Quiz question
+  // ── Hata ──
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-[#FAEEDA] text-[#854F0B] rounded-2xl px-4 py-3 text-sm">{error}</div>
+      </div>
+    );
+  }
+
+  // ── Oturum sonu ──
+  if (done) {
+    return <DoneScreen score={score} total={cards.length} onRestart={load} />;
+  }
+
+  const progress = cards.length > 0 ? (index / cards.length) * 100 : 0;
+
+  // ── Quiz ──
   return (
-    <div>
-      <PageHeader title="Quiz" />
-      <div className="max-w-lg mx-auto space-y-5">
-        {/* Progress */}
-        <Card padding="sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-slate-500">{currentIndex + 1} / {questions.length}</span>
-            <span className="text-sm font-semibold text-emerald-500">✓ {score}</span>
+    <div className="p-6 flex flex-col items-center gap-6 max-w-xl mx-auto">
+
+      {/* Üst bar */}
+      <div className="w-full flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
+            <Brain className="w-4 h-4 text-[#534AB7]" />
           </div>
-          <ProgressBar value={currentIndex} max={questions.length} size="sm" />
-        </Card>
+          <span className="text-sm font-semibold text-gray-700">Quiz</span>
+        </div>
+        <div className="flex items-center gap-3 text-xs font-medium">
+          <span className="flex items-center gap-1 text-[#3B6D11]">
+            <span className="w-2 h-2 rounded-full bg-[#3B6D11] inline-block" />
+            {score} doğru
+          </span>
+          <span className="text-gray-400">Soru {index + 1}/{cards.length}</span>
+        </div>
+      </div>
 
-        {/* Question */}
-        <Card padding="lg">
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">
-            Bu kelimenin anlamı nedir?
-          </p>
-          <div className="flex items-start gap-3 mb-6">
-            <div>
-              <h2 className="text-3xl font-bold text-slate-800">{question.word.word}</h2>
-              {question.word.pronunciation && (
-                <p className="font-mono text-slate-400 text-sm mt-1">/{question.word.pronunciation}/</p>
-              )}
-            </div>
-            {question.word.part_of_speech && (
-              <Badge variant="outline" size="sm" className="mt-1 flex-shrink-0">
-                {question.word.part_of_speech}
-              </Badge>
-            )}
-          </div>
+      {/* Progress */}
+      <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
+        <div
+          className="h-1.5 rounded-full bg-[#534AB7] transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
 
-          <div className="space-y-2">
-            {question.options.map((option, i) => {
-              const isCorrect = option === question.correct;
-              const isSelected = option === selected;
-              let style = 'border-slate-100 hover:border-slate-200 hover:bg-slate-50';
-              if (revealed) {
-                if (isCorrect) style = 'border-emerald-200 bg-emerald-50';
-                else if (isSelected) style = 'border-red-200 bg-red-50';
-                else style = 'border-slate-100 opacity-50';
-              }
+      {/* Soru kartı */}
+      <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          Bu kelimenin anlamı nedir?
+        </p>
+        <p className="text-4xl font-bold text-gray-900 tracking-tight">{current.word.word}</p>
+        {current.word.word_type && (
+          <span className="inline-block mt-3 text-xs font-medium bg-[#EEEDFE] text-[#534AB7] px-2.5 py-1 rounded-full">
+            {current.word.word_type}
+          </span>
+        )}
+      </div>
 
-              return (
-                <button
-                  key={i}
-                  onClick={() => handleSelect(option)}
-                  disabled={revealed}
-                  className={clsx(
-                    'w-full text-left px-4 py-3 rounded-xl border transition-all duration-150 text-sm font-medium flex items-center gap-3',
-                    style
-                  )}
-                >
-                  <span className={clsx(
-                    'w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold flex-shrink-0',
-                    revealed && isCorrect ? 'bg-emerald-100 text-emerald-600' :
-                    revealed && isSelected ? 'bg-red-100 text-red-500' :
-                    'bg-slate-100 text-slate-500'
-                  )}>
-                    {String.fromCharCode(65 + i)}
-                  </span>
-                  <span className={clsx(
-                    revealed && isCorrect ? 'text-emerald-700' :
-                    revealed && isSelected ? 'text-red-600' :
-                    'text-slate-700'
-                  )}>
-                    {option}
-                  </span>
-                  {revealed && isCorrect && <CheckCircle2 size={16} className="text-emerald-500 ml-auto" />}
-                  {revealed && isSelected && !isCorrect && <XCircle size={16} className="text-red-400 ml-auto" />}
-                </button>
-              );
-            })}
-          </div>
+      {/* Seçenekler */}
+      <div className="w-full grid grid-cols-1 gap-3">
+        {current.options.map((opt, i) => {
+          const isCorrect = i === current.correctIndex;
+          const isSelected = i === selected;
+          const answered = selected !== null;
 
-          {revealed && (
-            <Button onClick={handleNext} className="w-full mt-4 animate-fade-in">
-              {currentIndex + 1 >= questions.length ? 'Sonuçları Gör' : 'Sonraki Soru →'}
-            </Button>
-          )}
-        </Card>
+          let cls = 'border-gray-200 text-gray-700 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
+          let icon: React.ReactNode = null;
+
+          if (answered) {
+            if (isCorrect) {
+              cls = 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]';
+              icon = <CheckCircle2 className="w-4 h-4 shrink-0 text-[#3B6D11]" />;
+            } else if (isSelected) {
+              cls = 'border-red-400 bg-red-50 text-red-600';
+              icon = <XCircle className="w-4 h-4 shrink-0 text-red-400" />;
+            } else {
+              cls = 'border-gray-100 text-gray-300';
+            }
+          }
+
+          return (
+            <button
+              key={i}
+              onClick={() => handleAnswer(i)}
+              disabled={answered}
+              className={`w-full flex items-center gap-3 border-2 rounded-xl px-4 py-3.5 text-sm font-medium text-left transition-all ${cls}`}
+            >
+              {/* Harf etiketi */}
+              <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
+                answered
+                  ? isCorrect ? 'bg-[#3B6D11] text-white' : isSelected ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-300'
+                  : 'bg-gray-100 text-gray-500'
+              }`}>
+                {['A', 'B', 'C', 'D'][i]}
+              </span>
+              <span className="flex-1">{opt}</span>
+              {icon}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

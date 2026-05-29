@@ -1,101 +1,110 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, User, Lock } from 'lucide-react';
+import Link from 'next/link';
 import { authApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
-import { Button, Input, Card } from '@/components/ui';
-import type { User as UserType } from '@/types';
+import type { User } from '@/types';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
 
-  const [form, setForm] = useState({ username: '', password: '' });
-  const [showPw, setShowPw] = useState(false);
+  const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
       const res = await authApi.login(form);
-      // Backend returns token — build a minimal user object from what we have
-      const user: UserType = {
-        id: '',
-        email: form.username,
-        username: form.username,
-        is_admin: false,
-        daily_goal: 10,
-        created_at: new Date().toISOString(),
+
+      // Interceptor'un getMe() için token'i okuyabilmesi amacıyla
+      // once localStorage'a yaz, sonra /auth/me'yi cagir
+      localStorage.setItem('lexis_token', res.access_token);
+      const me = await authApi.getMe();
+
+      const user: User = {
+        id:           me.id,
+        email:        me.email,
+        display_name: me.display_name,
+        username:     (me as any).username || me.display_name || '',
+        is_admin:     (me as any).is_admin ?? (me as any).role === 'admin',
+        role:         (me as any).role,
+        daily_goal:   (me as any).daily_goal ?? 5,
+        created_at:   (me as any).created_at || new Date().toISOString(),
       };
+
       login(res.access_token, user);
       router.push('/dashboard');
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string | object } } };
-      const detail = axiosErr?.response?.data?.detail;
-      setError(typeof detail === 'string' ? detail : 'Kullanıcı adı veya şifre hatalı.');
+    } catch (err: any) {
+      localStorage.removeItem('lexis_token');
+      setError(
+        err?.response?.data?.detail || 'Giriş yapılamadı. Bilgilerinizi kontrol edin.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Hoş geldin 👋</h1>
-        <p className="text-slate-400 text-sm mt-1">Hesabına giriş yap ve öğrenmeye devam et.</p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-md p-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">Lexis'e Giriş Yap</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="E-posta veya kullanıcı adı"
-          placeholder="ornek@email.com"
-          value={form.username}
-          onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
-          leftIcon={<User size={16} />}
-          required
-          autoComplete="username"
-          autoFocus
-        />
-
-        <Input
-          label="Şifre"
-          type={showPw ? 'text' : 'password'}
-          placeholder="••••••••"
-          value={form.password}
-          onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-          leftIcon={<Lock size={16} />}
-          rightIcon={
-            <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600">
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          }
-          required
-          autoComplete="current-password"
-        />
-
-        {error && (
-          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
-            {error}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">E-posta</label>
+            <input
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
-        )}
 
-        <Button type="submit" className="w-full mt-2" size="lg" loading={loading}>
-          Giriş Yap
-        </Button>
-      </form>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
+            <input
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              required
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
-      <p className="text-center text-sm text-slate-400 mt-6">
-        Hesabın yok mu?{' '}
-        <Link href="/register" className="text-sky-600 font-medium hover:underline">
-          Kayıt ol
-        </Link>
-      </p>
-    </Card>
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg py-2 text-sm transition-colors"
+          >
+            {loading ? 'Giriş yapılıyor…' : 'Giriş Yap'}
+          </button>
+        </form>
+
+        <p className="mt-4 text-center text-sm text-gray-500">
+          Hesabın yok mu?{' '}
+          <Link href="/register" className="text-blue-600 hover:underline">
+            Kayıt ol
+          </Link>
+        </p>
+      </div>
+    </div>
   );
 }
