@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, Layers, HelpCircle,
-  CalendarDays, ShieldCheck, LogOut, User, BarChart3,
+  CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 
@@ -47,6 +47,14 @@ export function Sidebar() {
           );
         })}
       </nav>
+
+      {/* Premium abonelik kısayolu */}
+      <Link href="/premium"
+        className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-3 ${
+          user?.is_premium ? 'text-amber-600 bg-amber-50 hover:bg-amber-100' : 'text-slate-600 hover:bg-gray-50 hover:text-gray-900'
+        }`}>
+        <Crown className="w-4 h-4 shrink-0" />{user?.is_premium ? 'Premium Üyesin' : 'Premium\u2019a Geç'}
+      </Link>
 
       {/* Admin için ayrı yönetim paneline kısayol */}
       {user?.is_admin && (
