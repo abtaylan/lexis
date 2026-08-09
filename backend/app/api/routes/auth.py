@@ -130,6 +130,8 @@ async def get_me(current_user=Depends(get_current_user)):
             "learning_lang": data.get("learning_lang", "en"),
             "is_admin":      data.get("role") == "admin",
             "created_at":    data.get("created_at", ""),
+            "is_premium":    data.get("is_premium", False),
+            "premium_until": data.get("premium_until"),
         }
     except Exception as e:
         print(f"GET_ME ERROR: {e}")
@@ -198,4 +200,6 @@ async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_u
         "learning_lang": d.get("learning_lang", "en"),
         "is_admin":      d.get("role") == "admin",
         "created_at":    d.get("created_at", ""),
+        "is_premium":    d.get("is_premium", False),
+        "premium_until": d.get("premium_until"),
     }
