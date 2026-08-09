@@ -2,8 +2,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { CheckCircle2, XCircle, RotateCcw, Loader2, Layers, ChevronRight } from 'lucide-react';
-import { wordsApi } from '@/lib/api';
-import type { Word } from '@/types';
+import { wordsApi, languagesApi } from '@/lib/api';
+import { useAuth } from '@/store/auth';
+import type { Word, Language } from '@/types';
 
 // ── Oturum sonu ekranı ────────────────────────────────────────
 function DoneScreen({ total, correct, onRestart }: { total: number; correct: number; onRestart: () => void }) {
@@ -62,6 +63,16 @@ function DoneScreen({ total, correct, onRestart }: { total: number; correct: num
 
 // ── Ana Sayfa ─────────────────────────────────────────────────
 export default function FlashcardsPage() {
+  const { user } = useAuth();
+  const [langNames, setLangNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    languagesApi.getAll()
+      .then((langs: Language[]) => setLangNames(Object.fromEntries(langs.map((l) => [l.code, l.name_native]))))
+      .catch(() => {});
+  }, []);
+  const nativeLabel = langNames[user?.native_lang || 'tr'] || (user?.native_lang || 'tr').toUpperCase();
+  const learningLabel = langNames[user?.learning_lang || 'en'] || (user?.learning_lang || 'en').toUpperCase();
+
   const [queue, setQueue]         = useState<Word[]>([]);
   const [index, setIndex]         = useState(0);
   const [flipped, setFlipped]     = useState(false);
@@ -223,19 +234,19 @@ export default function FlashcardsPage() {
               <p className="text-lg font-semibold text-gray-900 leading-snug">{current.meaning}</p>
             </div>
 
-            {/* Türkçe — meaning'den farklıysa göster */}
-            {current.meaning_tr && current.meaning_tr !== current.meaning && (
+            {/* Ana dildeki karşılığı — meaning'den farklıysa göster */}
+            {current.meaning_native && current.meaning_native !== current.meaning && (
               <div className="w-full">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Türkçe</p>
-                <p className="text-base font-medium text-[#185FA5]">{current.meaning_tr}</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{nativeLabel}</p>
+                <p className="text-base font-medium text-[#185FA5]">{current.meaning_native}</p>
               </div>
             )}
 
-            {/* İngilizce açıklama — meaning'den farklıysa göster */}
-            {current.meaning_en && current.meaning_en !== current.meaning && (
+            {/* Öğrenilen dildeki açıklama — meaning'den farklıysa göster */}
+            {current.meaning_target && current.meaning_target !== current.meaning && (
               <div className="w-full">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">İngilizce açıklama</p>
-                <p className="text-sm text-gray-600 leading-snug">{current.meaning_en}</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{learningLabel} açıklaması</p>
+                <p className="text-sm text-gray-600 leading-snug">{current.meaning_target}</p>
               </div>
             )}
 
