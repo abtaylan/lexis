@@ -17,6 +17,22 @@ class Settings(BaseSettings):
     SCRAPE_TIMEOUT: int = 10
     SCRAPE_CACHE_TTL: int = 3600
 
+    # Çok dilli sözlük — MyMemory çeviri API (opsiyonel, günlük limiti yükseltir)
+    MYMEMORY_EMAIL: str = ""
+
+    # URL'ler — iyzico callback ve frontend yönlendirmeleri için
+    BACKEND_PUBLIC_URL: str = "http://localhost:8000"
+    FRONTEND_URL: str = "http://localhost:3000"
+
+    # iyzico — Abonelik (Subscription API v2)
+    IYZICO_API_KEY: str = ""
+    IYZICO_SECRET_KEY: str = ""
+    IYZICO_BASE_URL: str = "https://sandbox-api.iyzipay.com"   # canlıda: https://api.iyzipay.com
+    IYZICO_MONTHLY_PLAN_REF: str = ""
+    IYZICO_YEARLY_PLAN_REF: str = ""
+    PREMIUM_MONTHLY_PRICE: float = 49.99
+    PREMIUM_YEARLY_PRICE: float = 449.99
+
     class Config:
         env_file = ".env"
         case_sensitive = True
