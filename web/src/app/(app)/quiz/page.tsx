@@ -17,10 +17,10 @@ function shuffle<T>(arr: T[]): T[] {
 
 function buildQuiz(words: Word[]): QuizCard[] {
   return words.map((word) => {
-    const correct = word.meaning_tr || word.meaning;
+    const correct = word.meaning_native || word.meaning;
     const others = words
       .filter((w) => w.id !== word.id)
-      .map((w) => w.meaning_tr || w.meaning)
+      .map((w) => w.meaning_native || w.meaning)
       .filter(Boolean);
     const distractors = shuffle(others).slice(0, 3);
     const allOptions = shuffle([correct, ...distractors]);
@@ -103,7 +103,7 @@ export default function QuizPage() {
     setError('');
     try {
       const res = await wordsApi.getAll({ page: 1, per_page: 100 });
-      const pool = (res.items || []).filter((w) => (w.meaning_tr || w.meaning));
+      const pool = (res.items || []).filter((w) => (w.meaning_native || w.meaning));
       if (pool.length < 4) {
         setError('Quiz için en az 4 kelime gerekiyor. Önce birkaç kelime ekle.');
         return;
