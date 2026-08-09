@@ -62,6 +62,18 @@ async def create_word(
     data["user_id"] = current_user.id
     data["next_review_at"] = (datetime.now(timezone.utc).isoformat())
 
+    # Kelimenin dil çiftini kullanıcının profilinden al (source=öğrenilen dil, target=ana dil)
+    profile = (
+        supabase_admin.table("profiles")
+        .select("native_lang, learning_lang")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    )
+    prof_data = profile.data or {}
+    data["source_lang"] = prof_data.get("learning_lang", "en")
+    data["target_lang"] = prof_data.get("native_lang", "tr")
+
     result = supabase_admin.table("words").insert(data).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Kelime eklenemedi.")
