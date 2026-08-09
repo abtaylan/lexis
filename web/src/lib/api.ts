@@ -21,6 +21,9 @@ import type {
   Language,
   DictionaryResult,
   AnalyticsData,
+  PricingPlan,
+  CheckoutResponse,
+  SubscriptionStatus,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -155,9 +158,9 @@ export const wordsApi = {
 
 // ── Dictionary API ────────────────────────────────────────────
 export const dictionaryApi = {
-  lookup: async (word: string): Promise<DictionaryResult> => {
+  lookup: async (word: string, learning_lang?: string, native_lang?: string): Promise<DictionaryResult> => {
     const res = await api.get<DictionaryResult>('/dictionary/lookup', {
-      params: { word },
+      params: { word, learning_lang, native_lang },
     });
     return res.data;
   },
@@ -195,6 +198,26 @@ export const scheduleApi = {
   },
   delete: async (id: string): Promise<void> => {
     await api.delete(`/schedule/${id}`);
+  },
+};
+
+// ── Subscription API ─────────────────────────────────────────
+export const subscriptionApi = {
+  getPlans: async (): Promise<PricingPlan[]> => {
+    const res = await api.get<PricingPlan[]>('/subscription/plans');
+    return res.data;
+  },
+  getStatus: async (): Promise<SubscriptionStatus> => {
+    const res = await api.get<SubscriptionStatus>('/subscription/me');
+    return res.data;
+  },
+  checkout: async (plan_code: 'monthly' | 'yearly'): Promise<CheckoutResponse> => {
+    const res = await api.post<CheckoutResponse>('/subscription/checkout', { plan_code });
+    return res.data;
+  },
+  cancel: async (): Promise<{ message: string }> => {
+    const res = await api.post('/subscription/cancel');
+    return res.data;
   },
 };
 
