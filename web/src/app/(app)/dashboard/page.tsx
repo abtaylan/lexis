@@ -331,7 +331,7 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-gray-400">{w.meaning_tr || w.meaning}</span>
+                <span className="text-xs text-gray-400">{w.meaning_native || w.meaning}</span>
               </div>
             ))
           )}
