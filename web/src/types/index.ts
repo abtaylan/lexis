@@ -15,6 +15,30 @@ export interface User {
   native_lang?: string;
   learning_lang?: string;
   created_at: string;
+  is_premium?: boolean;
+  premium_until?: string;
+}
+
+export interface PricingPlan {
+  code: 'monthly' | 'yearly';
+  name: string;
+  price: number;
+  currency: string;
+  interval_label: string;
+  iyzico_pricing_plan_ref: string;
+}
+
+export interface CheckoutResponse {
+  checkout_form_content?: string;
+  payment_page_url?: string;
+  token?: string;
+}
+
+export interface SubscriptionStatus {
+  is_premium: boolean;
+  premium_until?: string;
+  plan_code?: string;
+  status?: string;
 }
 
 export interface AuthResponse {
@@ -44,11 +68,11 @@ export interface Word {
   user_id: string;
   word: string;
   meaning: string;
-  meaning_tr?: string;
-  meaning_en?: string;
+  meaning_native?: string;
+  meaning_target?: string;
   example?: string;
   word_type?: string;
-  word_type_tr?: string;
+  word_type_native?: string;
   list_type: 'active' | 'passive';
   status: 'learning' | 'learned' | 'archived';
   repetition_count: number;
@@ -62,21 +86,21 @@ export interface Word {
 export interface WordCreate {
   word: string;
   meaning: string;
-  meaning_tr?: string;
-  meaning_en?: string;
+  meaning_native?: string;
+  meaning_target?: string;
   example?: string;
   word_type?: string;
-  word_type_tr?: string;
+  word_type_native?: string;
   list_type: 'active' | 'passive';
 }
 
 export interface WordUpdate {
   meaning?: string;
-  meaning_tr?: string;
-  meaning_en?: string;
+  meaning_native?: string;
+  meaning_target?: string;
   example?: string;
   word_type?: string;
-  word_type_tr?: string;
+  word_type_native?: string;
   list_type?: 'active' | 'passive';
   status?: 'learning' | 'learned' | 'archived';
 }
@@ -89,9 +113,9 @@ export interface WordReview {
 
 export interface DictionaryMeaning {
   word_type: string;
-  word_type_tr: string;
-  meaning_en: string;
-  meaning_tr: string;
+  word_type_native: string;
+  meaning_target: string;
+  meaning_native: string;
   examples: string[];
 }
 
