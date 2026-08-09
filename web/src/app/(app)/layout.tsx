@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { AdBanner } from '@/components/ads/AdBanner';
 import { useAuth } from '@/store/auth';
 import { Spinner } from '@/components/ui';
 
@@ -33,6 +34,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
       <main className="flex-1 ml-60 min-h-screen overflow-y-auto">
+        <AdBanner slot="1234567890" className="mt-3" />
         {children}
       </main>
     </div>
