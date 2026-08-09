@@ -5,11 +5,12 @@ import {
   Plus, Search, Pencil, Trash2, X, BookOpen, CheckCircle2,
   Archive, RefreshCw, Sparkles, Loader2,
 } from 'lucide-react';
-import { wordsApi, dictionaryApi } from '@/lib/api';
-import type { Word, WordCreate, WordUpdate, DictionaryMeaning } from '@/types';
+import { wordsApi, dictionaryApi, languagesApi } from '@/lib/api';
+import { useAuth } from '@/store/auth';
+import type { Word, WordCreate, WordUpdate, DictionaryMeaning, Language } from '@/types';
 
 const EMPTY_FORM: WordCreate = {
-  word: '', meaning: '', meaning_tr: '', meaning_en: '',
+  word: '', meaning: '', meaning_native: '', meaning_target: '',
   example: '', word_type: '', list_type: 'active',
 };
 
@@ -27,7 +28,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ── WordFormModal — Cambridge entegrasyonlu ───────────────────
+// ── WordFormModal — çok dilli sözlük entegrasyonlu ────────────
 function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
   initial?: WordCreate;
   onSave: (data: WordCreate) => Promise<void>;
@@ -35,6 +36,21 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
   title: string;
   allowLookup: boolean;
 }) {
+  const { user } = useAuth();
+  const nativeLang = user?.native_lang || 'tr';
+  const learningLang = user?.learning_lang || 'en';
+
+  const [langNames, setLangNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    languagesApi.getAll()
+      .then((langs: Language[]) => {
+        setLangNames(Object.fromEntries(langs.map((l) => [l.code, l.name_native])));
+      })
+      .catch(() => {});
+  }, []);
+  const nativeLabel = langNames[nativeLang] || nativeLang.toUpperCase();
+  const learningLabel = langNames[learningLang] || learningLang.toUpperCase();
+
   const [form, setForm]   = useState<WordCreate>(initial ?? EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -55,7 +71,7 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
     setLookupMsg('');
     setMeanings([]);
     try {
-      const res = await dictionaryApi.lookup(w);
+      const res = await dictionaryApi.lookup(w, learningLang, nativeLang);
       setSearched(w);
       if (res.meanings && res.meanings.length > 0) {
         setMeanings(res.meanings);
@@ -72,9 +88,9 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
   const applyMeaning = (m: DictionaryMeaning) => {
     setForm((prev) => ({
       ...prev,
-      meaning:    m.meaning_tr || m.meaning_en || prev.meaning,
-      meaning_tr: m.meaning_tr || prev.meaning_tr,
-      meaning_en: m.meaning_en || prev.meaning_en,
+      meaning:    m.meaning_native || m.meaning_target || prev.meaning,
+      meaning_native: m.meaning_native || prev.meaning_native,
+      meaning_target: m.meaning_target || prev.meaning_target,
       example:    m.examples?.[0] || prev.example,
       word_type:  m.word_type || prev.word_type,
     }));
@@ -101,8 +117,8 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
 
   const textFields: { field: keyof WordCreate; label: string; ph: string }[] = [
     { field: 'meaning',    label: 'Anlam *',            ph: 'örn. azim, sebat' },
-    { field: 'meaning_tr', label: 'Türkçe anlam',       ph: 'örn. azim' },
-    { field: 'meaning_en', label: 'İngilizce açıklama',  ph: 'continued effort despite difficulty' },
+    { field: 'meaning_native', label: `${nativeLabel} anlamı`,        ph: 'örn. azim' },
+    { field: 'meaning_target', label: `${learningLabel} açıklaması`, ph: 'continued effort despite difficulty' },
     { field: 'example',    label: 'Örnek cümle',        ph: 'örn. Her perseverance paid off.' },
     { field: 'word_type',  label: 'Kelime türü',        ph: 'noun / verb / adjective…' },
   ];
@@ -141,7 +157,7 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
                   onClick={handleLookup}
                   disabled={looking || !form.word.trim()}
                   className="flex items-center gap-1.5 px-3 py-2 bg-[#EEEDFE] hover:bg-[#e0ddfc] disabled:opacity-50 text-[#534AB7] rounded-xl text-sm font-medium transition-colors shrink-0"
-                  title="Cambridge sözlükte ara"
+                  title="Sözlükte ara"
                 >
                   {looking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                   Ara
@@ -171,11 +187,11 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
                 >
                   {m.word_type && (
                     <span className="text-xs font-medium bg-[#EEEDFE] text-[#534AB7] px-2 py-0.5 rounded-full">
-                      {m.word_type} · {m.word_type_tr}
+                      {m.word_type} · {m.word_type_native}
                     </span>
                   )}
-                  {m.meaning_tr && <p className="text-sm font-medium text-[#185FA5] mt-1.5">{m.meaning_tr}</p>}
-                  {m.meaning_en && <p className="text-xs text-gray-600 mt-0.5">{m.meaning_en}</p>}
+                  {m.meaning_native && <p className="text-sm font-medium text-[#185FA5] mt-1.5">{m.meaning_native}</p>}
+                  {m.meaning_target && <p className="text-xs text-gray-600 mt-0.5">{m.meaning_target}</p>}
                   {m.examples?.[0] && <p className="text-xs text-gray-400 italic mt-1">{m.examples[0]}</p>}
                 </button>
               ))}
@@ -224,6 +240,15 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
 
 // ── Ana Sayfa ─────────────────────────────────────────────────
 export default function WordsPage() {
+  const { user } = useAuth();
+  const [langNames, setLangNames] = useState<Record<string, string>>({});
+  useEffect(() => {
+    languagesApi.getAll()
+      .then((langs: Language[]) => setLangNames(Object.fromEntries(langs.map((l) => [l.code, l.name_native]))))
+      .catch(() => {});
+  }, []);
+  const nativeLabel = langNames[user?.native_lang || 'tr'] || (user?.native_lang || 'tr').toUpperCase();
+
   const [words, setWords]         = useState<Word[]>([]);
   const [total, setTotal]         = useState(0);
   const [page, setPage]           = useState(1);
@@ -326,7 +351,7 @@ export default function WordsPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                {['Kelime','Anlam','Türkçe','Tür','Durum','Tekrar','Sonraki',''].map((h, i) => (
+                {['Kelime','Anlam',nativeLabel,'Tür','Durum','Tekrar','Sonraki',''].map((h, i) => (
                   <th key={i} className={`px-4 py-3 ${h==='Tekrar'?'text-center':'text-left'} text-xs font-semibold text-gray-400 uppercase tracking-wide`}>{h}</th>
                 ))}
               </tr>
@@ -336,7 +361,7 @@ export default function WordsPage() {
                 <tr key={w.id} className="border-b border-gray-50 last:border-0 hover:bg-slate-50 transition-colors group">
                   <td className="px-4 py-3"><span className="font-semibold text-gray-900">{w.word}</span></td>
                   <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">{w.meaning}</td>
-                  <td className="px-4 py-3 text-gray-500">{w.meaning_tr ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-500">{w.meaning_native ?? '—'}</td>
                   <td className="px-4 py-3">
                     {w.word_type ? <span className="text-xs font-medium bg-[#EEEDFE] text-[#534AB7] px-2 py-0.5 rounded-full">{w.word_type}</span> : <span className="text-gray-300">—</span>}
                   </td>
@@ -375,7 +400,7 @@ export default function WordsPage() {
           allowLookup
           initial={{
             word: editWord.word, meaning: editWord.meaning,
-            meaning_tr: editWord.meaning_tr ?? '', meaning_en: editWord.meaning_en ?? '',
+            meaning_native: editWord.meaning_native ?? '', meaning_target: editWord.meaning_target ?? '',
             example: editWord.example ?? '', word_type: editWord.word_type ?? '',
             list_type: editWord.list_type,
           }}
