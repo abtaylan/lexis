@@ -5,13 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, User, Lock, Mail, Globe, GraduationCap } from 'lucide-react';
 import { authApi, languagesApi } from '@/lib/api';
-import { useAuth } from '@/store/auth';
 import { Button, Input, Card } from '@/components/ui';
-import type { User as UserType, Language } from '@/types';
+import type { Language } from '@/types';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { login } = useAuth();
 
   const [form, setForm] = useState({
     email: '',
@@ -32,7 +30,7 @@ export default function RegisterPage() {
       .then(setLanguages)
       .catch(() => setLanguages([
         { code: 'en', name_native: 'English', name_en: 'English', flag_emoji: '🇬🇧', is_active: true },
-        { code: 'tr', name_native: 'Türkçe',  name_en: 'Turkish', flag_emoji: '🇹🇷', is_active: true },
+        { code: 'tr', name_native: 'Türkçe', name_en: 'Turkish', flag_emoji: '🇹🇷', is_active: true },
       ]));
   }, []);
 
@@ -62,27 +60,10 @@ export default function RegisterPage() {
         learning_lang: form.learning_lang,
       });
 
-      // FIX: login email ile çağrılıyor (eskiden yanlışlıkla username veriliyordu)
-      const tokenRes = await authApi.login({ email: form.email, password: form.password });
-      localStorage.setItem('lexis_token', tokenRes.access_token);
-      const me = await authApi.getMe();
-
-      const user: UserType = {
-        id:            me.id,
-        email:         me.email,
-        username:      me.username || form.username,
-        display_name:  me.display_name || form.display_name,
-        is_admin:      me.is_admin ?? me.role === 'admin',
-        role:          me.role,
-        daily_goal:    me.daily_goal ?? 5,
-        native_lang:   me.native_lang ?? form.native_lang,
-        learning_lang: me.learning_lang ?? form.learning_lang,
-        created_at:    me.created_at || new Date().toISOString(),
-      };
-      login(tokenRes.access_token, user);
-      router.push('/dashboard');
+      // Hesap oluşturuldu — token burada verilmez, önce e-postaya gönderilen
+      // OTP kodu doğrulanmalı. Doğrulanınca otomatik giriş yapılır.
+      router.push(`/verify-otp?email=${encodeURIComponent(form.email)}&purpose=register`);
     } catch (err: unknown) {
-      localStorage.removeItem('lexis_token');
       const axiosErr = err as { response?: { data?: { detail?: string | object } } };
       const detail = axiosErr?.response?.data?.detail;
       setErrors({ form: typeof detail === 'string' ? detail : 'Kayıt başarısız. Bu e-posta zaten kullanılıyor olabilir.' });
