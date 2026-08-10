@@ -7,6 +7,7 @@ import {
   GraduationCap, Save, Star, User as UserIcon,
 } from 'lucide-react';
 import { scheduleApi } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem } from '@/types';
 
 const DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
@@ -152,6 +153,7 @@ function TemplateModal({ hasExisting, onApply, onClose }: {
   onApply: (items: ScheduleCreate[], replace: boolean) => Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useLocale();
   const [applying, setApplying] = useState<string | null>(null);
   const [replace, setReplace] = useState(true);
   const [customTemplates, setCustomTemplates] = useState<ScheduleTemplate[]>([]);
@@ -172,7 +174,7 @@ function TemplateModal({ hasExisting, onApply, onClose }: {
   };
 
   const removeCustom = async (id: string) => {
-    if (!confirm('Bu özel şablonu silmek istediğine emin misin?')) return;
+    if (!confirm(t('deleteTemplateConfirm'))) return;
     setDeletingId(id);
     try {
       await scheduleApi.deleteTemplate(id);
@@ -188,40 +190,40 @@ function TemplateModal({ hasExisting, onApply, onClose }: {
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 sticky top-0 bg-white">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#EEEDFE] flex items-center justify-center"><Sparkles className="w-4 h-4 text-[#534AB7]" /></div>
-            <h2 className="text-base font-semibold text-gray-900">Hazır Program Şablonları</h2>
+            <h2 className="text-base font-semibold text-gray-900">{t('templatesModalTitle')}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="px-6 py-4 space-y-3">
-          <p className="text-sm text-gray-500">Çalışma sıklığına veya odak alanına göre bir şablon seç — program otomatik oluşturulur, sonra dilediğin gibi düzenleyebilirsin.</p>
+          <p className="text-sm text-gray-500">{t('templatesModalDesc')}</p>
 
           {hasExisting && (
             <label className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 cursor-pointer">
               <input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} className="accent-[#534AB7]" />
-              Mevcut programı sil, şablonla değiştir
+              {t('replaceExistingLabel')}
             </label>
           )}
 
-          {TEMPLATES.map((t) => (
-            <div key={t.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
+          {TEMPLATES.map((tpl) => (
+            <div key={tpl.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${t.accent}1a`, color: t.accent }}>{t.icon}</div>
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${tpl.accent}1a`, color: tpl.accent }}>{tpl.icon}</div>
                   <div>
-                    <p className="font-semibold text-gray-900">{t.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
-                    <p className="text-xs text-gray-400 mt-1">{t.items.length} etkinlik / hafta</p>
+                    <p className="font-semibold text-gray-900">{tpl.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{tpl.desc}</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('perWeekTpl').replace('{n}', String(tpl.items.length))}</p>
                   </div>
                 </div>
                 <button
-                  onClick={() => apply(t.id, t.items)}
+                  onClick={() => apply(tpl.id, tpl.items)}
                   disabled={applying !== null}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white shrink-0 transition-colors disabled:opacity-50"
-                  style={{ backgroundColor: t.accent }}
+                  style={{ backgroundColor: tpl.accent }}
                 >
-                  {applying === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  Uygula
+                  {applying === tpl.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  {t('applyBtn')}
                 </button>
               </div>
             </div>
@@ -231,45 +233,45 @@ function TemplateModal({ hasExisting, onApply, onClose }: {
           <div className="pt-2">
             <div className="flex items-center gap-2 mb-2">
               <UserIcon className="w-4 h-4 text-gray-400" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Şablonlarım</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('myTemplatesLabel')}</p>
             </div>
 
             {loadingCustom ? (
               <div className="flex items-center gap-2 text-sm text-gray-400 px-1 py-2">
-                <Loader2 className="w-4 h-4 animate-spin" />Yükleniyor…
+                <Loader2 className="w-4 h-4 animate-spin" />{t('loading')}
               </div>
             ) : customTemplates.length === 0 ? (
               <p className="text-xs text-gray-400 px-1 py-2">
-                Henüz kendi şablonun yok. Bir program oluşturup "Şablon Olarak Kaydet" ile burada saklayabilirsin.
+                {t('noCustomTemplates')}
               </p>
             ) : (
               <div className="space-y-3">
-                {customTemplates.map((t) => (
-                  <div key={t.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
+                {customTemplates.map((tpl) => (
+                  <div key={tpl.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#FEF3E7] text-[#B7791F]"><Star className="w-5 h-5" /></div>
                         <div>
-                          <p className="font-semibold text-gray-900">{t.name}</p>
-                          <p className="text-xs text-gray-400 mt-1">{t.items.length} etkinlik / hafta</p>
+                          <p className="font-semibold text-gray-900">{tpl.name}</p>
+                          <p className="text-xs text-gray-400 mt-1">{t('perWeekTpl').replace('{n}', String(tpl.items.length))}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <button
-                          onClick={() => removeCustom(t.id)}
-                          disabled={deletingId === t.id}
+                          onClick={() => removeCustom(tpl.id)}
+                          disabled={deletingId === tpl.id}
                           className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
-                          title="Şablonu sil"
+                          title={t('deleteTemplateTooltip')}
                         >
-                          {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                          {deletingId === tpl.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
                         </button>
                         <button
-                          onClick={() => apply(t.id, t.items)}
+                          onClick={() => apply(tpl.id, tpl.items)}
                           disabled={applying !== null}
                           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white bg-[#B7791F] hover:bg-[#9c6519] transition-colors disabled:opacity-50"
                         >
-                          {applying === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                          Uygula
+                          {applying === tpl.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          {t('applyBtn')}
                         </button>
                       </div>
                     </div>
@@ -286,6 +288,8 @@ function TemplateModal({ hasExisting, onApply, onClose }: {
 
 // ── Etkinlik ekleme modalı ────────────────────────────────────
 function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => Promise<void>; onClose: () => void }) {
+  const { t } = useLocale();
+  const weekdays = t('weekdayLabels').split(',');
   const [form, setForm] = useState<ScheduleCreate>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -293,10 +297,10 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.activity.trim()) { setError('Aktivite zorunludur.'); return; }
+    if (!form.activity.trim()) { setError(t('activityRequired')); return; }
     setSaving(true);
     try { await onSave(form); onClose(); }
-    catch (err: any) { setError(err?.response?.data?.detail || 'Kaydedilemedi.'); }
+    catch (err: any) { setError(err?.response?.data?.detail || t('saveScheduleFailed')); }
     finally { setSaving(false); }
   };
 
@@ -308,28 +312,28 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#E1F5EE] flex items-center justify-center"><CalendarDays className="w-4 h-4 text-[#0F6E56]" /></div>
-            <h2 className="text-base font-semibold text-gray-900">Etkinlik Ekle</h2>
+            <h2 className="text-base font-semibold text-gray-900">{t('addActivityModalTitle')}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Gün</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">{t('dayLabel')}</label>
             <select value={form.day_of_week} onChange={(e) => set('day_of_week', Number(e.target.value))} className={inputCls}>
-              {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
+              {weekdays.map((d, i) => <option key={i} value={i}>{d}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Saat</label><input type="time" value={form.time_slot} onChange={(e) => set('time_slot', e.target.value)} className={inputCls} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">Süre (dk)</label><input type="number" min={5} step={5} value={form.duration_min} onChange={(e) => set('duration_min', Number(e.target.value))} className={inputCls} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('timeLabel')}</label><input type="time" value={form.time_slot} onChange={(e) => set('time_slot', e.target.value)} className={inputCls} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('durationLabel')}</label><input type="number" min={5} step={5} value={form.duration_min} onChange={(e) => set('duration_min', Number(e.target.value))} className={inputCls} /></div>
           </div>
-          <div><label className="block text-xs font-medium text-gray-600 mb-1">Aktivite *</label><input type="text" value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder="örn. Flashcard çalışması" className={inputCls} /></div>
-          <div><label className="block text-xs font-medium text-gray-600 mb-1">Link (opsiyonel)</label><input type="url" value={form.link_url ?? ''} onChange={(e) => set('link_url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
+          <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('activityLabel')}</label><input type="text" value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder="örn. Flashcard çalışması" className={inputCls} /></div>
+          <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('linkLabel')}</label><input type="url" value={form.link_url ?? ''} onChange={(e) => set('link_url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
         </form>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">İptal</button>
-          <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">{saving ? 'Kaydediliyor…' : 'Kaydet'}</button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('cancelBtn')}</button>
+          <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">{saving ? t('savingBtn') : t('saveBtn')}</button>
         </div>
       </div>
     </div>
@@ -342,12 +346,13 @@ function SaveTemplateModal({ items, onSaved, onClose }: {
   onSaved: () => void;
   onClose: () => void;
 }) {
+  const { t } = useLocale();
   const [name, setName] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const handleSave = async () => {
-    if (!name.trim()) { setError('Şablon adı zorunludur.'); return; }
+    if (!name.trim()) { setError(t('templateNameRequired')); return; }
     setSaving(true);
     setError('');
     try {
@@ -364,7 +369,7 @@ function SaveTemplateModal({ items, onSaved, onClose }: {
       onSaved();
       onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Şablon kaydedilemedi.');
+      setError(err?.response?.data?.detail || t('saveTemplateFailed'));
     } finally {
       setSaving(false);
     }
@@ -376,14 +381,14 @@ function SaveTemplateModal({ items, onSaved, onClose }: {
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#FEF3E7] flex items-center justify-center"><Star className="w-4 h-4 text-[#B7791F]" /></div>
-            <h2 className="text-base font-semibold text-gray-900">Şablon Olarak Kaydet</h2>
+            <h2 className="text-base font-semibold text-gray-900">{t('saveTemplateModalTitle')}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-6 py-4 space-y-3">
-          <p className="text-xs text-gray-500">Şu anki programını, dilediğin zaman tekrar uygulayabileceğin isimli bir şablon olarak kaydeder.</p>
+          <p className="text-xs text-gray-500">{t('saveTemplateDesc')}</p>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Şablon adı *</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">{t('templateNameLabel')}</label>
             <input
               type="text"
               value={name}
@@ -396,9 +401,9 @@ function SaveTemplateModal({ items, onSaved, onClose }: {
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">İptal</button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('cancelBtn')}</button>
           <button onClick={handleSave} disabled={saving} className="flex-1 bg-[#B7791F] hover:bg-[#9c6519] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
-            {saving ? 'Kaydediliyor…' : 'Kaydet'}
+            {saving ? t('savingBtn') : t('saveBtn')}
           </button>
         </div>
       </div>
@@ -408,6 +413,8 @@ function SaveTemplateModal({ items, onSaved, onClose }: {
 
 // ── Ana sayfa ─────────────────────────────────────────────────
 export default function SchedulePage() {
+  const { t } = useLocale();
+  const weekdays = t('weekdayLabels').split(',');
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -423,7 +430,7 @@ export default function SchedulePage() {
 
   const handleCreate = async (data: ScheduleCreate) => { await scheduleApi.create(data); load(); };
   const handleDelete = async (id: string) => {
-    if (!confirm('Bu programı silmek istediğine emin misin?')) return;
+    if (!confirm(t('deleteScheduleConfirm'))) return;
     await scheduleApi.delete(id); load();
   };
   const handleToggle = async (item: ScheduleItem) => {
@@ -442,7 +449,7 @@ export default function SchedulePage() {
   };
 
   const grouped = DAYS.map((day, i) => ({
-    day, dayIndex: i, color: DAY_COLORS[i],
+    day: weekdays[i] ?? day, dayIndex: i, color: DAY_COLORS[i],
     items: items.filter((it) => it.day_of_week === i).sort((a, b) => a.time_slot.localeCompare(b.time_slot)),
   }));
 
@@ -453,39 +460,39 @@ export default function SchedulePage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Çalışma Programı</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{activeDays} aktif gün · {totalItems} etkinlik</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('scheduleTitle')}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('activeDaysStatsTpl').replace('{days}', String(activeDays)).replace('{items}', String(totalItems))}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {items.length > 0 && (
             <button onClick={() => setShowSaveTemplate(true)} className="flex items-center gap-2 bg-[#FEF3E7] hover:bg-[#fbe8cf] text-[#B7791F] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-              <Save className="w-4 h-4" />Şablon Olarak Kaydet
+              <Save className="w-4 h-4" />{t('saveAsTemplateBtn')}
             </button>
           )}
           <button onClick={() => setShowTemplates(true)} className="flex items-center gap-2 bg-[#EEEDFE] hover:bg-[#e0ddfc] text-[#534AB7] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-            <Sparkles className="w-4 h-4" />Şablonlar
+            <Sparkles className="w-4 h-4" />{t('templatesBtn')}
           </button>
           <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition-colors">
-            <Plus className="w-4 h-4" />Etkinlik Ekle
+            <Plus className="w-4 h-4" />{t('addActivityBtn')}
           </button>
         </div>
       </div>
 
       {loading ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">Yükleniyor…</span></div>
+          <div className="flex flex-col items-center gap-3 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">{t('loading')}</span></div>
         </div>
       ) : items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#EEEDFE] flex items-center justify-center"><Sparkles className="w-7 h-7 text-[#534AB7]" /></div>
-          <p className="text-sm font-medium text-gray-700">Henüz program yok</p>
-          <p className="text-xs text-gray-400 max-w-xs">Hazır bir şablonla hızlıca başla ya da kendi etkinliklerini ekle.</p>
+          <p className="text-sm font-medium text-gray-700">{t('noScheduleYet')}</p>
+          <p className="text-xs text-gray-400 max-w-xs">{t('noScheduleYetSub')}</p>
           <div className="flex gap-2 mt-2">
             <button onClick={() => setShowTemplates(true)} className="flex items-center gap-2 bg-[#534AB7] hover:bg-[#473fa0] text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors">
-              <Sparkles className="w-4 h-4" />Şablon Seç
+              <Sparkles className="w-4 h-4" />{t('chooseTemplateBtn')}
             </button>
             <button onClick={() => setShowModal(true)} className="flex items-center gap-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl px-4 py-2 text-sm font-medium transition-colors">
-              <Plus className="w-4 h-4" />Elle Ekle
+              <Plus className="w-4 h-4" />{t('manualAddBtn')}
             </button>
           </div>
         </div>
@@ -500,12 +507,12 @@ export default function SchedulePage() {
                   {dayItems.length > 0 && <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/60 ${color.text}`}>{dayItems.length}</span>}
                 </div>
                 <div className="p-3 space-y-2">
-                  {isEmpty ? <p className="text-xs text-gray-400 text-center py-2">Etkinlik yok</p> : dayItems.map((item) => (
+                  {isEmpty ? <p className="text-xs text-gray-400 text-center py-2">{t('noActivity')}</p> : dayItems.map((item) => (
                     <div key={item.id} className={`rounded-xl p-3 transition-colors group ${item.is_active === false ? 'bg-gray-50 opacity-50' : 'bg-slate-50 hover:bg-slate-100'}`}>
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-1 text-xs font-semibold text-[#185FA5]"><Clock className="w-3 h-3" />{item.time_slot}<span className="font-normal text-gray-400 ml-0.5">· {item.duration_min}dk</span></div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300'}`} title="Aç/Kapat" />
+                          <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300'}`} title={t('toggleTooltip')} />
                           <button onClick={() => handleDelete(item.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="w-3 h-3" /></button>
                         </div>
                       </div>
