@@ -1,6 +1,11 @@
+import base64
+import json
+
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
 from typing import Optional, Literal
+from supabase import create_client
+from app.core.config import settings
 from app.core.database import supabase_admin
 from app.core.auth import get_current_user
 from app.services import otp_service
@@ -47,12 +52,34 @@ def _friendly_auth_error(msg: str) -> str:
         return "Geçersiz e-posta adresi."
     return "Kayıt başarısız. Lütfen bilgilerinizi kontrol edin."
 
-def _user_payload(user) -> dict:
-    return {
-        "id": user.id,
-        "email": user.email,
-        "display_name": user.user_metadata.get("display_name", ""),
-    }
+def _bootstrap_session(email: str, password: str):
+    """
+    Kullanıcı için bir Supabase session (access/refresh token) bootstraplar.
+
+    KRİTİK: Bunun için supabase_admin (service_role client) DEĞİL, anon key ile
+    yeni ve ayrı bir client kullanılır. supabase-py'de aynı client örneği
+    üzerinde .auth.sign_in_with_password() çağırmak, o client'ın sonraki
+    .table() isteklerinin service_role yerine giriş yapan kullanıcının JWT'siyle
+    gönderilmesine sebep oluyor (client'ın paylaşılan oturum durumu değişiyor).
+    supabase_admin uygulama boyunca paylaşılan tek bir global client olduğu için
+    bunu asla mutasyona uğratmamak gerekiyor — aksi halde otp_codes gibi
+    service_role'e özel tablolara yazarken RLS ihlali (42501) alınıyor.
+    """
+    temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+    result = temp_client.auth.sign_in_with_password({"email": email, "password": password})
+    if not result.session:
+        return None, None
+    return result.session.access_token, result.session.refresh_token
+
+def _decode_jwt_payload(token: str) -> dict:
+    """JWT'nin payload kısmını (doğrulama yapmadan) çözer — imzayı kontrol etmeye
+    gerek yok çünkü bu token'ı zaten kendi Supabase Auth'umuz üretti."""
+    try:
+        payload_b64 = token.split(".")[1]
+        padded = payload_b64 + "=" * (-len(payload_b64) % 4)
+        return json.loads(base64.urlsafe_b64decode(padded))
+    except Exception:
+        return {}
 
 @router.post("/register", status_code=201)
 async def register(req: RegisterRequest):
@@ -83,18 +110,11 @@ async def register(req: RegisterRequest):
         # Hesap oluştu — ama giriş için OTP doğrulaması gerekiyor.
         # Session'ı şimdiden bootstraplayıp OTP satırına stashliyoruz; OTP
         # doğrulanınca bu token'lar client'a döndürülecek (yeniden şifre girmeye gerek yok).
-        access_token = None
-        refresh_token = None
         try:
-            session_result = supabase_admin.auth.sign_in_with_password({
-                "email": req.email,
-                "password": req.password,
-            })
-            if session_result.session:
-                access_token = session_result.session.access_token
-                refresh_token = session_result.session.refresh_token
+            access_token, refresh_token = _bootstrap_session(req.email, req.password)
         except Exception as e:
             print(f"REGISTER session bootstrap warning: {e}")
+            access_token, refresh_token = None, None
 
         otp_service.create_otp(
             email=req.email,
@@ -118,18 +138,15 @@ async def register(req: RegisterRequest):
 @router.post("/login")
 async def login(req: LoginRequest):
     try:
-        result = supabase_admin.auth.sign_in_with_password({
-            "email": req.email,
-            "password": req.password
-        })
-        if not result.session:
+        access_token, refresh_token = _bootstrap_session(req.email, req.password)
+        if not access_token:
             raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
 
         otp_service.create_otp(
             email=req.email,
             purpose="login",
-            access_token=result.session.access_token,
-            refresh_token=result.session.refresh_token,
+            access_token=access_token,
+            refresh_token=refresh_token,
         )
 
         return {
@@ -156,17 +173,20 @@ async def verify_otp(req: VerifyOtpRequest):
             detail="Oturum oluşturulamadı, lütfen tekrar giriş/kayıt yapmayı deneyin.",
         )
 
-    try:
-        user_result = supabase_admin.auth.get_user(access_token)
-        user = user_result.user
-    except Exception as e:
-        print(f"VERIFY_OTP get_user error: {e}")
-        raise HTTPException(status_code=500, detail="Oturum doğrulanamadı.")
+    # NOT: Burada bilerek supabase_admin.auth.get_user() KULLANILMIYOR — o çağrı da
+    # supabase_admin'in paylaşılan oturumunu kirletirdi. Kullanıcı bilgisi, zaten
+    # sahip olduğumuz taze JWT'nin payload'ından doğrudan okunuyor.
+    payload = _decode_jwt_payload(access_token)
+    user_payload = {
+        "id": payload.get("sub", ""),
+        "email": payload.get("email", row.get("email", req.email)),
+        "display_name": (payload.get("user_metadata") or {}).get("display_name", ""),
+    }
 
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
-        "user": _user_payload(user),
+        "user": user_payload,
     }
 
 @router.post("/resend-otp")
