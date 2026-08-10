@@ -3,13 +3,15 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, User, Lock, Mail, Globe, GraduationCap } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, Mail, Globe, GraduationCap, Zap } from 'lucide-react';
 import { authApi, languagesApi } from '@/lib/api';
 import { Button, Input, Card } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 import type { Language } from '@/types';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useLocale();
 
   const [form, setForm] = useState({
     email: '',
@@ -36,11 +38,11 @@ export default function RegisterPage() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.email.includes('@')) e.email = 'Geçerli bir e-posta gir.';
-    if (form.username.length < 3) e.username = 'En az 3 karakter olmalı.';
-    if (form.password.length < 6) e.password = 'En az 6 karakter olmalı.';
+    if (!form.email.includes('@')) e.email = t('emailInvalidError');
+    if (form.username.length < 3) e.username = t('usernameMinError');
+    if (form.password.length < 6) e.password = t('passwordMinError');
     if (form.native_lang === form.learning_lang) {
-      e.learning_lang = 'Öğrenmek istediğin dil ana dilinden farklı olmalı.';
+      e.learning_lang = t('sameLangError');
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -66,7 +68,7 @@ export default function RegisterPage() {
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string | object } } };
       const detail = axiosErr?.response?.data?.detail;
-      setErrors({ form: typeof detail === 'string' ? detail : 'Kayıt başarısız. Bu e-posta zaten kullanılıyor olabilir.' });
+      setErrors({ form: typeof detail === 'string' ? detail : t('registerFailedGeneric') });
     } finally {
       setLoading(false);
     }
@@ -80,14 +82,19 @@ export default function RegisterPage() {
 
   return (
     <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-800">Hesap oluştur</h1>
-        <p className="text-slate-400 text-sm mt-1">Birkaç saniyede başlangıç yap.</p>
+      <div className="mb-8 flex items-center gap-3">
+        <div className="w-11 h-11 bg-sky-500 rounded-xl flex items-center justify-center shrink-0">
+          <Zap size={20} className="text-white" strokeWidth={2.5} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-800">{t('registerTitleText')}</h1>
+          <p className="text-slate-400 text-sm mt-0.5">{t('registerSubtitleText')}</p>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
-          label="Ad Soyad"
+          label={t('fullNameLabel')}
           placeholder="Ahmet Yılmaz"
           value={form.display_name}
           onChange={set('display_name')}
@@ -95,7 +102,7 @@ export default function RegisterPage() {
           autoFocus
         />
         <Input
-          label="E-posta"
+          label={t('emailLabel')}
           type="email"
           placeholder="ornek@email.com"
           value={form.email}
@@ -105,7 +112,7 @@ export default function RegisterPage() {
           required
         />
         <Input
-          label="Kullanıcı adı"
+          label={t('usernameLabel')}
           placeholder="kullaniciadi"
           value={form.username}
           onChange={set('username')}
@@ -114,9 +121,9 @@ export default function RegisterPage() {
           required
         />
         <Input
-          label="Şifre"
+          label={t('passwordLabel')}
           type={showPw ? 'text' : 'password'}
-          placeholder="En az 6 karakter"
+          placeholder={t('passwordHintText')}
           value={form.password}
           onChange={set('password')}
           leftIcon={<Lock size={16} />}
@@ -133,7 +140,7 @@ export default function RegisterPage() {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1.5">
-              <Globe size={14} /> Ana dilin
+              <Globe size={14} /> {t('nativeLangSelectLabel')}
             </label>
             <select
               value={form.native_lang}
@@ -149,7 +156,7 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1.5">
-              <GraduationCap size={14} /> Öğrenmek istediğin
+              <GraduationCap size={14} /> {t('learningLangSelectLabel')}
             </label>
             <select
               value={form.learning_lang}
@@ -175,14 +182,14 @@ export default function RegisterPage() {
         )}
 
         <Button type="submit" className="w-full mt-2" size="lg" loading={loading}>
-          Hesap Oluştur
+          {t('createAccountBtn')}
         </Button>
       </form>
 
       <p className="text-center text-sm text-slate-400 mt-6">
-        Zaten hesabın var mı?{' '}
+        {t('haveAccountQuestion')}{' '}
         <Link href="/login" className="text-sky-600 font-medium hover:underline">
-          Giriş yap
+          {t('loginLinkText')}
         </Link>
       </p>
     </Card>
