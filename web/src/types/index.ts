@@ -166,6 +166,28 @@ export interface ScheduleCreate {
   link_url?: string;
 }
 
+// Kişiye özel şablonlar — kullanıcının kendi oluşturup kaydettiği programlar
+export interface ScheduleTemplateItem {
+  day_of_week: number;
+  time_slot: string;
+  activity: string;
+  duration_min: number;
+  link_url?: string;
+}
+
+export interface ScheduleTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  items: ScheduleTemplateItem[];
+  created_at: string;
+}
+
+export interface ScheduleTemplateCreate {
+  name: string;
+  items: ScheduleTemplateItem[];
+}
+
 // ── Admin ────────────────────────────────────────────────────
 
 export interface AdminUser {
@@ -208,7 +230,6 @@ export interface PaginatedWords {
   per_page: number;
   pages: number;
 }
-
 
 // ── Analytics ────────────────────────────────────────────────
 
