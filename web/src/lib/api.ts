@@ -15,6 +15,8 @@ import type {
   DailyProgress,
   ScheduleItem,
   ScheduleCreate,
+  ScheduleTemplate,
+  ScheduleTemplateCreate,
   AdminUser,
   AdminUserDetail,
   AdminStats,
@@ -198,6 +200,19 @@ export const scheduleApi = {
   },
   delete: async (id: string): Promise<void> => {
     await api.delete(`/schedule/${id}`);
+  },
+
+  // Kişiye özel şablonlar
+  getTemplates: async (): Promise<ScheduleTemplate[]> => {
+    const res = await api.get('/schedule/templates');
+    return res.data.templates;
+  },
+  createTemplate: async (data: ScheduleTemplateCreate): Promise<ScheduleTemplate> => {
+    const res = await api.post<ScheduleTemplate>('/schedule/templates', data);
+    return res.data;
+  },
+  deleteTemplate: async (id: string): Promise<void> => {
+    await api.delete(`/schedule/templates/${id}`);
   },
 };
 
