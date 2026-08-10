@@ -51,6 +51,22 @@ export interface AuthResponse {
   };
 }
 
+// Giriş (login) ve kayıt (register) sonrası artık token yerine bu dönüyor —
+// gerçek token'lar ancak /auth/verify-otp ile OTP kodu doğrulandıktan sonra alınır.
+export interface OtpPendingResponse {
+  pending: true;
+  email: string;
+  purpose: 'login' | 'register';
+  message?: string;
+}
+
+export interface RegisterResponse {
+  pending: true;
+  email: string;
+  purpose: 'register';
+  message?: string;
+}
+
 // ── Language ─────────────────────────────────────────────────
 
 export interface Language {
