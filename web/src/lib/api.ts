@@ -5,6 +5,8 @@
 import axios from 'axios';
 import type {
   AuthResponse,
+  OtpPendingResponse,
+  RegisterResponse,
   User,
   Word,
   WordCreate,
@@ -57,6 +59,8 @@ api.interceptors.response.use(
 
 // ── Auth API ─────────────────────────────────────────────────
 export const authApi = {
+  // Kayıt artık direkt token dönmüyor — hesap oluşturulur ve OTP kodu gönderilir.
+  // Kullanıcı /verify-otp?email=...&purpose=register ekranına yönlendirilmeli.
   register: async (data: {
     email: string;
     password: string;
@@ -64,13 +68,33 @@ export const authApi = {
     username?: string;
     native_lang?: string;
     learning_lang?: string;
-  }): Promise<{ message: string }> => {
+  }): Promise<RegisterResponse> => {
     const res = await api.post('/auth/register', data);
     return res.data;
   },
 
-  login: async (data: { email: string; password: string }): Promise<AuthResponse> => {
-    const res = await api.post<AuthResponse>('/auth/login', data);
+  // Login artık direkt token dönmüyor — şifre doğrulanır ve OTP kodu gönderilir.
+  // Kullanıcı /verify-otp?email=...&purpose=login ekranına yönlendirilmeli.
+  login: async (data: { email: string; password: string }): Promise<OtpPendingResponse> => {
+    const res = await api.post<OtpPendingResponse>('/auth/login', data);
+    return res.data;
+  },
+
+  // OTP kodu doğrulandığında asıl token'lar buradan gelir.
+  verifyOtp: async (data: {
+    email: string;
+    code: string;
+    purpose: 'login' | 'register';
+  }): Promise<AuthResponse> => {
+    const res = await api.post<AuthResponse>('/auth/verify-otp', data);
+    return res.data;
+  },
+
+  resendOtp: async (data: {
+    email: string;
+    purpose: 'login' | 'register';
+  }): Promise<{ message: string }> => {
+    const res = await api.post('/auth/resend-otp', data);
     return res.data;
   },
 
