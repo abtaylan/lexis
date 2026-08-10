@@ -8,113 +8,25 @@ export type Locale = 'tr' | 'en' | 'ar' | 'ru' | 'de' | 'fr' | 'es' | 'it';
 const RTL_LOCALES: Locale[] = ['ar'];
 
 type TranslationKey =
-  | 'dashboard'
-  | 'words'
-  | 'flashcards'
-  | 'quiz'
-  | 'schedule'
-  | 'stats'
-  | 'profile'
-  | 'premiumGet'
-  | 'premiumActive'
-  | 'adminPanel'
-  | 'logout'
-  | 'loading'
-  | 'loadingError'
-  | 'greeting'
-  | 'dailySummarySubtitle'
-  | 'streakActive'
-  | 'streakEncourage'
-  | 'totalWords'
-  | 'thisWeekLabel'
-  | 'addedToday'
-  | 'goalLabel'
-  | 'dueReview'
-  | 'wordsInQueue'
-  | 'dailyGoal'
-  | 'wordsUnit'
-  | 'remainingLabel'
-  | 'weeklyProgress'
-  | 'todayAbbr'
-  | 'thisWeekColon'
-  | 'lastWeekColon'
-  | 'flashcardPractice'
-  | 'cardsWaitingLabel'
-  | 'startQuiz'
-  | 'testKnowledge'
-  | 'addWord'
-  | 'expandList'
-  | 'levelDistribution'
-  | 'newLabel'
-  | 'learningLabel'
-  | 'learnedLabel'
-  | 'recentWordsTitle'
-  | 'noWordsYet'
-  | 'newBadge'
-  | 'dueTimeLabel'
-  | 'startBtn'
-  | 'dayLabels'
-  | 'statusLearned'
-  | 'statusLearning'
-  | 'statusArchived'
-  | 'lookupNoMeaning'
-  | 'lookupNotFound'
-  | 'lookupApplied'
-  | 'meaningRequired'
-  | 'saveFailed'
-  | 'meaningRequiredLabel'
-  | 'meaningNativeTpl'
-  | 'meaningTargetTpl'
-  | 'exampleLabel'
-  | 'wordTypeLabel'
-  | 'wordRequiredLabel'
-  | 'searchBtn'
-  | 'searchTooltip'
-  | 'lookupHelper'
-  | 'meaningsFoundTpl'
-  | 'listLabel'
-  | 'listActive'
-  | 'listPassive'
-  | 'cancelBtn'
-  | 'savingBtn'
-  | 'saveBtn'
-  | 'totalWordsCountTpl'
-  | 'addWordBtn'
-  | 'learnedWordsLabel'
-  | 'archivedWordsLabel'
-  | 'searchPlaceholder'
-  | 'allStatuses'
-  | 'allLists'
-  | 'statusArchivedOption'
-  | 'noWordsFound'
-  | 'noWordsFoundSub'
-  | 'colWord'
-  | 'colMeaning'
-  | 'colType'
-  | 'colStatus'
-  | 'colRepeat'
-  | 'colNext'
-  | 'deleteWordConfirm'
-  | 'paginationTpl'
-  | 'prevPage'
-  | 'nextPage'
-  | 'addWordModalTitle'
-  | 'editWordModalTitle'
-  | 'sessionComplete'
-  | 'reviewedCountTpl'
-  | 'correctLabel'
-  | 'wrongLabel'
-  | 'successRate'
-  | 'restartBtn'
-  | 'wordsLoadError'
-  | 'greatJob'
-  | 'noWordsDue'
-  | 'tapToFlip'
-  | 'exampleHeader'
-  | 'dontKnowBtn'
-  | 'knewItBtn'
-  | 'correctCountTpl'
-  | 'wrongCountTpl';
+  | 'dashboard' | 'words' | 'flashcards' | 'quiz' | 'schedule' | 'stats' | 'profile'
+  | 'premiumGet' | 'premiumActive' | 'adminPanel' | 'logout' | 'loading' | 'loadingError'
+  | 'greeting' | 'dailySummarySubtitle' | 'streakActive' | 'streakEncourage' | 'totalWords'
+  | 'thisWeekLabel' | 'addedToday' | 'goalLabel' | 'dueReview' | 'wordsInQueue' | 'dailyGoal'
+  | 'wordsUnit' | 'remainingLabel' | 'weeklyProgress' | 'todayAbbr' | 'thisWeekColon' | 'lastWeekColon'
+  | 'flashcardPractice' | 'cardsWaitingLabel' | 'startQuiz' | 'testKnowledge' | 'addWord' | 'expandList'
+  | 'levelDistribution' | 'newLabel' | 'learningLabel' | 'learnedLabel' | 'recentWordsTitle' | 'noWordsYet'
+  | 'newBadge' | 'dueTimeLabel' | 'startBtn' | 'dayLabels' | 'statusLearned' | 'statusLearning' | 'statusArchived'
+  | 'lookupNoMeaning' | 'lookupNotFound' | 'lookupApplied' | 'meaningRequired' | 'saveFailed' | 'meaningRequiredLabel'
+  | 'meaningNativeTpl' | 'meaningTargetTpl' | 'exampleLabel' | 'wordTypeLabel' | 'wordRequiredLabel' | 'searchBtn'
+  | 'searchTooltip' | 'lookupHelper' | 'meaningsFoundTpl' | 'listLabel' | 'listActive' | 'listPassive' | 'cancelBtn'
+  | 'savingBtn' | 'saveBtn' | 'totalWordsCountTpl' | 'addWordBtn' | 'learnedWordsLabel' | 'archivedWordsLabel'
+  | 'searchPlaceholder' | 'allStatuses' | 'allLists' | 'statusArchivedOption' | 'noWordsFound' | 'noWordsFoundSub'
+  | 'colWord' | 'colMeaning' | 'colType' | 'colStatus' | 'colRepeat' | 'colNext' | 'deleteWordConfirm' | 'paginationTpl'
+  | 'prevPage' | 'nextPage' | 'addWordModalTitle' | 'editWordModalTitle' | 'sessionComplete' | 'reviewedCountTpl'
+  | 'correctLabel' | 'wrongLabel' | 'successRate' | 'restartBtn' | 'wordsLoadError' | 'greatJob' | 'noWordsDue'
+  | 'tapToFlip' | 'exampleHeader' | 'dontKnowBtn' | 'knewItBtn' | 'correctCountTpl' | 'wrongCountTpl'
+  | 'tierExcellent' | 'tierGood' | 'tierKeepGoing' | 'questionsCompletedTpl' | 'retryQuizBtn' | 'quizMinWordsError'
+  | 'quizQuestionPrompt' | 'questionCounterTpl';
 
 type Dictionary = Record<TranslationKey, string>;
 
@@ -145,6 +57,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     successRate: 'Başarı oranı', restartBtn: 'Tekrar Başla', wordsLoadError: 'Kelimeler yüklenemedi.', greatJob: 'Harika iş!',
     noWordsDue: 'Bugün için tekrar edilecek kelimen yok.', tapToFlip: 'Çevirmek için tıkla', exampleHeader: 'Örnek',
     dontKnowBtn: 'Bilmedim', knewItBtn: 'Bildim', correctCountTpl: '{n} doğru', wrongCountTpl: '{n} yanlış',
+    tierExcellent: 'Mükemmel!', tierGood: 'İyi İş!', tierKeepGoing: 'Devam Et!', questionsCompletedTpl: '{n} soruyu tamamladın',
+    retryQuizBtn: 'Tekrar Çöz', quizMinWordsError: 'Quiz için en az 4 kelime gerekiyor. Önce birkaç kelime ekle.',
+    quizQuestionPrompt: 'Bu kelimenin anlamı nedir?', questionCounterTpl: 'Soru {i}/{n}',
   },
   en: {
     dashboard: 'Dashboard', words: 'Words', flashcards: 'Flashcards', quiz: 'Quiz', schedule: 'Schedule', stats: 'Statistics', profile: 'Profile',
@@ -172,6 +87,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     successRate: 'Success rate', restartBtn: 'Restart', wordsLoadError: 'Could not load words.', greatJob: 'Great job!',
     noWordsDue: 'You have no words due for review today.', tapToFlip: 'Tap to flip', exampleHeader: 'Example',
     dontKnowBtn: "Didn't know", knewItBtn: 'Knew it', correctCountTpl: '{n} correct', wrongCountTpl: '{n} wrong',
+    tierExcellent: 'Excellent!', tierGood: 'Good Job!', tierKeepGoing: 'Keep Going!', questionsCompletedTpl: 'You completed {n} questions',
+    retryQuizBtn: 'Retry Quiz', quizMinWordsError: 'You need at least 4 words for a quiz. Add a few words first.',
+    quizQuestionPrompt: 'What does this word mean?', questionCounterTpl: 'Question {i}/{n}',
   },
   ar: {
     dashboard: 'لوحة التحكم', words: 'الكلمات', flashcards: 'البطاقات التعليمية', quiz: 'اختبار', schedule: 'البرنامج', stats: 'الإحصائيات', profile: 'الملف الشخصي',
@@ -199,6 +117,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     successRate: 'معدل النجاح', restartBtn: 'إعادة البدء', wordsLoadError: 'تعذر تحميل الكلمات.', greatJob: 'عمل رائع!',
     noWordsDue: 'لا توجد كلمات للمراجعة اليوم.', tapToFlip: 'انقر للقلب', exampleHeader: 'مثال',
     dontKnowBtn: 'لم أعرف', knewItBtn: 'عرفت', correctCountTpl: '{n} صحيح', wrongCountTpl: '{n} خطأ',
+    tierExcellent: 'ممتاز!', tierGood: 'عمل جيد!', tierKeepGoing: 'واصل!', questionsCompletedTpl: 'أكملت {n} سؤالًا',
+    retryQuizBtn: 'أعد الاختبار', quizMinWordsError: 'تحتاج إلى 4 كلمات على الأقل لإجراء اختبار. أضف بعض الكلمات أولًا.',
+    quizQuestionPrompt: 'ما معنى هذه الكلمة؟', questionCounterTpl: 'سؤال {i}/{n}',
   },
   ru: {
     dashboard: 'Панель', words: 'Слова', flashcards: 'Карточки', quiz: 'Тест', schedule: 'Расписание', stats: 'Статистика', profile: 'Профиль',
@@ -226,6 +147,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     successRate: 'Процент успеха', restartBtn: 'Начать заново', wordsLoadError: 'Не удалось загрузить слова.', greatJob: 'Отличная работа!',
     noWordsDue: 'На сегодня нет слов для повторения.', tapToFlip: 'Нажми, чтобы перевернуть', exampleHeader: 'Пример',
     dontKnowBtn: 'Не знал', knewItBtn: 'Знал', correctCountTpl: '{n} верно', wrongCountTpl: '{n} неверно',
+    tierExcellent: 'Отлично!', tierGood: 'Хорошая работа!', tierKeepGoing: 'Продолжай!', questionsCompletedTpl: 'Вы завершили {n} вопросов',
+    retryQuizBtn: 'Пройти снова', quizMinWordsError: 'Для теста нужно минимум 4 слова. Сначала добавьте несколько слов.',
+    quizQuestionPrompt: 'Что означает это слово?', questionCounterTpl: 'Вопрос {i}/{n}',
   },
   de: {
     dashboard: 'Dashboard', words: 'Wörter', flashcards: 'Karteikarten', quiz: 'Quiz', schedule: 'Zeitplan', stats: 'Statistik', profile: 'Profil',
@@ -253,6 +177,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     successRate: 'Erfolgsquote', restartBtn: 'Neu starten', wordsLoadError: 'Wörter konnten nicht geladen werden.', greatJob: 'Großartige Arbeit!',
     noWordsDue: 'Heute sind keine Wörter zur Wiederholung fällig.', tapToFlip: 'Zum Umdrehen tippen', exampleHeader: 'Beispiel',
     dontKnowBtn: 'Wusste ich nicht', knewItBtn: 'Wusste ich', correctCountTpl: '{n} richtig', wrongCountTpl: '{n} falsch',
+    tierExcellent: 'Ausgezeichnet!', tierGood: 'Gut gemacht!', tierKeepGoing: 'Weiter so!', questionsCompletedTpl: 'Du hast {n} Fragen abgeschlossen',
+    retryQuizBtn: 'Quiz wiederholen', quizMinWordsError: 'Du brauchst mindestens 4 Wörter für ein Quiz. Füge zuerst ein paar Wörter hinzu.',
+    quizQuestionPrompt: 'Was bedeutet dieses Wort?', questionCounterTpl: 'Frage {i}/{n}',
   },
   fr: {
     dashboard: 'Tableau de bord', words: 'Mots', flashcards: 'Cartes mémo', quiz: 'Quiz', schedule: 'Programme', stats: 'Statistiques', profile: 'Profil',
@@ -280,6 +207,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     successRate: 'Taux de réussite', restartBtn: 'Recommencer', wordsLoadError: 'Impossible de charger les mots.', greatJob: 'Excellent travail !',
     noWordsDue: "Tu n'as aucun mot à réviser aujourd'hui.", tapToFlip: 'Touche pour retourner', exampleHeader: 'Exemple',
     dontKnowBtn: 'Je ne savais pas', knewItBtn: 'Je savais', correctCountTpl: '{n} correct(s)', wrongCountTpl: '{n} faux',
+    tierExcellent: 'Excellent !', tierGood: 'Bon travail !', tierKeepGoing: 'Continue !', questionsCompletedTpl: 'Tu as terminé {n} questions',
+    retryQuizBtn: 'Recommencer le quiz', quizMinWordsError: "Il te faut au moins 4 mots pour un quiz. Ajoute d'abord quelques mots.",
+    quizQuestionPrompt: 'Que signifie ce mot ?', questionCounterTpl: 'Question {i}/{n}',
   },
   es: {
     dashboard: 'Panel', words: 'Palabras', flashcards: 'Tarjetas', quiz: 'Cuestionario', schedule: 'Horario', stats: 'Estadísticas', profile: 'Perfil',
@@ -307,6 +237,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     successRate: 'Tasa de acierto', restartBtn: 'Reiniciar', wordsLoadError: 'No se pudieron cargar las palabras.', greatJob: '¡Buen trabajo!',
     noWordsDue: 'No tienes palabras para repasar hoy.', tapToFlip: 'Toca para voltear', exampleHeader: 'Ejemplo',
     dontKnowBtn: 'No lo sabía', knewItBtn: 'Lo sabía', correctCountTpl: '{n} correctas', wrongCountTpl: '{n} incorrectas',
+    tierExcellent: '¡Excelente!', tierGood: '¡Buen trabajo!', tierKeepGoing: '¡Sigue así!', questionsCompletedTpl: 'Completaste {n} preguntas',
+    retryQuizBtn: 'Repetir cuestionario', quizMinWordsError: 'Necesitas al menos 4 palabras para un cuestionario. Añade algunas palabras primero.',
+    quizQuestionPrompt: '¿Qué significa esta palabra?', questionCounterTpl: 'Pregunta {i}/{n}',
   },
   it: {
     dashboard: 'Dashboard', words: 'Parole', flashcards: 'Flashcard', quiz: 'Quiz', schedule: 'Programma', stats: 'Statistiche', profile: 'Profilo',
@@ -334,6 +267,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     successRate: 'Percentuale di successo', restartBtn: 'Ricomincia', wordsLoadError: 'Impossibile caricare le parole.', greatJob: 'Ottimo lavoro!',
     noWordsDue: 'Non hai parole da ripassare oggi.', tapToFlip: 'Tocca per girare', exampleHeader: 'Esempio',
     dontKnowBtn: 'Non lo sapevo', knewItBtn: 'Lo sapevo', correctCountTpl: '{n} corrette', wrongCountTpl: '{n} sbagliate',
+    tierExcellent: 'Eccellente!', tierGood: 'Ottimo lavoro!', tierKeepGoing: 'Continua così!', questionsCompletedTpl: 'Hai completato {n} domande',
+    retryQuizBtn: 'Riprova il quiz', quizMinWordsError: 'Servono almeno 4 parole per un quiz. Aggiungi prima qualche parola.',
+    quizQuestionPrompt: 'Cosa significa questa parola?', questionCounterTpl: 'Domanda {i}/{n}',
   },
 };
 
