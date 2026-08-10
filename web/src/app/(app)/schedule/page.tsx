@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import {
   Plus, Trash2, X, Clock, CalendarDays, ExternalLink, Loader2,
-  Sparkles, Flame, Zap, Coffee, Check,
+  Sparkles, Flame, Zap, Coffee, Check, Headphones, BookOpen,
+  GraduationCap, Save, Star, User as UserIcon,
 } from 'lucide-react';
 import { scheduleApi } from '@/lib/api';
-import type { ScheduleItem, ScheduleCreate } from '@/types';
+import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem } from '@/types';
 
 const DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
@@ -22,13 +23,21 @@ const DAY_COLORS = [
 
 const TASK_LINKS: Record<string, string> = {
   'Teknik Makale': 'https://medium.com/tag/english-learning',
-  'Haber Okuma':   'https://www.bbc.co.uk/learningenglish',
-  'LingoClip':     'https://lingoclip.com/',
+  'Haber Okuma': 'https://www.bbc.co.uk/learningenglish',
+  'LingoClip': 'https://lingoclip.com/',
   'Video Analizi': 'https://www.youtube.com/@TEDEd',
-  'Genel Tekrar':  'https://quizlet.com/',
-  'Kelime Tekrarı':'',
-  'Dizi/Film':     'https://www.netflix.com/',
-  'Podcast':       'https://www.bbc.co.uk/learningenglish/english/features/6-minute-english',
+  'Genel Tekrar': 'https://quizlet.com/',
+  'Kelime Tekrarı': '',
+  'Dizi/Film': 'https://www.netflix.com/',
+  'Podcast': 'https://www.bbc.co.uk/learningenglish/english/features/6-minute-english',
+  // Aşama 4: yeni kaynak-bazlı etkinlikler
+  'WordBox English': '',
+  'News in Levels': 'https://www.newsinlevels.com/',
+  'More to Read': '',
+  'Max and Mia Podcast': 'https://learnenglish.britishcouncil.org/general-english/audio-series/max-and-mia',
+  'YÖKDİL Sözlük Kitabı': '',
+  'Voice of America': 'https://learningenglish.voanews.com/',
+  "Luke's English Podcast": 'https://teacherluke.co.uk/',
 };
 
 // ── Hazır program şablonları ──────────────────────────────────
@@ -52,17 +61,17 @@ const TEMPLATES: Template[] = [
     accent: '#854F0B',
     items: [
       { day_of_week: 1, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
-      { day_of_week: 1, time_slot: '20:00', activity: 'LingoClip',      duration_min: 20, link_url: link('LingoClip') },
-      { day_of_week: 2, time_slot: '08:00', activity: 'Haber Okuma',    duration_min: 30, link_url: link('Haber Okuma') },
-      { day_of_week: 2, time_slot: '20:00', activity: 'Video Analizi',  duration_min: 25, link_url: link('Video Analizi') },
-      { day_of_week: 3, time_slot: '08:00', activity: 'Teknik Makale',  duration_min: 30, link_url: link('Teknik Makale') },
-      { day_of_week: 3, time_slot: '20:00', activity: 'Podcast',        duration_min: 20, link_url: link('Podcast') },
-      { day_of_week: 4, time_slot: '08:00', activity: 'Haber Okuma',    duration_min: 30, link_url: link('Haber Okuma') },
-      { day_of_week: 4, time_slot: '20:00', activity: 'Video Analizi',  duration_min: 25, link_url: link('Video Analizi') },
-      { day_of_week: 5, time_slot: '08:00', activity: 'Teknik Makale',  duration_min: 30, link_url: link('Teknik Makale') },
-      { day_of_week: 5, time_slot: '20:00', activity: 'LingoClip',      duration_min: 20, link_url: link('LingoClip') },
-      { day_of_week: 6, time_slot: '10:00', activity: 'Dizi/Film',      duration_min: 45, link_url: link('Dizi/Film') },
-      { day_of_week: 0, time_slot: '10:00', activity: 'Genel Tekrar',   duration_min: 45, link_url: link('Genel Tekrar') },
+      { day_of_week: 1, time_slot: '20:00', activity: 'LingoClip', duration_min: 20, link_url: link('LingoClip') },
+      { day_of_week: 2, time_slot: '08:00', activity: 'Haber Okuma', duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 2, time_slot: '20:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 3, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 3, time_slot: '20:00', activity: 'Podcast', duration_min: 20, link_url: link('Podcast') },
+      { day_of_week: 4, time_slot: '08:00', activity: 'Haber Okuma', duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 4, time_slot: '20:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 5, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 5, time_slot: '20:00', activity: 'LingoClip', duration_min: 20, link_url: link('LingoClip') },
+      { day_of_week: 6, time_slot: '10:00', activity: 'Dizi/Film', duration_min: 45, link_url: link('Dizi/Film') },
+      { day_of_week: 0, time_slot: '10:00', activity: 'Genel Tekrar', duration_min: 45, link_url: link('Genel Tekrar') },
     ],
   },
   {
@@ -73,10 +82,10 @@ const TEMPLATES: Template[] = [
     accent: '#185FA5',
     items: [
       { day_of_week: 1, time_slot: '19:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
-      { day_of_week: 2, time_slot: '19:00', activity: 'Haber Okuma',   duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 2, time_slot: '19:00', activity: 'Haber Okuma', duration_min: 30, link_url: link('Haber Okuma') },
       { day_of_week: 3, time_slot: '19:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
-      { day_of_week: 4, time_slot: '19:00', activity: 'LingoClip',     duration_min: 20, link_url: link('LingoClip') },
-      { day_of_week: 5, time_slot: '19:00', activity: 'Genel Tekrar',  duration_min: 30, link_url: link('Genel Tekrar') },
+      { day_of_week: 4, time_slot: '19:00', activity: 'LingoClip', duration_min: 20, link_url: link('LingoClip') },
+      { day_of_week: 5, time_slot: '19:00', activity: 'Genel Tekrar', duration_min: 30, link_url: link('Genel Tekrar') },
     ],
   },
   {
@@ -87,8 +96,50 @@ const TEMPLATES: Template[] = [
     accent: '#3B6D11',
     items: [
       { day_of_week: 1, time_slot: '20:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
-      { day_of_week: 3, time_slot: '20:00', activity: 'Video Analizi',  duration_min: 25, link_url: link('Video Analizi') },
-      { day_of_week: 6, time_slot: '11:00', activity: 'Genel Tekrar',   duration_min: 40, link_url: link('Genel Tekrar') },
+      { day_of_week: 3, time_slot: '20:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 6, time_slot: '11:00', activity: 'Genel Tekrar', duration_min: 40, link_url: link('Genel Tekrar') },
+    ],
+  },
+  // ── Aşama 4: kaynak-bazlı yeni alternatifler ──────────────
+  {
+    id: 'podcast',
+    name: 'Podcast Ağırlıklı',
+    desc: 'Dinleme becerisine odaklı · haftada 4 oturum',
+    icon: <Headphones className="w-5 h-5" />,
+    accent: '#B7451B',
+    items: [
+      { day_of_week: 1, time_slot: '20:00', activity: 'Voice of America', duration_min: 20, link_url: link('Voice of America') },
+      { day_of_week: 2, time_slot: '20:00', activity: "Luke's English Podcast", duration_min: 30, link_url: link("Luke's English Podcast") },
+      { day_of_week: 4, time_slot: '20:00', activity: 'Max and Mia Podcast', duration_min: 15, link_url: link('Max and Mia Podcast') },
+      { day_of_week: 6, time_slot: '11:00', activity: 'LingoClip', duration_min: 20, link_url: link('LingoClip') },
+    ],
+  },
+  {
+    id: 'okuma',
+    name: 'Okuma Ağırlıklı',
+    desc: 'Okuma-kelime dağarcığı odaklı · haftada 4 oturum',
+    icon: <BookOpen className="w-5 h-5" />,
+    accent: '#0F6E56',
+    items: [
+      { day_of_week: 1, time_slot: '19:30', activity: 'News in Levels', duration_min: 20, link_url: link('News in Levels') },
+      { day_of_week: 3, time_slot: '19:30', activity: 'More to Read', duration_min: 25, link_url: link('More to Read') },
+      { day_of_week: 5, time_slot: '19:30', activity: 'Teknik Makale', duration_min: 25, link_url: link('Teknik Makale') },
+      { day_of_week: 0, time_slot: '11:00', activity: 'WordBox English', duration_min: 20, link_url: link('WordBox English') },
+    ],
+  },
+  {
+    id: 'yokdil',
+    name: 'YÖKDİL Hazırlık',
+    desc: 'Sınav odaklı · yoğun kelime + okuma',
+    icon: <GraduationCap className="w-5 h-5" />,
+    accent: '#6D1B7B',
+    items: [
+      { day_of_week: 1, time_slot: '08:00', activity: 'YÖKDİL Sözlük Kitabı', duration_min: 30, link_url: link('YÖKDİL Sözlük Kitabı') },
+      { day_of_week: 2, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 25, link_url: link('Teknik Makale') },
+      { day_of_week: 3, time_slot: '08:00', activity: 'YÖKDİL Sözlük Kitabı', duration_min: 30, link_url: link('YÖKDİL Sözlük Kitabı') },
+      { day_of_week: 4, time_slot: '08:00', activity: 'News in Levels', duration_min: 20, link_url: link('News in Levels') },
+      { day_of_week: 5, time_slot: '08:00', activity: 'YÖKDİL Sözlük Kitabı', duration_min: 30, link_url: link('YÖKDİL Sözlük Kitabı') },
+      { day_of_week: 6, time_slot: '10:00', activity: 'Genel Tekrar', duration_min: 45, link_url: link('Genel Tekrar') },
     ],
   },
 ];
@@ -98,16 +149,37 @@ const EMPTY_FORM: ScheduleCreate = { day_of_week: 1, time_slot: '09:00', activit
 // ── Şablon seçici modal ───────────────────────────────────────
 function TemplateModal({ hasExisting, onApply, onClose }: {
   hasExisting: boolean;
-  onApply: (t: Template, replace: boolean) => Promise<void>;
+  onApply: (items: ScheduleCreate[], replace: boolean) => Promise<void>;
   onClose: () => void;
 }) {
   const [applying, setApplying] = useState<string | null>(null);
-  const [replace, setReplace]   = useState(true);
+  const [replace, setReplace] = useState(true);
+  const [customTemplates, setCustomTemplates] = useState<ScheduleTemplate[]>([]);
+  const [loadingCustom, setLoadingCustom] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const apply = async (t: Template) => {
-    setApplying(t.id);
-    try { await onApply(t, replace); onClose(); }
+  useEffect(() => {
+    scheduleApi.getTemplates()
+      .then(setCustomTemplates)
+      .catch(() => setCustomTemplates([]))
+      .finally(() => setLoadingCustom(false));
+  }, []);
+
+  const apply = async (id: string, items: ScheduleCreate[]) => {
+    setApplying(id);
+    try { await onApply(items, replace); onClose(); }
     finally { setApplying(null); }
+  };
+
+  const removeCustom = async (id: string) => {
+    if (!confirm('Bu özel şablonu silmek istediğine emin misin?')) return;
+    setDeletingId(id);
+    try {
+      await scheduleApi.deleteTemplate(id);
+      setCustomTemplates((prev) => prev.filter((t) => t.id !== id));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -122,7 +194,7 @@ function TemplateModal({ hasExisting, onApply, onClose }: {
         </div>
 
         <div className="px-6 py-4 space-y-3">
-          <p className="text-sm text-gray-500">Çalışma sıklığına göre bir şablon seç — program otomatik oluşturulur, sonra dilediğin gibi düzenleyebilirsin.</p>
+          <p className="text-sm text-gray-500">Çalışma sıklığına veya odak alanına göre bir şablon seç — program otomatik oluşturulur, sonra dilediğin gibi düzenleyebilirsin.</p>
 
           {hasExisting && (
             <label className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 cursor-pointer">
@@ -143,7 +215,7 @@ function TemplateModal({ hasExisting, onApply, onClose }: {
                   </div>
                 </div>
                 <button
-                  onClick={() => apply(t)}
+                  onClick={() => apply(t.id, t.items)}
                   disabled={applying !== null}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white shrink-0 transition-colors disabled:opacity-50"
                   style={{ backgroundColor: t.accent }}
@@ -154,6 +226,58 @@ function TemplateModal({ hasExisting, onApply, onClose }: {
               </div>
             </div>
           ))}
+
+          {/* ── Kişiye özel şablonlar ── */}
+          <div className="pt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <UserIcon className="w-4 h-4 text-gray-400" />
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Şablonlarım</p>
+            </div>
+
+            {loadingCustom ? (
+              <div className="flex items-center gap-2 text-sm text-gray-400 px-1 py-2">
+                <Loader2 className="w-4 h-4 animate-spin" />Yükleniyor…
+              </div>
+            ) : customTemplates.length === 0 ? (
+              <p className="text-xs text-gray-400 px-1 py-2">
+                Henüz kendi şablonun yok. Bir program oluşturup "Şablon Olarak Kaydet" ile burada saklayabilirsin.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {customTemplates.map((t) => (
+                  <div key={t.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#FEF3E7] text-[#B7791F]"><Star className="w-5 h-5" /></div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{t.name}</p>
+                          <p className="text-xs text-gray-400 mt-1">{t.items.length} etkinlik / hafta</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => removeCustom(t.id)}
+                          disabled={deletingId === t.id}
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          title="Şablonu sil"
+                        >
+                          {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => apply(t.id, t.items)}
+                          disabled={applying !== null}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white bg-[#B7791F] hover:bg-[#9c6519] transition-colors disabled:opacity-50"
+                        >
+                          {applying === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          Uygula
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -212,12 +336,83 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
   );
 }
 
+// ── Şablon olarak kaydet modalı ───────────────────────────────
+function SaveTemplateModal({ items, onSaved, onClose }: {
+  items: ScheduleItem[];
+  onSaved: () => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSave = async () => {
+    if (!name.trim()) { setError('Şablon adı zorunludur.'); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const templateItems: ScheduleTemplateItem[] = items
+        .filter((it) => it.is_active !== false)
+        .map((it) => ({
+          day_of_week: it.day_of_week,
+          time_slot: it.time_slot,
+          activity: it.activity,
+          duration_min: it.duration_min,
+          link_url: it.link_url,
+        }));
+      await scheduleApi.createTemplate({ name: name.trim(), items: templateItems });
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || 'Şablon kaydedilemedi.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#FEF3E7] flex items-center justify-center"><Star className="w-4 h-4 text-[#B7791F]" /></div>
+            <h2 className="text-base font-semibold text-gray-900">Şablon Olarak Kaydet</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="px-6 py-4 space-y-3">
+          <p className="text-xs text-gray-500">Şu anki programını, dilediğin zaman tekrar uygulayabileceğin isimli bir şablon olarak kaydeder.</p>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Şablon adı *</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="örn. Benim Sınav Programım"
+              autoFocus
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
+        </div>
+        <div className="flex gap-3 px-6 pb-6">
+          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">İptal</button>
+          <button onClick={handleSave} disabled={saving} className="flex-1 bg-[#B7791F] hover:bg-[#9c6519] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
+            {saving ? 'Kaydediliyor…' : 'Kaydet'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Ana sayfa ─────────────────────────────────────────────────
 export default function SchedulePage() {
-  const [items, setItems]     = useState<ScheduleItem[]>([]);
+  const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal]       = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -235,12 +430,12 @@ export default function SchedulePage() {
     try { await scheduleApi.update(item.id, { is_active: !item.is_active }); load(); } catch { /* sessiz */ }
   };
 
-  const applyTemplate = async (t: Template, replace: boolean) => {
+  const applyTemplate = async (templateItems: ScheduleCreate[], replace: boolean) => {
     if (replace) {
       await Promise.all(items.map((it) => scheduleApi.delete(it.id).catch(() => {})));
     }
     // Sıralı ekle (rate-limit'e takılmamak için)
-    for (const it of t.items) {
+    for (const it of templateItems) {
       await scheduleApi.create(it).catch(() => {});
     }
     await load();
@@ -261,7 +456,12 @@ export default function SchedulePage() {
           <h1 className="text-2xl font-bold text-gray-900">Çalışma Programı</h1>
           <p className="text-sm text-gray-500 mt-0.5">{activeDays} aktif gün · {totalItems} etkinlik</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {items.length > 0 && (
+            <button onClick={() => setShowSaveTemplate(true)} className="flex items-center gap-2 bg-[#FEF3E7] hover:bg-[#fbe8cf] text-[#B7791F] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+              <Save className="w-4 h-4" />Şablon Olarak Kaydet
+            </button>
+          )}
           <button onClick={() => setShowTemplates(true)} className="flex items-center gap-2 bg-[#EEEDFE] hover:bg-[#e0ddfc] text-[#534AB7] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
             <Sparkles className="w-4 h-4" />Şablonlar
           </button>
@@ -326,6 +526,7 @@ export default function SchedulePage() {
 
       {showModal && <ScheduleModal onSave={handleCreate} onClose={() => setShowModal(false)} />}
       {showTemplates && <TemplateModal hasExisting={items.length > 0} onApply={applyTemplate} onClose={() => setShowTemplates(false)} />}
+      {showSaveTemplate && <SaveTemplateModal items={items} onSaved={() => {}} onClose={() => setShowSaveTemplate(false)} />}
     </div>
   );
 }
