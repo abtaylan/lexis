@@ -4,10 +4,12 @@ import { useEffect, useState, useCallback } from 'react';
 import { CheckCircle2, XCircle, RotateCcw, Loader2, Layers, ChevronRight } from 'lucide-react';
 import { wordsApi, languagesApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
+import { useLocale } from '@/lib/i18n';
 import type { Word, Language } from '@/types';
 
 // ── Oturum sonu ekranı ────────────────────────────────────────
 function DoneScreen({ total, correct, onRestart }: { total: number; correct: number; onRestart: () => void }) {
+  const { t } = useLocale();
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
   const color = pct >= 80 ? '#3B6D11' : pct >= 50 ? '#854F0B' : '#b91c1c';
   const bgColor = pct >= 80 ? '#EAF3DE' : pct >= 50 ? '#FAEEDA' : '#FEE2E2';
@@ -19,26 +21,26 @@ function DoneScreen({ total, correct, onRestart }: { total: number; correct: num
           <CheckCircle2 className="w-8 h-8" style={{ color }} />
         </div>
         <div>
-          <p className="text-2xl font-bold text-gray-900">Oturum Tamamlandı!</p>
-          <p className="text-sm text-gray-500 mt-1">{total} kelime tekrar edildi</p>
+          <p className="text-2xl font-bold text-gray-900">{t('sessionComplete')}</p>
+          <p className="text-sm text-gray-500 mt-1">{t('reviewedCountTpl').replace('{n}', String(total))}</p>
         </div>
 
         {/* Skor */}
         <div className="w-full grid grid-cols-2 gap-3">
           <div className="rounded-xl p-3 bg-[#EAF3DE]">
             <p className="text-2xl font-bold text-[#3B6D11]">{correct}</p>
-            <p className="text-xs text-[#3B6D11] font-medium mt-0.5">Doğru</p>
+            <p className="text-xs text-[#3B6D11] font-medium mt-0.5">{t('correctLabel')}</p>
           </div>
           <div className="rounded-xl p-3 bg-red-50">
             <p className="text-2xl font-bold text-red-600">{total - correct}</p>
-            <p className="text-xs text-red-600 font-medium mt-0.5">Yanlış</p>
+            <p className="text-xs text-red-600 font-medium mt-0.5">{t('wrongLabel')}</p>
           </div>
         </div>
 
         {/* Progress ring benzeri yüzde gösterge */}
         <div className="w-full">
           <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-            <span>Başarı oranı</span>
+            <span>{t('successRate')}</span>
             <span className="font-semibold" style={{ color }}>{pct}%</span>
           </div>
           <div className="h-2 rounded-full overflow-hidden bg-gray-100">
@@ -54,7 +56,7 @@ function DoneScreen({ total, correct, onRestart }: { total: number; correct: num
           className="w-full flex items-center justify-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl py-3 text-sm font-medium transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          Tekrar Başla
+          {t('restartBtn')}
         </button>
       </div>
     </div>
@@ -64,6 +66,7 @@ function DoneScreen({ total, correct, onRestart }: { total: number; correct: num
 // ── Ana Sayfa ─────────────────────────────────────────────────
 export default function FlashcardsPage() {
   const { user } = useAuth();
+  const { t } = useLocale();
   const [langNames, setLangNames] = useState<Record<string, string>>({});
   useEffect(() => {
     languagesApi.getAll()
@@ -73,14 +76,14 @@ export default function FlashcardsPage() {
   const nativeLabel = langNames[user?.native_lang || 'tr'] || (user?.native_lang || 'tr').toUpperCase();
   const learningLabel = langNames[user?.learning_lang || 'en'] || (user?.learning_lang || 'en').toUpperCase();
 
-  const [queue, setQueue]         = useState<Word[]>([]);
-  const [index, setIndex]         = useState(0);
-  const [flipped, setFlipped]     = useState(false);
-  const [loading, setLoading]     = useState(true);
+  const [queue, setQueue] = useState<Word[]>([]);
+  const [index, setIndex] = useState(0);
+  const [flipped, setFlipped] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [reviewing, setReviewing] = useState(false);
-  const [done, setDone]           = useState(false);
-  const [correct, setCorrect]     = useState(0);
-  const [error, setError]         = useState('');
+  const [done, setDone] = useState(false);
+  const [correct, setCorrect] = useState(0);
+  const [error, setError] = useState('');
 
   const shuffle = (arr: Word[]) => [...arr].sort(() => Math.random() - 0.5);
 
@@ -101,10 +104,11 @@ export default function FlashcardsPage() {
       setDone(false);
       setCorrect(0);
     } catch {
-      setError('Kelimeler yüklenemedi.');
+      setError(t('wordsLoadError'));
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => { loadCards(); }, [loadCards]);
@@ -139,7 +143,7 @@ export default function FlashcardsPage() {
       <div className="p-6 flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3 text-gray-400">
           <Loader2 className="w-6 h-6 animate-spin" />
-          <span className="text-sm">Yükleniyor…</span>
+          <span className="text-sm">{t('loading')}</span>
         </div>
       </div>
     );
@@ -163,8 +167,8 @@ export default function FlashcardsPage() {
             <CheckCircle2 className="w-7 h-7 text-[#3B6D11]" />
           </div>
           <div>
-            <p className="text-lg font-bold text-gray-900">Harika iş!</p>
-            <p className="text-sm text-gray-500 mt-1">Bugün için tekrar edilecek kelimen yok.</p>
+            <p className="text-lg font-bold text-gray-900">{t('greatJob')}</p>
+            <p className="text-sm text-gray-500 mt-1">{t('noWordsDue')}</p>
           </div>
         </div>
       </div>
@@ -186,7 +190,7 @@ export default function FlashcardsPage() {
           <div className="w-8 h-8 rounded-xl bg-[#E6F1FB] flex items-center justify-center">
             <Layers className="w-4 h-4 text-[#185FA5]" />
           </div>
-          <span className="text-sm font-semibold text-gray-700">Flashcard</span>
+          <span className="text-sm font-semibold text-gray-700">{t('flashcards')}</span>
         </div>
         <span className="text-sm text-gray-400 font-medium">
           {index + 1} <span className="text-gray-300">/</span> {queue.length}
@@ -221,7 +225,7 @@ export default function FlashcardsPage() {
               </span>
             )}
             <div className="flex items-center gap-1 text-xs text-gray-400 mt-3">
-              <span>Çevirmek için tıkla</span>
+              <span>{t('tapToFlip')}</span>
               <ChevronRight className="w-3 h-3" />
             </div>
           </div>
@@ -230,7 +234,7 @@ export default function FlashcardsPage() {
           <div className="flex flex-col items-start gap-4 p-8 min-h-[280px]">
             {/* Ana anlam */}
             <div className="w-full">
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Anlam</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('colMeaning')}</p>
               <p className="text-lg font-semibold text-gray-900 leading-snug">{current.meaning}</p>
             </div>
 
@@ -245,7 +249,7 @@ export default function FlashcardsPage() {
             {/* Öğrenilen dildeki açıklama — meaning'den farklıysa göster */}
             {current.meaning_target && current.meaning_target !== current.meaning && (
               <div className="w-full">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{learningLabel} açıklaması</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('meaningTargetTpl').replace('{lang}', learningLabel)}</p>
                 <p className="text-sm text-gray-600 leading-snug">{current.meaning_target}</p>
               </div>
             )}
@@ -253,7 +257,7 @@ export default function FlashcardsPage() {
             {/* Örnek */}
             {current.example && (
               <div className="w-full border-t border-gray-100 pt-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">Örnek</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1.5">{t('exampleHeader')}</p>
                 <p className="text-sm text-gray-500 italic leading-relaxed">{current.example}</p>
               </div>
             )}
@@ -270,7 +274,7 @@ export default function FlashcardsPage() {
             className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl font-semibold text-sm disabled:opacity-50 transition-colors"
           >
             <XCircle className="w-5 h-5" />
-            Bilmedim
+            {t('dontKnowBtn')}
           </button>
           <button
             onClick={() => handleRate(true)}
@@ -278,7 +282,7 @@ export default function FlashcardsPage() {
             className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-[#EAF3DE] hover:bg-green-100 text-[#3B6D11] rounded-2xl font-semibold text-sm disabled:opacity-50 transition-colors"
           >
             <CheckCircle2 className="w-5 h-5" />
-            Bildim
+            {t('knewItBtn')}
           </button>
         </div>
       ) : (
@@ -290,11 +294,11 @@ export default function FlashcardsPage() {
       <div className="flex items-center gap-4 text-xs text-gray-400">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-[#3B6D11] inline-block" />
-          {correct} doğru
+          {t('correctCountTpl').replace('{n}', String(correct))}
         </span>
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-red-400 inline-block" />
-          {index - correct} yanlış
+          {t('wrongCountTpl').replace('{n}', String(index - correct))}
         </span>
       </div>
     </div>
