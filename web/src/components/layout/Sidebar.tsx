@@ -7,21 +7,23 @@ import {
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
-
-const navItems = [
-  { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
-  { href: '/words',      label: 'Kelimeler',   icon: BookOpen },
-  { href: '/flashcards', label: 'Flashcards',  icon: Layers },
-  { href: '/quiz',       label: 'Quiz',        icon: HelpCircle },
-  { href: '/schedule',   label: 'Program',     icon: CalendarDays },
-  { href: '/stats',      label: 'İstatistik',  icon: BarChart3 },
-  { href: '/profile',    label: 'Profil',      icon: User },
-];
+import { useLocale } from '@/lib/i18n';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const router   = useRouter();
+  const router = useRouter();
   const { user, logout } = useAuth();
+  const { t } = useLocale();
+
+  const navItems = [
+    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/words', label: t('words'), icon: BookOpen },
+    { href: '/flashcards', label: t('flashcards'), icon: Layers },
+    { href: '/quiz', label: t('quiz'), icon: HelpCircle },
+    { href: '/schedule', label: t('schedule'), icon: CalendarDays },
+    { href: '/stats', label: t('stats'), icon: BarChart3 },
+    { href: '/profile', label: t('profile'), icon: User },
+  ];
 
   const handleLogout = () => { logout(); router.push('/login'); };
 
@@ -53,14 +55,14 @@ export function Sidebar() {
         className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors mb-3 ${
           user?.is_premium ? 'text-amber-600 bg-amber-50 hover:bg-amber-100' : 'text-slate-600 hover:bg-gray-50 hover:text-gray-900'
         }`}>
-        <Crown className="w-4 h-4 shrink-0" />{user?.is_premium ? 'Premium Üyesin' : 'Premium\u2019a Geç'}
+        <Crown className="w-4 h-4 shrink-0" />{user?.is_premium ? t('premiumActive') : t('premiumGet')}
       </Link>
 
       {/* Admin için ayrı yönetim paneline kısayol */}
       {user?.is_admin && (
         <Link href="/admin/users"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[#534AB7] bg-[#EEEDFE] hover:bg-[#e0ddfc] transition-colors mb-3">
-          <ShieldCheck className="w-4 h-4 shrink-0" />Yönetim Paneli
+          <ShieldCheck className="w-4 h-4 shrink-0" />{t('adminPanel')}
         </Link>
       )}
 
@@ -73,7 +75,7 @@ export function Sidebar() {
           </div>
         </div>
         <button onClick={handleLogout} className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-          <LogOut className="w-4 h-4 shrink-0" />Çıkış Yap
+          <LogOut className="w-4 h-4 shrink-0" />{t('logout')}
         </button>
       </div>
     </aside>
