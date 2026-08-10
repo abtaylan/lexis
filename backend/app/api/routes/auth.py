@@ -1,11 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, Literal
 from app.core.database import supabase_admin
 from app.core.auth import get_current_user
+from app.services import otp_service
 
 router = APIRouter()
-
 
 class RegisterRequest(BaseModel):
     email: EmailStr
@@ -15,11 +15,18 @@ class RegisterRequest(BaseModel):
     native_lang: Optional[str] = "tr"
     learning_lang: Optional[str] = "en"
 
-
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    code: str
+    purpose: Literal["login", "register"]
+
+class ResendOtpRequest(BaseModel):
+    email: EmailStr
+    purpose: Literal["login", "register"]
 
 class ProfileUpdate(BaseModel):
     display_name: Optional[str] = None
@@ -29,7 +36,6 @@ class ProfileUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
-
 
 def _friendly_auth_error(msg: str) -> str:
     low = msg.lower()
@@ -41,6 +47,12 @@ def _friendly_auth_error(msg: str) -> str:
         return "Geçersiz e-posta adresi."
     return "Kayıt başarısız. Lütfen bilgilerinizi kontrol edin."
 
+def _user_payload(user) -> dict:
+    return {
+        "id": user.id,
+        "email": user.email,
+        "display_name": user.user_metadata.get("display_name", ""),
+    }
 
 @router.post("/register", status_code=201)
 async def register(req: RegisterRequest):
@@ -59,22 +71,49 @@ async def register(req: RegisterRequest):
         # Dil tercihlerini profiles'a yaz (trigger sadece id/display_name/username ekliyor)
         try:
             supabase_admin.table("profiles").upsert({
-                                "id": result.user.id,
-                                "display_name": req.display_name,
-                                "native_lang": req.native_lang or "tr",
-                                "learning_lang": req.learning_lang or "en",
-                                "username": req.username or req.email.split("@")[0],
-        }).execute()
+                "id": result.user.id,
+                "display_name": req.display_name,
+                "native_lang": req.native_lang or "tr",
+                "learning_lang": req.learning_lang or "en",
+                "username": req.username or req.email.split("@")[0],
+            }).execute()
         except Exception as e:
             print(f"REGISTER profile update warning: {e}")
 
-        return {"message": "Kayıt başarılı."}
+        # Hesap oluştu — ama giriş için OTP doğrulaması gerekiyor.
+        # Session'ı şimdiden bootstraplayıp OTP satırına stashliyoruz; OTP
+        # doğrulanınca bu token'lar client'a döndürülecek (yeniden şifre girmeye gerek yok).
+        access_token = None
+        refresh_token = None
+        try:
+            session_result = supabase_admin.auth.sign_in_with_password({
+                "email": req.email,
+                "password": req.password,
+            })
+            if session_result.session:
+                access_token = session_result.session.access_token
+                refresh_token = session_result.session.refresh_token
+        except Exception as e:
+            print(f"REGISTER session bootstrap warning: {e}")
+
+        otp_service.create_otp(
+            email=req.email,
+            purpose="register",
+            access_token=access_token,
+            refresh_token=refresh_token,
+        )
+
+        return {
+            "pending": True,
+            "email": req.email,
+            "purpose": "register",
+            "message": "Kayıt başarılı. Doğrulama kodu e-postana gönderildi.",
+        }
     except HTTPException:
         raise
     except Exception as e:
         print(f"REGISTER ERROR: {e}")
         raise HTTPException(status_code=400, detail=_friendly_auth_error(str(e)))
-
 
 @router.post("/login")
 async def login(req: LoginRequest):
@@ -85,14 +124,19 @@ async def login(req: LoginRequest):
         })
         if not result.session:
             raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
+
+        otp_service.create_otp(
+            email=req.email,
+            purpose="login",
+            access_token=result.session.access_token,
+            refresh_token=result.session.refresh_token,
+        )
+
         return {
-            "access_token": result.session.access_token,
-            "refresh_token": result.session.refresh_token,
-            "user": {
-                "id": result.user.id,
-                "email": result.user.email,
-                "display_name": result.user.user_metadata.get("display_name", ""),
-            }
+            "pending": True,
+            "email": req.email,
+            "purpose": "login",
+            "message": "Doğrulama kodu e-postana gönderildi.",
         }
     except HTTPException:
         raise
@@ -100,6 +144,35 @@ async def login(req: LoginRequest):
         print(f"LOGIN ERROR: {e}")
         raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
 
+@router.post("/verify-otp")
+async def verify_otp(req: VerifyOtpRequest):
+    row = otp_service.verify_otp(email=req.email, purpose=req.purpose, code=req.code)
+
+    access_token = row.get("session_access_token")
+    refresh_token = row.get("session_refresh_token")
+    if not access_token:
+        raise HTTPException(
+            status_code=500,
+            detail="Oturum oluşturulamadı, lütfen tekrar giriş/kayıt yapmayı deneyin.",
+        )
+
+    try:
+        user_result = supabase_admin.auth.get_user(access_token)
+        user = user_result.user
+    except Exception as e:
+        print(f"VERIFY_OTP get_user error: {e}")
+        raise HTTPException(status_code=500, detail="Oturum doğrulanamadı.")
+
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "user": _user_payload(user),
+    }
+
+@router.post("/resend-otp")
+async def resend_otp(req: ResendOtpRequest):
+    otp_service.resend_otp(email=req.email, purpose=req.purpose)
+    return {"message": "Kod tekrar gönderildi."}
 
 @router.post("/refresh")
 async def refresh_token(refresh_token: str):
@@ -108,7 +181,6 @@ async def refresh_token(refresh_token: str):
         return {"access_token": result.session.access_token}
     except Exception:
         raise HTTPException(status_code=401, detail="Token yenilenemedi.")
-
 
 @router.get("/me")
 async def get_me(current_user=Depends(get_current_user)):
@@ -122,23 +194,22 @@ async def get_me(current_user=Depends(get_current_user)):
         )
         data = profile.data or {}
         return {
-            "id":            current_user.id,
-            "email":         current_user.email,
-            "display_name":  data.get("display_name", ""),
-            "username":      data.get("username", ""),
-            "role":          data.get("role", "user"),
-            "daily_goal":    data.get("daily_goal", 5),
-            "native_lang":   data.get("native_lang", "tr"),
+            "id": current_user.id,
+            "email": current_user.email,
+            "display_name": data.get("display_name", ""),
+            "username": data.get("username", ""),
+            "role": data.get("role", "user"),
+            "daily_goal": data.get("daily_goal", 5),
+            "native_lang": data.get("native_lang", "tr"),
             "learning_lang": data.get("learning_lang", "en"),
-            "is_admin":      data.get("role") == "admin",
-            "created_at":    data.get("created_at", ""),
-            "is_premium":    data.get("is_premium", False),
+            "is_admin": data.get("role") == "admin",
+            "created_at": data.get("created_at", ""),
+            "is_premium": data.get("is_premium", False),
             "premium_until": data.get("premium_until"),
         }
     except Exception as e:
         print(f"GET_ME ERROR: {e}")
         raise HTTPException(status_code=500, detail="Profil alınamadı.")
-
 
 @router.patch("/profile")
 async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_user)):
@@ -192,16 +263,16 @@ async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_u
     d = profile.data or {}
     new_email = auth_update.get("email", current_user.email)
     return {
-        "id":            current_user.id,
-        "email":         new_email,
-        "display_name":  d.get("display_name", ""),
-        "username":      d.get("username", ""),
-        "role":          d.get("role", "user"),
-        "daily_goal":    d.get("daily_goal", 5),
-        "native_lang":   d.get("native_lang", "tr"),
+        "id": current_user.id,
+        "email": new_email,
+        "display_name": d.get("display_name", ""),
+        "username": d.get("username", ""),
+        "role": d.get("role", "user"),
+        "daily_goal": d.get("daily_goal", 5),
+        "native_lang": d.get("native_lang", "tr"),
         "learning_lang": d.get("learning_lang", "en"),
-        "is_admin":      d.get("role") == "admin",
-        "created_at":    d.get("created_at", ""),
-        "is_premium":    d.get("is_premium", False),
+        "is_admin": d.get("role") == "admin",
+        "created_at": d.get("created_at", ""),
+        "is_premium": d.get("is_premium", False),
         "premium_until": d.get("premium_until"),
     }
