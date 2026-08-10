@@ -58,11 +58,13 @@ async def register(req: RegisterRequest):
 
         # Dil tercihlerini profiles'a yaz (trigger sadece id/display_name/username ekliyor)
         try:
-            supabase_admin.table("profiles").update({
-                "native_lang":   req.native_lang or "tr",
-                "learning_lang": req.learning_lang or "en",
-                "username":      req.username or req.email.split("@")[0],
-            }).eq("id", result.user.id).execute()
+            supabase_admin.table("profiles").upsert({
+                                "id": result.user.id,
+                                "display_name": req.display_name,
+                                "native_lang": req.native_lang or "tr",
+                                "learning_lang": req.learning_lang or "en",
+                                "username": req.username or req.email.split("@")[0],
+        }).execute()
         except Exception as e:
             print(f"REGISTER profile update warning: {e}")
 
