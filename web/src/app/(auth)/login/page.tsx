@@ -4,12 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api';
-import { useAuth } from '@/store/auth';
-import type { User } from '@/types';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -25,28 +22,10 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await authApi.login(form);
-
-      // Interceptor'un getMe() için token'i okuyabilmesi amacıyla
-      // once localStorage'a yaz, sonra /auth/me'yi cagir
-      localStorage.setItem('lexis_token', res.access_token);
-      const me = await authApi.getMe();
-
-      const user: User = {
-        id:           me.id,
-        email:        me.email,
-        display_name: me.display_name,
-        username:     (me as any).username || me.display_name || '',
-        is_admin:     (me as any).is_admin ?? (me as any).role === 'admin',
-        role:         (me as any).role,
-        daily_goal:   (me as any).daily_goal ?? 5,
-        created_at:   (me as any).created_at || new Date().toISOString(),
-      };
-
-      login(res.access_token, user);
-      router.push('/dashboard');
+      // Şifre doğrulanır, OTP kodu gönderilir — token burada dönmez.
+      await authApi.login(form);
+      router.push(`/verify-otp?email=${encodeURIComponent(form.email)}&purpose=login`);
     } catch (err: any) {
-      localStorage.removeItem('lexis_token');
       setError(
         err?.response?.data?.detail || 'Giriş yapılamadı. Bilgilerinizi kontrol edin.'
       );
