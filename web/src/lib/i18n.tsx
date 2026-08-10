@@ -52,7 +52,13 @@ type TranslationKey =
   | 'noAccountQuestion' | 'registerLinkText' | 'registerTitleText' | 'registerSubtitleText' | 'fullNameLabel'
   | 'usernameLabel' | 'passwordHintText' | 'nativeLangSelectLabel' | 'learningLangSelectLabel' | 'emailInvalidError'
   | 'usernameMinError' | 'passwordMinError' | 'sameLangError' | 'registerFailedGeneric' | 'createAccountBtn'
-  | 'haveAccountQuestion' | 'loginLinkText';
+  | 'haveAccountQuestion' | 'loginLinkText'
+  | 'typeNoun' | 'typeVerb' | 'typeAdjective' | 'typeAdverb' | 'typePhrasalVerb' | 'typeIdiom' | 'typePhrase' | 'typeOther'
+  | 'statsLoadError' | 'statsPageTitle' | 'statsPageSubtitle' | 'noDataYet' | 'noDataYetSub' | 'longestStreak'
+  | 'streakDaysAbbrTpl' | 'statusDistribution' | 'statusDistributionSub' | 'learnedPercentLabel' | 'typeByLearnRate'
+  | 'typeByLearnRateSub' | 'learnRateTooltip' | 'typeDistribution' | 'typeDistributionSub' | 'wordTooltip'
+  | 'learningSpeed' | 'learningSpeedSub' | 'repeatUnitTpl' | 'averageTooltip' | 'last30DaysTitle' | 'last30DaysSub'
+  | 'addedWordUnitTpl' | 'addedTooltip' | 'studyActivity' | 'studyActivitySub' | 'addedLegend' | 'repeatLegend';
 
 type Dictionary = Record<TranslationKey, string>;
 
@@ -115,6 +121,15 @@ const dictionaries: Record<Locale, Dictionary> = {
     sameLangError: 'Öğrenmek istediğin dil ana dilinden farklı olmalı.',
     registerFailedGeneric: 'Kayıt başarısız. Bu e-posta zaten kullanılıyor olabilir.',
     createAccountBtn: 'Hesap Oluştur', haveAccountQuestion: 'Zaten hesabın var mı?', loginLinkText: 'Giriş yap',
+    typeNoun: 'İsim', typeVerb: 'Fiil', typeAdjective: 'Sıfat', typeAdverb: 'Zarf', typePhrasalVerb: 'Fiil (öbük)', typeIdiom: 'Deyim', typePhrase: 'İfade', typeOther: 'Diğer',
+    statsLoadError: 'İstatistikler yüklenemedi.', statsPageTitle: 'İstatistikler', statsPageSubtitle: 'Öğrenme yolculuğun bir bakışta',
+    noDataYet: 'Henüz veri yok', noDataYetSub: 'Kelime ekleyip çalışmaya başlayınca grafikler burada canlanacak.',
+    longestStreak: 'En Uzun Seri', streakDaysAbbrTpl: '{n}g', statusDistribution: 'Durum Dağılımı', statusDistributionSub: 'Kelimelerin öğrenilme durumu',
+    learnedPercentLabel: 'öğrenildi', typeByLearnRate: 'Kelime Türüne Göre Öğrenme Oranı', typeByLearnRateSub: 'Hangi türde daha güçlüsün? (%)',
+    learnRateTooltip: 'Öğrenme oranı', typeDistribution: 'Kelime Türü Dağılımı', typeDistributionSub: 'Türlere göre kelime sayısı', wordTooltip: 'Kelime',
+    learningSpeed: 'Öğrenme Hızı', learningSpeedSub: 'Türe göre ort. tekrar sayısı — düşük = daha hızlı', repeatUnitTpl: '{n} tekrar', averageTooltip: 'Ortalama',
+    last30DaysTitle: 'Son 30 Gün — Eklenen Kelimeler', last30DaysSub: 'Günlük kelime ekleme ivmen', addedWordUnitTpl: '{n} kelime', addedTooltip: 'Eklenen',
+    studyActivity: 'Çalışma Aktivitesi', studyActivitySub: 'Günlük eklenen vs tekrar edilen', addedLegend: 'Eklenen', repeatLegend: 'Tekrar',
   },
   en: {
     dashboard: 'Dashboard', words: 'Words', flashcards: 'Flashcards', quiz: 'Quiz', schedule: 'Schedule', stats: 'Statistics', profile: 'Profile',
@@ -174,6 +189,15 @@ const dictionaries: Record<Locale, Dictionary> = {
     sameLangError: 'The language you want to learn must differ from your native language.',
     registerFailedGeneric: 'Registration failed. This email may already be in use.',
     createAccountBtn: 'Create Account', haveAccountQuestion: 'Already have an account?', loginLinkText: 'Log in',
+    typeNoun: 'Noun', typeVerb: 'Verb', typeAdjective: 'Adjective', typeAdverb: 'Adverb', typePhrasalVerb: 'Phrasal Verb', typeIdiom: 'Idiom', typePhrase: 'Phrase', typeOther: 'Other',
+    statsLoadError: 'Failed to load statistics.', statsPageTitle: 'Statistics', statsPageSubtitle: 'Your learning journey at a glance',
+    noDataYet: 'No data yet', noDataYetSub: 'Once you add words and start studying, charts will come alive here.',
+    longestStreak: 'Longest Streak', streakDaysAbbrTpl: '{n}d', statusDistribution: 'Status Distribution', statusDistributionSub: 'Learning status of your words',
+    learnedPercentLabel: 'learned', typeByLearnRate: 'Learning Rate by Word Type', typeByLearnRateSub: 'Which type are you stronger in? (%)',
+    learnRateTooltip: 'Learning rate', typeDistribution: 'Word Type Distribution', typeDistributionSub: 'Word count by type', wordTooltip: 'Word',
+    learningSpeed: 'Learning Speed', learningSpeedSub: 'Avg. repetitions by type — lower = faster', repeatUnitTpl: '{n} repeats', averageTooltip: 'Average',
+    last30DaysTitle: 'Last 30 Days — Words Added', last30DaysSub: 'Your daily word-adding momentum', addedWordUnitTpl: '{n} words', addedTooltip: 'Added',
+    studyActivity: 'Study Activity', studyActivitySub: 'Daily added vs. reviewed', addedLegend: 'Added', repeatLegend: 'Reviewed',
   },
   ar: {
     dashboard: 'لوحة التحكم', words: 'الكلمات', flashcards: 'البطاقات التعليمية', quiz: 'اختبار', schedule: 'البرنامج', stats: 'الإحصائيات', profile: 'الملف الشخصي',
@@ -233,6 +257,15 @@ const dictionaries: Record<Locale, Dictionary> = {
     sameLangError: 'يجب أن تختلف اللغة التي تريد تعلمها عن لغتك الأم.',
     registerFailedGeneric: 'فشل التسجيل. قد يكون هذا البريد مستخدمًا بالفعل.',
     createAccountBtn: 'إنشاء الحساب', haveAccountQuestion: 'لديك حساب بالفعل؟', loginLinkText: 'تسجيل الدخول',
+    typeNoun: 'اسم', typeVerb: 'فعل', typeAdjective: 'صفة', typeAdverb: 'ظرف', typePhrasalVerb: 'فعل مركّب', typeIdiom: 'تعبير اصطلاحي', typePhrase: 'عبارة', typeOther: 'أخرى',
+    statsLoadError: 'تعذر تحميل الإحصائيات.', statsPageTitle: 'الإحصائيات', statsPageSubtitle: 'رحلتك التعليمية بلمحة',
+    noDataYet: 'لا توجد بيانات بعد', noDataYetSub: 'بمجرد إضافة الكلمات والبدء بالدراسة، ستظهر الرسوم البيانية هنا.',
+    longestStreak: 'أطول تتابع', streakDaysAbbrTpl: '{n}ي', statusDistribution: 'توزيع الحالة', statusDistributionSub: 'حالة تعلّم كلماتك',
+    learnedPercentLabel: 'تم تعلمه', typeByLearnRate: 'معدل التعلم حسب نوع الكلمة', typeByLearnRateSub: 'في أي نوع أنت أقوى؟ (%)',
+    learnRateTooltip: 'معدل التعلم', typeDistribution: 'توزيع أنواع الكلمات', typeDistributionSub: 'عدد الكلمات حسب النوع', wordTooltip: 'كلمة',
+    learningSpeed: 'سرعة التعلم', learningSpeedSub: 'متوسط التكرار حسب النوع — الأقل = أسرع', repeatUnitTpl: '{n} تكرار', averageTooltip: 'المتوسط',
+    last30DaysTitle: 'آخر 30 يومًا — الكلمات المضافة', last30DaysSub: 'وتيرة إضافة الكلمات اليومية لديك', addedWordUnitTpl: '{n} كلمة', addedTooltip: 'مُضاف',
+    studyActivity: 'نشاط الدراسة', studyActivitySub: 'المُضاف مقابل المُراجَع يوميًا', addedLegend: 'مُضاف', repeatLegend: 'مُراجَع',
   },
   ru: {
     dashboard: 'Панель', words: 'Слова', flashcards: 'Карточки', quiz: 'Тест', schedule: 'Расписание', stats: 'Статистика', profile: 'Профиль',
@@ -292,6 +325,15 @@ const dictionaries: Record<Locale, Dictionary> = {
     sameLangError: 'Изучаемый язык должен отличаться от родного.',
     registerFailedGeneric: 'Регистрация не удалась. Эта почта уже может быть использована.',
     createAccountBtn: 'Создать аккаунт', haveAccountQuestion: 'Уже есть аккаунт?', loginLinkText: 'Войти',
+    typeNoun: 'Существительное', typeVerb: 'Глагол', typeAdjective: 'Прилагательное', typeAdverb: 'Наречие', typePhrasalVerb: 'Фразовый глагол', typeIdiom: 'Идиома', typePhrase: 'Фраза', typeOther: 'Другое',
+    statsLoadError: 'Не удалось загрузить статистику.', statsPageTitle: 'Статистика', statsPageSubtitle: 'Твой путь обучения одним взглядом',
+    noDataYet: 'Пока нет данных', noDataYetSub: 'Как только добавишь слова и начнёшь заниматься, здесь появятся графики.',
+    longestStreak: 'Самая длинная серия', streakDaysAbbrTpl: '{n}д', statusDistribution: 'Распределение по статусу', statusDistributionSub: 'Статус изучения твоих слов',
+    learnedPercentLabel: 'изучено', typeByLearnRate: 'Скорость изучения по типу слова', typeByLearnRateSub: 'В каком типе ты сильнее? (%)',
+    learnRateTooltip: 'Скорость изучения', typeDistribution: 'Распределение по типам слов', typeDistributionSub: 'Количество слов по типу', wordTooltip: 'Слово',
+    learningSpeed: 'Скорость обучения', learningSpeedSub: 'Ср. число повторов по типу — меньше = быстрее', repeatUnitTpl: '{n} повторов', averageTooltip: 'Среднее',
+    last30DaysTitle: 'Последние 30 дней — добавленные слова', last30DaysSub: 'Твой темп добавления слов по дням', addedWordUnitTpl: '{n} слов', addedTooltip: 'Добавлено',
+    studyActivity: 'Активность занятий', studyActivitySub: 'Добавлено против повторено по дням', addedLegend: 'Добавлено', repeatLegend: 'Повторено',
   },
   de: {
     dashboard: 'Dashboard', words: 'Wörter', flashcards: 'Karteikarten', quiz: 'Quiz', schedule: 'Zeitplan', stats: 'Statistik', profile: 'Profil',
@@ -351,6 +393,15 @@ const dictionaries: Record<Locale, Dictionary> = {
     sameLangError: 'Die Lernsprache muss sich von deiner Muttersprache unterscheiden.',
     registerFailedGeneric: 'Registrierung fehlgeschlagen. Diese E-Mail wird möglicherweise bereits verwendet.',
     createAccountBtn: 'Konto erstellen', haveAccountQuestion: 'Bereits ein Konto?', loginLinkText: 'Anmelden',
+    typeNoun: 'Substantiv', typeVerb: 'Verb', typeAdjective: 'Adjektiv', typeAdverb: 'Adverb', typePhrasalVerb: 'Phrasal Verb', typeIdiom: 'Redewendung', typePhrase: 'Phrase', typeOther: 'Sonstiges',
+    statsLoadError: 'Statistiken konnten nicht geladen werden.', statsPageTitle: 'Statistik', statsPageSubtitle: 'Deine Lernreise auf einen Blick',
+    noDataYet: 'Noch keine Daten', noDataYetSub: 'Sobald du Wörter hinzufügst und lernst, erscheinen hier Diagramme.',
+    longestStreak: 'Längste Serie', streakDaysAbbrTpl: '{n}T', statusDistribution: 'Statusverteilung', statusDistributionSub: 'Lernstatus deiner Wörter',
+    learnedPercentLabel: 'gelernt', typeByLearnRate: 'Lernrate nach Wortart', typeByLearnRateSub: 'In welcher Wortart bist du stärker? (%)',
+    learnRateTooltip: 'Lernrate', typeDistribution: 'Wortartverteilung', typeDistributionSub: 'Wortanzahl nach Typ', wordTooltip: 'Wort',
+    learningSpeed: 'Lerngeschwindigkeit', learningSpeedSub: 'Durchschn. Wiederholungen nach Typ — niedriger = schneller', repeatUnitTpl: '{n} Wiederholungen', averageTooltip: 'Durchschnitt',
+    last30DaysTitle: 'Letzte 30 Tage — hinzugefügte Wörter', last30DaysSub: 'Dein tägliches Tempo beim Hinzufügen von Wörtern', addedWordUnitTpl: '{n} Wörter', addedTooltip: 'Hinzugefügt',
+    studyActivity: 'Lernaktivität', studyActivitySub: 'Täglich hinzugefügt vs. wiederholt', addedLegend: 'Hinzugefügt', repeatLegend: 'Wiederholt',
   },
   fr: {
     dashboard: 'Tableau de bord', words: 'Mots', flashcards: 'Cartes mémo', quiz: 'Quiz', schedule: 'Programme', stats: 'Statistiques', profile: 'Profil',
@@ -410,6 +461,15 @@ const dictionaries: Record<Locale, Dictionary> = {
     sameLangError: "La langue à apprendre doit être différente de ta langue maternelle.",
     registerFailedGeneric: "Échec de l'inscription. Cet e-mail est peut-être déjà utilisé.",
     createAccountBtn: 'Créer le compte', haveAccountQuestion: 'Déjà un compte ?', loginLinkText: 'Se connecter',
+    typeNoun: 'Nom', typeVerb: 'Verbe', typeAdjective: 'Adjectif', typeAdverb: 'Adverbe', typePhrasalVerb: 'Verbe à particule', typeIdiom: 'Expression idiomatique', typePhrase: 'Phrase', typeOther: 'Autre',
+    statsLoadError: 'Impossible de charger les statistiques.', statsPageTitle: 'Statistiques', statsPageSubtitle: "Ton parcours d'apprentissage en un coup d'œil",
+    noDataYet: 'Pas encore de données', noDataYetSub: 'Dès que tu ajoutes des mots et commences à étudier, les graphiques prendront vie ici.',
+    longestStreak: 'Série la plus longue', streakDaysAbbrTpl: '{n}j', statusDistribution: 'Répartition par statut', statusDistributionSub: "Statut d'apprentissage de tes mots",
+    learnedPercentLabel: 'appris', typeByLearnRate: "Taux d'apprentissage par type de mot", typeByLearnRateSub: 'Dans quel type es-tu le plus fort ? (%)',
+    learnRateTooltip: "Taux d'apprentissage", typeDistribution: 'Répartition par type de mot', typeDistributionSub: 'Nombre de mots par type', wordTooltip: 'Mot',
+    learningSpeed: "Vitesse d'apprentissage", learningSpeedSub: 'Répétitions moy. par type — plus bas = plus rapide', repeatUnitTpl: '{n} répétitions', averageTooltip: 'Moyenne',
+    last30DaysTitle: '30 derniers jours — mots ajoutés', last30DaysSub: "Ton rythme quotidien d'ajout de mots", addedWordUnitTpl: '{n} mots', addedTooltip: 'Ajoutés',
+    studyActivity: "Activité d'étude", studyActivitySub: 'Ajoutés vs révisés par jour', addedLegend: 'Ajoutés', repeatLegend: 'Révisés',
   },
   es: {
     dashboard: 'Panel', words: 'Palabras', flashcards: 'Tarjetas', quiz: 'Cuestionario', schedule: 'Horario', stats: 'Estadísticas', profile: 'Perfil',
@@ -469,6 +529,15 @@ const dictionaries: Record<Locale, Dictionary> = {
     sameLangError: 'El idioma que quieres aprender debe ser distinto de tu idioma nativo.',
     registerFailedGeneric: 'No se pudo registrar. Este correo ya podría estar en uso.',
     createAccountBtn: 'Crear cuenta', haveAccountQuestion: '¿Ya tienes cuenta?', loginLinkText: 'Iniciar sesión',
+    typeNoun: 'Sustantivo', typeVerb: 'Verbo', typeAdjective: 'Adjetivo', typeAdverb: 'Adverbio', typePhrasalVerb: 'Verbo frasal', typeIdiom: 'Modismo', typePhrase: 'Frase', typeOther: 'Otro',
+    statsLoadError: 'No se pudieron cargar las estadísticas.', statsPageTitle: 'Estadísticas', statsPageSubtitle: 'Tu viaje de aprendizaje de un vistazo',
+    noDataYet: 'Aún no hay datos', noDataYetSub: 'En cuanto añadas palabras y empieces a estudiar, los gráficos cobrarán vida aquí.',
+    longestStreak: 'Racha más larga', streakDaysAbbrTpl: '{n}d', statusDistribution: 'Distribución por estado', statusDistributionSub: 'Estado de aprendizaje de tus palabras',
+    learnedPercentLabel: 'aprendido', typeByLearnRate: 'Tasa de aprendizaje por tipo de palabra', typeByLearnRateSub: '¿En qué tipo eres más fuerte? (%)',
+    learnRateTooltip: 'Tasa de aprendizaje', typeDistribution: 'Distribución por tipo de palabra', typeDistributionSub: 'Número de palabras por tipo', wordTooltip: 'Palabra',
+    learningSpeed: 'Velocidad de aprendizaje', learningSpeedSub: 'Repeticiones prom. por tipo — menos = más rápido', repeatUnitTpl: '{n} repeticiones', averageTooltip: 'Promedio',
+    last30DaysTitle: 'Últimos 30 días — palabras añadidas', last30DaysSub: 'Tu ritmo diario de añadir palabras', addedWordUnitTpl: '{n} palabras', addedTooltip: 'Añadidas',
+    studyActivity: 'Actividad de estudio', studyActivitySub: 'Añadidas vs. repasadas por día', addedLegend: 'Añadidas', repeatLegend: 'Repasadas',
   },
   it: {
     dashboard: 'Dashboard', words: 'Parole', flashcards: 'Flashcard', quiz: 'Quiz', schedule: 'Programma', stats: 'Statistiche', profile: 'Profilo',
@@ -528,6 +597,15 @@ const dictionaries: Record<Locale, Dictionary> = {
     sameLangError: 'La lingua da imparare deve essere diversa dalla tua lingua madre.',
     registerFailedGeneric: 'Registrazione non riuscita. Questa e-mail potrebbe essere già in uso.',
     createAccountBtn: 'Crea account', haveAccountQuestion: 'Hai già un account?', loginLinkText: 'Accedi',
+    typeNoun: 'Sostantivo', typeVerb: 'Verbo', typeAdjective: 'Aggettivo', typeAdverb: 'Avverbio', typePhrasalVerb: 'Verbo frasale', typeIdiom: 'Modo di dire', typePhrase: 'Frase', typeOther: 'Altro',
+    statsLoadError: 'Impossibile caricare le statistiche.', statsPageTitle: 'Statistiche', statsPageSubtitle: 'Il tuo percorso di apprendimento a colpo d’occhio',
+    noDataYet: 'Ancora nessun dato', noDataYetSub: 'Non appena aggiungi parole e inizi a studiare, qui prenderanno vita i grafici.',
+    longestStreak: 'Serie più lunga', streakDaysAbbrTpl: '{n}g', statusDistribution: 'Distribuzione per stato', statusDistributionSub: 'Stato di apprendimento delle tue parole',
+    learnedPercentLabel: 'apprese', typeByLearnRate: 'Tasso di apprendimento per tipo di parola', typeByLearnRateSub: 'In quale tipo sei più forte? (%)',
+    learnRateTooltip: 'Tasso di apprendimento', typeDistribution: 'Distribuzione per tipo di parola', typeDistributionSub: 'Numero di parole per tipo', wordTooltip: 'Parola',
+    learningSpeed: 'Velocità di apprendimento', learningSpeedSub: 'Ripetizioni medie per tipo — più basso = più veloce', repeatUnitTpl: '{n} ripetizioni', averageTooltip: 'Media',
+    last30DaysTitle: 'Ultimi 30 giorni — parole aggiunte', last30DaysSub: 'Il tuo ritmo giornaliero di aggiunta parole', addedWordUnitTpl: '{n} parole', addedTooltip: 'Aggiunte',
+    studyActivity: 'Attività di studio', studyActivitySub: 'Aggiunte vs ripassate al giorno', addedLegend: 'Aggiunte', repeatLegend: 'Ripassate',
   },
 };
 
