@@ -84,7 +84,13 @@ def _decode_jwt_payload(token: str) -> dict:
 @router.post("/register", status_code=201)
 async def register(req: RegisterRequest):
     try:
-        result = supabase_admin.auth.sign_up({
+        # KRİTİK: sign_up da supabase_admin ÜZERİNDE çağrılırsa (autoconfirm açık
+        # olduğu için sign_up doğrudan bir session döndürüyor) supabase_admin'in
+        # paylaşılan oturumu yine kirlenir — bu yüzden sign_up de ayrı bir
+        # (anon key'li) temp client ile yapılıyor, supabase_admin sadece
+        # .table() işlemleri için service_role olarak temiz kalıyor.
+        temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+        result = temp_client.auth.sign_up({
             "email": req.email,
             "password": req.password,
             "options": {"data": {
@@ -107,14 +113,18 @@ async def register(req: RegisterRequest):
         except Exception as e:
             print(f"REGISTER profile update warning: {e}")
 
-        # Hesap oluştu — ama giriş için OTP doğrulaması gerekiyor.
-        # Session'ı şimdiden bootstraplayıp OTP satırına stashliyoruz; OTP
-        # doğrulanınca bu token'lar client'a döndürülecek (yeniden şifre girmeye gerek yok).
-        try:
-            access_token, refresh_token = _bootstrap_session(req.email, req.password)
-        except Exception as e:
-            print(f"REGISTER session bootstrap warning: {e}")
-            access_token, refresh_token = None, None
+        # sign_up autoconfirm açıkken zaten bir session döndürüyor — genelde
+        # ayrıca sign_in yapmaya gerek yok, ama garanti olsun diye session yoksa
+        # (ör. autoconfirm kapalıysa) ayrı bir temp client ile fallback deneniyor.
+        access_token = result.session.access_token if result.session else None
+        refresh_token = result.session.refresh_token if result.session else None
+
+        if not access_token:
+            try:
+                access_token, refresh_token = _bootstrap_session(req.email, req.password)
+            except Exception as e:
+                print(f"REGISTER session bootstrap warning: {e}")
+                access_token, refresh_token = None, None
 
         otp_service.create_otp(
             email=req.email,
