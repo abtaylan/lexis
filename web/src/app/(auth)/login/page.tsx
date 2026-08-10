@@ -3,12 +3,17 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react';
 import { authApi } from '@/lib/api';
+import { Button, Input, Card } from '@/components/ui';
+import { useLocale } from '@/lib/i18n';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { t } = useLocale();
 
   const [form, setForm] = useState({ email: '', password: '' });
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -26,64 +31,65 @@ export default function LoginPage() {
       await authApi.login(form);
       router.push(`/verify-otp?email=${encodeURIComponent(form.email)}&purpose=login`);
     } catch (err: any) {
-      setError(
-        err?.response?.data?.detail || 'Giriş yapılamadı. Bilgilerinizi kontrol edin.'
-      );
+      setError(err?.response?.data?.detail || t('loginErrorMsg'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-md p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">Lexis'e Giriş Yap</h1>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">E-posta</label>
-            <input
-              type="email"
-              name="email"
-              value={form.email}
-              onChange={handleChange}
-              required
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              required
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg py-2 text-sm transition-colors"
-          >
-            {loading ? 'Giriş yapılıyor…' : 'Giriş Yap'}
-          </button>
-        </form>
-
-        <p className="mt-4 text-center text-sm text-gray-500">
-          Hesabın yok mu?{' '}
-          <Link href="/register" className="text-blue-600 hover:underline">
-            Kayıt ol
-          </Link>
-        </p>
+    <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60">
+      <div className="mb-8 flex items-center gap-3">
+        <div className="w-11 h-11 bg-sky-500 rounded-xl flex items-center justify-center shrink-0">
+          <Zap size={20} className="text-white" strokeWidth={2.5} />
+        </div>
+        <h1 className="text-2xl font-bold text-slate-800">{t('loginTitle')}</h1>
       </div>
-    </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Input
+          label={t('emailLabel')}
+          type="email"
+          name="email"
+          value={form.email}
+          onChange={handleChange}
+          leftIcon={<Mail size={16} />}
+          required
+          autoFocus
+        />
+
+        <Input
+          label={t('passwordLabel')}
+          type={showPw ? 'text' : 'password'}
+          name="password"
+          value={form.password}
+          onChange={handleChange}
+          leftIcon={<Lock size={16} />}
+          rightIcon={
+            <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600">
+              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          }
+          required
+        />
+
+        {error && (
+          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
+        <Button type="submit" className="w-full mt-2" size="lg" loading={loading}>
+          {loading ? t('loggingInBtn') : t('loginBtnText')}
+        </Button>
+      </form>
+
+      <p className="text-center text-sm text-slate-400 mt-6">
+        {t('noAccountQuestion')}{' '}
+        <Link href="/register" className="text-sky-600 font-medium hover:underline">
+          {t('registerLinkText')}
+        </Link>
+      </p>
+    </Card>
   );
 }
