@@ -6,11 +6,10 @@ import {
   BookOpen, Clock, Target, Layers, Brain, CheckCircle2,
 } from 'lucide-react';
 import { statsApi, wordsApi } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
 import type { Stats, Word, DailyProgress } from '@/types';
 
-const DAY_LABELS = ['Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct', 'Pa'];
-
-function getWeekDays(history: DailyProgress[]): {
+function getWeekDays(history: DailyProgress[], dayLabels: string[]): {
   label: string;
   count: number;
   isToday: boolean;
@@ -29,7 +28,7 @@ function getWeekDays(history: DailyProgress[]): {
     const isToday = d.toDateString() === today.toDateString();
     const isPast = d < today && !isToday;
     return {
-      label: DAY_LABELS[i],
+      label: dayLabels[i],
       count: entry?.words_added ?? 0,
       isToday,
       done: isPast && (entry?.words_added ?? 0) > 0,
@@ -39,13 +38,14 @@ function getWeekDays(history: DailyProgress[]): {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [stats, setStats]             = useState<Stats | null>(null);
-  const [dueWords, setDueWords]       = useState<Word[]>([]);
-  const [history, setHistory]         = useState<DailyProgress[]>([]);
+  const { t } = useLocale();
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [dueWords, setDueWords] = useState<Word[]>([]);
+  const [history, setHistory] = useState<DailyProgress[]>([]);
   const [recentWords, setRecentWords] = useState<Word[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState('');
-  const [username, setUsername]       = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [username, setUsername] = useState('');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -73,18 +73,19 @@ export default function DashboardPage() {
         setHistory(hist);
         setRecentWords(words.items);
       } catch {
-        setError('Veriler yüklenemedi.');
+        setError(t('loadingError'));
       } finally {
         setLoading(false);
       }
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-sm text-gray-400">
-        Yükleniyor…
+        {t('loading')}
       </div>
     );
   }
@@ -97,7 +98,8 @@ export default function DashboardPage() {
     ? Math.min(100, Math.round((stats.today_added / (stats.daily_goal || 1)) * 100))
     : 0;
 
-  const weekDays = getWeekDays(history);
+  const dayLabels = t('dayLabels').split(',');
+  const weekDays = getWeekDays(history, dayLabels);
 
   const thisWeekTotal = weekDays.reduce((acc, d) => acc + d.count, 0);
   const lastWeekTotal = history
@@ -109,11 +111,11 @@ export default function DashboardPage() {
     })
     .reduce((acc, h) => acc + h.words_added, 0);
 
-  const total       = stats?.total_words || 1;
-  const newCount    = Math.max(0, total - (stats?.learning ?? 0) - (stats?.learned ?? 0));
+  const total = stats?.total_words || 1;
+  const newCount = Math.max(0, total - (stats?.learning ?? 0) - (stats?.learned ?? 0));
   const learningPct = Math.round(((stats?.learning ?? 0) / total) * 100);
-  const learnedPct  = Math.round(((stats?.learned  ?? 0) / total) * 100);
-  const newPct      = Math.round((newCount / total) * 100);
+  const learnedPct = Math.round(((stats?.learned ?? 0) / total) * 100);
+  const newPct = Math.round((newCount / total) * 100);
 
   return (
     <div className="p-6 space-y-4 max-w-5xl">
@@ -121,9 +123,9 @@ export default function DashboardPage() {
       {/* Başlık */}
       <div className="mb-2">
         <p className="text-lg font-medium text-gray-900">
-          Günaydın{username ? `, ${username}` : ''}
+          {t('greeting')}{username ? `, ${username}` : ''}
         </p>
-        <p className="text-sm text-gray-400">İşte günlük öğrenme özetin.</p>
+        <p className="text-sm text-gray-400">{t('dailySummarySubtitle')}</p>
       </div>
 
       {/* Streak banner */}
@@ -134,10 +136,10 @@ export default function DashboardPage() {
         >
           <div>
             <p className="text-sm font-medium" style={{ color: '#854F0B' }}>
-              {stats!.current_streak} günlük seri devam ediyor!
+              {stats!.current_streak} {t('streakActive')}
             </p>
             <p className="text-xs mt-0.5" style={{ color: '#BA7517' }}>
-              Bugün de çalışarak serinizi koruyun
+              {t('streakEncourage')}
             </p>
           </div>
           <span className="text-3xl">🔥</span>
@@ -148,23 +150,23 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         {[
           {
-            label: 'Toplam kelime',
+            label: t('totalWords'),
             value: stats?.total_words ?? 0,
-            sub: `+${thisWeekTotal} bu hafta`,
+            sub: `+${thisWeekTotal} ${t('thisWeekLabel')}`,
             icon: <BookOpen className="w-4 h-4" />,
             iconBg: '#E6F1FB', iconColor: '#185FA5',
           },
           {
-            label: 'Bugün eklendi',
+            label: t('addedToday'),
             value: stats?.today_added ?? 0,
-            sub: `Hedef: ${stats?.daily_goal ?? 5}`,
+            sub: `${t('goalLabel')}: ${stats?.daily_goal ?? 5}`,
             icon: <CheckCircle2 className="w-4 h-4" />,
             iconBg: '#EAF3DE', iconColor: '#3B6D11',
           },
           {
-            label: 'Tekrar bekleyen',
+            label: t('dueReview'),
             value: dueWords.length,
-            sub: 'kelime sırada',
+            sub: t('wordsInQueue'),
             icon: <Clock className="w-4 h-4" />,
             iconBg: '#EEEDFE', iconColor: '#534AB7',
           },
@@ -187,16 +189,16 @@ export default function DashboardPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="text-sm font-medium text-gray-700">Günlük hedef</p>
+            <p className="text-sm font-medium text-gray-700">{t('dailyGoal')}</p>
             <p className="text-xs text-gray-400">
-              {stats?.today_added ?? 0} / {stats?.daily_goal ?? 5} kelime
+              {stats?.today_added ?? 0} / {stats?.daily_goal ?? 5} {t('wordsUnit')}
             </p>
           </div>
           <span
             className="text-xs font-medium px-2 py-0.5 rounded-full"
             style={{ background: '#E6F1FB', color: '#185FA5' }}
           >
-            {Math.max(0, (stats?.daily_goal ?? 5) - (stats?.today_added ?? 0))} kaldı
+            {Math.max(0, (stats?.daily_goal ?? 5) - (stats?.today_added ?? 0))} {t('remainingLabel')}
           </span>
         </div>
         <div className="h-2 rounded-full overflow-hidden bg-gray-100">
@@ -209,7 +211,7 @@ export default function DashboardPage() {
 
       {/* Haftalık ilerleme */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-        <p className="text-sm font-medium text-gray-700 mb-3">Haftalık ilerleme</p>
+        <p className="text-sm font-medium text-gray-700 mb-3">{t('weeklyProgress')}</p>
         <div className="flex justify-between items-end pb-3">
           {weekDays.map((d, i) => (
             <div key={i} className="flex flex-col items-center gap-1">
@@ -233,15 +235,15 @@ export default function DashboardPage() {
                   fontWeight: d.isToday ? 500 : 400,
                 }}
               >
-                {d.isToday ? 'Bug.' : d.count > 0 ? d.count : '—'}
+                {d.isToday ? t('todayAbbr') : d.count > 0 ? d.count : '—'}
               </span>
             </div>
           ))}
         </div>
         <div className="h-px bg-gray-100 mb-3" />
         <div className="flex gap-4 text-xs text-gray-400">
-          <span>Bu hafta: <strong className="text-gray-700">{thisWeekTotal} kelime</strong></span>
-          <span>Geçen hafta: <strong className="text-gray-700">{lastWeekTotal} kelime</strong></span>
+          <span>{t('thisWeekColon')}: <strong className="text-gray-700">{thisWeekTotal} {t('wordsUnit')}</strong></span>
+          <span>{t('lastWeekColon')}: <strong className="text-gray-700">{lastWeekTotal} {t('wordsUnit')}</strong></span>
         </div>
       </div>
 
@@ -249,22 +251,22 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         {[
           {
-            label: 'Flashcard çalış',
-            sub: `${dueWords.length} kart bekliyor`,
+            label: t('flashcardPractice'),
+            sub: `${dueWords.length} ${t('cardsWaitingLabel')}`,
             icon: <Layers className="w-4 h-4" />,
             iconBg: '#E6F1FB', iconColor: '#185FA5',
             href: '/flashcards',
           },
           {
-            label: 'Quiz başlat',
-            sub: 'Bilgini test et',
+            label: t('startQuiz'),
+            sub: t('testKnowledge'),
             icon: <Brain className="w-4 h-4" />,
             iconBg: '#EEEDFE', iconColor: '#534AB7',
             href: '/quiz',
           },
           {
-            label: 'Kelime ekle',
-            sub: 'Listeyi genişlet',
+            label: t('addWord'),
+            sub: t('expandList'),
             icon: <Target className="w-4 h-4" />,
             iconBg: '#E1F5EE', iconColor: '#0F6E56',
             href: '/words',
@@ -293,11 +295,11 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-3">
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <p className="text-sm font-medium text-gray-700 mb-3">Seviye dağılımı</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">{t('levelDistribution')}</p>
           {[
-            { label: 'Yeni',         count: newCount,          pct: newPct,      color: '#B5D4F4' },
-            { label: 'Öğreniliyor',  count: stats?.learning ?? 0, pct: learningPct, color: '#9FE1CB' },
-            { label: 'Öğrenildi',    count: stats?.learned  ?? 0, pct: learnedPct,  color: '#C0DD97' },
+            { label: t('newLabel'), count: newCount, pct: newPct, color: '#B5D4F4' },
+            { label: t('learningLabel'), count: stats?.learning ?? 0, pct: learningPct, color: '#9FE1CB' },
+            { label: t('learnedLabel'), count: stats?.learned ?? 0, pct: learnedPct, color: '#C0DD97' },
           ].map(({ label, count, pct, color }) => (
             <div key={label} className="flex items-center gap-2 mb-2 text-xs">
               <span className="w-20 text-gray-400 shrink-0">{label}</span>
@@ -310,9 +312,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <p className="text-sm font-medium text-gray-700 mb-3">Son eklenen kelimeler</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">{t('recentWordsTitle')}</p>
           {recentWords.length === 0 ? (
-            <p className="text-xs text-gray-400">Henüz kelime eklenmedi.</p>
+            <p className="text-xs text-gray-400">{t('noWordsYet')}</p>
           ) : (
             recentWords.map((w, i) => (
               <div
@@ -327,7 +329,7 @@ export default function DashboardPage() {
                       className="rounded px-1.5 py-0.5"
                       style={{ background: '#EEEDFE', color: '#534AB7', fontSize: 10 }}
                     >
-                      yeni
+                      {t('newBadge')}
                     </span>
                   )}
                 </div>
@@ -346,10 +348,10 @@ export default function DashboardPage() {
         >
           <div>
             <p className="text-sm font-medium" style={{ color: '#185FA5' }}>
-              {dueWords.length} kelime tekrar zamanı geldi
+              {dueWords.length} {t('dueTimeLabel')}
             </p>
             <p className="text-xs mt-0.5" style={{ color: '#378ADD' }}>
-              Şimdi çalışarak serinizi koruyun
+              {t('streakEncourage')}
             </p>
           </div>
           <button
@@ -357,7 +359,7 @@ export default function DashboardPage() {
             className="text-xs font-medium px-3 py-1.5 rounded-lg text-white transition-colors"
             style={{ background: '#378ADD' }}
           >
-            Başla
+            {t('startBtn')}
           </button>
         </div>
       )}
