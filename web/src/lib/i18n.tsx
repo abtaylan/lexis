@@ -1,11 +1,23 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/store/auth';
 
 export type Locale = 'tr' | 'en' | 'ar' | 'ru' | 'de' | 'fr' | 'es' | 'it';
 
 const RTL_LOCALES: Locale[] = ['ar'];
+const STORAGE_KEY = 'lexis_ui_locale';
+
+export const LOCALE_META: { code: Locale; label: string; flag: string }[] = [
+  { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+  { code: 'en', label: 'English', flag: '🇬🇧' },
+  { code: 'ar', label: 'العربية', flag: '🇸🇦' },
+  { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
+];
 
 type TranslationKey =
   | 'dashboard' | 'words' | 'flashcards' | 'quiz' | 'schedule' | 'stats' | 'profile'
@@ -33,7 +45,14 @@ type TranslationKey =
   | 'applyBtn' | 'myTemplatesLabel' | 'noCustomTemplates' | 'deleteTemplateTooltip' | 'addActivityModalTitle'
   | 'dayLabel' | 'timeLabel' | 'durationLabel' | 'activityLabel' | 'linkLabel' | 'activityRequired' | 'saveScheduleFailed'
   | 'saveTemplateModalTitle' | 'saveTemplateDesc' | 'templateNameLabel' | 'templateNameRequired' | 'saveTemplateFailed'
-  | 'weekdayLabels';
+  | 'weekdayLabels'
+  | 'brandHeadlineLine1' | 'brandHeadlineLine2' | 'brandSubtitle' | 'statAlgorithmLabel' | 'statLanguagesLabel'
+  | 'statLanguagesValue' | 'statPlanLabel' | 'statPlanValue' | 'copyrightTpl' | 'interfaceLanguageLabel'
+  | 'loginTitle' | 'emailLabel' | 'passwordLabel' | 'loginErrorMsg' | 'loggingInBtn' | 'loginBtnText'
+  | 'noAccountQuestion' | 'registerLinkText' | 'registerTitleText' | 'registerSubtitleText' | 'fullNameLabel'
+  | 'usernameLabel' | 'passwordHintText' | 'nativeLangSelectLabel' | 'learningLangSelectLabel' | 'emailInvalidError'
+  | 'usernameMinError' | 'passwordMinError' | 'sameLangError' | 'registerFailedGeneric' | 'createAccountBtn'
+  | 'haveAccountQuestion' | 'loginLinkText';
 
 type Dictionary = Record<TranslationKey, string>;
 
@@ -81,6 +100,21 @@ const dictionaries: Record<Locale, Dictionary> = {
     saveTemplateDesc: 'Şu anki programını, dilediğin zaman tekrar uygulayabileceğin isimli bir şablon olarak kaydeder.',
     templateNameLabel: 'Şablon adı *', templateNameRequired: 'Şablon adı zorunludur.', saveTemplateFailed: 'Şablon kaydedilemedi.',
     weekdayLabels: 'Pazar,Pazartesi,Salı,Çarşamba,Perşembe,Cuma,Cumartesi',
+    brandHeadlineLine1: 'Kelime öğrenmenin', brandHeadlineLine2: 'en akıllı yolu',
+    brandSubtitle: 'Aralıklı tekrar algoritmasıyla yalnızca doğru anda tekrar et. Daha az çalış, daha çok öğren.',
+    statAlgorithmLabel: 'Algoritma', statLanguagesLabel: 'Dil Desteği', statLanguagesValue: 'Çoklu Dil',
+    statPlanLabel: 'Üyelik', statPlanValue: 'Freemium', copyrightTpl: '© {year} Lexis. Tüm hakları saklıdır.',
+    interfaceLanguageLabel: 'Arayüz dili',
+    loginTitle: 'Lexis’e Giriş Yap', emailLabel: 'E-posta', passwordLabel: 'Şifre',
+    loginErrorMsg: 'Giriş yapılamadı. Bilgilerinizi kontrol edin.', loggingInBtn: 'Giriş yapılıyor…', loginBtnText: 'Giriş Yap',
+    noAccountQuestion: 'Hesabın yok mu?', registerLinkText: 'Kayıt ol',
+    registerTitleText: 'Hesap oluştur', registerSubtitleText: 'Birkaç saniyede başlangıç yap.',
+    fullNameLabel: 'Ad Soyad', usernameLabel: 'Kullanıcı adı', passwordHintText: 'En az 6 karakter',
+    nativeLangSelectLabel: 'Ana dilin', learningLangSelectLabel: 'Öğrenmek istediğin',
+    emailInvalidError: 'Geçerli bir e-posta gir.', usernameMinError: 'En az 3 karakter olmalı.', passwordMinError: 'En az 6 karakter olmalı.',
+    sameLangError: 'Öğrenmek istediğin dil ana dilinden farklı olmalı.',
+    registerFailedGeneric: 'Kayıt başarısız. Bu e-posta zaten kullanılıyor olabilir.',
+    createAccountBtn: 'Hesap Oluştur', haveAccountQuestion: 'Zaten hesabın var mı?', loginLinkText: 'Giriş yap',
   },
   en: {
     dashboard: 'Dashboard', words: 'Words', flashcards: 'Flashcards', quiz: 'Quiz', schedule: 'Schedule', stats: 'Statistics', profile: 'Profile',
@@ -125,6 +159,21 @@ const dictionaries: Record<Locale, Dictionary> = {
     saveTemplateDesc: 'Saves your current schedule as a named template you can reapply anytime.',
     templateNameLabel: 'Template name *', templateNameRequired: 'Template name is required.', saveTemplateFailed: 'Could not save template.',
     weekdayLabels: 'Sunday,Monday,Tuesday,Wednesday,Thursday,Friday,Saturday',
+    brandHeadlineLine1: 'The smartest way', brandHeadlineLine2: 'to learn vocabulary',
+    brandSubtitle: 'Review only at the right moment with spaced repetition. Study less, learn more.',
+    statAlgorithmLabel: 'Algorithm', statLanguagesLabel: 'Language Support', statLanguagesValue: 'Multi-language',
+    statPlanLabel: 'Plan', statPlanValue: 'Freemium', copyrightTpl: '© {year} Lexis. All rights reserved.',
+    interfaceLanguageLabel: 'Interface language',
+    loginTitle: 'Log in to Lexis', emailLabel: 'Email', passwordLabel: 'Password',
+    loginErrorMsg: 'Could not log in. Check your credentials.', loggingInBtn: 'Logging in…', loginBtnText: 'Log In',
+    noAccountQuestion: "Don't have an account?", registerLinkText: 'Sign up',
+    registerTitleText: 'Create account', registerSubtitleText: 'Get started in seconds.',
+    fullNameLabel: 'Full name', usernameLabel: 'Username', passwordHintText: 'At least 6 characters',
+    nativeLangSelectLabel: 'Your native language', learningLangSelectLabel: 'Language you want to learn',
+    emailInvalidError: 'Enter a valid email.', usernameMinError: 'Must be at least 3 characters.', passwordMinError: 'Must be at least 6 characters.',
+    sameLangError: 'The language you want to learn must differ from your native language.',
+    registerFailedGeneric: 'Registration failed. This email may already be in use.',
+    createAccountBtn: 'Create Account', haveAccountQuestion: 'Already have an account?', loginLinkText: 'Log in',
   },
   ar: {
     dashboard: 'لوحة التحكم', words: 'الكلمات', flashcards: 'البطاقات التعليمية', quiz: 'اختبار', schedule: 'البرنامج', stats: 'الإحصائيات', profile: 'الملف الشخصي',
@@ -169,6 +218,21 @@ const dictionaries: Record<Locale, Dictionary> = {
     saveTemplateDesc: 'يحفظ برنامجك الحالي كقالب مسمّى يمكنك إعادة تطبيقه في أي وقت.',
     templateNameLabel: 'اسم القالب *', templateNameRequired: 'اسم القالب مطلوب.', saveTemplateFailed: 'تعذر حفظ القالب.',
     weekdayLabels: 'الأحد,الإثنين,الثلاثاء,الأربعاء,الخميس,الجمعة,السبت',
+    brandHeadlineLine1: 'الطريقة الأذكى', brandHeadlineLine2: 'لتعلم المفردات',
+    brandSubtitle: 'راجع في الوقت المناسب فقط باستخدام التكرار المتباعد. ادرس أقل وتعلم أكثر.',
+    statAlgorithmLabel: 'الخوارزمية', statLanguagesLabel: 'دعم اللغات', statLanguagesValue: 'متعدد اللغات',
+    statPlanLabel: 'الخطة', statPlanValue: 'مجاني ومدفوع', copyrightTpl: '© {year} Lexis. جميع الحقوق محفوظة.',
+    interfaceLanguageLabel: 'لغة الواجهة',
+    loginTitle: 'تسجيل الدخول إلى Lexis', emailLabel: 'البريد الإلكتروني', passwordLabel: 'كلمة المرور',
+    loginErrorMsg: 'تعذر تسجيل الدخول. تحقق من بياناتك.', loggingInBtn: 'جارٍ تسجيل الدخول…', loginBtnText: 'تسجيل الدخول',
+    noAccountQuestion: 'ليس لديك حساب؟', registerLinkText: 'إنشاء حساب',
+    registerTitleText: 'إنشاء حساب', registerSubtitleText: 'ابدأ خلال ثوانٍ.',
+    fullNameLabel: 'الاسم الكامل', usernameLabel: 'اسم المستخدم', passwordHintText: '6 أحرف على الأقل',
+    nativeLangSelectLabel: 'لغتك الأم', learningLangSelectLabel: 'اللغة التي تريد تعلمها',
+    emailInvalidError: 'أدخل بريدًا إلكترونيًا صحيحًا.', usernameMinError: 'يجب أن يكون 3 أحرف على الأقل.', passwordMinError: 'يجب أن تكون 6 أحرف على الأقل.',
+    sameLangError: 'يجب أن تختلف اللغة التي تريد تعلمها عن لغتك الأم.',
+    registerFailedGeneric: 'فشل التسجيل. قد يكون هذا البريد مستخدمًا بالفعل.',
+    createAccountBtn: 'إنشاء الحساب', haveAccountQuestion: 'لديك حساب بالفعل؟', loginLinkText: 'تسجيل الدخول',
   },
   ru: {
     dashboard: 'Панель', words: 'Слова', flashcards: 'Карточки', quiz: 'Тест', schedule: 'Расписание', stats: 'Статистика', profile: 'Профиль',
@@ -213,6 +277,21 @@ const dictionaries: Record<Locale, Dictionary> = {
     saveTemplateDesc: 'Сохраняет текущее расписание как именованный шаблон, который можно применить снова в любое время.',
     templateNameLabel: 'Название шаблона *', templateNameRequired: 'Название шаблона обязательно.', saveTemplateFailed: 'Не удалось сохранить шаблон.',
     weekdayLabels: 'Воскресенье,Понедельник,Вторник,Среда,Четверг,Пятница,Суббота',
+    brandHeadlineLine1: 'Самый умный способ', brandHeadlineLine2: 'учить слова',
+    brandSubtitle: 'Повторяй только в нужный момент благодаря интервальному повторению. Меньше усилий — больше результата.',
+    statAlgorithmLabel: 'Алгоритм', statLanguagesLabel: 'Поддержка языков', statLanguagesValue: 'Много языков',
+    statPlanLabel: 'Тариф', statPlanValue: 'Freemium', copyrightTpl: '© {year} Lexis. Все права защищены.',
+    interfaceLanguageLabel: 'Язык интерфейса',
+    loginTitle: 'Вход в Lexis', emailLabel: 'Эл. почта', passwordLabel: 'Пароль',
+    loginErrorMsg: 'Не удалось войти. Проверьте данные.', loggingInBtn: 'Вход…', loginBtnText: 'Войти',
+    noAccountQuestion: 'Нет аккаунта?', registerLinkText: 'Зарегистрироваться',
+    registerTitleText: 'Создать аккаунт', registerSubtitleText: 'Начни за пару секунд.',
+    fullNameLabel: 'Полное имя', usernameLabel: 'Имя пользователя', passwordHintText: 'Минимум 6 символов',
+    nativeLangSelectLabel: 'Твой родной язык', learningLangSelectLabel: 'Язык, который хочешь изучать',
+    emailInvalidError: 'Введите корректный email.', usernameMinError: 'Не менее 3 символов.', passwordMinError: 'Не менее 6 символов.',
+    sameLangError: 'Изучаемый язык должен отличаться от родного.',
+    registerFailedGeneric: 'Регистрация не удалась. Эта почта уже может быть использована.',
+    createAccountBtn: 'Создать аккаунт', haveAccountQuestion: 'Уже есть аккаунт?', loginLinkText: 'Войти',
   },
   de: {
     dashboard: 'Dashboard', words: 'Wörter', flashcards: 'Karteikarten', quiz: 'Quiz', schedule: 'Zeitplan', stats: 'Statistik', profile: 'Profil',
@@ -257,6 +336,21 @@ const dictionaries: Record<Locale, Dictionary> = {
     saveTemplateDesc: 'Speichert deinen aktuellen Plan als benannte Vorlage, die du jederzeit erneut anwenden kannst.',
     templateNameLabel: 'Vorlagenname *', templateNameRequired: 'Vorlagenname ist erforderlich.', saveTemplateFailed: 'Vorlage konnte nicht gespeichert werden.',
     weekdayLabels: 'Sonntag,Montag,Dienstag,Mittwoch,Donnerstag,Freitag,Samstag',
+    brandHeadlineLine1: 'Der klügste Weg,', brandHeadlineLine2: 'Vokabeln zu lernen',
+    brandSubtitle: 'Wiederhole nur zum richtigen Zeitpunkt dank Spaced Repetition. Weniger lernen, mehr behalten.',
+    statAlgorithmLabel: 'Algorithmus', statLanguagesLabel: 'Sprachunterstützung', statLanguagesValue: 'Mehrsprachig',
+    statPlanLabel: 'Tarif', statPlanValue: 'Freemium', copyrightTpl: '© {year} Lexis. Alle Rechte vorbehalten.',
+    interfaceLanguageLabel: 'Oberflächensprache',
+    loginTitle: 'Bei Lexis anmelden', emailLabel: 'E-Mail', passwordLabel: 'Passwort',
+    loginErrorMsg: 'Anmeldung fehlgeschlagen. Überprüfe deine Angaben.', loggingInBtn: 'Anmeldung läuft…', loginBtnText: 'Anmelden',
+    noAccountQuestion: 'Noch kein Konto?', registerLinkText: 'Registrieren',
+    registerTitleText: 'Konto erstellen', registerSubtitleText: 'Starte in wenigen Sekunden.',
+    fullNameLabel: 'Vollständiger Name', usernameLabel: 'Benutzername', passwordHintText: 'Mindestens 6 Zeichen',
+    nativeLangSelectLabel: 'Deine Muttersprache', learningLangSelectLabel: 'Sprache, die du lernen möchtest',
+    emailInvalidError: 'Gib eine gültige E-Mail-Adresse ein.', usernameMinError: 'Muss mindestens 3 Zeichen haben.', passwordMinError: 'Muss mindestens 6 Zeichen haben.',
+    sameLangError: 'Die Lernsprache muss sich von deiner Muttersprache unterscheiden.',
+    registerFailedGeneric: 'Registrierung fehlgeschlagen. Diese E-Mail wird möglicherweise bereits verwendet.',
+    createAccountBtn: 'Konto erstellen', haveAccountQuestion: 'Bereits ein Konto?', loginLinkText: 'Anmelden',
   },
   fr: {
     dashboard: 'Tableau de bord', words: 'Mots', flashcards: 'Cartes mémo', quiz: 'Quiz', schedule: 'Programme', stats: 'Statistiques', profile: 'Profil',
@@ -301,6 +395,21 @@ const dictionaries: Record<Locale, Dictionary> = {
     saveTemplateDesc: 'Enregistre ton programme actuel comme modèle nommé que tu pourras réappliquer à tout moment.',
     templateNameLabel: 'Nom du modèle *', templateNameRequired: 'Le nom du modèle est obligatoire.', saveTemplateFailed: "Impossible d'enregistrer le modèle.",
     weekdayLabels: 'Dimanche,Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi',
+    brandHeadlineLine1: "La façon la plus intelligente", brandHeadlineLine2: "d'apprendre du vocabulaire",
+    brandSubtitle: "Révise seulement au bon moment grâce à la répétition espacée. Étudie moins, apprends plus.",
+    statAlgorithmLabel: 'Algorithme', statLanguagesLabel: 'Langues prises en charge', statLanguagesValue: 'Multilingue',
+    statPlanLabel: 'Formule', statPlanValue: 'Freemium', copyrightTpl: '© {year} Lexis. Tous droits réservés.',
+    interfaceLanguageLabel: "Langue de l'interface",
+    loginTitle: 'Se connecter à Lexis', emailLabel: 'E-mail', passwordLabel: 'Mot de passe',
+    loginErrorMsg: 'Connexion impossible. Vérifie tes informations.', loggingInBtn: 'Connexion…', loginBtnText: 'Se connecter',
+    noAccountQuestion: 'Pas de compte ?', registerLinkText: "S'inscrire",
+    registerTitleText: 'Créer un compte', registerSubtitleText: 'Commence en quelques secondes.',
+    fullNameLabel: 'Nom complet', usernameLabel: "Nom d'utilisateur", passwordHintText: 'Au moins 6 caractères',
+    nativeLangSelectLabel: 'Ta langue maternelle', learningLangSelectLabel: 'Langue que tu veux apprendre',
+    emailInvalidError: 'Saisis un e-mail valide.', usernameMinError: 'Doit contenir au moins 3 caractères.', passwordMinError: 'Doit contenir au moins 6 caractères.',
+    sameLangError: "La langue à apprendre doit être différente de ta langue maternelle.",
+    registerFailedGeneric: "Échec de l'inscription. Cet e-mail est peut-être déjà utilisé.",
+    createAccountBtn: 'Créer le compte', haveAccountQuestion: 'Déjà un compte ?', loginLinkText: 'Se connecter',
   },
   es: {
     dashboard: 'Panel', words: 'Palabras', flashcards: 'Tarjetas', quiz: 'Cuestionario', schedule: 'Horario', stats: 'Estadísticas', profile: 'Perfil',
@@ -345,6 +454,21 @@ const dictionaries: Record<Locale, Dictionary> = {
     saveTemplateDesc: 'Guarda tu programa actual como una plantilla con nombre que puedes volver a aplicar en cualquier momento.',
     templateNameLabel: 'Nombre de la plantilla *', templateNameRequired: 'El nombre de la plantilla es obligatorio.', saveTemplateFailed: 'No se pudo guardar la plantilla.',
     weekdayLabels: 'Domingo,Lunes,Martes,Miércoles,Jueves,Viernes,Sábado',
+    brandHeadlineLine1: 'La forma más inteligente', brandHeadlineLine2: 'de aprender vocabulario',
+    brandSubtitle: 'Repasa solo en el momento justo con repetición espaciada. Estudia menos, aprende más.',
+    statAlgorithmLabel: 'Algoritmo', statLanguagesLabel: 'Idiomas compatibles', statLanguagesValue: 'Multiidioma',
+    statPlanLabel: 'Plan', statPlanValue: 'Freemium', copyrightTpl: '© {year} Lexis. Todos los derechos reservados.',
+    interfaceLanguageLabel: 'Idioma de la interfaz',
+    loginTitle: 'Inicia sesión en Lexis', emailLabel: 'Correo electrónico', passwordLabel: 'Contraseña',
+    loginErrorMsg: 'No se pudo iniciar sesión. Revisa tus datos.', loggingInBtn: 'Iniciando sesión…', loginBtnText: 'Iniciar sesión',
+    noAccountQuestion: '¿No tienes cuenta?', registerLinkText: 'Regístrate',
+    registerTitleText: 'Crear cuenta', registerSubtitleText: 'Empieza en segundos.',
+    fullNameLabel: 'Nombre completo', usernameLabel: 'Nombre de usuario', passwordHintText: 'Al menos 6 caracteres',
+    nativeLangSelectLabel: 'Tu idioma nativo', learningLangSelectLabel: 'Idioma que quieres aprender',
+    emailInvalidError: 'Introduce un correo válido.', usernameMinError: 'Debe tener al menos 3 caracteres.', passwordMinError: 'Debe tener al menos 6 caracteres.',
+    sameLangError: 'El idioma que quieres aprender debe ser distinto de tu idioma nativo.',
+    registerFailedGeneric: 'No se pudo registrar. Este correo ya podría estar en uso.',
+    createAccountBtn: 'Crear cuenta', haveAccountQuestion: '¿Ya tienes cuenta?', loginLinkText: 'Iniciar sesión',
   },
   it: {
     dashboard: 'Dashboard', words: 'Parole', flashcards: 'Flashcard', quiz: 'Quiz', schedule: 'Programma', stats: 'Statistiche', profile: 'Profilo',
@@ -389,6 +513,21 @@ const dictionaries: Record<Locale, Dictionary> = {
     saveTemplateDesc: 'Salva il tuo programma attuale come modello con nome che puoi riapplicare in qualsiasi momento.',
     templateNameLabel: 'Nome del modello *', templateNameRequired: 'Il nome del modello è obbligatorio.', saveTemplateFailed: 'Impossibile salvare il modello.',
     weekdayLabels: 'Domenica,Lunedì,Martedì,Mercoledì,Giovedì,Venerdì,Sabato',
+    brandHeadlineLine1: 'Il modo più intelligente', brandHeadlineLine2: 'per imparare il vocabolario',
+    brandSubtitle: 'Ripassa solo al momento giusto con la ripetizione dilazionata. Studia meno, impara di più.',
+    statAlgorithmLabel: 'Algoritmo', statLanguagesLabel: 'Supporto lingue', statLanguagesValue: 'Multilingua',
+    statPlanLabel: 'Piano', statPlanValue: 'Freemium', copyrightTpl: '© {year} Lexis. Tutti i diritti riservati.',
+    interfaceLanguageLabel: "Lingua dell'interfaccia",
+    loginTitle: 'Accedi a Lexis', emailLabel: 'E-mail', passwordLabel: 'Password',
+    loginErrorMsg: 'Accesso non riuscito. Controlla i tuoi dati.', loggingInBtn: 'Accesso in corso…', loginBtnText: 'Accedi',
+    noAccountQuestion: 'Non hai un account?', registerLinkText: 'Registrati',
+    registerTitleText: 'Crea account', registerSubtitleText: 'Inizia in pochi secondi.',
+    fullNameLabel: 'Nome completo', usernameLabel: 'Nome utente', passwordHintText: 'Almeno 6 caratteri',
+    nativeLangSelectLabel: 'La tua lingua madre', learningLangSelectLabel: 'Lingua che vuoi imparare',
+    emailInvalidError: 'Inserisci un’e-mail valida.', usernameMinError: 'Deve avere almeno 3 caratteri.', passwordMinError: 'Deve avere almeno 6 caratteri.',
+    sameLangError: 'La lingua da imparare deve essere diversa dalla tua lingua madre.',
+    registerFailedGeneric: 'Registrazione non riuscita. Questa e-mail potrebbe essere già in uso.',
+    createAccountBtn: 'Crea account', haveAccountQuestion: 'Hai già un account?', loginLinkText: 'Accedi',
   },
 };
 
@@ -396,6 +535,7 @@ interface LocaleContextType {
   locale: Locale;
   dir: 'ltr' | 'rtl';
   t: (key: TranslationKey) => string;
+  setLocale: (l: Locale) => void;
 }
 
 const LocaleContext = createContext<LocaleContextType | null>(null);
@@ -407,7 +547,21 @@ function resolveLocale(code?: string): Locale {
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
-  const locale = resolveLocale(user?.native_lang);
+  const [guestLocale, setGuestLocale] = useState<Locale>('tr');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      if (saved && saved in dictionaries) setGuestLocale(saved as Locale);
+    }
+  }, []);
+
+  const setLocale = (l: Locale) => {
+    setGuestLocale(l);
+    if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, l);
+  };
+
+  const locale = user?.native_lang ? resolveLocale(user.native_lang) : guestLocale;
   const dir: 'ltr' | 'rtl' = RTL_LOCALES.includes(locale) ? 'rtl' : 'ltr';
 
   useEffect(() => {
@@ -419,6 +573,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     locale,
     dir,
     t: (key: TranslationKey) => dictionaries[locale][key] ?? dictionaries.en[key] ?? key,
+    setLocale,
   }), [locale, dir]);
 
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
