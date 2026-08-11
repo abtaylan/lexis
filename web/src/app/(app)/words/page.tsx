@@ -209,7 +209,7 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
               <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
               <input
                 type="text"
-                value={(form as Record<string, string>)[field] ?? ''}
+                value={(form as unknown as Record<string, string>)[field] ?? ''}
                 onChange={(e) => set(field, e.target.value)}
                 placeholder={ph}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
