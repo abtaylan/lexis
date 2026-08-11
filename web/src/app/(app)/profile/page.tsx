@@ -1,18 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff } from 'lucide-react';
-import { authApi } from '@/lib/api';
+import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap } from 'lucide-react';
+import { authApi, languagesApi } from '@/lib/api';
+import { useAuth } from '@/store/auth';
 import { useLocale } from '@/lib/i18n';
-import type { User as UserType } from '@/types';
+import type { User as UserType, Language } from '@/types';
 
 export default function ProfilePage() {
   const { t, locale } = useLocale();
+  const { updateUser } = useAuth();
   const [user, setUser] = useState<UserType | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [dailyGoal, setDailyGoal] = useState(10);
+  const [nativeLang, setNativeLang] = useState('tr');
+  const [learningLang, setLearningLang] = useState('en');
+  const [languages, setLanguages] = useState<Language[]>([]);
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
 
@@ -20,6 +25,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [langError, setLangError] = useState('');
 
   useEffect(() => {
     authApi.getMe()
@@ -29,15 +35,33 @@ export default function ProfilePage() {
         setUsername(u.username ?? '');
         setEmail(u.email ?? '');
         setDailyGoal(u.daily_goal ?? 10);
+        setNativeLang(u.native_lang ?? 'tr');
+        setLearningLang(u.learning_lang ?? 'en');
       })
       .catch(() => setError(t('profileLoadError')))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    languagesApi.getAll()
+      .then(setLanguages)
+      .catch(() => setLanguages([
+        { code: 'en', name_native: 'English', name_en: 'English', flag_emoji: '🇬🇧', is_active: true },
+        { code: 'tr', name_native: 'Türkçe', name_en: 'Turkish', flag_emoji: '🇹🇷', is_active: true },
+      ]));
+  }, []);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLangError('');
+
+    if (nativeLang === learningLang) {
+      setLangError(t('sameLangError'));
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: Record<string, unknown> = {
@@ -48,6 +72,8 @@ export default function ProfilePage() {
       if (username.trim() && username.trim() !== user?.username) payload.username = username.trim();
       if (email.trim() && email.trim() !== user?.email) payload.email = email.trim();
       if (password.trim()) payload.password = password.trim();
+      if (nativeLang !== user?.native_lang) payload.native_lang = nativeLang;
+      if (learningLang !== user?.learning_lang) payload.learning_lang = learningLang;
 
       const updated = await authApi.updateProfile(payload);
       setUser(updated);
@@ -55,13 +81,9 @@ export default function ProfilePage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
 
-      if (typeof window !== 'undefined') {
-        const stored = localStorage.getItem('lexis_user');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          localStorage.setItem('lexis_user', JSON.stringify({ ...parsed, ...updated }));
-        }
-      }
+      // Auth store'u güncelle — LocaleProvider user.native_lang'i buradan okuyor,
+      // böylece arayüz dili sayfa yenilemeden anında değişir.
+      updateUser(updated);
     } catch (err: any) {
       setError(err?.response?.data?.detail || t('saveFailed'));
     } finally {
@@ -72,6 +94,7 @@ export default function ProfilePage() {
   if (loading) return <div className="p-6 text-sm text-gray-400">{t('loading')}</div>;
 
   const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
+  const selectCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white";
 
   return (
     <div className="p-6 max-w-lg space-y-6">
@@ -114,6 +137,34 @@ export default function ProfilePage() {
               {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+        </div>
+
+        {/* Dil tercihleri — arayüz dili (native_lang) + öğrenme dili (learning_lang) */}
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-2">{t('interfaceLanguageLabel')}</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
+                <Globe className="w-3 h-3" /> {t('nativeLangSelectLabel')}
+              </label>
+              <select value={nativeLang} onChange={(e) => setNativeLang(e.target.value)} className={selectCls}>
+                {languages.map((l) => (
+                  <option key={l.code} value={l.code}>{l.flag_emoji} {l.name_native}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
+                <GraduationCap className="w-3 h-3" /> {t('learningLangSelectLabel')}
+              </label>
+              <select value={learningLang} onChange={(e) => setLearningLang(e.target.value)} className={selectCls}>
+                {languages.map((l) => (
+                  <option key={l.code} value={l.code}>{l.flag_emoji} {l.name_native}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          {langError && <p className="text-xs text-red-600 mt-2">{langError}</p>}
         </div>
 
         {/* Günlük hedef */}
