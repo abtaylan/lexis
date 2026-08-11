@@ -6,12 +6,23 @@ from typing import Optional, List
 
 router = APIRouter()
 
+# Program aktivitelerinin bağlanabileceği kaynak kategorileri.
+# learning_resources tablosundaki 'category' alanıyla eşleşir.
+ACTIVITY_CATEGORIES = [
+    "news_reading",
+    "technical_article",
+    "video_analysis",
+    "audio_practice",
+    "general_review",
+]
+
 class ScheduleItem(BaseModel):
     day_of_week: int
     time_slot: str
     activity: str
     duration_min: int = 30
     link_url: Optional[str] = None
+    activity_key: Optional[str] = None
 
 class ScheduleUpdate(BaseModel):
     day_of_week: Optional[int] = None
@@ -19,15 +30,14 @@ class ScheduleUpdate(BaseModel):
     activity: Optional[str] = None
     duration_min: Optional[int] = None
     link_url: Optional[str] = None
+    activity_key: Optional[str] = None
     is_active: Optional[bool] = None
-
 
 # ── Aşama 4: Kişiye özel şablonlar ───────────────────────────
 
 class ScheduleTemplateCreate(BaseModel):
     name: str
     items: List[ScheduleItem]
-
 
 @router.get("/templates")
 async def get_templates(current_user=Depends(get_current_user)):
@@ -42,7 +52,6 @@ async def get_templates(current_user=Depends(get_current_user)):
         .execute()
     )
     return {"templates": result.data}
-
 
 @router.post("/templates", status_code=201)
 async def create_template(data: ScheduleTemplateCreate, current_user=Depends(get_current_user)):
@@ -69,13 +78,50 @@ async def create_template(data: ScheduleTemplateCreate, current_user=Depends(get
         print(f"CREATE_TEMPLATE ERROR: {e}")
         raise HTTPException(status_code=500, detail="Şablon kaydedilemedi.")
 
-
 @router.delete("/templates/{template_id}", status_code=204)
 async def delete_template(template_id: str, current_user=Depends(get_current_user)):
     supabase_admin.table("schedule_templates").delete().eq("id", template_id).eq(
         "user_id", current_user.id
     ).execute()
 
+# ── Çok dilli program kaynakları ─────────────────────────────
+
+@router.get("/resources")
+async def get_resources(category: Optional[str] = None, current_user=Depends(get_current_user)):
+    """
+    Kullanıcının öğrendiği dile (learning_lang) göre kaynak listesini döner.
+    category verilirse sadece o kategoriyle filtrelenir; verilmezse tüm
+    kategoriler döner (activity_key seçici UI'ında kullanılabilir).
+    """
+    query = (
+        supabase_admin.table("learning_resources")
+        .select("*")
+        .eq("language_code", current_user.learning_lang or "en")
+        .eq("is_active", True)
+    )
+    if category:
+        query = query.eq("category", category)
+    result = query.order("category").execute()
+    return {"resources": result.data, "categories": ACTIVITY_CATEGORIES}
+
+def _resolve_resource(activity_key: Optional[str], learning_lang: str) -> Optional[dict]:
+    """
+    Bir program maddesinin activity_key'ine ve kullanıcının learning_lang'ine
+    göre uygun bir kaynağı çözer. Eşleşme yoksa None döner (frontend, kayıtlı
+    sabit link_url'e düşer).
+    """
+    if not activity_key:
+        return None
+    result = (
+        supabase_admin.table("learning_resources")
+        .select("*")
+        .eq("language_code", learning_lang or "en")
+        .eq("category", activity_key)
+        .eq("is_active", True)
+        .limit(1)
+        .execute()
+    )
+    return result.data[0] if result.data else None
 
 # ── Mevcut program (haftalık etkinlikler) ────────────────────
 
@@ -89,7 +135,19 @@ async def get_schedule(current_user=Depends(get_current_user)):
         .order("day_of_week")
         .execute()
     )
-    return {"items": result.data}
+    items = result.data
+    learning_lang = current_user.learning_lang or "en"
+    for item in items:
+        resource = _resolve_resource(item.get("activity_key"), learning_lang)
+        if resource:
+            item["resolved_link_url"] = resource["url"]
+            item["resolved_resource_title"] = resource["title"]
+        else:
+            # activity_key yok ya da bu dil için kaynak tanımlanmamış:
+            # kayıtlı sabit link_url'e düş (geriye dönük uyumluluk).
+            item["resolved_link_url"] = item.get("link_url")
+            item["resolved_resource_title"] = None
+    return {"items": items}
 
 @router.post("", status_code=201)
 async def create_schedule_item(item: ScheduleItem, current_user=Depends(get_current_user)):
