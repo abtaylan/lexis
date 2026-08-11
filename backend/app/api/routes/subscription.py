@@ -133,7 +133,12 @@ async def start_checkout(req: CheckoutRequest, current_user=Depends(get_current_
     )
 
 
-@router.api_route("/callback", methods=["GET", "POST"])
+# NOT: GET ve POST için aynı fonksiyonu tek api_route ile tanımlamak, her iki
+# operasyona da aynı otomatik operationId'yi veriyordu ve Swagger/OpenAPI'de
+# "Duplicate Operation ID" uyarısına yol açıyordu. Aşağıda her metod için
+# ayrı, açık operation_id verilerek bu çözüldü — davranışta değişiklik yok.
+@router.get("/callback", operation_id="subscription_checkout_callback_get")
+@router.post("/callback", operation_id="subscription_checkout_callback_post")
 async def checkout_callback(request: Request, sub_id: str):
     """iyzico ödeme tamamlandığında bu URL'e (GET veya POST) yönlendirir/post eder.
     NOT: retrieve_checkout_form yanıtındaki alan adları (referenceCode/status vb.)
