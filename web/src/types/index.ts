@@ -51,8 +51,6 @@ export interface AuthResponse {
   };
 }
 
-// Giriş (login) ve kayıt (register) sonrası artık token yerine bu dönüyor —
-// gerçek token'lar ancak /auth/verify-otp ile OTP kodu doğrulandıktan sonra alınır.
 export interface OtpPendingResponse {
   pending: true;
   email: string;
@@ -67,8 +65,6 @@ export interface RegisterResponse {
   message?: string;
 }
 
-// ── Language ─────────────────────────────────────────────────
-
 export interface Language {
   code: string;
   name_native: string;
@@ -76,8 +72,6 @@ export interface Language {
   flag_emoji?: string;
   is_active: boolean;
 }
-
-// ── Word ─────────────────────────────────────────────────────
 
 export interface Word {
   id: string;
@@ -125,8 +119,6 @@ export interface WordReview {
   success: boolean;
 }
 
-// ── Dictionary ───────────────────────────────────────────────
-
 export interface DictionaryMeaning {
   word_type: string;
   word_type_native: string;
@@ -139,8 +131,6 @@ export interface DictionaryResult {
   meanings: DictionaryMeaning[];
   error: string | null;
 }
-
-// ── Stats ────────────────────────────────────────────────────
 
 export interface DailyProgress {
   date: string;
@@ -161,8 +151,6 @@ export interface Stats {
   daily_history: DailyProgress[];
 }
 
-// ── Schedule ─────────────────────────────────────────────────
-
 export interface ScheduleItem {
   id: string;
   user_id: string;
@@ -171,6 +159,9 @@ export interface ScheduleItem {
   activity: string;
   duration_min: number;
   link_url?: string;
+  activity_key?: string;
+  resolved_link_url?: string;
+  resolved_resource_title?: string;
   is_active: boolean;
 }
 
@@ -180,9 +171,9 @@ export interface ScheduleCreate {
   activity: string;
   duration_min: number;
   link_url?: string;
+  activity_key?: string;
 }
 
-// Kişiye özel şablonlar — kullanıcının kendi oluşturup kaydettiği programlar
 export interface ScheduleTemplateItem {
   day_of_week: number;
   time_slot: string;
@@ -203,8 +194,6 @@ export interface ScheduleTemplateCreate {
   name: string;
   items: ScheduleTemplateItem[];
 }
-
-// ── Admin ────────────────────────────────────────────────────
 
 export interface AdminUser {
   id: string;
@@ -237,8 +226,6 @@ export interface AdminStats {
   words_today: number;
 }
 
-// ── Pagination ───────────────────────────────────────────────
-
 export interface PaginatedWords {
   items: Word[];
   total: number;
@@ -246,8 +233,6 @@ export interface PaginatedWords {
   per_page: number;
   pages: number;
 }
-
-// ── Analytics ────────────────────────────────────────────────
 
 export interface TypeBreakdown {
   word_type: string;
