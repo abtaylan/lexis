@@ -5,10 +5,10 @@ from app.core.database import supabase_admin
 from app.schemas.words import WordCreate, WordUpdate, WordResponse, WordListResponse, ReviewResult
 from app.services.spaced_repetition import calculate_next_review
 from app.services.streak import update_streak
+from app.services.xp_service import award_xp
 from datetime import datetime, timezone
 
 router = APIRouter()
-
 
 @router.get("", response_model=WordListResponse)
 async def get_words(
@@ -31,7 +31,7 @@ async def get_words(
     if list_type:
         query = query.eq("list_type", list_type)
     if search:
-        query = query.ilike("word", f"%{search}%")
+        query = query.ilike("word", `%${search}%`)
 
     result = query.execute()
     return WordListResponse(
@@ -40,7 +40,6 @@ async def get_words(
         page=page,
         page_size=page_size
     )
-
 
 @router.post("", response_model=WordResponse, status_code=201)
 async def create_word(
@@ -83,7 +82,6 @@ async def create_word(
 
     return result.data[0]
 
-
 @router.patch("/{word_id}", response_model=WordResponse)
 async def update_word(
     word_id: str,
@@ -101,7 +99,6 @@ async def update_word(
         raise HTTPException(status_code=404, detail="Kelime bulunamadı.")
     return result.data[0]
 
-
 @router.delete("/{word_id}", status_code=204)
 async def delete_word(
     word_id: str,
@@ -116,7 +113,6 @@ async def delete_word(
     )
     if not result.data:
         raise HTTPException(status_code=404, detail="Kelime bulunamadı.")
-
 
 @router.post("/{word_id}/review")
 async def review_word(
@@ -140,8 +136,16 @@ async def review_word(
     supabase_admin.table("words").update(updated).eq("id", word_id).execute()
 
     await update_streak(current_user.id, "word_reviewed")
-    return {"message": "Güncellendi", "next_review_at": updated["next_review_at"]}
 
+    # XP: sadece doğru cevapta kazandır (yanlış tekrar XP vermez)
+    xp_result = None
+    if review.success:
+        xp_result = await award_xp(current_user.id, "flashcard_review", source_id=word_id)
+
+    response = {"message": "Güncellendi", "next_review_at": updated["next_review_at"]}
+    if xp_result:
+        response["xp"] = xp_result.to_dict()
+    return response
 
 @router.get("/due/today")
 async def get_due_words(current_user=Depends(get_current_user)):
