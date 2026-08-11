@@ -52,7 +52,7 @@ type TranslationKey =
   | 'noAccountQuestion' | 'registerLinkText' | 'registerTitleText' | 'registerSubtitleText' | 'fullNameLabel'
   | 'usernameLabel' | 'passwordHintText' | 'nativeLangSelectLabel' | 'learningLangSelectLabel' | 'emailInvalidError'
   | 'usernameMinError' | 'passwordMinError' | 'sameLangError' | 'registerFailedGeneric' | 'createAccountBtn'
-  | 'haveAccountQuestion' | 'loginLinkText'
+  | 'haveAccountQuestion' | 'loginLinkText' | 'forgotPasswordLink'
   | 'typeNoun' | 'typeVerb' | 'typeAdjective' | 'typeAdverb' | 'typePhrasalVerb' | 'typeIdiom' | 'typePhrase' | 'typeOther'
   | 'statsLoadError' | 'statsPageTitle' | 'statsPageSubtitle' | 'noDataYet' | 'noDataYetSub' | 'longestStreak'
   | 'streakDaysAbbrTpl' | 'statusDistribution' | 'statusDistributionSub' | 'learnedPercentLabel' | 'typeByLearnRate'
@@ -122,7 +122,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     emailInvalidError: 'Geçerli bir e-posta gir.', usernameMinError: 'En az 3 karakter olmalı.', passwordMinError: 'En az 6 karakter olmalı.',
     sameLangError: 'Öğrenmek istediğin dil ana dilinden farklı olmalı.',
     registerFailedGeneric: 'Kayıt başarısız. Bu e-posta zaten kullanılıyor olabilir.',
-    createAccountBtn: 'Hesap Oluştur', haveAccountQuestion: 'Zaten hesabın var mı?', loginLinkText: 'Giriş yap',
+    createAccountBtn: 'Hesap Oluştur', haveAccountQuestion: 'Zaten hesabın var mı?', loginLinkText: 'Giriş yap', forgotPasswordLink: 'Şifremi unuttum?',
     typeNoun: 'İsim', typeVerb: 'Fiil', typeAdjective: 'Sıfat', typeAdverb: 'Zarf', typePhrasalVerb: 'Fiil (öbük)', typeIdiom: 'Deyim', typePhrase: 'İfade', typeOther: 'Diğer',
     statsLoadError: 'İstatistikler yüklenemedi.', statsPageTitle: 'İstatistikler', statsPageSubtitle: 'Öğrenme yolculuğun bir bakışta',
     noDataYet: 'Henüz veri yok', noDataYetSub: 'Kelime ekleyip çalışmaya başlayınca grafikler burada canlanacak.',
@@ -193,7 +193,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     emailInvalidError: 'Enter a valid email.', usernameMinError: 'Must be at least 3 characters.', passwordMinError: 'Must be at least 6 characters.',
     sameLangError: 'The language you want to learn must differ from your native language.',
     registerFailedGeneric: 'Registration failed. This email may already be in use.',
-    createAccountBtn: 'Create Account', haveAccountQuestion: 'Already have an account?', loginLinkText: 'Log in',
+    createAccountBtn: 'Create Account', haveAccountQuestion: 'Already have an account?', loginLinkText: 'Log in', forgotPasswordLink: 'Forgot password?',
     typeNoun: 'Noun', typeVerb: 'Verb', typeAdjective: 'Adjective', typeAdverb: 'Adverb', typePhrasalVerb: 'Phrasal Verb', typeIdiom: 'Idiom', typePhrase: 'Phrase', typeOther: 'Other',
     statsLoadError: 'Failed to load statistics.', statsPageTitle: 'Statistics', statsPageSubtitle: 'Your learning journey at a glance',
     noDataYet: 'No data yet', noDataYetSub: 'Once you add words and start studying, charts will come alive here.',
@@ -264,7 +264,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     emailInvalidError: 'أدخل بريدًا إلكترونيًا صحيحًا.', usernameMinError: 'يجب أن يكون 3 أحرف على الأقل.', passwordMinError: 'يجب أن تكون 6 أحرف على الأقل.',
     sameLangError: 'يجب أن تختلف اللغة التي تريد تعلمها عن لغتك الأم.',
     registerFailedGeneric: 'فشل التسجيل. قد يكون هذا البريد مستخدمًا بالفعل.',
-    createAccountBtn: 'إنشاء الحساب', haveAccountQuestion: 'لديك حساب بالفعل؟', loginLinkText: 'تسجيل الدخول',
+    createAccountBtn: 'إنشاء الحساب', haveAccountQuestion: 'لديك حساب بالفعل؟', loginLinkText: 'تسجيل الدخول', forgotPasswordLink: 'هل نسيت كلمة المرور؟',
     typeNoun: 'اسم', typeVerb: 'فعل', typeAdjective: 'صفة', typeAdverb: 'ظرف', typePhrasalVerb: 'فعل مركّب', typeIdiom: 'تعبير اصطلاحي', typePhrase: 'عبارة', typeOther: 'أخرى',
     statsLoadError: 'تعذر تحميل الإحصائيات.', statsPageTitle: 'الإحصائيات', statsPageSubtitle: 'رحلتك التعليمية بلمحة',
     noDataYet: 'لا توجد بيانات بعد', noDataYetSub: 'بمجرد إضافة الكلمات والبدء بالدراسة، ستظهر الرسوم البيانية هنا.',
@@ -335,7 +335,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     emailInvalidError: 'Введите корректный email.', usernameMinError: 'Не менее 3 символов.', passwordMinError: 'Не менее 6 символов.',
     sameLangError: 'Изучаемый язык должен отличаться от родного.',
     registerFailedGeneric: 'Регистрация не удалась. Эта почта уже может быть использована.',
-    createAccountBtn: 'Создать аккаунт', haveAccountQuestion: 'Уже есть аккаунт?', loginLinkText: 'Войти',
+    createAccountBtn: 'Создать аккаунт', haveAccountQuestion: 'Уже есть аккаунт?', loginLinkText: 'Войти', forgotPasswordLink: 'Забыли пароль?',
     typeNoun: 'Существительное', typeVerb: 'Глагол', typeAdjective: 'Прилагательное', typeAdverb: 'Наречие', typePhrasalVerb: 'Фразовый глагол', typeIdiom: 'Идиома', typePhrase: 'Фраза', typeOther: 'Другое',
     statsLoadError: 'Не удалось загрузить статистику.', statsPageTitle: 'Статистика', statsPageSubtitle: 'Твой путь обучения одним взглядом',
     noDataYet: 'Пока нет данных', noDataYetSub: 'Как только добавишь слова и начнёшь заниматься, здесь появятся графики.',
@@ -406,7 +406,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     emailInvalidError: 'Gib eine gültige E-Mail-Adresse ein.', usernameMinError: 'Muss mindestens 3 Zeichen haben.', passwordMinError: 'Muss mindestens 6 Zeichen haben.',
     sameLangError: 'Die Lernsprache muss sich von deiner Muttersprache unterscheiden.',
     registerFailedGeneric: 'Registrierung fehlgeschlagen. Diese E-Mail wird möglicherweise bereits verwendet.',
-    createAccountBtn: 'Konto erstellen', haveAccountQuestion: 'Bereits ein Konto?', loginLinkText: 'Anmelden',
+    createAccountBtn: 'Konto erstellen', haveAccountQuestion: 'Bereits ein Konto?', loginLinkText: 'Anmelden', forgotPasswordLink: 'Passwort vergessen?',
     typeNoun: 'Substantiv', typeVerb: 'Verb', typeAdjective: 'Adjektiv', typeAdverb: 'Adverb', typePhrasalVerb: 'Phrasal Verb', typeIdiom: 'Redewendung', typePhrase: 'Phrase', typeOther: 'Sonstiges',
     statsLoadError: 'Statistiken konnten nicht geladen werden.', statsPageTitle: 'Statistik', statsPageSubtitle: 'Deine Lernreise auf einen Blick',
     noDataYet: 'Noch keine Daten', noDataYetSub: 'Sobald du Wörter hinzufügst und lernst, erscheinen hier Diagramme.',
@@ -477,7 +477,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     emailInvalidError: 'Saisis un e-mail valide.', usernameMinError: 'Doit contenir au moins 3 caractères.', passwordMinError: 'Doit contenir au moins 6 caractères.',
     sameLangError: "La langue à apprendre doit être différente de ta langue maternelle.",
     registerFailedGeneric: "Échec de l'inscription. Cet e-mail est peut-être déjà utilisé.",
-    createAccountBtn: 'Créer le compte', haveAccountQuestion: 'Déjà un compte ?', loginLinkText: 'Se connecter',
+    createAccountBtn: 'Créer le compte', haveAccountQuestion: 'Déjà un compte ?', loginLinkText: 'Se connecter', forgotPasswordLink: 'Mot de passe oublié ?',
     typeNoun: 'Nom', typeVerb: 'Verbe', typeAdjective: 'Adjectif', typeAdverb: 'Adverbe', typePhrasalVerb: 'Verbe à particule', typeIdiom: 'Expression idiomatique', typePhrase: 'Phrase', typeOther: 'Autre',
     statsLoadError: 'Impossible de charger les statistiques.', statsPageTitle: 'Statistiques', statsPageSubtitle: "Ton parcours d'apprentissage en un coup d'œil",
     noDataYet: 'Pas encore de données', noDataYetSub: 'Dès que tu ajoutes des mots et commences à étudier, les graphiques prendront vie ici.',
@@ -548,7 +548,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     emailInvalidError: 'Introduce un correo válido.', usernameMinError: 'Debe tener al menos 3 caracteres.', passwordMinError: 'Debe tener al menos 6 caracteres.',
     sameLangError: 'El idioma que quieres aprender debe ser distinto de tu idioma nativo.',
     registerFailedGeneric: 'No se pudo registrar. Este correo ya podría estar en uso.',
-    createAccountBtn: 'Crear cuenta', haveAccountQuestion: '¿Ya tienes cuenta?', loginLinkText: 'Iniciar sesión',
+    createAccountBtn: 'Crear cuenta', haveAccountQuestion: '¿Ya tienes cuenta?', loginLinkText: 'Iniciar sesión', forgotPasswordLink: '¿Olvidaste tu contraseña?',
     typeNoun: 'Sustantivo', typeVerb: 'Verbo', typeAdjective: 'Adjetivo', typeAdverb: 'Adverbio', typePhrasalVerb: 'Verbo frasal', typeIdiom: 'Modismo', typePhrase: 'Frase', typeOther: 'Otro',
     statsLoadError: 'No se pudieron cargar las estadísticas.', statsPageTitle: 'Estadísticas', statsPageSubtitle: 'Tu viaje de aprendizaje de un vistazo',
     noDataYet: 'Aún no hay datos', noDataYetSub: 'En cuanto añadas palabras y empieces a estudiar, los gráficos cobrarán vida aquí.',
@@ -619,7 +619,7 @@ const dictionaries: Record<Locale, Dictionary> = {
     emailInvalidError: 'Inserisci un’e-mail valida.', usernameMinError: 'Deve avere almeno 3 caratteri.', passwordMinError: 'Deve avere almeno 6 caratteri.',
     sameLangError: 'La lingua da imparare deve essere diversa dalla tua lingua madre.',
     registerFailedGeneric: 'Registrazione non riuscita. Questa e-mail potrebbe essere già in uso.',
-    createAccountBtn: 'Crea account', haveAccountQuestion: 'Hai già un account?', loginLinkText: 'Accedi',
+    createAccountBtn: 'Crea account', haveAccountQuestion: 'Hai già un account?', loginLinkText: 'Accedi', forgotPasswordLink: 'Password dimenticata?',
     typeNoun: 'Sostantivo', typeVerb: 'Verbo', typeAdjective: 'Aggettivo', typeAdverb: 'Avverbio', typePhrasalVerb: 'Verbo frasale', typeIdiom: 'Modo di dire', typePhrase: 'Frase', typeOther: 'Altro',
     statsLoadError: 'Impossibile caricare le statistiche.', statsPageTitle: 'Statistiche', statsPageSubtitle: 'Il tuo percorso di apprendimento a colpo d’occhio',
     noDataYet: 'Ancora nessun dato', noDataYetSub: 'Non appena aggiungi parole e inizi a studiare, qui prenderanno vita i grafici.',
