@@ -58,7 +58,9 @@ type TranslationKey =
   | 'streakDaysAbbrTpl' | 'statusDistribution' | 'statusDistributionSub' | 'learnedPercentLabel' | 'typeByLearnRate'
   | 'typeByLearnRateSub' | 'learnRateTooltip' | 'typeDistribution' | 'typeDistributionSub' | 'wordTooltip'
   | 'learningSpeed' | 'learningSpeedSub' | 'repeatUnitTpl' | 'averageTooltip' | 'last30DaysTitle' | 'last30DaysSub'
-  | 'addedWordUnitTpl' | 'addedTooltip' | 'studyActivity' | 'studyActivitySub' | 'addedLegend' | 'repeatLegend';
+  | 'addedWordUnitTpl' | 'addedTooltip' | 'studyActivity' | 'studyActivitySub' | 'addedLegend' | 'repeatLegend'
+  | 'profileLoadError' | 'displayNameLabel' | 'emailChangeHint' | 'newPasswordLabel' | 'newPasswordPlaceholder'
+  | 'dailyGoalLabel' | 'savedLabel' | 'accountInfoTitle' | 'roleLabel' | 'memberSinceLabel';
 
 type Dictionary = Record<TranslationKey, string>;
 
@@ -130,6 +132,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     learningSpeed: 'Öğrenme Hızı', learningSpeedSub: 'Türe göre ort. tekrar sayısı — düşük = daha hızlı', repeatUnitTpl: '{n} tekrar', averageTooltip: 'Ortalama',
     last30DaysTitle: 'Son 30 Gün — Eklenen Kelimeler', last30DaysSub: 'Günlük kelime ekleme ivmen', addedWordUnitTpl: '{n} kelime', addedTooltip: 'Eklenen',
     studyActivity: 'Çalışma Aktivitesi', studyActivitySub: 'Günlük eklenen vs tekrar edilen', addedLegend: 'Eklenen', repeatLegend: 'Tekrar',
+    profileLoadError: 'Profil bilgileri yüklenemedi.', displayNameLabel: 'Görünen ad', emailChangeHint: 'E-postayı değiştirirsen Supabase doğrulama maili gönderebilir.',
+    newPasswordLabel: 'Yeni şifre', newPasswordPlaceholder: 'Değiştirmek istemiyorsan boş bırak', dailyGoalLabel: 'Günlük kelime hedefi',
+    savedLabel: 'Kaydedildi', accountInfoTitle: 'Hesap Bilgileri', roleLabel: 'Rol', memberSinceLabel: 'Üyelik tarihi',
   },
   en: {
     dashboard: 'Dashboard', words: 'Words', flashcards: 'Flashcards', quiz: 'Quiz', schedule: 'Schedule', stats: 'Statistics', profile: 'Profile',
@@ -198,6 +203,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     learningSpeed: 'Learning Speed', learningSpeedSub: 'Avg. repetitions by type — lower = faster', repeatUnitTpl: '{n} repeats', averageTooltip: 'Average',
     last30DaysTitle: 'Last 30 Days — Words Added', last30DaysSub: 'Your daily word-adding momentum', addedWordUnitTpl: '{n} words', addedTooltip: 'Added',
     studyActivity: 'Study Activity', studyActivitySub: 'Daily added vs. reviewed', addedLegend: 'Added', repeatLegend: 'Reviewed',
+    profileLoadError: 'Failed to load profile information.', displayNameLabel: 'Display name', emailChangeHint: 'If you change your email, Supabase may send a verification email.',
+    newPasswordLabel: 'New password', newPasswordPlaceholder: "Leave blank if you don't want to change it", dailyGoalLabel: 'Daily word goal',
+    savedLabel: 'Saved', accountInfoTitle: 'Account Info', roleLabel: 'Role', memberSinceLabel: 'Member since',
   },
   ar: {
     dashboard: 'لوحة التحكم', words: 'الكلمات', flashcards: 'البطاقات التعليمية', quiz: 'اختبار', schedule: 'البرنامج', stats: 'الإحصائيات', profile: 'الملف الشخصي',
@@ -266,6 +274,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     learningSpeed: 'سرعة التعلم', learningSpeedSub: 'متوسط التكرار حسب النوع — الأقل = أسرع', repeatUnitTpl: '{n} تكرار', averageTooltip: 'المتوسط',
     last30DaysTitle: 'آخر 30 يومًا — الكلمات المضافة', last30DaysSub: 'وتيرة إضافة الكلمات اليومية لديك', addedWordUnitTpl: '{n} كلمة', addedTooltip: 'مُضاف',
     studyActivity: 'نشاط الدراسة', studyActivitySub: 'المُضاف مقابل المُراجَع يوميًا', addedLegend: 'مُضاف', repeatLegend: 'مُراجَع',
+    profileLoadError: 'تعذر تحميل معلومات الملف الشخصي.', displayNameLabel: 'الاسم الظاهر', emailChangeHint: 'إذا غيّرت بريدك الإلكتروني، قد يرسل Supabase رسالة تحقق.',
+    newPasswordLabel: 'كلمة مرور جديدة', newPasswordPlaceholder: 'اتركه فارغًا إذا لم ترغب في تغييره', dailyGoalLabel: 'الهدف اليومي للكلمات',
+    savedLabel: 'تم الحفظ', accountInfoTitle: 'معلومات الحساب', roleLabel: 'الدور', memberSinceLabel: 'تاريخ الانضمام',
   },
   ru: {
     dashboard: 'Панель', words: 'Слова', flashcards: 'Карточки', quiz: 'Тест', schedule: 'Расписание', stats: 'Статистика', profile: 'Профиль',
@@ -334,6 +345,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     learningSpeed: 'Скорость обучения', learningSpeedSub: 'Ср. число повторов по типу — меньше = быстрее', repeatUnitTpl: '{n} повторов', averageTooltip: 'Среднее',
     last30DaysTitle: 'Последние 30 дней — добавленные слова', last30DaysSub: 'Твой темп добавления слов по дням', addedWordUnitTpl: '{n} слов', addedTooltip: 'Добавлено',
     studyActivity: 'Активность занятий', studyActivitySub: 'Добавлено против повторено по дням', addedLegend: 'Добавлено', repeatLegend: 'Повторено',
+    profileLoadError: 'Не удалось загрузить данные профиля.', displayNameLabel: 'Отображаемое имя', emailChangeHint: 'Если ты изменишь email, Supabase может отправить письмо для подтверждения.',
+    newPasswordLabel: 'Новый пароль', newPasswordPlaceholder: 'Оставь пустым, если не хочешь менять', dailyGoalLabel: 'Дневная цель по словам',
+    savedLabel: 'Сохранено', accountInfoTitle: 'Информация об аккаунте', roleLabel: 'Роль', memberSinceLabel: 'Дата регистрации',
   },
   de: {
     dashboard: 'Dashboard', words: 'Wörter', flashcards: 'Karteikarten', quiz: 'Quiz', schedule: 'Zeitplan', stats: 'Statistik', profile: 'Profil',
@@ -402,6 +416,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     learningSpeed: 'Lerngeschwindigkeit', learningSpeedSub: 'Durchschn. Wiederholungen nach Typ — niedriger = schneller', repeatUnitTpl: '{n} Wiederholungen', averageTooltip: 'Durchschnitt',
     last30DaysTitle: 'Letzte 30 Tage — hinzugefügte Wörter', last30DaysSub: 'Dein tägliches Tempo beim Hinzufügen von Wörtern', addedWordUnitTpl: '{n} Wörter', addedTooltip: 'Hinzugefügt',
     studyActivity: 'Lernaktivität', studyActivitySub: 'Täglich hinzugefügt vs. wiederholt', addedLegend: 'Hinzugefügt', repeatLegend: 'Wiederholt',
+    profileLoadError: 'Profildaten konnten nicht geladen werden.', displayNameLabel: 'Anzeigename', emailChangeHint: 'Wenn du deine E-Mail änderst, sendet Supabase möglicherweise eine Bestätigungs-E-Mail.',
+    newPasswordLabel: 'Neues Passwort', newPasswordPlaceholder: 'Leer lassen, wenn du es nicht ändern möchtest', dailyGoalLabel: 'Tägliches Wortziel',
+    savedLabel: 'Gespeichert', accountInfoTitle: 'Kontoinformationen', roleLabel: 'Rolle', memberSinceLabel: 'Mitglied seit',
   },
   fr: {
     dashboard: 'Tableau de bord', words: 'Mots', flashcards: 'Cartes mémo', quiz: 'Quiz', schedule: 'Programme', stats: 'Statistiques', profile: 'Profil',
@@ -470,6 +487,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     learningSpeed: "Vitesse d'apprentissage", learningSpeedSub: 'Répétitions moy. par type — plus bas = plus rapide', repeatUnitTpl: '{n} répétitions', averageTooltip: 'Moyenne',
     last30DaysTitle: '30 derniers jours — mots ajoutés', last30DaysSub: "Ton rythme quotidien d'ajout de mots", addedWordUnitTpl: '{n} mots', addedTooltip: 'Ajoutés',
     studyActivity: "Activité d'étude", studyActivitySub: 'Ajoutés vs révisés par jour', addedLegend: 'Ajoutés', repeatLegend: 'Révisés',
+    profileLoadError: "Impossible de charger les informations du profil.", displayNameLabel: "Nom affiché", emailChangeHint: "Si tu changes ton e-mail, Supabase peut envoyer un e-mail de vérification.",
+    newPasswordLabel: "Nouveau mot de passe", newPasswordPlaceholder: "Laisse vide si tu ne veux pas le changer", dailyGoalLabel: "Objectif quotidien de mots",
+    savedLabel: "Enregistré", accountInfoTitle: "Informations du compte", roleLabel: "Rôle", memberSinceLabel: "Membre depuis",
   },
   es: {
     dashboard: 'Panel', words: 'Palabras', flashcards: 'Tarjetas', quiz: 'Cuestionario', schedule: 'Horario', stats: 'Estadísticas', profile: 'Perfil',
@@ -538,6 +558,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     learningSpeed: 'Velocidad de aprendizaje', learningSpeedSub: 'Repeticiones prom. por tipo — menos = más rápido', repeatUnitTpl: '{n} repeticiones', averageTooltip: 'Promedio',
     last30DaysTitle: 'Últimos 30 días — palabras añadidas', last30DaysSub: 'Tu ritmo diario de añadir palabras', addedWordUnitTpl: '{n} palabras', addedTooltip: 'Añadidas',
     studyActivity: 'Actividad de estudio', studyActivitySub: 'Añadidas vs. repasadas por día', addedLegend: 'Añadidas', repeatLegend: 'Repasadas',
+    profileLoadError: 'No se pudo cargar la información del perfil.', displayNameLabel: 'Nombre visible', emailChangeHint: 'Si cambias tu correo, Supabase podría enviar un correo de verificación.',
+    newPasswordLabel: 'Nueva contraseña', newPasswordPlaceholder: 'Déjalo en blanco si no quieres cambiarla', dailyGoalLabel: 'Meta diaria de palabras',
+    savedLabel: 'Guardado', accountInfoTitle: 'Información de la cuenta', roleLabel: 'Rol', memberSinceLabel: 'Miembro desde',
   },
   it: {
     dashboard: 'Dashboard', words: 'Parole', flashcards: 'Flashcard', quiz: 'Quiz', schedule: 'Programma', stats: 'Statistiche', profile: 'Profilo',
@@ -606,6 +629,9 @@ const dictionaries: Record<Locale, Dictionary> = {
     learningSpeed: 'Velocità di apprendimento', learningSpeedSub: 'Ripetizioni medie per tipo — più basso = più veloce', repeatUnitTpl: '{n} ripetizioni', averageTooltip: 'Media',
     last30DaysTitle: 'Ultimi 30 giorni — parole aggiunte', last30DaysSub: 'Il tuo ritmo giornaliero di aggiunta parole', addedWordUnitTpl: '{n} parole', addedTooltip: 'Aggiunte',
     studyActivity: 'Attività di studio', studyActivitySub: 'Aggiunte vs ripassate al giorno', addedLegend: 'Aggiunte', repeatLegend: 'Ripassate',
+    profileLoadError: 'Impossibile caricare le informazioni del profilo.', displayNameLabel: 'Nome visualizzato', emailChangeHint: 'Se cambi la tua e-mail, Supabase potrebbe inviare un’e-mail di verifica.',
+    newPasswordLabel: 'Nuova password', newPasswordPlaceholder: 'Lascia vuoto se non vuoi cambiarla', dailyGoalLabel: 'Obiettivo giornaliero di parole',
+    savedLabel: 'Salvato', accountInfoTitle: 'Informazioni account', roleLabel: 'Ruolo', memberSinceLabel: 'Membro dal',
   },
 };
 
