@@ -41,6 +41,20 @@ const TASK_LINKS: Record<string, string> = {
   "Luke's English Podcast": 'https://teacherluke.co.uk/',
 };
 
+// Aşama 5: çok dilli program kaynakları — activity_key seçici için kategori etiketleri.
+// Backend ACTIVITY_CATEGORIES ile birebir eşleşir (learning_resources.category).
+// Not: bu etiketler kasıtlı olarak i18n sistemine dahil edilmedi — Program sayfasında
+// yalnızca UI etiketleri çevriliyor, müfredat/kaynak kategorisi içeriği değil
+// (bkz. TASK_LINKS ve TEMPLATES içindeki aktivite adları — onlar da çevrilmiyor).
+const CATEGORY_OPTIONS: { key: string; label: string }[] = [
+  { key: '', label: 'Kaynak kategorisi yok (elle link)' },
+  { key: 'news_reading', label: 'Haber Okuma' },
+  { key: 'technical_article', label: 'Teknik Makale' },
+  { key: 'video_analysis', label: 'Video Analizi' },
+  { key: 'audio_practice', label: 'Dinleme Pratiği' },
+  { key: 'general_review', label: 'Genel Tekrar' },
+];
+
 // ── Hazır program şablonları ──────────────────────────────────
 interface Template {
   id: string;
@@ -145,7 +159,7 @@ const TEMPLATES: Template[] = [
   },
 ];
 
-const EMPTY_FORM: ScheduleCreate = { day_of_week: 1, time_slot: '09:00', activity: '', duration_min: 30, link_url: '' };
+const EMPTY_FORM: ScheduleCreate = { day_of_week: 1, time_slot: '09:00', activity: '', duration_min: 30, link_url: '', activity_key: '' };
 
 // ── Şablon seçici modal ───────────────────────────────────────
 function TemplateModal({ hasExisting, onApply, onClose }: {
@@ -299,7 +313,10 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
     e.preventDefault();
     if (!form.activity.trim()) { setError(t('activityRequired')); return; }
     setSaving(true);
-    try { await onSave(form); onClose(); }
+    try {
+      const payload: ScheduleCreate = { ...form, activity_key: form.activity_key || undefined };
+      await onSave(payload); onClose();
+    }
     catch (err: any) { setError(err?.response?.data?.detail || t('saveScheduleFailed')); }
     finally { setSaving(false); }
   };
@@ -328,6 +345,13 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
             <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('durationLabel')}</label><input type="number" min={5} step={5} value={form.duration_min} onChange={(e) => set('duration_min', Number(e.target.value))} className={inputCls} /></div>
           </div>
           <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('activityLabel')}</label><input type="text" value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder="örn. Flashcard çalışması" className={inputCls} /></div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Kaynak Kategorisi (opsiyonel)</label>
+            <select value={form.activity_key ?? ''} onChange={(e) => set('activity_key', e.target.value)} className={inputCls}>
+              {CATEGORY_OPTIONS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+            </select>
+            <p className="text-[11px] text-gray-400 mt-1">Seçilirse, öğrenme dilinize göre otomatik bir kaynak linki önerilir (BBC, DW, TED-Ed vb.).</p>
+          </div>
           <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('linkLabel')}</label><input type="url" value={form.link_url ?? ''} onChange={(e) => set('link_url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
         </form>
@@ -507,23 +531,26 @@ export default function SchedulePage() {
                   {dayItems.length > 0 && <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/60 ${color.text}`}>{dayItems.length}</span>}
                 </div>
                 <div className="p-3 space-y-2">
-                  {isEmpty ? <p className="text-xs text-gray-400 text-center py-2">{t('noActivity')}</p> : dayItems.map((item) => (
-                    <div key={item.id} className={`rounded-xl p-3 transition-colors group ${item.is_active === false ? 'bg-gray-50 opacity-50' : 'bg-slate-50 hover:bg-slate-100'}`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1 text-xs font-semibold text-[#185FA5]"><Clock className="w-3 h-3" />{item.time_slot}<span className="font-normal text-gray-400 ml-0.5">· {item.duration_min}dk</span></div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300'}`} title={t('toggleTooltip')} />
-                          <button onClick={() => handleDelete(item.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="w-3 h-3" /></button>
+                  {isEmpty ? <p className="text-xs text-gray-400 text-center py-2">{t('noActivity')}</p> : dayItems.map((item) => {
+                    const displayLink = item.resolved_link_url || item.link_url;
+                    return (
+                      <div key={item.id} className={`rounded-xl p-3 transition-colors group ${item.is_active === false ? 'bg-gray-50 opacity-50' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1 text-xs font-semibold text-[#185FA5]"><Clock className="w-3 h-3" />{item.time_slot}<span className="font-normal text-gray-400 ml-0.5">· {item.duration_min}dk</span></div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300'}`} title={t('toggleTooltip')} />
+                            <button onClick={() => handleDelete(item.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="w-3 h-3" /></button>
+                          </div>
                         </div>
+                        <p className="text-sm font-medium text-gray-800 truncate">{item.activity}</p>
+                        {displayLink && (
+                          <a href={displayLink} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-[#185FA5] transition-colors truncate">
+                            <ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{item.resolved_resource_title || displayLink.replace(/^https?:\/\//, '')}</span>
+                          </a>
+                        )}
                       </div>
-                      <p className="text-sm font-medium text-gray-800 truncate">{item.activity}</p>
-                      {item.link_url && (
-                        <a href={item.link_url} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-[#185FA5] transition-colors truncate">
-                          <ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{item.link_url.replace(/^https?:\/\//, '')}</span>
-                        </a>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
