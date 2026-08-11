@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 
 router = APIRouter()
 
+
 @router.get("", response_model=WordListResponse)
 async def get_words(
     page: int = Query(1, ge=1),
@@ -31,7 +32,7 @@ async def get_words(
     if list_type:
         query = query.eq("list_type", list_type)
     if search:
-        query = query.ilike("word", `%${search}%`)
+        query = query.ilike("word", f"%{search}%")
 
     result = query.execute()
     return WordListResponse(
@@ -40,6 +41,7 @@ async def get_words(
         page=page,
         page_size=page_size
     )
+
 
 @router.post("", response_model=WordResponse, status_code=201)
 async def create_word(
@@ -82,6 +84,7 @@ async def create_word(
 
     return result.data[0]
 
+
 @router.patch("/{word_id}", response_model=WordResponse)
 async def update_word(
     word_id: str,
@@ -99,6 +102,7 @@ async def update_word(
         raise HTTPException(status_code=404, detail="Kelime bulunamadı.")
     return result.data[0]
 
+
 @router.delete("/{word_id}", status_code=204)
 async def delete_word(
     word_id: str,
@@ -113,6 +117,7 @@ async def delete_word(
     )
     if not result.data:
         raise HTTPException(status_code=404, detail="Kelime bulunamadı.")
+
 
 @router.post("/{word_id}/review")
 async def review_word(
@@ -146,6 +151,7 @@ async def review_word(
     if xp_result:
         response["xp"] = xp_result.to_dict()
     return response
+
 
 @router.get("/due/today")
 async def get_due_words(current_user=Depends(get_current_user)):
