@@ -98,6 +98,23 @@ export const authApi = {
     return res.data;
   },
 
+  // Şifremi unuttum — e-posta sistemde kayıtlıysa 6 haneli sıfırlama kodu gönderilir.
+  // Güvenlik gereği backend her zaman aynı genel mesajı döner (kullanıcı numaralandırmasını önler).
+  forgotPassword: async (email: string): Promise<{ message: string }> => {
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data;
+  },
+
+  // Şifremi unuttum akışının ikinci adımı — kod + yeni şifre ile şifre güncellenir.
+  resetPassword: async (data: {
+    email: string;
+    code: string;
+    new_password: string;
+  }): Promise<{ message: string }> => {
+    const res = await api.post('/auth/reset-password', data);
+    return res.data;
+  },
+
   refresh: async (refresh_token: string): Promise<{ access_token: string }> => {
     const res = await api.post('/auth/refresh', { refresh_token });
     return res.data;
