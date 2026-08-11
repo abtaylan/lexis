@@ -14,6 +14,8 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
     hesapları da rahatça giriş/kayıt olabilir (kod her zaman "123456").
 
     OTP_MODE=real (production) iken SMTP üzerinden gerçek e-posta gönderilir.
+
+    purpose: "login" | "register" | "reset_password"
     """
     if settings.OTP_MODE != "real":
         print(f"[OTP-DEV] {to_email} ({purpose}) → kod: {code}")
@@ -23,13 +25,21 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
         print(f"[OTP] SMTP ayarlanmamış (SMTP_USER/SMTP_PASSWORD boş), kod gönderilemedi: {to_email} → {code}")
         return
 
-    subject = "Lexis Giriş Doğrulama Kodu" if purpose == "login" else "Lexis Hesabını Doğrula"
+    if purpose == "login":
+        subject = "Lexis Giriş Doğrulama Kodu"
+        action_text = "Giriş yapmak için"
+    elif purpose == "reset_password":
+        subject = "Lexis Şifre Sıfırlama Kodu"
+        action_text = "Şifreni sıfırlamak için"
+    else:
+        subject = "Lexis Hesabını Doğrula"
+        action_text = "Hesabını doğrulamak için"
 
     html_body = f"""
     <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
       <h2 style="color:#0284c7; margin-bottom: 4px;">Lexis</h2>
       <p style="color:#334155; font-size: 15px;">
-        {"Giriş yapmak için" if purpose == "login" else "Hesabını doğrulamak için"} aşağıdaki kodu kullan:
+        {action_text} aşağıdaki kodu kullan:
       </p>
       <p style="font-size: 34px; font-weight: bold; letter-spacing: 10px; color:#0f172a; margin: 20px 0;">
         {code}
