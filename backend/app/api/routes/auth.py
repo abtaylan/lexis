@@ -12,6 +12,7 @@ from app.services import otp_service
 
 router = APIRouter()
 
+
 class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
@@ -20,18 +21,32 @@ class RegisterRequest(BaseModel):
     native_lang: Optional[str] = "tr"
     learning_lang: Optional[str] = "en"
 
+
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+
 class VerifyOtpRequest(BaseModel):
     email: EmailStr
     code: str
-    purpose: Literal["login", "register"]
+    purpose: Literal["login", "register", "reset_password"]
+
 
 class ResendOtpRequest(BaseModel):
     email: EmailStr
-    purpose: Literal["login", "register"]
+    purpose: Literal["login", "register", "reset_password"]
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    code: str
+    new_password: str
+
 
 class ProfileUpdate(BaseModel):
     display_name: Optional[str] = None
@@ -42,6 +57,7 @@ class ProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
     password: Optional[str] = None
 
+
 def _friendly_auth_error(msg: str) -> str:
     low = msg.lower()
     if "already" in low or "registered" in low or "exists" in low:
@@ -51,6 +67,7 @@ def _friendly_auth_error(msg: str) -> str:
     if "invalid" in low and "email" in low:
         return "Geçersiz e-posta adresi."
     return "Kayıt başarısız. Lütfen bilgilerinizi kontrol edin."
+
 
 def _bootstrap_session(email: str, password: str):
     """
@@ -71,6 +88,7 @@ def _bootstrap_session(email: str, password: str):
         return None, None
     return result.session.access_token, result.session.refresh_token
 
+
 def _decode_jwt_payload(token: str) -> dict:
     """JWT'nin payload kısmını (doğrulama yapmadan) çözer — imzayı kontrol etmeye
     gerek yok çünkü bu token'ı zaten kendi Supabase Auth'umuz üretti."""
@@ -80,6 +98,22 @@ def _decode_jwt_payload(token: str) -> dict:
         return json.loads(base64.urlsafe_b64decode(padded))
     except Exception:
         return {}
+
+
+def _find_auth_user_by_email(email: str):
+    """
+    supabase-py'nin admin API'sinde get_user_by_email doğrudan yok — bu yüzden
+    list_users() ile tüm kullanıcılar çekilip e-postaya göre eşleştiriliyor.
+    Kullanıcı sayısı arttıkça bu maliyetli hale gelebilir; ileride Supabase'in
+    sayfalama/filtre destekleyen bir yöntemi çıkarsa buraya taşınmalı.
+    """
+    email = email.strip().lower()
+    result = supabase_admin.auth.admin.list_users()
+    for u in result:
+        if (u.email or "").strip().lower() == email:
+            return u
+    return None
+
 
 @router.post("/register", status_code=201)
 async def register(req: RegisterRequest):
@@ -145,6 +179,7 @@ async def register(req: RegisterRequest):
         print(f"REGISTER ERROR: {e}")
         raise HTTPException(status_code=400, detail=_friendly_auth_error(str(e)))
 
+
 @router.post("/login")
 async def login(req: LoginRequest):
     try:
@@ -170,6 +205,7 @@ async def login(req: LoginRequest):
     except Exception as e:
         print(f"LOGIN ERROR: {e}")
         raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
+
 
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyOtpRequest):
@@ -199,10 +235,69 @@ async def verify_otp(req: VerifyOtpRequest):
         "user": user_payload,
     }
 
+
 @router.post("/resend-otp")
 async def resend_otp(req: ResendOtpRequest):
     otp_service.resend_otp(email=req.email, purpose=req.purpose)
     return {"message": "Kod tekrar gönderildi."}
+
+
+@router.post("/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    """
+    Şifre sıfırlama kodu gönderir.
+
+    GÜVENLİK: Kullanıcı numaralandırmasını (bu e-posta kayıtlı mı değil mi
+    öğrenilmesini) önlemek için, e-posta sistemde olsun ya da olmasın her zaman
+    aynı genel mesaj döner. Kod sadece gerçekten eşleşen bir kullanıcı varsa
+    üretilip gönderilir.
+    """
+    email = req.email.strip().lower()
+
+    try:
+        user = _find_auth_user_by_email(email)
+    except Exception as e:
+        print(f"FORGOT_PASSWORD lookup error: {e}")
+        user = None
+
+    if user is not None:
+        try:
+            otp_service.create_otp(email=email, purpose="reset_password")
+        except Exception as e:
+            print(f"FORGOT_PASSWORD create_otp error: {e}")
+
+    return {
+        "message": "Bu e-posta sistemde kayıtlıysa, şifre sıfırlama kodu gönderildi.",
+    }
+
+
+@router.post("/reset-password")
+async def reset_password(req: ResetPasswordRequest):
+    if len(req.new_password) < 6:
+        raise HTTPException(status_code=400, detail="Şifre en az 6 karakter olmalı.")
+
+    email = req.email.strip().lower()
+
+    # Kod yanlışsa / süresi dolmuşsa burada HTTPException fırlatılır.
+    otp_service.verify_otp(email=email, purpose="reset_password", code=req.code)
+
+    try:
+        user = _find_auth_user_by_email(email)
+    except Exception as e:
+        print(f"RESET_PASSWORD lookup error: {e}")
+        user = None
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+
+    try:
+        supabase_admin.auth.admin.update_user_by_id(user.id, {"password": req.new_password})
+    except Exception as e:
+        print(f"RESET_PASSWORD update error: {e}")
+        raise HTTPException(status_code=500, detail="Şifre güncellenemedi, lütfen tekrar deneyin.")
+
+    return {"message": "Şifren başarıyla güncellendi. Şimdi giriş yapabilirsin."}
+
 
 @router.post("/refresh")
 async def refresh_token(refresh_token: str):
@@ -211,6 +306,7 @@ async def refresh_token(refresh_token: str):
         return {"access_token": result.session.access_token}
     except Exception:
         raise HTTPException(status_code=401, detail="Token yenilenemedi.")
+
 
 @router.get("/me")
 async def get_me(current_user=Depends(get_current_user)):
@@ -240,6 +336,7 @@ async def get_me(current_user=Depends(get_current_user)):
     except Exception as e:
         print(f"GET_ME ERROR: {e}")
         raise HTTPException(status_code=500, detail="Profil alınamadı.")
+
 
 @router.patch("/profile")
 async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_user)):
