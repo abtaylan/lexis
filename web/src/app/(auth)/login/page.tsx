@@ -58,20 +58,27 @@ export default function LoginPage() {
           autoFocus
         />
 
-        <Input
-          label={t('passwordLabel')}
-          type={showPw ? 'text' : 'password'}
-          name="password"
-          value={form.password}
-          onChange={handleChange}
-          leftIcon={<Lock size={16} />}
-          rightIcon={
-            <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600">
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          }
-          required
-        />
+        <div>
+          <Input
+            label={t('passwordLabel')}
+            type={showPw ? 'text' : 'password'}
+            name="password"
+            value={form.password}
+            onChange={handleChange}
+            leftIcon={<Lock size={16} />}
+            rightIcon={
+              <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600">
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            }
+            required
+          />
+          <div className="text-right mt-1.5">
+            <Link href="/forgot-password" className="text-xs text-sky-600 font-medium hover:underline">
+              {t('forgotPasswordLink')}
+            </Link>
+          </div>
+        </div>
 
         {error && (
           <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
