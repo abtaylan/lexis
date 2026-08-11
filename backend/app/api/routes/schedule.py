@@ -86,6 +86,25 @@ async def delete_template(template_id: str, current_user=Depends(get_current_use
 
 # ── Çok dilli program kaynakları ─────────────────────────────
 
+def _get_learning_lang(user_id: str) -> str:
+    """
+    current_user (get_current_user) ham Supabase Auth kullanıcısını döner —
+    learning_lang alanı orada YOK, profiles tablosunda user_id ile tutuluyor.
+    Bu yüzden ayrıca sorgulanması gerekiyor.
+    """
+    try:
+        result = (
+            supabase_admin.table("profiles")
+            .select("learning_lang")
+            .eq("id", user_id)
+            .single()
+            .execute()
+        )
+        return (result.data or {}).get("learning_lang") or "en"
+    except Exception as e:
+        print(f"GET_LEARNING_LANG ERROR: {e}")
+        return "en"
+
 @router.get("/resources")
 async def get_resources(category: Optional[str] = None, current_user=Depends(get_current_user)):
     """
@@ -93,10 +112,11 @@ async def get_resources(category: Optional[str] = None, current_user=Depends(get
     category verilirse sadece o kategoriyle filtrelenir; verilmezse tüm
     kategoriler döner (activity_key seçici UI'ında kullanılabilir).
     """
+    learning_lang = _get_learning_lang(current_user.id)
     query = (
         supabase_admin.table("learning_resources")
         .select("*")
-        .eq("language_code", current_user.learning_lang or "en")
+        .eq("language_code", learning_lang)
         .eq("is_active", True)
     )
     if category:
@@ -136,7 +156,7 @@ async def get_schedule(current_user=Depends(get_current_user)):
         .execute()
     )
     items = result.data
-    learning_lang = current_user.learning_lang or "en"
+    learning_lang = _get_learning_lang(current_user.id)
     for item in items:
         resource = _resolve_resource(item.get("activity_key"), learning_lang)
         if resource:
