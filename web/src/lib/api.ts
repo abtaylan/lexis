@@ -144,7 +144,7 @@ export const languagesApi = {
   },
 };
 
-// ── Words API ─────────────────────────────────────────────────
+// ── Words API ────────────────────────────────────────────────
 export const wordsApi = {
   getAll: async (params?: {
     page?: number;
@@ -209,7 +209,7 @@ export const dictionaryApi = {
   },
 };
 
-// ── Stats API ─────────────────────────────────────────────────
+// ── Stats API ────────────────────────────────────────────────
 export const statsApi = {
   getSummary: async (): Promise<Stats> => {
     const res = await api.get<Stats>('/stats/summary');
@@ -311,6 +311,87 @@ export const adminApi = {
   },
   getStats: async (): Promise<AdminStats> => {
     const res = await api.get<AdminStats>('/admin/stats');
+    return res.data;
+  },
+};
+
+// ── Games API (Kelime Tahmin Oyunu) ────────────────────────────
+export type GameMode = 'wordle' | 'multiple_choice' | 'typing' | 'matching' | 'listening' | 'sprint';
+export type PoolSource = 'own' | 'general';
+
+export interface GameSession {
+  id: string;
+  mode: GameMode;
+  pool_source: PoolSource;
+  score: number;
+  xp_earned: number;
+  started_at: string;
+  ended_at: string | null;
+}
+
+export interface GameWordOption {
+  id: string;
+  text: string;
+}
+
+export interface NextWordResult {
+  finished: boolean;
+  word_id?: string | null;
+  general_word_id?: string | null;
+  word?: string | null;
+  meaning?: string | null;
+  example?: string | null;
+  options?: GameWordOption[] | null;
+}
+
+export interface GameAttemptResult {
+  id: string;
+  is_correct: boolean;
+  xp_awarded: number;
+  session_score: number;
+  leveled_up: boolean;
+  new_level: number | null;
+}
+
+export interface GameFinishResult {
+  id: string;
+  mode: GameMode;
+  pool_source: PoolSource;
+  score: number;
+  xp_earned: number;
+  started_at: string;
+  ended_at: string;
+  word_count: number;
+  correct_count: number;
+}
+
+export const gamesApi = {
+  createSession: async (mode: GameMode, pool_source: PoolSource): Promise<GameSession> => {
+    const res = await api.post<GameSession>('/games/sessions', { mode, pool_source });
+    return res.data;
+  },
+
+  nextWord: async (sessionId: string): Promise<NextWordResult> => {
+    const res = await api.get<NextWordResult>(`/games/sessions/${sessionId}/next-word`);
+    return res.data;
+  },
+
+  submitAttempt: async (
+    sessionId: string,
+    data: {
+      word_id?: string;
+      general_word_id?: string;
+      is_correct: boolean;
+      attempts_count?: number;
+      time_taken_ms?: number;
+    }
+  ): Promise<GameAttemptResult> => {
+    const res = await api.post<GameAttemptResult>(`/games/sessions/${sessionId}/attempt`, data);
+    return res.data;
+  },
+
+  finishSession: async (sessionId: string): Promise<GameFinishResult> => {
+    const res = await api.post<GameFinishResult>(`/games/sessions/${sessionId}/finish`);
     return res.data;
   },
 };
