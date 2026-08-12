@@ -7,11 +7,135 @@ import { authApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { Button, Card } from '@/components/ui';
 import type { User as UserType } from '@/types';
+import { useLocale, type Locale } from '@/lib/i18n';
+
+type VOStrings = {
+  invalidLink: string;
+  backToLogin: string;
+  title: string;
+  subtitleTpl: string;
+  codeIncomplete: string;
+  genericVerifyError: string;
+  resendGenericError: string;
+  verifyBtn: string;
+  resendCooldownTpl: string;
+  resendingLabel: string;
+  resendLabel: string;
+};
+
+const STRINGS: Record<Locale, VOStrings> = {
+  tr: {
+    invalidLink: 'Geçersiz doğrulama bağlantısı.',
+    backToLogin: 'Girişe dön',
+    title: 'Doğrulama kodu gir',
+    subtitleTpl: '{email} adresine gönderilen 6 haneli kodu gir.',
+    codeIncomplete: '6 haneli kodu eksiksiz gir.',
+    genericVerifyError: 'Kod hatalı veya süresi dolmuş.',
+    resendGenericError: 'Kod tekrar gönderilemedi.',
+    verifyBtn: 'Doğrula',
+    resendCooldownTpl: 'Yeni kod ({s}sn)',
+    resendingLabel: 'Gönderiliyor…',
+    resendLabel: 'Kodu tekrar gönder',
+  },
+  en: {
+    invalidLink: 'Invalid verification link.',
+    backToLogin: 'Back to login',
+    title: 'Enter verification code',
+    subtitleTpl: 'Enter the 6-digit code sent to {email}.',
+    codeIncomplete: 'Enter the full 6-digit code.',
+    genericVerifyError: 'Invalid or expired code.',
+    resendGenericError: 'Could not resend the code.',
+    verifyBtn: 'Verify',
+    resendCooldownTpl: 'New code ({s}s)',
+    resendingLabel: 'Sending…',
+    resendLabel: 'Resend code',
+  },
+  ar: {
+    invalidLink: 'رابط تحقق غير صالح.',
+    backToLogin: 'العودة لتسجيل الدخول',
+    title: 'أدخل رمز التحقق',
+    subtitleTpl: 'أدخل الرمز المكوّن من 6 أرقام المرسل إلى {email}.',
+    codeIncomplete: 'أدخل الرمز المكوّن من 6 أرقام كاملاً.',
+    genericVerifyError: 'الرمز غير صحيح أو منتهي الصلاحية.',
+    resendGenericError: 'تعذر إعادة إرسال الرمز.',
+    verifyBtn: 'تحقق',
+    resendCooldownTpl: 'رمز جديد ({s} ث)',
+    resendingLabel: 'جارٍ الإرسال…',
+    resendLabel: 'إعادة إرسال الرمز',
+  },
+  ru: {
+    invalidLink: 'Недействительная ссылка для подтверждения.',
+    backToLogin: 'Назад ко входу',
+    title: 'Введите код подтверждения',
+    subtitleTpl: 'Введите 6-значный код, отправленный на {email}.',
+    codeIncomplete: 'Введите полный 6-значный код.',
+    genericVerifyError: 'Неверный или истёкший код.',
+    resendGenericError: 'Не удалось отправить код повторно.',
+    verifyBtn: 'Подтвердить',
+    resendCooldownTpl: 'Новый код ({s}с)',
+    resendingLabel: 'Отправка…',
+    resendLabel: 'Отправить код повторно',
+  },
+  de: {
+    invalidLink: 'Ungültiger Bestätigungslink.',
+    backToLogin: 'Zurück zur Anmeldung',
+    title: 'Bestätigungscode eingeben',
+    subtitleTpl: 'Gib den an {email} gesendeten 6-stelligen Code ein.',
+    codeIncomplete: 'Gib den vollständigen 6-stelligen Code ein.',
+    genericVerifyError: 'Code ungültig oder abgelaufen.',
+    resendGenericError: 'Code konnte nicht erneut gesendet werden.',
+    verifyBtn: 'Bestätigen',
+    resendCooldownTpl: 'Neuer Code ({s}s)',
+    resendingLabel: 'Wird gesendet…',
+    resendLabel: 'Code erneut senden',
+  },
+  fr: {
+    invalidLink: 'Lien de vérification invalide.',
+    backToLogin: 'Retour à la connexion',
+    title: 'Entre le code de vérification',
+    subtitleTpl: 'Entre le code à 6 chiffres envoyé à {email}.',
+    codeIncomplete: 'Entre le code à 6 chiffres complet.',
+    genericVerifyError: 'Code invalide ou expiré.',
+    resendGenericError: "Le code n'a pas pu être renvoyé.",
+    verifyBtn: 'Vérifier',
+    resendCooldownTpl: 'Nouveau code ({s}s)',
+    resendingLabel: 'Envoi…',
+    resendLabel: 'Renvoyer le code',
+  },
+  es: {
+    invalidLink: 'Enlace de verificación no válido.',
+    backToLogin: 'Volver al inicio de sesión',
+    title: 'Introduce el código de verificación',
+    subtitleTpl: 'Introduce el código de 6 dígitos enviado a {email}.',
+    codeIncomplete: 'Introduce el código completo de 6 dígitos.',
+    genericVerifyError: 'Código incorrecto o caducado.',
+    resendGenericError: 'No se pudo reenviar el código.',
+    verifyBtn: 'Verificar',
+    resendCooldownTpl: 'Nuevo código ({s}s)',
+    resendingLabel: 'Enviando…',
+    resendLabel: 'Reenviar código',
+  },
+  it: {
+    invalidLink: 'Link di verifica non valido.',
+    backToLogin: 'Torna al login',
+    title: 'Inserisci il codice di verifica',
+    subtitleTpl: 'Inserisci il codice a 6 cifre inviato a {email}.',
+    codeIncomplete: 'Inserisci il codice completo a 6 cifre.',
+    genericVerifyError: 'Codice errato o scaduto.',
+    resendGenericError: 'Impossibile reinviare il codice.',
+    verifyBtn: 'Verifica',
+    resendCooldownTpl: 'Nuovo codice ({s}s)',
+    resendingLabel: 'Invio…',
+    resendLabel: 'Reinvia codice',
+  },
+};
 
 function VerifyOtpContent() {
   const router = useRouter();
   const params = useSearchParams();
   const { login } = useAuth();
+  const { locale } = useLocale();
+  const t = STRINGS[locale];
 
   const email = params.get('email') || '';
   const purpose = (params.get('purpose') === 'register' ? 'register' : 'login') as
@@ -84,7 +208,7 @@ function VerifyOtpContent() {
       router.push('/dashboard');
     } catch (err: any) {
       localStorage.removeItem('lexis_token');
-      setError(err?.response?.data?.detail || 'Kod hatalı veya süresi dolmuş.');
+      setError(err?.response?.data?.detail || t.genericVerifyError);
       setDigits(Array(6).fill(''));
       inputsRef.current[0]?.focus();
     } finally {
@@ -96,7 +220,7 @@ function VerifyOtpContent() {
     e.preventDefault();
     const code = digits.join('');
     if (code.length !== 6) {
-      setError('6 haneli kodu eksiksiz gir.');
+      setError(t.codeIncomplete);
       return;
     }
     await submitCode(code);
@@ -111,7 +235,7 @@ function VerifyOtpContent() {
       setDigits(Array(6).fill(''));
       inputsRef.current[0]?.focus();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Kod tekrar gönderilemedi.');
+      setError(err?.response?.data?.detail || t.resendGenericError);
     } finally {
       setResending(false);
     }
@@ -120,21 +244,24 @@ function VerifyOtpContent() {
   if (!email) {
     return (
       <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60 text-center">
-        <p className="text-slate-600">Geçersiz doğrulama bağlantısı.</p>
+        <p className="text-slate-600">{t.invalidLink}</p>
         <Link href="/login" className="text-sky-600 font-medium hover:underline mt-4 inline-block">
-          Girişe dön
+          {t.backToLogin}
         </Link>
       </Card>
     );
   }
 
+  const [subtitleBefore, subtitleAfter] = t.subtitleTpl.split('{email}');
+
   return (
     <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-800">Doğrulama kodu gir</h1>
+        <h1 className="text-2xl font-bold text-slate-800">{t.title}</h1>
         <p className="text-slate-400 text-sm mt-2">
-          <span className="font-medium text-slate-600">{email}</span> adresine gönderilen
-          6 haneli kodu gir.
+          {subtitleBefore}
+          <span className="font-medium text-slate-600">{email}</span>
+          {subtitleAfter}
         </p>
       </div>
 
@@ -164,7 +291,7 @@ function VerifyOtpContent() {
         )}
 
         <Button type="submit" className="w-full" size="lg" loading={loading}>
-          Doğrula
+          {t.verifyBtn}
         </Button>
       </form>
 
@@ -176,16 +303,16 @@ function VerifyOtpContent() {
           className="text-sm text-sky-600 font-medium hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
         >
           {cooldown > 0
-            ? `Yeni kod (${cooldown}sn)`
+            ? t.resendCooldownTpl.replace('{s}', String(cooldown))
             : resending
-            ? 'Gönderiliyor…'
-            : 'Kodu tekrar gönder'}
+            ? t.resendingLabel
+            : t.resendLabel}
         </button>
       </div>
 
       <p className="text-center text-sm text-slate-400 mt-6">
         <Link href="/login" className="text-sky-600 font-medium hover:underline">
-          Girişe dön
+          {t.backToLogin}
         </Link>
       </p>
     </Card>
