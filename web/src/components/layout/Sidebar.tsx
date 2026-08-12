@@ -3,23 +3,37 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutDashboard, BookOpen, Layers, HelpCircle,
+  LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
-import { useLocale } from '@/lib/i18n';
+import { useLocale, type Locale } from '@/lib/i18n';
+
+// Merkezi i18n.tsx sözlüğüne dokunmadan yerel çeviri (forgot-password/reset-password/
+// verify-otp sayfalarında kullanılan güvenli desenle aynı yaklaşım).
+const GAME_LABEL: Record<Locale, string> = {
+  tr: 'Kelime Oyunu',
+  en: 'Word Game',
+  ar: 'لعبة الكلمات',
+  ru: 'Игра слов',
+  de: 'Wortspiel',
+  fr: 'Jeu de mots',
+  es: 'Juego de palabras',
+  it: 'Gioco di parole',
+};
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   const navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
     { href: '/words', label: t('words'), icon: BookOpen },
     { href: '/flashcards', label: t('flashcards'), icon: Layers },
     { href: '/quiz', label: t('quiz'), icon: HelpCircle },
+    { href: '/game', label: GAME_LABEL[locale], icon: Gamepad2 },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
     { href: '/stats', label: t('stats'), icon: BarChart3 },
     { href: '/profile', label: t('profile'), icon: User },
