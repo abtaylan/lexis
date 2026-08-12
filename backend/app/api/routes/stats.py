@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
+from app.services.xp_service import get_xp_summary
 from datetime import date, timedelta
 from collections import defaultdict
 
 router = APIRouter()
-
 
 @router.get("/summary")
 async def get_stats(current_user=Depends(get_current_user)):
@@ -34,17 +34,16 @@ async def get_stats(current_user=Depends(get_current_user)):
     daily_goal = today_data.get("goal", 5) if today_data else 5
 
     return {
-        "total_words":   total,
-        "learned":       learned,
-        "learning":      learning,
-        "active_list":   active,
-        "passive_list":  passive,
+        "total_words": total,
+        "learned": learned,
+        "learning": learning,
+        "active_list": active,
+        "passive_list": passive,
         "current_streak": current_streak,
-        "today_added":   today_added,
-        "daily_goal":    daily_goal,
+        "today_added": today_added,
+        "daily_goal": daily_goal,
         "daily_history": progress.data or [],
     }
-
 
 @router.get("/history")
 async def get_stats_history(days: int = 14, current_user=Depends(get_current_user)):
@@ -63,6 +62,10 @@ async def get_stats_history(days: int = 14, current_user=Depends(get_current_use
         print(f"STATS_HISTORY ERROR: {e}")
         raise HTTPException(status_code=500, detail="Geçmiş verisi alınamadı.")
 
+# ── XP / seviye özeti — XPBar bileşeni için ───────────────────
+@router.get("/xp")
+async def get_xp(current_user=Depends(get_current_user)):
+    return await get_xp_summary(current_user.id)
 
 # ── Detaylı analiz — grafik sayfası için ──────────────────────
 @router.get("/analytics")
@@ -103,8 +106,8 @@ async def get_analytics(current_user=Depends(get_current_user)):
             "word_type": t,
             "total": d["total"],
             "learned": d["learned"],
-            "avg_repetition": avg_rep,   # düşük = daha hızlı öğrenildi
-            "learn_rate": learn_rate,    # %
+            "avg_repetition": avg_rep,  # düşük = daha hızlı öğrenildi
+            "learn_rate": learn_rate,  # %
         })
     type_breakdown.sort(key=lambda x: x["total"], reverse=True)
 
