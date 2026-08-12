@@ -47,6 +47,10 @@ class NextWordResponse(BaseModel):
     meaning: Optional[str] = None
     example: Optional[str] = None
     options: Optional[List[GameWordOption]] = None  # multiple_choice modunda dolu
+    # ── wordle (adam asmaca) moduna özel alanlar ──
+    word_length: Optional[int] = None
+    revealed: Optional[str] = None       # örn. "_ e _ _ e" (harf aralarında boşluk)
+    max_wrong_guesses: Optional[int] = None
 
 
 class AttemptCreate(BaseModel):
@@ -76,3 +80,23 @@ class FinishSessionResponse(BaseModel):
     ended_at: datetime
     word_count: int
     correct_count: int
+
+
+# ── Adam asmaca (wordle) moduna özel ────────────────────────────
+class GuessLetterRequest(BaseModel):
+    letter: str = Field(min_length=1, max_length=1)
+
+
+class GuessLetterResponse(BaseModel):
+    letter: str
+    correct: bool
+    revealed: str                 # örn. "_ e _ _ e"
+    guessed_letters: List[str]
+    wrong_guesses: int
+    max_wrong_guesses: int
+    is_complete: bool             # kelime tamamen bulundu
+    is_game_over: bool            # yanlış hakkı bitti, kelime bulunamadı
+    word: Optional[str] = None    # sadece tur bittiğinde (is_complete/is_game_over) dolu
+    xp_awarded: int = 0
+    leveled_up: bool = False
+    new_level: Optional[int] = None
