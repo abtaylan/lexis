@@ -4,7 +4,7 @@ backend/app/api/routes/games.py
 Kelime tahmin oyunu endpoint'leri.
 
 İki kelime kaynağı desteklenir (pool_source):
-- "own"     -> kullanıcının kendi words tablosu (o an öğrendiği/eklediği kelimeler)
+- "own" -> kullanıcının kendi words tablosu (o an öğrendiği/eklediği kelimeler)
 - "general" -> general_word_pool (genel, ortak kelime havuzu, seed script ile doldurulur)
 
 Kaynak havuzun boyutu sabit/sınırlı değildir: next-word her çağrıda o session'da
@@ -14,8 +14,15 @@ kullanıcı kelime ekledikçe havuz büyür; "general" için seed script tekrar
 
 İki oyun modu desteklenir:
 - "multiple_choice" -> kelime gösterilir, doğru anlamı 4 seçenekten seçilir.
+  Bu modda ayrıca `direction` (yön) seçilebilir:
+    - "word_to_meaning" (varsayılan): kelime gösterilir, anlamı bulunur.
+    - "meaning_to_word": anlam gösterilir, doğru kelime 4 seçenekten bulunur.
+  İki yönün XP değeri farklıdır (meaning_to_word daha zor kabul edilir, çünkü
+  öğrenilen dildeki kelimeyi üretmeyi/tanımayı gerektirir).
 - "wordle" (adam asmaca) -> anlam gösterilir, kelimenin harfleri tek tek
-  tahmin edilerek bulunmaya çalışılır. Aktif turun durumu (hangi kelime
+  tahmin edilerek bulunmaya çalışılır (her zaman meaning->word yönünde;
+  Türkçe anlamlar genelde virgülle ayrılmış birden fazla kelime içerdiği için
+  harf-harf tahmin modeline uygun değildir). Aktif turun durumu (hangi kelime
   seçildi, hangi harfler tahmin edildi, kaç yanlış hak kaldı)
   game_sessions.state (jsonb) alanında tutulur.
 """
@@ -30,6 +37,7 @@ from app.core.database import supabase_admin
 from app.schemas.games import (
     AttemptCreate,
     AttemptResponse,
+    Direction,
     FinishSessionResponse,
     GameSessionCreate,
     GameSessionResponse,
@@ -95,7 +103,7 @@ def _build_options(correct_text: str, distractor_texts: list[str]) -> list[GameW
 
 
 def _reveal_pattern(word: str, guessed_letters: list[str]) -> str:
-    """'apple', ['a','p'] -> 'a p p _ _'  (harfler arasında boşlukla, kolay okunsun diye)."""
+    """'apple', ['a','p'] -> 'a p p _ _' (harfler arasında boşlukla, kolay okunsun diye)."""
     guessed_lower = {g.lower() for g in guessed_letters}
     chars = []
     for ch in word:
@@ -131,6 +139,7 @@ async def create_session(
         "user_id": current_user.id,
         "mode": session_in.mode.value,
         "pool_source": session_in.pool_source.value,
+        "direction": session_in.direction.value,
         "score": 0,
         "xp_earned": 0,
     }
@@ -151,6 +160,7 @@ async def next_word(
 
     pool_source = session["pool_source"]
     mode = session["mode"]
+    direction = session.get("direction", Direction.word_to_meaning.value)
 
     if pool_source == "own":
         attempted = _attempted_ids(session_id, "word_id")
@@ -194,6 +204,7 @@ async def next_word(
         chosen_general_word_id = chosen["id"]
 
     # ── wordle (adam asmaca) modu: kelime metni İSTEMCİYE GÖNDERİLMEZ ──
+    # (her zaman meaning->word yönünde çalışır, direction alanı burada kullanılmaz)
     if mode == "wordle":
         new_state = {
             "current_word_id": chosen_word_id,
@@ -216,34 +227,62 @@ async def next_word(
             max_wrong_guesses=MAX_WRONG_GUESSES,
         )
 
-    # ── multiple_choice modu (mevcut davranış) ──
+    # ── multiple_choice modu (direction'a göre iki farklı yön) ──
     options = None
     if mode == "multiple_choice":
-        if pool_source == "own":
-            distractor_query = (
-                supabase_admin.table("words")
-                .select("id, meaning, meaning_native")
-                .eq("user_id", current_user.id)
-                .neq("id", chosen["id"])
-                .limit(DISTRACTOR_FETCH_LIMIT)
-            )
-            distractor_rows = distractor_query.execute().data or []
-            distractor_texts = [
-                (d.get("meaning_native") or d.get("meaning")) for d in distractor_rows
-            ]
+        if direction == Direction.meaning_to_word.value:
+            # Anlam gösterilir, doğru KELİME 4 seçenekten bulunur.
+            correct_text = chosen["word"]
+            if pool_source == "own":
+                distractor_query = (
+                    supabase_admin.table("words")
+                    .select("id, word")
+                    .eq("user_id", current_user.id)
+                    .neq("id", chosen["id"])
+                    .limit(DISTRACTOR_FETCH_LIMIT)
+                )
+                distractor_rows = distractor_query.execute().data or []
+                distractor_texts = [d["word"] for d in distractor_rows]
+            else:
+                learning_lang, native_lang = _get_profile_langs(current_user.id)
+                distractor_query = (
+                    supabase_admin.table("general_word_pool")
+                    .select("id, word")
+                    .eq("source_lang", learning_lang)
+                    .eq("target_lang", native_lang)
+                    .neq("id", chosen["id"])
+                    .limit(DISTRACTOR_FETCH_LIMIT)
+                )
+                distractor_rows = distractor_query.execute().data or []
+                distractor_texts = [d["word"] for d in distractor_rows]
+            options = _build_options(correct_text, distractor_texts)
         else:
-            learning_lang, native_lang = _get_profile_langs(current_user.id)
-            distractor_query = (
-                supabase_admin.table("general_word_pool")
-                .select("id, meaning")
-                .eq("source_lang", learning_lang)
-                .eq("target_lang", native_lang)
-                .neq("id", chosen["id"])
-                .limit(DISTRACTOR_FETCH_LIMIT)
-            )
-            distractor_rows = distractor_query.execute().data or []
-            distractor_texts = [d["meaning"] for d in distractor_rows]
-        options = _build_options(meaning_text, distractor_texts)
+            # word_to_meaning (varsayılan): kelime gösterilir, doğru ANLAM 4 seçenekten bulunur.
+            if pool_source == "own":
+                distractor_query = (
+                    supabase_admin.table("words")
+                    .select("id, meaning, meaning_native")
+                    .eq("user_id", current_user.id)
+                    .neq("id", chosen["id"])
+                    .limit(DISTRACTOR_FETCH_LIMIT)
+                )
+                distractor_rows = distractor_query.execute().data or []
+                distractor_texts = [
+                    (d.get("meaning_native") or d.get("meaning")) for d in distractor_rows
+                ]
+            else:
+                learning_lang, native_lang = _get_profile_langs(current_user.id)
+                distractor_query = (
+                    supabase_admin.table("general_word_pool")
+                    .select("id, meaning")
+                    .eq("source_lang", learning_lang)
+                    .eq("target_lang", native_lang)
+                    .neq("id", chosen["id"])
+                    .limit(DISTRACTOR_FETCH_LIMIT)
+                )
+                distractor_rows = distractor_query.execute().data or []
+                distractor_texts = [d["meaning"] for d in distractor_rows]
+            options = _build_options(meaning_text, distractor_texts)
 
     return NextWordResponse(
         finished=False,
@@ -253,6 +292,7 @@ async def next_word(
         meaning=meaning_text,
         example=chosen.get("example"),
         options=options,
+        direction=direction if mode == "multiple_choice" else None,
     )
 
 
@@ -274,7 +314,16 @@ async def submit_attempt(
     new_level = None
 
     if attempt_in.is_correct:
-        source_type = f"game_{session['mode']}"
+        # multiple_choice modunda yöne göre farklı XP kaynağı kullanılır
+        # (meaning_to_word daha zor kabul edilir, daha fazla XP verir).
+        if (
+            session["mode"] == "multiple_choice"
+            and session.get("direction") == Direction.meaning_to_word.value
+        ):
+            source_type = "game_multiple_choice_reverse"
+        else:
+            source_type = f"game_{session['mode']}"
+
         xp_result = await award_xp(
             user_id=current_user.id,
             source_type=source_type,  # type: ignore[arg-type]
