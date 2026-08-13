@@ -555,7 +555,7 @@ export default function GamePage() {
           </p>
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => setStage('setup')}
+              onClick={() => { setGameMode('multiple_choice'); setStage('setup'); }}
               className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
               <div className="w-9 h-9 shrink-0 rounded-lg bg-[#E6F1FB] flex items-center justify-center">
