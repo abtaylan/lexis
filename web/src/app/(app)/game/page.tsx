@@ -805,7 +805,7 @@ export default function GamePage() {
 
           {/* Boşluklu kelime gösterimi */}
           <div className="w-full flex items-center justify-center flex-wrap gap-2 py-4">
-            {revealed.split('').map((ch, i) => (
+            {revealed.replace(/\s+/g, '').split('').map((ch, i) => (
               <span
                 key={i}
                 className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase ${
