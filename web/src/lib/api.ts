@@ -210,6 +210,15 @@ export const dictionaryApi = {
 };
 
 // ── Stats API ────────────────────────────────────────────────
+export interface XpSummary {
+  total_xp: number;
+  level: number;
+  current_level_xp_floor: number;
+  next_level_xp_target: number;
+  xp_into_level: number;
+  xp_to_next_level: number;
+}
+
 export const statsApi = {
   getSummary: async (): Promise<Stats> => {
     const res = await api.get<Stats>('/stats/summary');
@@ -221,6 +230,10 @@ export const statsApi = {
   },
   getAnalytics: async (): Promise<AnalyticsData> => {
     const res = await api.get<AnalyticsData>('/stats/analytics');
+    return res.data;
+  },
+  getXp: async (): Promise<XpSummary> => {
+    const res = await api.get<XpSummary>('/stats/xp');
     return res.data;
   },
 };
@@ -342,6 +355,10 @@ export interface NextWordResult {
   meaning?: string | null;
   example?: string | null;
   options?: GameWordOption[] | null;
+  // ── wordle (adam asmaca) moduna özel alanlar ──
+  word_length?: number | null;
+  revealed?: string | null;
+  max_wrong_guesses?: number | null;
 }
 
 export interface GameAttemptResult {
@@ -349,6 +366,21 @@ export interface GameAttemptResult {
   is_correct: boolean;
   xp_awarded: number;
   session_score: number;
+  leveled_up: boolean;
+  new_level: number | null;
+}
+
+export interface GuessLetterResult {
+  letter: string;
+  correct: boolean;
+  revealed: string;
+  guessed_letters: string[];
+  wrong_guesses: number;
+  max_wrong_guesses: number;
+  is_complete: boolean;
+  is_game_over: boolean;
+  word?: string | null;
+  xp_awarded: number;
   leveled_up: boolean;
   new_level: number | null;
 }
@@ -387,6 +419,11 @@ export const gamesApi = {
     }
   ): Promise<GameAttemptResult> => {
     const res = await api.post<GameAttemptResult>(`/games/sessions/${sessionId}/attempt`, data);
+    return res.data;
+  },
+
+  guessLetter: async (sessionId: string, letter: string): Promise<GuessLetterResult> => {
+    const res = await api.post<GuessLetterResult>(`/games/sessions/${sessionId}/guess-letter`, { letter });
     return res.data;
   },
 
