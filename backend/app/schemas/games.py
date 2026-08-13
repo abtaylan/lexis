@@ -14,19 +14,28 @@ class GameMode(str, Enum):
 
 
 class PoolSource(str, Enum):
-    own = "own"          # kullanıcının kendi words tablosu (öğrendiği kelimeler)
+    own = "own"        # kullanıcının kendi words tablosu (öğrendiği kelimeler)
     general = "general"  # general_word_pool (genel havuz)
+
+
+class Direction(str, Enum):
+    """multiple_choice modunda soru yönü. wordle modunda kullanılmaz (her zaman
+    anlam gösterilip kelime bulunur)."""
+    word_to_meaning = "word_to_meaning"  # kelime göster, anlamı bul (varsayılan)
+    meaning_to_word = "meaning_to_word"  # anlamı göster, kelimeyi bul
 
 
 class GameSessionCreate(BaseModel):
     mode: GameMode
     pool_source: PoolSource = PoolSource.general
+    direction: Direction = Direction.word_to_meaning
 
 
 class GameSessionResponse(BaseModel):
     id: str
     mode: str
     pool_source: str
+    direction: str
     score: int
     xp_earned: int
     started_at: datetime
@@ -47,9 +56,10 @@ class NextWordResponse(BaseModel):
     meaning: Optional[str] = None
     example: Optional[str] = None
     options: Optional[List[GameWordOption]] = None  # multiple_choice modunda dolu
+    direction: Optional[str] = None  # multiple_choice modunda dolu
     # ── wordle (adam asmaca) moduna özel alanlar ──
     word_length: Optional[int] = None
-    revealed: Optional[str] = None       # örn. "_ e _ _ e" (harf aralarında boşluk)
+    revealed: Optional[str] = None  # örn. "_ e _ _ e" (harf aralarında boşluk)
     max_wrong_guesses: Optional[int] = None
 
 
@@ -90,13 +100,13 @@ class GuessLetterRequest(BaseModel):
 class GuessLetterResponse(BaseModel):
     letter: str
     correct: bool
-    revealed: str                 # örn. "_ e _ _ e"
+    revealed: str  # örn. "_ e _ _ e"
     guessed_letters: List[str]
     wrong_guesses: int
     max_wrong_guesses: int
-    is_complete: bool             # kelime tamamen bulundu
-    is_game_over: bool            # yanlış hakkı bitti, kelime bulunamadı
-    word: Optional[str] = None    # sadece tur bittiğinde (is_complete/is_game_over) dolu
+    is_complete: bool  # kelime tamamen bulundu
+    is_game_over: bool  # yanlış hakkı bitti, kelime bulunamadı
+    word: Optional[str] = None  # sadece tur bittiğinde (is_complete/is_game_over) dolu
     xp_awarded: int = 0
     leveled_up: bool = False
     new_level: Optional[int] = None
