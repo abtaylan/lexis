@@ -1,14 +1,23 @@
 """
 seed_schedule.py
 Calisma programini backend'e yukler.
+
 Kullanim:
   cd backend
-  venv\Scripts\activate
-  python seed_schedule.py
+  venv\\Scripts\\activate
+  python seed_schedule.py                # varsayilan: en
+  python seed_schedule.py --lang de      # Almanca sablon
+  python seed_schedule.py --lang ja      # Japonca sablon
+
+Desteklenen diller: schedule_templates.SUPPORTED_LANGS
+(Madde 4 kapsaminda 19 Agustos 2026'da eklendi -- bkz. schedule_templates.py)
 """
 
+import argparse
 import asyncio
 import httpx
+
+from schedule_templates import SUPPORTED_LANGS, program_for_lang
 
 BASE_URL = "http://localhost:8000"
 
@@ -16,35 +25,13 @@ BASE_URL = "http://localhost:8000"
 EMAIL    = "yeni3@test.com"
 PASSWORD = "test123"
 
-TASK_LINKS = {
-    "Teknik Makale": "https://medium.com/tag/english-learning",
-    "Haber Okuma":   "https://www.bbc.co.uk/learningenglish",
-    "LingoClip":     "https://lingoclip.com/",
-    "Video Analizi": "https://www.youtube.com/@TEDEd",
-    "Genel Tekrar":  "https://quizlet.com/",
-}
 
-# day_of_week: 0=Pazar, 1=Pazartesi, ..., 6=Cumartesi
-PROGRAM = [
-    {"day_of_week": 1, "time_slot": "08:00", "activity": "Teknik Makale", "duration_min": 30},
-    {"day_of_week": 1, "time_slot": "20:00", "activity": "LingoClip",     "duration_min": 20},
-    {"day_of_week": 2, "time_slot": "08:00", "activity": "Haber Okuma",   "duration_min": 30},
-    {"day_of_week": 2, "time_slot": "20:00", "activity": "Video Analizi", "duration_min": 25},
-    {"day_of_week": 3, "time_slot": "08:00", "activity": "Teknik Makale", "duration_min": 30},
-    {"day_of_week": 3, "time_slot": "20:00", "activity": "LingoClip",     "duration_min": 20},
-    {"day_of_week": 4, "time_slot": "08:00", "activity": "Haber Okuma",   "duration_min": 30},
-    {"day_of_week": 4, "time_slot": "20:00", "activity": "Video Analizi", "duration_min": 25},
-    {"day_of_week": 5, "time_slot": "08:00", "activity": "Teknik Makale", "duration_min": 30},
-    {"day_of_week": 5, "time_slot": "20:00", "activity": "LingoClip",     "duration_min": 20},
-    {"day_of_week": 6, "time_slot": "09:00", "activity": "Genel Tekrar",  "duration_min": 45},
-    {"day_of_week": 0, "time_slot": "09:00", "activity": "Genel Tekrar",  "duration_min": 45},
-]
+async def main(lang: str):
+    program = program_for_lang(lang)
 
-
-async def main():
     async with httpx.AsyncClient(base_url=BASE_URL) as client:
         # 1. Login
-        print("Giris yapiliyor...")
+        print(f"[{lang}] Giris yapiliyor...")
         r = await client.post("/api/v1/auth/login", json={"email": EMAIL, "password": PASSWORD})
         r.raise_for_status()
         token = r.json()["access_token"]
@@ -61,13 +48,9 @@ async def main():
         print(f"  {len(items)} kayit silindi")
 
         # 3. Yeni program ekle
-        print("Program yukleniyor...")
-        for entry in PROGRAM:
-            payload = {
-                **entry,
-                "link_url": TASK_LINKS.get(entry["activity"], ""),
-            }
-            r = await client.post("/api/v1/schedule", json=payload, headers=headers)
+        print(f"[{lang}] Program yukleniyor...")
+        for entry in program:
+            r = await client.post("/api/v1/schedule", json=entry, headers=headers)
             if r.status_code in (200, 201):
                 print(f"  OK  {entry['activity']} ({entry['time_slot']})")
             else:
@@ -77,4 +60,12 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    parser = argparse.ArgumentParser(description="Calisma programi seed script'i")
+    parser.add_argument(
+        "--lang",
+        default="en",
+        choices=SUPPORTED_LANGS,
+        help="Sablon dili (varsayilan: en)",
+    )
+    args = parser.parse_args()
+    asyncio.run(main(args.lang))
