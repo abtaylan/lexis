@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap } from 'lucide-react';
-import { authApi, languagesApi } from '@/lib/api';
+import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus } from 'lucide-react';
+import { authApi, languagesApi, userLanguagesApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { useLocale } from '@/lib/i18n';
-import type { User as UserType, Language } from '@/types';
+import type { User as UserType, Language, UserLanguage } from '@/types';
 
 export default function ProfilePage() {
   const { t, locale } = useLocale();
@@ -26,6 +26,14 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
   const [langError, setLangError] = useState('');
+
+  // ── Öğrenilen diller (Kullanıcı Madde 2: çoklu dil öğrenme) ──
+  const [userLangs, setUserLangs] = useState<UserLanguage[]>([]);
+  const [langsLoading, setLangsLoading] = useState(true);
+  const [showAddLangModal, setShowAddLangModal] = useState(false);
+  const [addLangCode, setAddLangCode] = useState('');
+  const [langActionError, setLangActionError] = useState('');
+  const [langActionLoading, setLangActionLoading] = useState(false);
 
   useEffect(() => {
     authApi.getMe()
@@ -51,6 +59,73 @@ export default function ProfilePage() {
         { code: 'tr', name_native: 'Türkçe', name_en: 'Turkish', flag_emoji: '🇹🇷', is_active: true },
       ]));
   }, []);
+
+  const loadUserLangs = () => {
+    setLangsLoading(true);
+    userLanguagesApi.getAll()
+      .then(setUserLangs)
+      .catch(() => {})
+      .finally(() => setLangsLoading(false));
+  };
+
+  useEffect(() => {
+    loadUserLangs();
+  }, []);
+
+  const handleSetActiveLang = async (code: string) => {
+    setLangActionError('');
+    setLangActionLoading(true);
+    try {
+      await userLanguagesApi.setActive(code);
+      loadUserLangs();
+      const me = await authApi.getMe();
+      setUser(me);
+      setLearningLang(me.learning_lang ?? code);
+      updateUser(me);
+    } catch (err: any) {
+      setLangActionError(err?.response?.data?.detail || t('setActiveFailed'));
+    } finally {
+      setLangActionLoading(false);
+    }
+  };
+
+  const handleRemoveLang = async (lang: UserLanguage) => {
+    setLangActionError('');
+    if (lang.is_active) {
+      setLangActionError(t('cannotRemoveActiveLanguageError'));
+      return;
+    }
+    if (!window.confirm(t('removeLanguageConfirm'))) return;
+    setLangActionLoading(true);
+    try {
+      await userLanguagesApi.remove(lang.learning_lang);
+      loadUserLangs();
+    } catch (err: any) {
+      setLangActionError(err?.response?.data?.detail || t('removeLanguageFailed'));
+    } finally {
+      setLangActionLoading(false);
+    }
+  };
+
+  const handleAddLang = async () => {
+    if (!addLangCode) return;
+    setLangActionError('');
+    if (userLangs.some((l) => l.learning_lang === addLangCode)) {
+      setLangActionError(t('languageAlreadyAddedError'));
+      return;
+    }
+    setLangActionLoading(true);
+    try {
+      await userLanguagesApi.add(addLangCode);
+      setShowAddLangModal(false);
+      setAddLangCode('');
+      loadUserLangs();
+    } catch (err: any) {
+      setLangActionError(err?.response?.data?.detail || t('addLanguageFailed'));
+    } finally {
+      setLangActionLoading(false);
+    }
+  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +159,7 @@ export default function ProfilePage() {
       // Auth store'u güncelle — LocaleProvider user.native_lang'i buradan okuyor,
       // böylece arayüz dili sayfa yenilemeden anında değişir.
       updateUser(updated);
+      loadUserLangs();
     } catch (err: any) {
       setError(err?.response?.data?.detail || t('saveFailed'));
     } finally {
@@ -182,6 +258,100 @@ export default function ProfilePage() {
           {saved ? <><CheckCircle className="w-4 h-4" /> {t('savedLabel')}</> : <><Save className="w-4 h-4" />{saving ? t('savingBtn') : t('saveBtn')}</>}
         </button>
       </form>
+
+      {/* Dillerim — birden fazla öğrenme dili yönetimi (Kullanıcı Madde 2) */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+            <GraduationCap className="w-4 h-4" /> {t('myLanguagesTitle')}
+          </h2>
+          <button
+            type="button"
+            onClick={() => { setAddLangCode(''); setLangActionError(''); setShowAddLangModal(true); }}
+            className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
+          >
+            <Plus className="w-3.5 h-3.5" /> {t('addLanguageBtn')}
+          </button>
+        </div>
+
+        {langsLoading ? (
+          <p className="text-sm text-gray-400">{t('loading')}</p>
+        ) : (
+          <ul className="space-y-2">
+            {userLangs.map((lang) => {
+              const meta = languages.find((l) => l.code === lang.learning_lang);
+              return (
+                <li key={lang.id} className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-700">
+                    <span>{meta?.flag_emoji}</span>
+                    <span>{meta?.name_native ?? lang.learning_lang}</span>
+                    {lang.is_active && (
+                      <span className="text-[10px] font-semibold text-green-700 bg-green-50 rounded-full px-2 py-0.5">
+                        {t('activeBadgeLabel')}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {!lang.is_active && (
+                      <button
+                        type="button"
+                        disabled={langActionLoading}
+                        onClick={() => handleSetActiveLang(lang.learning_lang)}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+                      >
+                        {t('setActiveBtn')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      disabled={langActionLoading}
+                      onClick={() => handleRemoveLang(lang)}
+                      className="text-xs font-medium text-red-500 hover:text-red-600 disabled:opacity-50"
+                    >
+                      {t('removeLanguageBtn')}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {langActionError && <p className="text-xs text-red-600">{langActionError}</p>}
+      </div>
+
+      {showAddLangModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddLangModal(false)}>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-gray-800">{t('addLanguageModalTitle')}</h3>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('selectLanguageLabel')}</label>
+              <select value={addLangCode} onChange={(e) => setAddLangCode(e.target.value)} className={selectCls}>
+                <option value="">—</option>
+                {languages
+                  .filter((l) => !userLangs.some((ul) => ul.learning_lang === l.code))
+                  .map((l) => (
+                    <option key={l.code} value={l.code}>{l.flag_emoji} {l.name_native}</option>
+                  ))}
+              </select>
+            </div>
+            {langActionError && <p className="text-xs text-red-600">{langActionError}</p>}
+            <div className="flex gap-2 justify-end">
+              <button type="button" onClick={() => setShowAddLangModal(false)} className="text-xs font-medium text-gray-500 hover:text-gray-700 px-3 py-2">
+                {t('cancelBtn')}
+              </button>
+              <button
+                type="button"
+                disabled={!addLangCode || langActionLoading}
+                onClick={handleAddLang}
+                className="text-xs font-medium bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl px-4 py-2"
+              >
+                {t('saveBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5 space-y-3">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('accountInfoTitle')}</h2>
