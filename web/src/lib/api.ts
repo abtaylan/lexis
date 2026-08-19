@@ -8,6 +8,7 @@ import type {
   OtpPendingResponse,
   RegisterResponse,
   User,
+  UserLanguage,
   Word,
   WordCreate,
   WordUpdate,
@@ -68,6 +69,9 @@ export const authApi = {
     username?: string;
     native_lang?: string;
     learning_lang?: string;
+    // Coklu dil kaydi (Kullanici Madde 2): verilirse learning_lang yerine
+    // bu liste kullanilir, ilk eleman aktif dil olur.
+    learning_langs?: string[];
   }): Promise<RegisterResponse> => {
     const res = await api.post('/auth/register', data);
     return res.data;
@@ -141,6 +145,30 @@ export const languagesApi = {
   getAll: async (): Promise<Language[]> => {
     const res = await api.get('/languages');
     return res.data.languages;
+  },
+};
+
+// ── User Languages API (Kullanıcının öğrendiği diller — Madde 2) ──────
+// Kullanıcının aynı anda birden fazla dil öğrenebilmesini sağlayan
+// endpoint'ler. Backend: /api/v1/me/languages
+export const userLanguagesApi = {
+  getAll: async (): Promise<UserLanguage[]> => {
+    const res = await api.get('/me/languages');
+    return res.data.languages;
+  },
+
+  add: async (learning_lang: string, daily_goal?: number): Promise<UserLanguage> => {
+    const res = await api.post<UserLanguage>('/me/languages', { learning_lang, daily_goal });
+    return res.data;
+  },
+
+  remove: async (code: string): Promise<void> => {
+    await api.delete(`/me/languages/${code}`);
+  },
+
+  setActive: async (learning_lang: string): Promise<UserLanguage> => {
+    const res = await api.patch<UserLanguage>('/me/languages/active', { learning_lang });
+    return res.data;
   },
 };
 
