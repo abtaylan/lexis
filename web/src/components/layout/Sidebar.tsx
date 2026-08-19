@@ -1,10 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
+  Menu, X,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -27,6 +29,16 @@ export function Sidebar() {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { t, locale } = useLocale();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Sayfa değiştiğinde mobil menüyü otomatik kapat — render sırasında state
+  // ayarlama (React'ın "adjusting state during render" deseni), effect içinde
+  // setState'ten kaçınmak için (bkz. react-hooks/set-state-in-effect kuralı).
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setMobileOpen(false);
+  }
 
   const navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
@@ -45,10 +57,45 @@ export function Sidebar() {
   const avatarLetter = displayName[0].toUpperCase();
 
   return (
-    <aside className="flex flex-col w-60 min-h-screen bg-white border-r border-gray-100 px-4 py-6 fixed left-0 top-0">
-      <div className="mb-8 px-2">
-        <span className="text-xl font-bold text-blue-600 tracking-tight">Lexis</span>
+    <>
+      {/* Mobil üst çubuk — sadece md altı genişliklerde görünür */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white border-b border-gray-100 flex items-center px-4 z-40">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Menüyü aç"
+          className="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <span className="ml-2 text-lg font-bold text-blue-600 tracking-tight">Lexis</span>
       </div>
+
+      {/* Karartma — mobil menü açıkken arka planı kapatır, dışına tıklayınca menüyü kapatır */}
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/30 z-40"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`flex flex-col w-60 min-h-screen bg-white border-r border-gray-100 px-4 py-6 fixed left-0 top-0 z-50 transition-transform duration-200 ease-in-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0`}
+      >
+        <div className="mb-8 px-2 flex items-center justify-between">
+          <span className="text-xl font-bold text-blue-600 tracking-tight">Lexis</span>
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Menüyü kapat"
+            className="md:hidden p-1.5 text-gray-400 hover:bg-gray-50 rounded-lg transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
       <nav className="flex-1 space-y-1">
         {navItems.map(({ href, label, icon: Icon }) => {
@@ -92,6 +139,7 @@ export function Sidebar() {
           <LogOut className="w-4 h-4 shrink-0" />{t('logout')}
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -6,8 +6,14 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, User, Lock, Mail, Globe, GraduationCap, Zap } from 'lucide-react';
 import { authApi, languagesApi } from '@/lib/api';
 import { Button, Input, Card } from '@/components/ui';
-import { useLocale } from '@/lib/i18n';
+import { useLocale, LOCALE_META } from '@/lib/i18n';
 import type { Language } from '@/types';
+
+// Arayüz (UI) çevirisi olmayan diller ana dil seçeneği olarak sunulmamalı —
+// aksi halde LocaleProvider sessizce Türkçe'ye düşüyor (bkz. Bug 2, Ağustos 2026).
+// Öğrenme dili (learning_langs) için bu kısıtlama geçerli değil, çünkü o UI dilini
+// değil sadece kelime havuzu hedef dilini belirliyor.
+const UI_SUPPORTED_CODES = new Set<string>(LOCALE_META.map((l) => l.code));
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -169,7 +175,7 @@ export default function RegisterPage() {
               onChange={setNativeLang}
               className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition bg-white"
             >
-              {languages.map((l) => (
+              {languages.filter((l) => UI_SUPPORTED_CODES.has(l.code)).map((l) => (
                 <option key={l.code} value={l.code}>
                   {l.flag_emoji} {l.name_native}
                 </option>

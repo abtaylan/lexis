@@ -4,8 +4,12 @@ import { useEffect, useState } from 'react';
 import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus } from 'lucide-react';
 import { authApi, languagesApi, userLanguagesApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
-import { useLocale } from '@/lib/i18n';
+import { useLocale, LOCALE_META } from '@/lib/i18n';
 import type { User as UserType, Language, UserLanguage } from '@/types';
+
+// Arayüz (UI) çevirisi olmayan diller ana dil seçeneği olarak sunulmamalı —
+// aksi halde LocaleProvider sessizce Türkçe'ye düşüyor (bkz. Bug 2, Ağustos 2026).
+const UI_SUPPORTED_CODES = new Set<string>(LOCALE_META.map((l) => l.code));
 
 export default function ProfilePage() {
   const { t, locale } = useLocale();
@@ -224,7 +228,8 @@ export default function ProfilePage() {
                 <Globe className="w-3 h-3" /> {t('nativeLangSelectLabel')}
               </label>
               <select value={nativeLang} onChange={(e) => setNativeLang(e.target.value)} className={selectCls}>
-                {languages.map((l) => (
+                {/* Mevcut değer listede kalsın (ör. daha önce ja/pt seçmiş kullanıcı için) */}
+                {languages.filter((l) => UI_SUPPORTED_CODES.has(l.code) || l.code === nativeLang).map((l) => (
                   <option key={l.code} value={l.code}>{l.flag_emoji} {l.name_native}</option>
                 ))}
               </select>
