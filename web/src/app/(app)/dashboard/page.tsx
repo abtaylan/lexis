@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import {
   BookOpen, Clock, Target, Layers, Brain, CheckCircle2,
 } from 'lucide-react';
-import { statsApi, wordsApi } from '@/lib/api';
+import { statsApi, wordsApi, languagesApi, userLanguagesApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
-import type { Stats, Word, DailyProgress } from '@/types';
+import type { Stats, Word, DailyProgress, Language, UserLanguage } from '@/types';
 
 function getWeekDays(history: DailyProgress[], dayLabels: string[]): {
   label: string;
@@ -47,6 +47,11 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [username, setUsername] = useState('');
 
+  // ── Aktif öğrenme dili değiştirici (Kullanıcı Madde 2: çoklu dil) ──
+  const [userLangs, setUserLangs] = useState<UserLanguage[]>([]);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [switchingLang, setSwitchingLang] = useState(false);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('lexis_user');
@@ -81,6 +86,35 @@ export default function DashboardPage() {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    userLanguagesApi.getAll().then(setUserLangs).catch(() => {});
+    languagesApi.getAll().then(setLanguages).catch(() => {});
+  }, []);
+
+  const handleSwitchLang = async (code: string) => {
+    if (switchingLang) return;
+    setSwitchingLang(true);
+    try {
+      await userLanguagesApi.setActive(code);
+      const [ul, s, due, hist, words] = await Promise.all([
+        userLanguagesApi.getAll(),
+        statsApi.getSummary(),
+        wordsApi.getDue(),
+        statsApi.getHistory(14),
+        wordsApi.getAll({ page: 1, per_page: 4 }),
+      ]);
+      setUserLangs(ul);
+      setStats(s);
+      setDueWords(due);
+      setHistory(hist);
+      setRecentWords(words.items);
+    } catch {
+      // Sessizce yut — dashboard verisi bir önceki dilde kalır, kullanıcı tekrar deneyebilir.
+    } finally {
+      setSwitchingLang(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -117,15 +151,39 @@ export default function DashboardPage() {
   const learnedPct = Math.round(((stats?.learned ?? 0) / total) * 100);
   const newPct = Math.round((newCount / total) * 100);
 
+  const activeLangCode = userLangs.find((l) => l.is_active)?.learning_lang ?? '';
+
   return (
     <div className="p-6 space-y-4 max-w-5xl">
 
       {/* Başlık */}
-      <div className="mb-2">
-        <p className="text-lg font-medium text-gray-900">
-          {t('greeting')}{username ? `, ${username}` : ''}
-        </p>
-        <p className="text-sm text-gray-400">{t('dailySummarySubtitle')}</p>
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-lg font-medium text-gray-900">
+            {t('greeting')}{username ? `, ${username}` : ''}
+          </p>
+          <p className="text-sm text-gray-400">{t('dailySummarySubtitle')}</p>
+        </div>
+        {userLangs.length > 1 && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <label className="text-xs text-gray-400">{t('activeLanguageSwitcherLabel')}</label>
+            <select
+              value={activeLangCode}
+              onChange={(e) => handleSwitchLang(e.target.value)}
+              disabled={switchingLang}
+              className="text-sm border border-gray-200 rounded-xl px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {userLangs.map((ul) => {
+                const meta = languages.find((l) => l.code === ul.learning_lang);
+                return (
+                  <option key={ul.learning_lang} value={ul.learning_lang}>
+                    {meta?.flag_emoji} {meta?.name_native ?? ul.learning_lang}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Streak banner */}
