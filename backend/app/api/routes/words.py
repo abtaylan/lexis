@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 
 router = APIRouter()
 
-
 @router.get("", response_model=WordListResponse)
 async def get_words(
     page: int = Query(1, ge=1),
@@ -20,10 +19,22 @@ async def get_words(
     search: Optional[str] = None,
     current_user=Depends(get_current_user)
 ):
+    # Kullanıcının aktif öğrenme diline göre filtrele (Kullanıcı Madde 2 —
+    # kelime listesi, dashboard'da o an seçili olan dile ait kelimeleri gösterir)
+    profile = (
+        supabase_admin.table("profiles")
+        .select("learning_lang")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    )
+    active_lang = (profile.data or {}).get("learning_lang", "en")
+
     query = (
         supabase_admin.table("words")
         .select("*", count="exact")
         .eq("user_id", current_user.id)
+        .eq("source_lang", active_lang)
         .order("created_at", desc=True)
         .range((page - 1) * page_size, page * page_size - 1)
     )
@@ -41,7 +52,6 @@ async def get_words(
         page=page,
         page_size=page_size
     )
-
 
 @router.post("", response_model=WordResponse, status_code=201)
 async def create_word(
@@ -72,18 +82,18 @@ async def create_word(
         .execute()
     )
     prof_data = profile.data or {}
-    data["source_lang"] = prof_data.get("learning_lang", "en")
+    active_lang = prof_data.get("learning_lang", "en")
+    data["source_lang"] = active_lang
     data["target_lang"] = prof_data.get("native_lang", "tr")
 
     result = supabase_admin.table("words").insert(data).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Kelime eklenemedi.")
 
-    # Streak güncelle
-    await update_streak(current_user.id, "word_added")
+    # Streak güncelle (kelimenin eklendiği dile ait)
+    await update_streak(current_user.id, "word_added", learning_lang=active_lang)
 
     return result.data[0]
-
 
 @router.patch("/{word_id}", response_model=WordResponse)
 async def update_word(
@@ -102,7 +112,6 @@ async def update_word(
         raise HTTPException(status_code=404, detail="Kelime bulunamadı.")
     return result.data[0]
 
-
 @router.delete("/{word_id}", status_code=204)
 async def delete_word(
     word_id: str,
@@ -117,7 +126,6 @@ async def delete_word(
     )
     if not result.data:
         raise HTTPException(status_code=404, detail="Kelime bulunamadı.")
-
 
 @router.post("/{word_id}/review")
 async def review_word(
@@ -140,7 +148,10 @@ async def review_word(
     updated = calculate_next_review(word.data, review.success)
     supabase_admin.table("words").update(updated).eq("id", word_id).execute()
 
-    await update_streak(current_user.id, "word_reviewed")
+    # Streak, kelimenin AİT OLDUĞU dile yazılır (kullanıcı o sırada başka bir
+    # dili aktif çalışıyor olsa bile — Kullanıcı Madde 2)
+    word_lang = word.data.get("source_lang")
+    await update_streak(current_user.id, "word_reviewed", learning_lang=word_lang)
 
     # XP: sadece doğru cevapta kazandır (yanlış tekrar XP vermez)
     xp_result = None
@@ -152,15 +163,24 @@ async def review_word(
         response["xp"] = xp_result.to_dict()
     return response
 
-
 @router.get("/due/today")
 async def get_due_words(current_user=Depends(get_current_user)):
-    """Bugün tekrar edilmesi gereken kelimeler."""
+    """Bugün tekrar edilmesi gereken kelimeler (aktif öğrenme diline ait)."""
+    profile = (
+        supabase_admin.table("profiles")
+        .select("learning_lang")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    )
+    active_lang = (profile.data or {}).get("learning_lang", "en")
+
     now = datetime.now(timezone.utc).isoformat()
     result = (
         supabase_admin.table("words")
         .select("*")
         .eq("user_id", current_user.id)
+        .eq("source_lang", active_lang)
         .lte("next_review_at", now)
         .eq("status", "learning")
         .execute()
