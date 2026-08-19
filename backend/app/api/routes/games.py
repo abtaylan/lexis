@@ -17,8 +17,13 @@ kullanıcı kelime ekledikçe havuz büyür; "general" için seed script tekrar
   Bu modda ayrıca `direction` (yön) seçilebilir:
     - "word_to_meaning" (varsayılan): kelime gösterilir, anlamı bulunur.
     - "meaning_to_word": anlam gösterilir, doğru kelime 4 seçenekten bulunur.
-  İki yönün XP değeri farklıdır (meaning_to_word daha zor kabul edilir, çünkü
-  öğrenilen dildeki kelimeyi üretmeyi/tanımayı gerektirir).
+    - "definition_to_word" (Faz 2, monolingual): İngilizce tanım gösterilir,
+      doğru İngilizce kelime 4 seçenekten bulunur. Sadece pool_source="general"
+      ile çalışır — kullanıcının kendi "words" tablosunda İngilizce tanım
+      tutulmaz, sadece general_word_pool.definition doldurulur (backfill).
+  Üç yönün de XP değeri farklıdır (definition_to_word en zor kabul edilir,
+  meaning_to_word ondan biraz daha kolay, çünkü öğrenilen dildeki kelimeyi
+  üretmeyi/tanımayı gerektirirler).
 - "wordle" (adam asmaca) -> anlam gösterilir, kelimenin harfleri tek tek
   tahmin edilerek bulunmaya çalışılır (her zaman meaning->word yönünde;
   Türkçe anlamlar genelde virgülle ayrılmış birden fazla kelime içerdiği için
@@ -45,6 +50,7 @@ from app.schemas.games import (
     GuessLetterRequest,
     GuessLetterResponse,
     NextWordResponse,
+    PoolSource,
 )
 from app.services.xp_service import award_xp
 
@@ -135,6 +141,16 @@ async def create_session(
     session_in: GameSessionCreate,
     current_user=Depends(get_current_user),
 ):
+    if (
+        session_in.direction == Direction.definition_to_word
+        and session_in.pool_source == PoolSource.own
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Bu yön (İngilizce tanım) sadece genel kelime havuzuyla kullanılabilir, "
+            "kendi kelimelerinde İngilizce tanım tutulmuyor.",
+        )
+
     row = {
         "user_id": current_user.id,
         "mode": session_in.mode.value,
@@ -186,20 +202,27 @@ async def next_word(
         attempted = _attempted_ids(session_id, "general_word_id")
         query = (
             supabase_admin.table("general_word_pool")
-            .select("id, word, meaning, example")
+            .select("id, word, meaning, example, definition")
             .eq("source_lang", learning_lang)
             .eq("target_lang", native_lang)
             .eq("is_active", True)
         )
         if attempted:
             query = query.not_.in_("id", attempted)
+        if direction == Direction.definition_to_word.value:
+            # Sadece İngilizce tanımı backfill edilmiş kelimeler bu yönde
+            # sorulabilir (definition NULL olan kelimeler atlanır).
+            query = query.not_.is_("definition", "null")
         candidates = (query.limit(CANDIDATE_FETCH_LIMIT).execute().data) or []
 
         if not candidates:
             return NextWordResponse(finished=True)
 
         chosen = random.choice(candidates)
-        meaning_text = chosen["meaning"]
+        meaning_text = (
+            chosen.get("definition") if direction == Direction.definition_to_word.value
+            else chosen["meaning"]
+        )
         chosen_word_id = None
         chosen_general_word_id = chosen["id"]
 
@@ -230,8 +253,10 @@ async def next_word(
     # ── multiple_choice modu (direction'a göre iki farklı yön) ──
     options = None
     if mode == "multiple_choice":
-        if direction == Direction.meaning_to_word.value:
-            # Anlam gösterilir, doğru KELİME 4 seçenekten bulunur.
+        if direction in (Direction.meaning_to_word.value, Direction.definition_to_word.value):
+            # Anlam VEYA İngilizce tanım gösterilir, doğru KELİME 4 seçenekten bulunur.
+            # (definition_to_word'de pool_source her zaman "general" — create_session'da
+            # doğrulanıyor — bu yüzden "own" dalı burada pratikte hiç tetiklenmez.)
             correct_text = chosen["word"]
             if pool_source == "own":
                 distractor_query = (
@@ -315,11 +340,12 @@ async def submit_attempt(
 
     if attempt_in.is_correct:
         # multiple_choice modunda yöne göre farklı XP kaynağı kullanılır
-        # (meaning_to_word daha zor kabul edilir, daha fazla XP verir).
-        if (
-            session["mode"] == "multiple_choice"
-            and session.get("direction") == Direction.meaning_to_word.value
-        ):
+        # (definition_to_word en zor kabul edilir, meaning_to_word ondan
+        # biraz daha kolay — ikisi de word_to_meaning'den daha fazla XP verir).
+        session_direction = session.get("direction")
+        if session["mode"] == "multiple_choice" and session_direction == Direction.definition_to_word.value:
+            source_type = "game_multiple_choice_definition"
+        elif session["mode"] == "multiple_choice" and session_direction == Direction.meaning_to_word.value:
             source_type = "game_multiple_choice_reverse"
         else:
             source_type = f"game_{session['mode']}"

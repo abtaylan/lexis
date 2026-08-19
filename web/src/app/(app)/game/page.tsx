@@ -40,6 +40,8 @@ type Strings = {
   dirWordToMeaningDesc: string;
   dirMeaningToWordLabel: string;
   dirMeaningToWordDesc: string;
+  dirDefinitionToWordLabel: string;
+  dirDefinitionToWordDesc: string;
   choosePoolTitle: string;
   poolOwnLabel: string;
   poolOwnDesc: string;
@@ -53,6 +55,7 @@ type Strings = {
   generalEmptyError: string;
   questionPrompt: string;
   questionPromptReverse: string;
+  questionPromptDefinition: string;
   questionCounterTpl: string;
   scoreLabel: string;
   xpLabel: string;
@@ -87,6 +90,8 @@ const STRINGS: Record<Locale, Strings> = {
     dirWordToMeaningDesc: 'Kelimeyi gör, doğru anlamı seç',
     dirMeaningToWordLabel: 'Anlam → Kelime',
     dirMeaningToWordDesc: 'Anlamı gör, doğru kelimeyi seç (daha zor, daha çok XP)',
+    dirDefinitionToWordLabel: 'Tanım → Kelime',
+    dirDefinitionToWordDesc: 'İngilizce tanımı gör, doğru kelimeyi seç (en zor, en çok XP)',
     choosePoolTitle: 'Hangi kelime havuzuyla oynamak istersin?',
     poolOwnLabel: 'Kendi Kelimelerim',
     poolOwnDesc: 'Öğrendiğin kelimelerle pratik yap',
@@ -100,6 +105,7 @@ const STRINGS: Record<Locale, Strings> = {
     generalEmptyError: 'Bu dil çifti için genel havuzda kelime yok.',
     questionPrompt: 'Bu kelimenin anlamı nedir?',
     questionPromptReverse: 'Bu anlama gelen kelime hangisi?',
+    questionPromptDefinition: 'Bu tanıma uyan kelime hangisi?',
     questionCounterTpl: '{n}. soru',
     scoreLabel: 'Skor',
     xpLabel: 'XP',
@@ -132,6 +138,8 @@ const STRINGS: Record<Locale, Strings> = {
     dirWordToMeaningDesc: 'See the word, pick the right meaning',
     dirMeaningToWordLabel: 'Meaning → Word',
     dirMeaningToWordDesc: 'See the meaning, pick the right word (harder, more XP)',
+    dirDefinitionToWordLabel: 'Definition → Word',
+    dirDefinitionToWordDesc: 'See the English definition, pick the right word (hardest, most XP)',
     choosePoolTitle: 'Which word pool do you want to play with?',
     poolOwnLabel: 'My Words',
     poolOwnDesc: 'Practice with the words you are learning',
@@ -145,6 +153,7 @@ const STRINGS: Record<Locale, Strings> = {
     generalEmptyError: 'No words available in the general pool for this language pair.',
     questionPrompt: 'What does this word mean?',
     questionPromptReverse: 'Which word matches this meaning?',
+    questionPromptDefinition: 'Which word matches this definition?',
     questionCounterTpl: 'Question {n}',
     scoreLabel: 'Score',
     xpLabel: 'XP',
@@ -177,6 +186,8 @@ const STRINGS: Record<Locale, Strings> = {
     dirWordToMeaningDesc: 'شاهد الكلمة، اختر المعنى الصحيح',
     dirMeaningToWordLabel: 'معنى ← كلمة',
     dirMeaningToWordDesc: 'شاهد المعنى، اختر الكلمة الصحيحة (أصعب، خبرة أكثر)',
+    dirDefinitionToWordLabel: 'تعريف ← كلمة',
+    dirDefinitionToWordDesc: 'شاهد التعريف الإنجليزي، اختر الكلمة الصحيحة (الأصعب، أكثر خبرة)',
     choosePoolTitle: 'مع أي مجموعة كلمات تريد اللعب؟',
     poolOwnLabel: 'كلماتي',
     poolOwnDesc: 'تدرب بالكلمات التي تتعلمها',
@@ -190,6 +201,7 @@ const STRINGS: Record<Locale, Strings> = {
     generalEmptyError: 'لا توجد كلمات في المجموعة العامة لهذا الزوج اللغوي.',
     questionPrompt: 'ما معنى هذه الكلمة؟',
     questionPromptReverse: 'ما الكلمة التي تطابق هذا المعنى؟',
+    questionPromptDefinition: 'ما الكلمة التي تطابق هذا التعريف؟',
     questionCounterTpl: 'السؤال {n}',
     scoreLabel: 'النقاط',
     xpLabel: 'نقاط الخبرة',
@@ -222,6 +234,8 @@ const STRINGS: Record<Locale, Strings> = {
     dirWordToMeaningDesc: 'Смотри слово, выбирай правильное значение',
     dirMeaningToWordLabel: 'Значение → Слово',
     dirMeaningToWordDesc: 'Смотри значение, выбирай правильное слово (сложнее, больше опыта)',
+    dirDefinitionToWordLabel: 'Определение → Слово',
+    dirDefinitionToWordDesc: 'Смотри английское определение, выбирай правильное слово (сложнее всего, больше всего опыта)',
     choosePoolTitle: 'С каким пулом слов хочешь играть?',
     poolOwnLabel: 'Мои слова',
     poolOwnDesc: 'Тренируйся на словах, которые изучаешь',
@@ -235,6 +249,7 @@ const STRINGS: Record<Locale, Strings> = {
     generalEmptyError: 'В общем пуле нет слов для этой языковой пары.',
     questionPrompt: 'Что означает это слово?',
     questionPromptReverse: 'Какое слово соответствует этому значению?',
+    questionPromptDefinition: 'Какое слово соответствует этому определению?',
     questionCounterTpl: 'Вопрос {n}',
     scoreLabel: 'Счёт',
     xpLabel: 'Опыт',
@@ -267,6 +282,8 @@ const STRINGS: Record<Locale, Strings> = {
     dirWordToMeaningDesc: 'Sieh das Wort, wähle die richtige Bedeutung',
     dirMeaningToWordLabel: 'Bedeutung → Wort',
     dirMeaningToWordDesc: 'Sieh die Bedeutung, wähle das richtige Wort (schwerer, mehr XP)',
+    dirDefinitionToWordLabel: 'Definition → Wort',
+    dirDefinitionToWordDesc: 'Sieh die englische Definition, wähle das richtige Wort (am schwersten, meiste XP)',
     choosePoolTitle: 'Mit welchem Wortpool möchtest du spielen?',
     poolOwnLabel: 'Meine Wörter',
     poolOwnDesc: 'Übe mit den Wörtern, die du lernst',
@@ -280,6 +297,7 @@ const STRINGS: Record<Locale, Strings> = {
     generalEmptyError: 'Für dieses Sprachpaar sind keine Wörter im allgemeinen Pool verfügbar.',
     questionPrompt: 'Was bedeutet dieses Wort?',
     questionPromptReverse: 'Welches Wort passt zu dieser Bedeutung?',
+    questionPromptDefinition: 'Welches Wort passt zu dieser Definition?',
     questionCounterTpl: 'Frage {n}',
     scoreLabel: 'Punkte',
     xpLabel: 'XP',
@@ -312,6 +330,8 @@ const STRINGS: Record<Locale, Strings> = {
     dirWordToMeaningDesc: 'Vois le mot, choisis le bon sens',
     dirMeaningToWordLabel: 'Sens → Mot',
     dirMeaningToWordDesc: 'Vois le sens, choisis le bon mot (plus difficile, plus de XP)',
+    dirDefinitionToWordLabel: 'Définition → Mot',
+    dirDefinitionToWordDesc: 'Vois la définition anglaise, choisis le bon mot (le plus difficile, le plus de XP)',
     choosePoolTitle: 'Avec quel pool de mots veux-tu jouer ?',
     poolOwnLabel: 'Mes mots',
     poolOwnDesc: "Entraîne-toi avec les mots que tu apprends",
@@ -325,6 +345,7 @@ const STRINGS: Record<Locale, Strings> = {
     generalEmptyError: 'Aucun mot disponible dans le pool général pour cette paire de langues.',
     questionPrompt: 'Que signifie ce mot ?',
     questionPromptReverse: 'Quel mot correspond à ce sens ?',
+    questionPromptDefinition: 'Quel mot correspond à cette définition ?',
     questionCounterTpl: 'Question {n}',
     scoreLabel: 'Score',
     xpLabel: 'XP',
@@ -357,6 +378,8 @@ const STRINGS: Record<Locale, Strings> = {
     dirWordToMeaningDesc: 'Ve la palabra, elige el significado correcto',
     dirMeaningToWordLabel: 'Significado → Palabra',
     dirMeaningToWordDesc: 'Ve el significado, elige la palabra correcta (más difícil, más XP)',
+    dirDefinitionToWordLabel: 'Definición → Palabra',
+    dirDefinitionToWordDesc: 'Ve la definición en inglés, elige la palabra correcta (más difícil, más XP)',
     choosePoolTitle: '¿Con qué grupo de palabras quieres jugar?',
     poolOwnLabel: 'Mis palabras',
     poolOwnDesc: 'Practica con las palabras que estás aprendiendo',
@@ -370,6 +393,7 @@ const STRINGS: Record<Locale, Strings> = {
     generalEmptyError: 'No hay palabras disponibles en el grupo general para este par de idiomas.',
     questionPrompt: '¿Qué significa esta palabra?',
     questionPromptReverse: '¿Qué palabra corresponde a este significado?',
+    questionPromptDefinition: '¿Qué palabra corresponde a esta definición?',
     questionCounterTpl: 'Pregunta {n}',
     scoreLabel: 'Puntuación',
     xpLabel: 'XP',
@@ -402,6 +426,8 @@ const STRINGS: Record<Locale, Strings> = {
     dirWordToMeaningDesc: 'Vedi la parola, scegli il significato corretto',
     dirMeaningToWordLabel: 'Significato → Parola',
     dirMeaningToWordDesc: 'Vedi il significato, scegli la parola corretta (più difficile, più XP)',
+    dirDefinitionToWordLabel: 'Definizione → Parola',
+    dirDefinitionToWordDesc: 'Vedi la definizione in inglese, scegli la parola corretta (più difficile, più XP)',
     choosePoolTitle: 'Con quale pool di parole vuoi giocare?',
     poolOwnLabel: 'Le mie parole',
     poolOwnDesc: 'Esercitati con le parole che stai imparando',
@@ -415,6 +441,7 @@ const STRINGS: Record<Locale, Strings> = {
     generalEmptyError: 'Nessuna parola disponibile nel pool generale per questa coppia di lingue.',
     questionPrompt: 'Cosa significa questa parola?',
     questionPromptReverse: 'Quale parola corrisponde a questo significato?',
+    questionPromptDefinition: 'Quale parola corrisponde a questa definizione?',
     questionCounterTpl: 'Domanda {n}',
     scoreLabel: 'Punteggio',
     xpLabel: 'XP',
@@ -532,7 +559,10 @@ export default function GamePage() {
     if (selectedId || !current || !sessionId) return;
     setSelectedId(optionId);
     const currentDirection = current.direction ?? direction;
-    const correctText = currentDirection === 'meaning_to_word' ? current.word : current.meaning;
+    const correctText =
+      currentDirection === 'meaning_to_word' || currentDirection === 'definition_to_word'
+        ? current.word
+        : current.meaning;
     const isCorrect = optionText === correctText;
     setFeedback(isCorrect);
     try {
@@ -681,6 +711,16 @@ export default function GamePage() {
               <p className="text-sm font-semibold text-gray-800">{t.dirMeaningToWordLabel}</p>
               <p className="text-xs text-gray-500 mt-0.5">{t.dirMeaningToWordDesc}</p>
             </button>
+            <button
+              onClick={() => {
+                setDirection('definition_to_word');
+                setStage('setup');
+              }}
+              className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <p className="text-sm font-semibold text-gray-800">{t.dirDefinitionToWordLabel}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t.dirDefinitionToWordDesc}</p>
+            </button>
           </div>
           <button
             onClick={() => setStage('mode')}
@@ -720,13 +760,15 @@ export default function GamePage() {
                   <p className="text-sm font-semibold text-gray-800">{t.poolGeneralLabel}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{t.poolGeneralDesc}</p>
                 </button>
-                <button
-                  onClick={() => start(gameMode, 'own', direction)}
-                  className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
-                >
-                  <p className="text-sm font-semibold text-gray-800">{t.poolOwnLabel}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{t.poolOwnDesc}</p>
-                </button>
+                {direction !== 'definition_to_word' && (
+                  <button
+                    onClick={() => start(gameMode, 'own', direction)}
+                    className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+                  >
+                    <p className="text-sm font-semibold text-gray-800">{t.poolOwnLabel}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{t.poolOwnDesc}</p>
+                  </button>
+                )}
               </div>
               <button
                 onClick={() => setStage(gameMode === 'multiple_choice' ? 'direction' : 'mode')}
@@ -803,7 +845,8 @@ export default function GamePage() {
 
   const isWordle = gameMode === 'wordle';
   const activeDirection = current.direction ?? direction;
-  const isReverse = !isWordle && activeDirection === 'meaning_to_word';
+  const isDefinition = activeDirection === 'definition_to_word';
+  const isReverse = !isWordle && (activeDirection === 'meaning_to_word' || isDefinition);
 
   return (
     <div className="p-6 flex flex-col items-center gap-6 max-w-xl mx-auto">
@@ -838,7 +881,7 @@ export default function GamePage() {
         <>
           <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-              {isReverse ? t.questionPromptReverse : t.questionPrompt}
+              {isDefinition ? t.questionPromptDefinition : isReverse ? t.questionPromptReverse : t.questionPrompt}
             </p>
             <p className="text-4xl font-bold text-gray-900 tracking-tight">
               {isReverse ? current.meaning : current.word}

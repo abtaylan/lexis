@@ -360,8 +360,9 @@ export const adminApi = {
 export type GameMode = 'wordle' | 'multiple_choice' | 'typing' | 'matching' | 'listening' | 'sprint';
 export type PoolSource = 'own' | 'general';
 // multiple_choice modunda soru yönü. wordle modunda kullanılmaz (her zaman anlam
-// gösterilip kelime bulunur).
-export type Direction = 'word_to_meaning' | 'meaning_to_word';
+// gösterilip kelime bulunur). "definition_to_word" (Faz 2, monolingual) sadece
+// pool_source="general" ile çalışır.
+export type Direction = 'word_to_meaning' | 'meaning_to_word' | 'definition_to_word';
 
 export interface GameSession {
   id: string;

@@ -23,7 +23,8 @@ XPSourceType = Literal[
     "daily_goal_bonus",
     "game_wordle",
     "game_multiple_choice",
-        "game_multiple_choice_reverse",
+    "game_multiple_choice_reverse",
+    "game_multiple_choice_definition",
     "game_typing",
     "game_matching",
     "game_listening",
@@ -39,6 +40,8 @@ XP_AMOUNTS: dict[str, int] = {
     "game_wordle": 15,
     "game_multiple_choice": 3,
     "game_multiple_choice_reverse": 6,
+    # Faz 2 — İngilizce tanım -> İngilizce kelime (monolingual, en zor yön)
+    "game_multiple_choice_definition": 9,
     "game_typing": 8,
     "game_matching": 6,
     "game_listening": 8,

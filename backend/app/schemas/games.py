@@ -23,6 +23,10 @@ class Direction(str, Enum):
     anlam gösterilip kelime bulunur)."""
     word_to_meaning = "word_to_meaning"  # kelime göster, anlamı bul (varsayılan)
     meaning_to_word = "meaning_to_word"  # anlamı göster, kelimeyi bul
+    definition_to_word = "definition_to_word"  # İngilizce tanım göster, İngilizce kelimeyi bul
+    # (Faz 2 — monolingual, en zor yön; sadece pool_source="general" ve
+    # general_word_pool.definition dolu olan kelimelerle çalışır, çünkü
+    # kullanıcının kendi "words" tablosunda İngilizce tanım tutulmaz.)
 
 
 class GameSessionCreate(BaseModel):
