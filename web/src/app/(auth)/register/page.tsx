@@ -19,7 +19,7 @@ export default function RegisterPage() {
     password: '',
     display_name: '',
     native_lang: 'tr',
-    learning_lang: 'en',
+    learning_langs: ['en'] as string[],
   });
   const [languages, setLanguages] = useState<Language[]>([]);
   const [showPw, setShowPw] = useState(false);
@@ -41,8 +41,10 @@ export default function RegisterPage() {
     if (!form.email.includes('@')) e.email = t('emailInvalidError');
     if (form.username.length < 3) e.username = t('usernameMinError');
     if (form.password.length < 6) e.password = t('passwordMinError');
-    if (form.native_lang === form.learning_lang) {
-      e.learning_lang = t('sameLangError');
+    if (form.learning_langs.length === 0) {
+      e.learning_langs = t('selectAtLeastOneLanguageError');
+    } else if (form.learning_langs.includes(form.native_lang)) {
+      e.learning_langs = t('sameLangError');
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -59,7 +61,8 @@ export default function RegisterPage() {
         display_name: form.display_name || form.username,
         username: form.username,
         native_lang: form.native_lang,
-        learning_lang: form.learning_lang,
+        learning_lang: form.learning_langs[0],
+        learning_langs: form.learning_langs,
       });
 
       // Hesap oluşturuldu — token burada verilmez, önce e-postaya gönderilen
@@ -77,8 +80,27 @@ export default function RegisterPage() {
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((p) => ({ ...p, [k]: e.target.value }));
 
-  const setSelect = (k: string) => (e: React.ChangeEvent<HTMLSelectElement>) =>
-    setForm((p) => ({ ...p, [k]: e.target.value }));
+  const setNativeLang = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setForm((p) => ({
+      ...p,
+      native_lang: val,
+      // Ana dil değişince, o dil öğrenme listesinde kalmışsa çıkar
+      learning_langs: p.learning_langs.filter((c) => c !== val),
+    }));
+  };
+
+  const toggleLearningLang = (code: string) => {
+    setForm((p) => {
+      const has = p.learning_langs.includes(code);
+      return {
+        ...p,
+        learning_langs: has
+          ? p.learning_langs.filter((c) => c !== code)
+          : [...p.learning_langs, code],
+      };
+    });
+  };
 
   return (
     <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60">
@@ -137,14 +159,14 @@ export default function RegisterPage() {
         />
 
         {/* ── Dil seçimi ── */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1.5">
               <Globe size={14} /> {t('nativeLangSelectLabel')}
             </label>
             <select
               value={form.native_lang}
-              onChange={setSelect('native_lang')}
+              onChange={setNativeLang}
               className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition bg-white"
             >
               {languages.map((l) => (
@@ -156,23 +178,34 @@ export default function RegisterPage() {
           </div>
           <div>
             <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1.5">
-              <GraduationCap size={14} /> {t('learningLangSelectLabel')}
+              <GraduationCap size={14} /> {t('learningLangsSelectLabel')}
             </label>
-            <select
-              value={form.learning_lang}
-              onChange={setSelect('learning_lang')}
-              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition bg-white"
-            >
-              {languages.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.flag_emoji} {l.name_native}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-wrap gap-2">
+              {languages
+                .filter((l) => l.code !== form.native_lang)
+                .map((l) => {
+                  const selected = form.learning_langs.includes(l.code);
+                  return (
+                    <button
+                      type="button"
+                      key={l.code}
+                      onClick={() => toggleLearningLang(l.code)}
+                      className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm transition ${
+                        selected
+                          ? 'border-sky-500 bg-sky-50 text-sky-700'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      <span>{l.flag_emoji}</span>
+                      <span>{l.name_native}</span>
+                    </button>
+                  );
+                })}
+            </div>
           </div>
         </div>
-        {errors.learning_lang && (
-          <p className="text-xs text-red-600 -mt-2">{errors.learning_lang}</p>
+        {errors.learning_langs && (
+          <p className="text-xs text-red-600 -mt-2">{errors.learning_langs}</p>
         )}
 
         {errors.form && (
