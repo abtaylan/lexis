@@ -14,11 +14,13 @@ import {
   Heart,
   ListChecks,
   Keyboard,
+  ArrowLeftRight,
 } from 'lucide-react';
 import {
   gamesApi,
   type PoolSource,
   type GameMode,
+  type Direction,
   type NextWordResult,
   type GameFinishResult,
   type GuessLetterResult,
@@ -33,6 +35,11 @@ type Strings = {
   modeMultipleDesc: string;
   modeWordleLabel: string;
   modeWordleDesc: string;
+  chooseDirectionTitle: string;
+  dirWordToMeaningLabel: string;
+  dirWordToMeaningDesc: string;
+  dirMeaningToWordLabel: string;
+  dirMeaningToWordDesc: string;
   choosePoolTitle: string;
   poolOwnLabel: string;
   poolOwnDesc: string;
@@ -45,6 +52,7 @@ type Strings = {
   ownEmptyError: string;
   generalEmptyError: string;
   questionPrompt: string;
+  questionPromptReverse: string;
   questionCounterTpl: string;
   scoreLabel: string;
   xpLabel: string;
@@ -74,6 +82,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Doğru anlamı 4 seçenek arasından bul',
     modeWordleLabel: 'Adam Asmaca',
     modeWordleDesc: 'Anlamına bakarak kelimeyi harf harf bul',
+    chooseDirectionTitle: 'Hangi yönde çalışmak istersin?',
+    dirWordToMeaningLabel: 'Kelime → Anlam',
+    dirWordToMeaningDesc: 'Kelimeyi gör, doğru anlamı seç',
+    dirMeaningToWordLabel: 'Anlam → Kelime',
+    dirMeaningToWordDesc: 'Anlamı gör, doğru kelimeyi seç (daha zor, daha çok XP)',
     choosePoolTitle: 'Hangi kelime havuzuyla oynamak istersin?',
     poolOwnLabel: 'Kendi Kelimelerim',
     poolOwnDesc: 'Öğrendiğin kelimelerle pratik yap',
@@ -86,6 +99,7 @@ const STRINGS: Record<Locale, Strings> = {
     ownEmptyError: 'Henüz kelime eklemedin. Önce birkaç kelime ekle.',
     generalEmptyError: 'Bu dil çifti için genel havuzda kelime yok.',
     questionPrompt: 'Bu kelimenin anlamı nedir?',
+    questionPromptReverse: 'Bu anlama gelen kelime hangisi?',
     questionCounterTpl: '{n}. soru',
     scoreLabel: 'Skor',
     xpLabel: 'XP',
@@ -113,6 +127,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Pick the right meaning from 4 options',
     modeWordleLabel: 'Hangman',
     modeWordleDesc: 'Guess the word letter by letter from its meaning',
+    chooseDirectionTitle: 'Which direction do you want to practice?',
+    dirWordToMeaningLabel: 'Word → Meaning',
+    dirWordToMeaningDesc: 'See the word, pick the right meaning',
+    dirMeaningToWordLabel: 'Meaning → Word',
+    dirMeaningToWordDesc: 'See the meaning, pick the right word (harder, more XP)',
     choosePoolTitle: 'Which word pool do you want to play with?',
     poolOwnLabel: 'My Words',
     poolOwnDesc: 'Practice with the words you are learning',
@@ -125,6 +144,7 @@ const STRINGS: Record<Locale, Strings> = {
     ownEmptyError: "You haven't added any words yet. Add a few words first.",
     generalEmptyError: 'No words available in the general pool for this language pair.',
     questionPrompt: 'What does this word mean?',
+    questionPromptReverse: 'Which word matches this meaning?',
     questionCounterTpl: 'Question {n}',
     scoreLabel: 'Score',
     xpLabel: 'XP',
@@ -152,6 +172,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'اختر المعنى الصحيح من بين 4 خيارات',
     modeWordleLabel: 'المشنقة',
     modeWordleDesc: 'خمّن الكلمة حرفًا بحرف من خلال معناها',
+    chooseDirectionTitle: 'بأي اتجاه تريد التدرب؟',
+    dirWordToMeaningLabel: 'كلمة ← معنى',
+    dirWordToMeaningDesc: 'شاهد الكلمة، اختر المعنى الصحيح',
+    dirMeaningToWordLabel: 'معنى ← كلمة',
+    dirMeaningToWordDesc: 'شاهد المعنى، اختر الكلمة الصحيحة (أصعب، خبرة أكثر)',
     choosePoolTitle: 'مع أي مجموعة كلمات تريد اللعب؟',
     poolOwnLabel: 'كلماتي',
     poolOwnDesc: 'تدرب بالكلمات التي تتعلمها',
@@ -164,6 +189,7 @@ const STRINGS: Record<Locale, Strings> = {
     ownEmptyError: 'لم تُضف أي كلمة بعد. أضف بعض الكلمات أولًا.',
     generalEmptyError: 'لا توجد كلمات في المجموعة العامة لهذا الزوج اللغوي.',
     questionPrompt: 'ما معنى هذه الكلمة؟',
+    questionPromptReverse: 'ما الكلمة التي تطابق هذا المعنى؟',
     questionCounterTpl: 'السؤال {n}',
     scoreLabel: 'النقاط',
     xpLabel: 'نقاط الخبرة',
@@ -191,6 +217,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Выбери правильное значение из 4 вариантов',
     modeWordleLabel: 'Виселица',
     modeWordleDesc: 'Угадай слово по буквам, глядя на его значение',
+    chooseDirectionTitle: 'В каком направлении хочешь тренироваться?',
+    dirWordToMeaningLabel: 'Слово → Значение',
+    dirWordToMeaningDesc: 'Смотри слово, выбирай правильное значение',
+    dirMeaningToWordLabel: 'Значение → Слово',
+    dirMeaningToWordDesc: 'Смотри значение, выбирай правильное слово (сложнее, больше опыта)',
     choosePoolTitle: 'С каким пулом слов хочешь играть?',
     poolOwnLabel: 'Мои слова',
     poolOwnDesc: 'Тренируйся на словах, которые изучаешь',
@@ -203,6 +234,7 @@ const STRINGS: Record<Locale, Strings> = {
     ownEmptyError: 'Вы ещё не добавили слов. Сначала добавьте несколько слов.',
     generalEmptyError: 'В общем пуле нет слов для этой языковой пары.',
     questionPrompt: 'Что означает это слово?',
+    questionPromptReverse: 'Какое слово соответствует этому значению?',
     questionCounterTpl: 'Вопрос {n}',
     scoreLabel: 'Счёт',
     xpLabel: 'Опыт',
@@ -230,6 +262,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Wähle die richtige Bedeutung aus 4 Optionen',
     modeWordleLabel: 'Galgenmännchen',
     modeWordleDesc: 'Errate das Wort anhand der Bedeutung, Buchstabe für Buchstabe',
+    chooseDirectionTitle: 'In welche Richtung möchtest du üben?',
+    dirWordToMeaningLabel: 'Wort → Bedeutung',
+    dirWordToMeaningDesc: 'Sieh das Wort, wähle die richtige Bedeutung',
+    dirMeaningToWordLabel: 'Bedeutung → Wort',
+    dirMeaningToWordDesc: 'Sieh die Bedeutung, wähle das richtige Wort (schwerer, mehr XP)',
     choosePoolTitle: 'Mit welchem Wortpool möchtest du spielen?',
     poolOwnLabel: 'Meine Wörter',
     poolOwnDesc: 'Übe mit den Wörtern, die du lernst',
@@ -242,6 +279,7 @@ const STRINGS: Record<Locale, Strings> = {
     ownEmptyError: 'Du hast noch keine Wörter hinzugefügt. Füge zuerst ein paar Wörter hinzu.',
     generalEmptyError: 'Für dieses Sprachpaar sind keine Wörter im allgemeinen Pool verfügbar.',
     questionPrompt: 'Was bedeutet dieses Wort?',
+    questionPromptReverse: 'Welches Wort passt zu dieser Bedeutung?',
     questionCounterTpl: 'Frage {n}',
     scoreLabel: 'Punkte',
     xpLabel: 'XP',
@@ -269,6 +307,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Choisis le bon sens parmi 4 options',
     modeWordleLabel: 'Pendu',
     modeWordleDesc: "Devine le mot lettre par lettre à partir de son sens",
+    chooseDirectionTitle: 'Dans quel sens veux-tu t\u2019entraîner ?',
+    dirWordToMeaningLabel: 'Mot → Sens',
+    dirWordToMeaningDesc: 'Vois le mot, choisis le bon sens',
+    dirMeaningToWordLabel: 'Sens → Mot',
+    dirMeaningToWordDesc: 'Vois le sens, choisis le bon mot (plus difficile, plus de XP)',
     choosePoolTitle: 'Avec quel pool de mots veux-tu jouer ?',
     poolOwnLabel: 'Mes mots',
     poolOwnDesc: "Entraîne-toi avec les mots que tu apprends",
@@ -281,6 +324,7 @@ const STRINGS: Record<Locale, Strings> = {
     ownEmptyError: "Tu n'as pas encore ajouté de mots. Ajoute d'abord quelques mots.",
     generalEmptyError: 'Aucun mot disponible dans le pool général pour cette paire de langues.',
     questionPrompt: 'Que signifie ce mot ?',
+    questionPromptReverse: 'Quel mot correspond à ce sens ?',
     questionCounterTpl: 'Question {n}',
     scoreLabel: 'Score',
     xpLabel: 'XP',
@@ -308,6 +352,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Elige el significado correcto entre 4 opciones',
     modeWordleLabel: 'Ahorcado',
     modeWordleDesc: 'Adivina la palabra letra por letra a partir de su significado',
+    chooseDirectionTitle: '¿En qué dirección quieres practicar?',
+    dirWordToMeaningLabel: 'Palabra → Significado',
+    dirWordToMeaningDesc: 'Ve la palabra, elige el significado correcto',
+    dirMeaningToWordLabel: 'Significado → Palabra',
+    dirMeaningToWordDesc: 'Ve el significado, elige la palabra correcta (más difícil, más XP)',
     choosePoolTitle: '¿Con qué grupo de palabras quieres jugar?',
     poolOwnLabel: 'Mis palabras',
     poolOwnDesc: 'Practica con las palabras que estás aprendiendo',
@@ -320,6 +369,7 @@ const STRINGS: Record<Locale, Strings> = {
     ownEmptyError: 'Aún no has añadido palabras. Añade algunas primero.',
     generalEmptyError: 'No hay palabras disponibles en el grupo general para este par de idiomas.',
     questionPrompt: '¿Qué significa esta palabra?',
+    questionPromptReverse: '¿Qué palabra corresponde a este significado?',
     questionCounterTpl: 'Pregunta {n}',
     scoreLabel: 'Puntuación',
     xpLabel: 'XP',
@@ -347,6 +397,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Scegli il significato corretto tra 4 opzioni',
     modeWordleLabel: 'Impiccato',
     modeWordleDesc: 'Indovina la parola lettera per lettera a partire dal suo significato',
+    chooseDirectionTitle: 'In quale direzione vuoi esercitarti?',
+    dirWordToMeaningLabel: 'Parola → Significato',
+    dirWordToMeaningDesc: 'Vedi la parola, scegli il significato corretto',
+    dirMeaningToWordLabel: 'Significato → Parola',
+    dirMeaningToWordDesc: 'Vedi il significato, scegli la parola corretta (più difficile, più XP)',
     choosePoolTitle: 'Con quale pool di parole vuoi giocare?',
     poolOwnLabel: 'Le mie parole',
     poolOwnDesc: 'Esercitati con le parole che stai imparando',
@@ -359,6 +414,7 @@ const STRINGS: Record<Locale, Strings> = {
     ownEmptyError: 'Non hai ancora aggiunto parole. Aggiungi prima qualche parola.',
     generalEmptyError: 'Nessuna parola disponibile nel pool generale per questa coppia di lingue.',
     questionPrompt: 'Cosa significa questa parola?',
+    questionPromptReverse: 'Quale parola corrisponde a questo significato?',
     questionCounterTpl: 'Domanda {n}',
     scoreLabel: 'Punteggio',
     xpLabel: 'XP',
@@ -382,7 +438,7 @@ const STRINGS: Record<Locale, Strings> = {
 
 const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 
-type Stage = 'mode' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
+type Stage = 'mode' | 'direction' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
 
 export default function GamePage() {
   const { locale } = useLocale();
@@ -390,6 +446,7 @@ export default function GamePage() {
 
   const [stage, setStage] = useState<Stage>('mode');
   const [gameMode, setGameMode] = useState<GameMode>('multiple_choice');
+  const [direction, setDirection] = useState<Direction>('word_to_meaning');
   const [poolSource, setPoolSource] = useState<PoolSource>('general');
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [current, setCurrent] = useState<NextWordResult | null>(null);
@@ -450,7 +507,7 @@ export default function GamePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const start = async (mode: GameMode, pool: PoolSource) => {
+  const start = async (mode: GameMode, pool: PoolSource, dir: Direction) => {
     setGameMode(mode);
     setPoolSource(pool);
     setStage('loading');
@@ -461,7 +518,7 @@ export default function GamePage() {
     setLevelUp(null);
     setFinishResult(null);
     try {
-      const session = await gamesApi.createSession(mode, pool);
+      const session = await gamesApi.createSession(mode, pool, dir);
       setSessionId(session.id);
       await loadNext(session.id, false, pool);
     } catch {
@@ -470,11 +527,13 @@ export default function GamePage() {
     }
   };
 
-  // ── çoktan seçmeli cevap ──
+  // ── çoktan seçmeli cevap (yöne göre doğru metin değişir) ──
   const handleAnswer = async (optionId: string, optionText: string) => {
     if (selectedId || !current || !sessionId) return;
     setSelectedId(optionId);
-    const isCorrect = optionText === current.meaning;
+    const currentDirection = current.direction ?? direction;
+    const correctText = currentDirection === 'meaning_to_word' ? current.word : current.meaning;
+    const isCorrect = optionText === correctText;
     setFeedback(isCorrect);
     try {
       const res = await gamesApi.submitAttempt(sessionId, {
@@ -555,7 +614,10 @@ export default function GamePage() {
           </p>
           <div className="flex flex-col gap-3">
             <button
-              onClick={() => { setGameMode('multiple_choice'); setStage('setup'); }}
+              onClick={() => {
+                setGameMode('multiple_choice');
+                setStage('direction');
+              }}
               className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
               <div className="w-9 h-9 shrink-0 rounded-lg bg-[#E6F1FB] flex items-center justify-center">
@@ -569,6 +631,7 @@ export default function GamePage() {
             <button
               onClick={() => {
                 setGameMode('wordle');
+                setDirection('meaning_to_word');
                 setStage('setup');
               }}
               className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
@@ -582,6 +645,50 @@ export default function GamePage() {
               </div>
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Yön seçimi (sadece çoktan seçmeli) ──
+  if (stage === 'direction') {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 w-full max-w-md text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#EEEDFE] flex items-center justify-center mx-auto mb-4">
+            <ArrowLeftRight className="w-7 h-7 text-[#534AB7]" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">{t.pageTitle}</h1>
+          <p className="text-sm text-gray-500 mt-1 mb-6">{t.chooseDirectionTitle}</p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                setDirection('word_to_meaning');
+                setStage('setup');
+              }}
+              className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <p className="text-sm font-semibold text-gray-800">{t.dirWordToMeaningLabel}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t.dirWordToMeaningDesc}</p>
+            </button>
+            <button
+              onClick={() => {
+                setDirection('meaning_to_word');
+                setStage('setup');
+              }}
+              className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <p className="text-sm font-semibold text-gray-800">{t.dirMeaningToWordLabel}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{t.dirMeaningToWordDesc}</p>
+            </button>
+          </div>
+          <button
+            onClick={() => setStage('mode')}
+            className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 mt-5"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            {t.backBtn}
+          </button>
         </div>
       </div>
     );
@@ -607,14 +714,14 @@ export default function GamePage() {
             <>
               <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => start(gameMode, 'general')}
+                  onClick={() => start(gameMode, 'general', direction)}
                   className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
                 >
                   <p className="text-sm font-semibold text-gray-800">{t.poolGeneralLabel}</p>
                   <p className="text-xs text-gray-500 mt-0.5">{t.poolGeneralDesc}</p>
                 </button>
                 <button
-                  onClick={() => start(gameMode, 'own')}
+                  onClick={() => start(gameMode, 'own', direction)}
                   className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
                 >
                   <p className="text-sm font-semibold text-gray-800">{t.poolOwnLabel}</p>
@@ -622,7 +729,7 @@ export default function GamePage() {
                 </button>
               </div>
               <button
-                onClick={() => setStage('mode')}
+                onClick={() => setStage(gameMode === 'multiple_choice' ? 'direction' : 'mode')}
                 className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 mt-5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -695,6 +802,8 @@ export default function GamePage() {
   if (!current) return null;
 
   const isWordle = gameMode === 'wordle';
+  const activeDirection = current.direction ?? direction;
+  const isReverse = !isWordle && activeDirection === 'meaning_to_word';
 
   return (
     <div className="p-6 flex flex-col items-center gap-6 max-w-xl mx-auto">
@@ -728,16 +837,21 @@ export default function GamePage() {
       {!isWordle && (
         <>
           <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t.questionPrompt}</p>
-            <p className="text-4xl font-bold text-gray-900 tracking-tight">{current.word}</p>
-            {current.example && (
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              {isReverse ? t.questionPromptReverse : t.questionPrompt}
+            </p>
+            <p className="text-4xl font-bold text-gray-900 tracking-tight">
+              {isReverse ? current.meaning : current.word}
+            </p>
+            {!isReverse && current.example && (
               <p className="text-sm text-gray-400 mt-3 italic">&ldquo;{current.example}&rdquo;</p>
             )}
           </div>
 
           <div className="w-full grid grid-cols-1 gap-3">
             {(current.options || []).map((opt) => {
-              const isCorrectOption = opt.text === current.meaning;
+              const correctText = isReverse ? current.word : current.meaning;
+              const isCorrectOption = opt.text === correctText;
               const isSelected = opt.id === selectedId;
               const answered = selectedId !== null;
 
@@ -879,4 +993,3 @@ export default function GamePage() {
     </div>
   );
 }
-
