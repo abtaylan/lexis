@@ -49,6 +49,15 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_NAME: str = "Lexis"
 
+    # ── Sosyal medya günlük içerik paylaşımı (Madde 3b, revize) ────
+    # "fixed" → test/geliştirme: gerçek paylaşım yapılmaz, üretilen içerik ve
+    #           hedef sadece log'a yazılır (OTP_MODE ile aynı desen).
+    # "real"  → production: Telegram Bot API + Slack webhook'a gerçekten gönderilir.
+    SOCIAL_POST_MODE: str = "fixed"
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_CHANNEL_ID: str = ""  # örn. "@lexis_kelime" ya da "-1001234567890"
+    SLACK_WEBHOOK_URL: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = True
