@@ -14,6 +14,7 @@ export interface User {
   daily_goal: number;
   native_lang?: string;
   learning_lang?: string;
+  learning_langs?: string[];
   created_at: string;
   is_premium?: boolean;
   premium_until?: string;
@@ -71,6 +72,18 @@ export interface Language {
   name_en: string;
   flag_emoji?: string;
   is_active: boolean;
+}
+
+// Kullanıcının öğrendiği bir dile ait satır (user_learning_languages tablosu,
+// Kullanıcı Madde 2 — çoklu dil öğrenme). GET/POST/PATCH /me/languages
+// endpoint'lerinden dönen ham satır şekli.
+export interface UserLanguage {
+  id: string;
+  user_id: string;
+  learning_lang: string;
+  is_active: boolean;
+  daily_goal?: number | null;
+  added_at: string;
 }
 
 export interface Word {
