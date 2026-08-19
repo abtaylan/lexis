@@ -331,11 +331,15 @@ export const adminApi = {
 // ── Games API (Kelime Tahmin Oyunu) ────────────────────────────
 export type GameMode = 'wordle' | 'multiple_choice' | 'typing' | 'matching' | 'listening' | 'sprint';
 export type PoolSource = 'own' | 'general';
+// multiple_choice modunda soru yönü. wordle modunda kullanılmaz (her zaman anlam
+// gösterilip kelime bulunur).
+export type Direction = 'word_to_meaning' | 'meaning_to_word';
 
 export interface GameSession {
   id: string;
   mode: GameMode;
   pool_source: PoolSource;
+  direction: Direction;
   score: number;
   xp_earned: number;
   started_at: string;
@@ -355,6 +359,7 @@ export interface NextWordResult {
   meaning?: string | null;
   example?: string | null;
   options?: GameWordOption[] | null;
+  direction?: Direction | null; // multiple_choice modunda dolu
   // ── wordle (adam asmaca) moduna özel alanlar ──
   word_length?: number | null;
   revealed?: string | null;
@@ -398,8 +403,12 @@ export interface GameFinishResult {
 }
 
 export const gamesApi = {
-  createSession: async (mode: GameMode, pool_source: PoolSource): Promise<GameSession> => {
-    const res = await api.post<GameSession>('/games/sessions', { mode, pool_source });
+  createSession: async (
+    mode: GameMode,
+    pool_source: PoolSource,
+    direction: Direction = 'word_to_meaning'
+  ): Promise<GameSession> => {
+    const res = await api.post<GameSession>('/games/sessions', { mode, pool_source, direction });
     return res.data;
   },
 
