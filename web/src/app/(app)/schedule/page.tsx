@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   Plus, Trash2, X, Clock, CalendarDays, ExternalLink, Loader2,
   Sparkles, Flame, Zap, Coffee, Check, Headphones, BookOpen,
-  GraduationCap, Save, Star, User as UserIcon,
+  GraduationCap, Save, Star, User as UserIcon, Bell,
 } from 'lucide-react';
 import { scheduleApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -314,7 +314,11 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
     if (!form.activity.trim()) { setError(t('activityRequired')); return; }
     setSaving(true);
     try {
-      const payload: ScheduleCreate = { ...form, activity_key: form.activity_key || undefined };
+      const payload: ScheduleCreate = {
+        ...form,
+        activity_key: form.activity_key || undefined,
+        reminder_lead: (form.reminder_lead || undefined) as ScheduleCreate['reminder_lead'],
+      };
       await onSave(payload); onClose();
     }
     catch (err: any) { setError(err?.response?.data?.detail || t('saveScheduleFailed')); }
@@ -353,6 +357,15 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
             <p className="text-[11px] text-gray-400 mt-1">Seçilirse, öğrenme dilinize göre otomatik bir kaynak linki önerilir (BBC, DW, TED-Ed vb.).</p>
           </div>
           <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('linkLabel')}</label><input type="url" value={form.link_url ?? ''} onChange={(e) => set('link_url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1"><Bell className="w-3 h-3" />{t('reminderLabel')}</label>
+            <select value={form.reminder_lead ?? ''} onChange={(e) => set('reminder_lead', e.target.value)} className={inputCls}>
+              <option value="">{t('reminderNone')}</option>
+              <option value="15min">{t('reminder15Min')}</option>
+              <option value="1hour">{t('reminder1Hour')}</option>
+              <option value="day_start">{t('reminderDayStart')}</option>
+            </select>
+          </div>
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
         </form>
         <div className="flex gap-3 px-6 pb-6">
@@ -460,6 +473,16 @@ export default function SchedulePage() {
   const handleToggle = async (item: ScheduleItem) => {
     try { await scheduleApi.update(item.id, { is_active: !item.is_active }); load(); } catch { /* sessiz */ }
   };
+  const handleReminderChange = async (item: ScheduleItem, value: string) => {
+    try {
+      if (!value) {
+        await scheduleApi.update(item.id, { clear_reminder: true });
+      } else {
+        await scheduleApi.update(item.id, { reminder_lead: value as ScheduleItem['reminder_lead'] });
+      }
+      load();
+    } catch { /* sessiz */ }
+  };
 
   const applyTemplate = async (templateItems: ScheduleCreate[], replace: boolean) => {
     if (replace) {
@@ -548,6 +571,19 @@ export default function SchedulePage() {
                             <ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{item.resolved_resource_title || displayLink.replace(/^https?:\/\//, '')}</span>
                           </a>
                         )}
+                        <div className="mt-1.5 flex items-center gap-1">
+                          <Bell className="w-3 h-3 text-gray-300 shrink-0" />
+                          <select
+                            value={item.reminder_lead ?? ''}
+                            onChange={(e) => handleReminderChange(item, e.target.value)}
+                            className="text-[11px] text-gray-500 bg-transparent border-none focus:outline-none focus:ring-0 py-0 pl-0 pr-4 cursor-pointer hover:text-[#185FA5]"
+                          >
+                            <option value="">{t('reminderNone')}</option>
+                            <option value="15min">{t('reminder15Min')}</option>
+                            <option value="1hour">{t('reminder1Hour')}</option>
+                            <option value="day_start">{t('reminderDayStart')}</option>
+                          </select>
+                        </div>
                       </div>
                     );
                   })}

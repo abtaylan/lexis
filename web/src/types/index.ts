@@ -164,6 +164,9 @@ export interface Stats {
   daily_history: DailyProgress[];
 }
 
+// Madde 3a — görev bazında hatırlatma tercihi. undefined/null = kapalı.
+export type ReminderLead = '15min' | '1hour' | 'day_start';
+
 export interface ScheduleItem {
   id: string;
   user_id: string;
@@ -176,6 +179,7 @@ export interface ScheduleItem {
   resolved_link_url?: string;
   resolved_resource_title?: string;
   is_active: boolean;
+  reminder_lead?: ReminderLead | null;
 }
 
 export interface ScheduleCreate {
@@ -185,6 +189,17 @@ export interface ScheduleCreate {
   duration_min: number;
   link_url?: string;
   activity_key?: string;
+  reminder_lead?: ReminderLead | null;
+}
+
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  schedule_item_id?: string | null;
+  is_read: boolean;
+  created_at: string;
 }
 
 export interface ScheduleTemplateItem {

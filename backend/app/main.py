@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.api.routes import auth, words, dictionary, stats, admin, schedule, languages, subscription, games, user_languages
+from app.api.routes import auth, words, dictionary, stats, admin, schedule, languages, subscription, games, user_languages, notifications
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -40,6 +40,7 @@ app.include_router(languages.router, prefix="/api/v1/languages", tags=["Language
 app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["Subscription"])
 app.include_router(games.router, prefix="/api/v1/games", tags=["Games"])
 app.include_router(user_languages.router, prefix="/api/v1/me/languages", tags=["User Languages"])
+app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
 
 @app.get("/health")
 async def health():

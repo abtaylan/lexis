@@ -2,9 +2,12 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Literal, Optional, List
 
 router = APIRouter()
+
+# Madde 3a — görev bazında hatırlatma tercihi. None = hatırlatma kapalı.
+ReminderLead = Literal["15min", "1hour", "day_start"]
 
 # Program aktivitelerinin bağlanabileceği kaynak kategorileri.
 # learning_resources tablosundaki 'category' alanıyla eşleşir.
@@ -23,6 +26,7 @@ class ScheduleItem(BaseModel):
     duration_min: int = 30
     link_url: Optional[str] = None
     activity_key: Optional[str] = None
+    reminder_lead: Optional[ReminderLead] = None
 
 class ScheduleUpdate(BaseModel):
     day_of_week: Optional[int] = None
@@ -32,6 +36,11 @@ class ScheduleUpdate(BaseModel):
     link_url: Optional[str] = None
     activity_key: Optional[str] = None
     is_active: Optional[bool] = None
+    reminder_lead: Optional[ReminderLead] = None
+    # reminder_lead'i "kapalı"ya (NULL) döndürmek için ayrı bir bayrak gerekiyor —
+    # model_dump(exclude_none=True) normal update akışında None alanları zaten
+    # atlıyor, bu yüzden reminder_lead=None göndermek "değiştirme" anlamına gelir.
+    clear_reminder: Optional[bool] = None
 
 # ── Aşama 4: Kişiye özel şablonlar ───────────────────────────
 
@@ -187,7 +196,10 @@ async def update_schedule_item(
     """
     Schedule item günceller. is_active toggle + alan güncellemeleri için.
     """
-    update_data = data.model_dump(exclude_none=True)
+    clear_reminder = data.clear_reminder
+    update_data = data.model_dump(exclude_none=True, exclude={"clear_reminder"})
+    if clear_reminder:
+        update_data["reminder_lead"] = None
     if not update_data:
         raise HTTPException(status_code=400, detail="Güncellenecek alan yok.")
     try:

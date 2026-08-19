@@ -20,6 +20,7 @@ import type {
   ScheduleCreate,
   ScheduleTemplate,
   ScheduleTemplateCreate,
+  Notification,
   AdminUser,
   AdminUserDetail,
   AdminStats,
@@ -276,7 +277,10 @@ export const scheduleApi = {
     const res = await api.post<ScheduleItem>('/schedule', data);
     return res.data;
   },
-  update: async (id: string, data: Partial<ScheduleCreate> & { is_active?: boolean }): Promise<ScheduleItem> => {
+  update: async (
+    id: string,
+    data: Partial<ScheduleCreate> & { is_active?: boolean; clear_reminder?: boolean }
+  ): Promise<ScheduleItem> => {
     const res = await api.patch<ScheduleItem>(`/schedule/${id}`, data);
     return res.data;
   },
@@ -468,5 +472,20 @@ export const gamesApi = {
   finishSession: async (sessionId: string): Promise<GameFinishResult> => {
     const res = await api.post<GameFinishResult>(`/games/sessions/${sessionId}/finish`);
     return res.data;
+  },
+};
+
+// ── Notifications API (Madde 3a — Dashboard bildirim alanı) ────
+export const notificationsApi = {
+  getAll: async (limit = 20): Promise<{ items: Notification[]; unread_count: number }> => {
+    const res = await api.get('/notifications', { params: { limit } });
+    return res.data;
+  },
+  markRead: async (id: string): Promise<Notification> => {
+    const res = await api.patch<Notification>(`/notifications/${id}/read`);
+    return res.data;
+  },
+  markAllRead: async (): Promise<void> => {
+    await api.patch('/notifications/read-all');
   },
 };

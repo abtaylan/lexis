@@ -64,7 +64,9 @@ type TranslationKey =
 | 'myLanguagesTitle' | 'addLanguageBtn' | 'addLanguageModalTitle' | 'selectLanguageLabel' | 'setActiveBtn'
 | 'activeBadgeLabel' | 'removeLanguageBtn' | 'removeLanguageConfirm' | 'cannotRemoveActiveLanguageError'
 | 'languageAlreadyAddedError' | 'addLanguageFailed' | 'removeLanguageFailed' | 'setActiveFailed'
-| 'learningLangsSelectLabel' | 'selectAtLeastOneLanguageError' | 'activeLanguageSwitcherLabel';
+| 'learningLangsSelectLabel' | 'selectAtLeastOneLanguageError' | 'activeLanguageSwitcherLabel'
+| 'reminderLabel' | 'reminderNone' | 'reminder15Min' | 'reminder1Hour' | 'reminderDayStart'
+| 'notificationsTitle' | 'noNotifications' | 'noNotificationsSub' | 'markAllReadBtn' | 'unreadCountTpl';
 
 type Dictionary = Record<TranslationKey, string>;
 
@@ -145,6 +147,10 @@ cannotRemoveActiveLanguageError: 'Aktif dili kaldıramazsın. Önce başka bir d
 addLanguageFailed: 'Dil eklenemedi.', removeLanguageFailed: 'Dil kaldırılamadı.', setActiveFailed: 'Aktif dil değiştirilemedi.',
 learningLangsSelectLabel: 'Öğrenmek istediğin diller (birden fazla seçebilirsin)', selectAtLeastOneLanguageError: 'En az bir dil seçmelisin.',
 activeLanguageSwitcherLabel: 'Çalışılan dil',
+reminderLabel: 'Hatırlatma', reminderNone: 'Yok', reminder15Min: '15 dk önce', reminder1Hour: '1 saat önce', reminderDayStart: 'Günün başında',
+notificationsTitle: 'Hatırlatmalar', noNotifications: 'Henüz bildirim yok',
+noNotificationsSub: 'Program sayfasından bir göreve hatırlatma ekleyince burada görünecek.',
+markAllReadBtn: 'Tümünü okundu işaretle', unreadCountTpl: '{n} okunmamış',
 },
 en: {
 dashboard: 'Dashboard', words: 'Words', flashcards: 'Flashcards', quiz: 'Quiz', schedule: 'Schedule', stats: 'Statistics', profile: 'Profile',
@@ -222,6 +228,10 @@ cannotRemoveActiveLanguageError: 'You cannot remove the active language. Set ano
 addLanguageFailed: 'Could not add language.', removeLanguageFailed: 'Could not remove language.', setActiveFailed: 'Could not switch active language.',
 learningLangsSelectLabel: 'Languages you want to learn (you can select more than one)', selectAtLeastOneLanguageError: 'You must select at least one language.',
 activeLanguageSwitcherLabel: 'Studying',
+reminderLabel: 'Reminder', reminderNone: 'None', reminder15Min: '15 min before', reminder1Hour: '1 hour before', reminderDayStart: 'At start of day',
+notificationsTitle: 'Reminders', noNotifications: 'No notifications yet',
+noNotificationsSub: 'Add a reminder to a task on the Schedule page and it will show up here.',
+markAllReadBtn: 'Mark all as read', unreadCountTpl: '{n} unread',
 },
 ar: {
 dashboard: 'لوحة التحكم', words: 'الكلمات', flashcards: 'البطاقات التعليمية', quiz: 'اختبار', schedule: 'البرنامج', stats: 'الإحصائيات', profile: 'الملف الشخصي',
@@ -299,6 +309,10 @@ cannotRemoveActiveLanguageError: 'لا يمكنك إزالة اللغة النش
 addLanguageFailed: 'تعذرت إضافة اللغة.', removeLanguageFailed: 'تعذرت إزالة اللغة.', setActiveFailed: 'تعذر تغيير اللغة النشطة.',
 learningLangsSelectLabel: 'اللغات التي تريد تعلمها (يمكنك اختيار أكثر من واحدة)', selectAtLeastOneLanguageError: 'يجب اختيار لغة واحدة على الأقل.',
 activeLanguageSwitcherLabel: 'اللغة قيد الدراسة',
+reminderLabel: 'التذكير', reminderNone: 'بلا', reminder15Min: 'قبل 15 دقيقة', reminder1Hour: 'قبل ساعة', reminderDayStart: 'في بداية اليوم',
+notificationsTitle: 'التذكيرات', noNotifications: 'لا توجد إشعارات بعد',
+noNotificationsSub: 'أضف تذكيرًا لمهمة من صفحة البرنامج وستظهر هنا.',
+markAllReadBtn: 'تعليم الكل كمقروء', unreadCountTpl: '{n} غير مقروء',
 },
 ru: {
 dashboard: 'Панель', words: 'Слова', flashcards: 'Карточки', quiz: 'Тест', schedule: 'Расписание', stats: 'Статистика', profile: 'Профиль',
@@ -376,6 +390,10 @@ cannotRemoveActiveLanguageError: 'Нельзя удалить активный �
 addLanguageFailed: 'Не удалось добавить язык.', removeLanguageFailed: 'Не удалось удалить язык.', setActiveFailed: 'Не удалось переключить активный язык.',
 learningLangsSelectLabel: 'Языки, которые хочешь изучать (можно выбрать несколько)', selectAtLeastOneLanguageError: 'Нужно выбрать хотя бы один язык.',
 activeLanguageSwitcherLabel: 'Изучается',
+reminderLabel: 'Напоминание', reminderNone: 'Нет', reminder15Min: 'За 15 мин', reminder1Hour: 'За 1 час', reminderDayStart: 'В начале дня',
+notificationsTitle: 'Напоминания', noNotifications: 'Пока нет уведомлений',
+noNotificationsSub: 'Добавьте напоминание к занятию на странице Программа, и оно появится здесь.',
+markAllReadBtn: 'Отметить все как прочитанные', unreadCountTpl: '{n} непрочитанных',
 },
 de: {
 dashboard: 'Dashboard', words: 'Wörter', flashcards: 'Karteikarten', quiz: 'Quiz', schedule: 'Zeitplan', stats: 'Statistik', profile: 'Profil',
@@ -453,6 +471,10 @@ cannotRemoveActiveLanguageError: 'Du kannst die aktive Sprache nicht entfernen. 
 addLanguageFailed: 'Sprache konnte nicht hinzugefügt werden.', removeLanguageFailed: 'Sprache konnte nicht entfernt werden.', setActiveFailed: 'Aktive Sprache konnte nicht geändert werden.',
 learningLangsSelectLabel: 'Sprachen, die du lernen möchtest (Mehrfachauswahl möglich)', selectAtLeastOneLanguageError: 'Du musst mindestens eine Sprache auswählen.',
 activeLanguageSwitcherLabel: 'Wird gelernt',
+reminderLabel: 'Erinnerung', reminderNone: 'Keine', reminder15Min: '15 Min. vorher', reminder1Hour: '1 Std. vorher', reminderDayStart: 'Zu Tagesbeginn',
+notificationsTitle: 'Erinnerungen', noNotifications: 'Noch keine Benachrichtigungen',
+noNotificationsSub: 'Füge auf der Programmseite einer Aufgabe eine Erinnerung hinzu, dann erscheint sie hier.',
+markAllReadBtn: 'Alle als gelesen markieren', unreadCountTpl: '{n} ungelesen',
 },
 fr: {
 dashboard: 'Tableau de bord', words: 'Mots', flashcards: 'Cartes mémo', quiz: 'Quiz', schedule: 'Programme', stats: 'Statistiques', profile: 'Profil',
@@ -530,6 +552,10 @@ cannotRemoveActiveLanguageError: "Tu ne peux pas supprimer la langue active. Act
 addLanguageFailed: "Impossible d'ajouter la langue.", removeLanguageFailed: 'Impossible de supprimer la langue.', setActiveFailed: 'Impossible de changer la langue active.',
 learningLangsSelectLabel: 'Langues que tu veux apprendre (tu peux en choisir plusieurs)', selectAtLeastOneLanguageError: 'Tu dois choisir au moins une langue.',
 activeLanguageSwitcherLabel: 'En cours d’apprentissage',
+reminderLabel: 'Rappel', reminderNone: 'Aucun', reminder15Min: '15 min avant', reminder1Hour: '1 heure avant', reminderDayStart: 'Au début de la journée',
+notificationsTitle: 'Rappels', noNotifications: 'Aucune notification pour le moment',
+noNotificationsSub: 'Ajoute un rappel à une tâche depuis la page Programme, il apparaîtra ici.',
+markAllReadBtn: 'Tout marquer comme lu', unreadCountTpl: '{n} non lu(s)',
 },
 es: {
 dashboard: 'Panel', words: 'Palabras', flashcards: 'Tarjetas', quiz: 'Cuestionario', schedule: 'Horario', stats: 'Estadísticas', profile: 'Perfil',
@@ -607,6 +633,10 @@ cannotRemoveActiveLanguageError: 'No puedes eliminar el idioma activo. Activa an
 addLanguageFailed: 'No se pudo añadir el idioma.', removeLanguageFailed: 'No se pudo eliminar el idioma.', setActiveFailed: 'No se pudo cambiar el idioma activo.',
 learningLangsSelectLabel: 'Idiomas que quieres aprender (puedes elegir más de uno)', selectAtLeastOneLanguageError: 'Debes seleccionar al menos un idioma.',
 activeLanguageSwitcherLabel: 'Aprendiendo',
+reminderLabel: 'Recordatorio', reminderNone: 'Ninguno', reminder15Min: '15 min antes', reminder1Hour: '1 hora antes', reminderDayStart: 'Al inicio del día',
+notificationsTitle: 'Recordatorios', noNotifications: 'Aún no hay notificaciones',
+noNotificationsSub: 'Agrega un recordatorio a una tarea desde la página Programa y aparecerá aquí.',
+markAllReadBtn: 'Marcar todo como leído', unreadCountTpl: '{n} sin leer',
 },
 it: {
 dashboard: 'Dashboard', words: 'Parole', flashcards: 'Flashcard', quiz: 'Quiz', schedule: 'Programma', stats: 'Statistiche', profile: 'Profilo',
@@ -684,6 +714,10 @@ cannotRemoveActiveLanguageError: 'Non puoi rimuovere la lingua attiva. Attiva pr
 addLanguageFailed: 'Impossibile aggiungere la lingua.', removeLanguageFailed: 'Impossibile rimuovere la lingua.', setActiveFailed: 'Impossibile cambiare la lingua attiva.',
 learningLangsSelectLabel: 'Lingue che vuoi imparare (puoi selezionarne più di una)', selectAtLeastOneLanguageError: 'Devi selezionare almeno una lingua.',
 activeLanguageSwitcherLabel: 'In apprendimento',
+reminderLabel: 'Promemoria', reminderNone: 'Nessuno', reminder15Min: '15 min prima', reminder1Hour: '1 ora prima', reminderDayStart: "All'inizio della giornata",
+notificationsTitle: 'Promemoria', noNotifications: 'Nessuna notifica ancora',
+noNotificationsSub: "Aggiungi un promemoria a un'attività dalla pagina Programma e apparirà qui.",
+markAllReadBtn: 'Segna tutto come letto', unreadCountTpl: '{n} non lette',
 },
 };
 

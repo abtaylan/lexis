@@ -64,3 +64,59 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
             server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
     except Exception as e:
         print(f"OTP EMAIL SEND ERROR ({to_email}): {e}")
+
+
+def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, lead_label: str) -> None:
+    """
+    Program (schedule) hatırlatma e-postası — Madde 3a.
+
+    OTP e-postalarıyla aynı SMTP/OTP_MODE altyapısını yeniden kullanır:
+    OTP_MODE=fixed iken gerçek mail atılmaz, sadece log'a yazılır. OTP
+    e-postalarıyla aynı şekilde (bkz. send_otp_email) içerik her zaman
+    Türkçe — kullanıcı arayüz diline göre çeviri yapılmıyor (mevcut
+    OTP e-postası da aynı sınırlamaya sahip, tutarlılık için korundu).
+
+    lead_label: kullanıcıya gösterilecek hazır Türkçe metin, örn.
+    "15 dakika sonra", "1 saat sonra", "bugün".
+    """
+    if settings.OTP_MODE != "real":
+        print(f"[REMINDER-DEV] {to_email} → '{activity}' ({time_slot}) {lead_label} başlıyor")
+        return
+
+    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
+        print(f"[REMINDER] SMTP ayarlanmamış, hatırlatma gönderilemedi: {to_email} → {activity}")
+        return
+
+    subject = f"Lexis Hatırlatma: {activity}"
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+      <h2 style="color:#0284c7; margin-bottom: 4px;">Lexis</h2>
+      <p style="color:#334155; font-size: 15px;">
+        Program görevin <strong>{lead_label}</strong> başlıyor:
+      </p>
+      <p style="font-size: 20px; font-weight: bold; color:#0f172a; margin: 16px 0 4px;">
+        {activity}
+      </p>
+      <p style="color:#64748b; font-size: 13px; margin-top: 0;">
+        Saat: {time_slot}
+      </p>
+      <p style="color:#94a3b8; font-size: 12px; margin-top: 20px;">
+        Bu hatırlatma tercihini Program sayfasından değiştirebilir veya kapatabilirsin.
+      </p>
+    </div>
+    """
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+    except Exception as e:
+        print(f"REMINDER EMAIL SEND ERROR ({to_email}): {e}")

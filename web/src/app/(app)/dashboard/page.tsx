@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  BookOpen, Clock, Target, Layers, Brain, CheckCircle2,
+  BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, CheckCheck,
 } from 'lucide-react';
-import { statsApi, wordsApi, languagesApi, userLanguagesApi } from '@/lib/api';
+import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
-import type { Stats, Word, DailyProgress, Language, UserLanguage } from '@/types';
+import type { Stats, Word, DailyProgress, Language, UserLanguage, Notification } from '@/types';
 
 function getWeekDays(history: DailyProgress[], dayLabels: string[]): {
   label: string;
@@ -52,6 +52,11 @@ export default function DashboardPage() {
   const [languages, setLanguages] = useState<Language[]>([]);
   const [switchingLang, setSwitchingLang] = useState(false);
 
+  // ── Bildirimler / hatırlatmalar (Madde 3a) ──
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifLoading, setNotifLoading] = useState(true);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('lexis_user');
@@ -91,6 +96,30 @@ export default function DashboardPage() {
     userLanguagesApi.getAll().then(setUserLangs).catch(() => {});
     languagesApi.getAll().then(setLanguages).catch(() => {});
   }, []);
+
+  const loadNotifications = () => {
+    notificationsApi
+      .getAll(8)
+      .then((res) => {
+        setNotifications(res.items);
+        setUnreadCount(res.unread_count);
+      })
+      .catch(() => {})
+      .finally(() => setNotifLoading(false));
+  };
+  useEffect(() => { loadNotifications(); }, []);
+
+  const handleMarkRead = async (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    setUnreadCount((c) => Math.max(0, c - 1));
+    try { await notificationsApi.markRead(id); } catch { loadNotifications(); }
+  };
+
+  const handleMarkAllRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+    try { await notificationsApi.markAllRead(); } catch { loadNotifications(); }
+  };
 
   const handleSwitchLang = async (code: string) => {
     if (switchingLang) return;
@@ -185,6 +214,65 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Bildirimler / hatırlatmalar (Madde 3a) */}
+      {!notifLoading && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#FAEEDA] flex items-center justify-center">
+                {unreadCount > 0 ? (
+                  <BellRing className="w-3.5 h-3.5 text-[#854F0B]" />
+                ) : (
+                  <Bell className="w-3.5 h-3.5 text-[#854F0B]" />
+                )}
+              </div>
+              <p className="text-sm font-medium text-gray-700">{t('notificationsTitle')}</p>
+              {unreadCount > 0 && (
+                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-[#FAEEDA] text-[#854F0B]">
+                  {t('unreadCountTpl').replace('{n}', String(unreadCount))}
+                </span>
+              )}
+            </div>
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#185FA5] transition-colors"
+              >
+                <CheckCheck className="w-3.5 h-3.5" />
+                {t('markAllReadBtn')}
+              </button>
+            )}
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="text-center py-3">
+              <p className="text-xs text-gray-400">{t('noNotifications')}</p>
+              <p className="text-[11px] text-gray-300 mt-0.5">{t('noNotificationsSub')}</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {notifications.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => !n.is_read && handleMarkRead(n.id)}
+                  className={`w-full flex items-start gap-2 text-left rounded-xl px-2.5 py-2 transition-colors ${
+                    n.is_read ? 'opacity-60' : 'bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.is_read ? 'bg-gray-200' : 'bg-[#378ADD]'}`}
+                  />
+                  <span className="min-w-0">
+                    <p className="text-xs font-medium text-gray-700 truncate">{n.title}</p>
+                    <p className="text-[11px] text-gray-400 truncate">{n.message}</p>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Streak banner */}
       {(stats?.current_streak ?? 0) > 0 && (
