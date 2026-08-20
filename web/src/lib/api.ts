@@ -21,6 +21,11 @@ import type {
   Language,
   DictionaryResult,
   AnalyticsData,
+  GameSession,
+  GameAttemptResult,
+  GameHistoryItem,
+  PlanInfo,
+  SubscriptionStatus,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -41,7 +46,13 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
+    // Sadece daha önce bir token ile yapılmış (yani "oturum süresi doldu")
+    // isteklerde otomatik /login'e yönlendir. Login/Register gibi henüz
+    // token'sız yapılan isteklerde 401 = "yanlış e-posta/şifre" demektir;
+    // bu durumda sayfa yeniden yönlendirilirse formdaki hata mesajı hiç
+    // görünmeden kaybolur (bkz. Madde 1b test notları).
+    const hadAuthHeader = !!error.config?.headers?.Authorization;
+    if (error.response?.status === 401 && hadAuthHeader && typeof window !== 'undefined') {
       localStorage.removeItem('lexis_token');
       localStorage.removeItem('lexis_user');
       window.location.href = '/login';
@@ -232,6 +243,60 @@ export const adminApi = {
   },
   getStats: async (): Promise<AdminStats> => {
     const res = await api.get<AdminStats>('/admin/stats');
+    return res.data;
+  },
+};
+
+// ── Games API (Kelime Oyunu) ────────────────────────────────────
+export const gamesApi = {
+  getModes: async (): Promise<{ modes: string[]; pool_sources: string[] }> => {
+    const res = await api.get('/games/modes');
+    return res.data;
+  },
+  start: async (data: {
+    mode?: string;
+    pool_source?: string;
+    direction?: string;
+    word_count?: number;
+  }): Promise<GameSession> => {
+    const res = await api.post<GameSession>('/games/start', data);
+    return res.data;
+  },
+  submitAttempt: async (
+    sessionId: string,
+    data: {
+      word_id?: string;
+      general_word_id?: string;
+      is_correct: boolean;
+      attempts_count?: number;
+      time_taken_ms?: number;
+    }
+  ): Promise<GameAttemptResult> => {
+    const res = await api.post<GameAttemptResult>(`/games/${sessionId}/attempt`, data);
+    return res.data;
+  },
+  finish: async (sessionId: string): Promise<{ id: string; score: number; xp_earned: number; ended_at: string }> => {
+    const res = await api.post(`/games/${sessionId}/finish`);
+    return res.data;
+  },
+  getHistory: async (limit = 20): Promise<GameHistoryItem[]> => {
+    const res = await api.get<GameHistoryItem[]>('/games/history', { params: { limit } });
+    return res.data;
+  },
+};
+
+// ── Subscription API (Premium) ──────────────────────────────────
+export const subscriptionApi = {
+  getPlans: async (): Promise<PlanInfo[]> => {
+    const res = await api.get<PlanInfo[]>('/subscription/plans');
+    return res.data;
+  },
+  getStatus: async (): Promise<SubscriptionStatus> => {
+    const res = await api.get<SubscriptionStatus>('/subscription/status');
+    return res.data;
+  },
+  checkout: async (planCode: string): Promise<{ message: string; checkout_url: string | null }> => {
+    const res = await api.post('/subscription/checkout', { plan_code: planCode });
     return res.data;
   },
 };

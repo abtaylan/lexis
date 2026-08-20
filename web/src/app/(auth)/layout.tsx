@@ -4,16 +4,26 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Zap } from 'lucide-react';
 import { useAuth } from '@/store/auth';
+import { useT } from '@/lib/i18n';
+import { LangSwitcher } from '@/components/layout/LangSwitcher';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const { t, lang, isRtl } = useT();
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       router.replace('/dashboard');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // Misafir arayüz diline göre <html> lang/dir ayarla (Arapça için RTL).
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = isRtl ? 'rtl' : 'ltr';
+  }, [lang, isRtl]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-slate-50 flex">
@@ -36,19 +46,18 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* Headline */}
         <div className="relative">
           <h2 className="text-3xl font-bold leading-tight mb-4">
-            Kelime öğrenmenin<br />en akıllı yolu
+            {t('auth.brand.headline')}
           </h2>
           <p className="text-sky-100 text-lg leading-relaxed">
-            Spaced repetition algoritması ile yalnızca doğru anda tekrar et.
-            Daha az çalış, daha çok öğren.
+            {t('auth.brand.subtitle')}
           </p>
 
           {/* Stats */}
           <div className="mt-10 grid grid-cols-3 gap-4">
             {[
-              { label: 'Algoritma', value: 'SM-2' },
-              { label: 'Dil desteği', value: 'EN→TR' },
-              { label: 'Ücretsiz', value: '100%' },
+              { label: t('auth.brand.statAlgorithm'), value: 'SM-2' },
+              { label: t('auth.brand.statLangSupport'), value: '9' },
+              { label: t('auth.brand.statFree'), value: '100%' },
             ].map((s) => (
               <div key={s.label} className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
                 <p className="text-2xl font-bold">{s.value}</p>
@@ -59,14 +68,19 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <p className="text-sky-200 text-sm relative">
-          © {new Date().getFullYear()} Lexis. Tüm hakları saklıdır.
+          {t('auth.brand.copyright', { year: new Date().getFullYear() })}
         </p>
       </div>
 
       {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-md animate-fade-in">
-          {children}
+      <div className="flex-1 flex flex-col p-6">
+        <div className="flex justify-end">
+          <LangSwitcher />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="w-full max-w-md animate-fade-in">
+            {children}
+          </div>
         </div>
       </div>
     </div>

@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { AdminSidebar } from '@/components/layout/AdminSidebar';
 import { useAuth } from '@/store/auth';
 import { Spinner } from '@/components/ui';
+import { useT } from '@/lib/i18n';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
+  const { t } = useT();
 
   useEffect(() => {
     if (isLoading) return;
@@ -19,7 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3"><Spinner size="lg" /><p className="text-sm text-slate-400">Yükleniyor…</p></div>
+        <div className="flex flex-col items-center gap-3"><Spinner size="lg" /><p className="text-sm text-slate-400">{t('app.loading')}</p></div>
       </div>
     );
   }

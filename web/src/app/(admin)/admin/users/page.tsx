@@ -8,6 +8,13 @@ import {
 } from 'lucide-react';
 import { adminApi, languagesApi } from '@/lib/api';
 import type { AdminUser, AdminUserDetail, Language } from '@/types';
+import { useT, type UiLang } from '@/lib/i18n';
+
+// ── Arayüz diline göre tarih biçimlendirme locale eşlemesi ─────
+const DATE_LOCALE: Record<UiLang, string> = {
+  tr: 'tr-TR', en: 'en-US', de: 'de-DE', fr: 'fr-FR', es: 'es-ES',
+  it: 'it-IT', ar: 'ar-SA', ru: 'ru-RU', ja: 'ja-JP',
+};
 
 // ── Kullanıcı oluşturma modalı ────────────────────────────────
 function CreateUserModal({ languages, onSave, onClose }: {
@@ -15,6 +22,7 @@ function CreateUserModal({ languages, onSave, onClose }: {
   onSave: (data: any) => Promise<void>;
   onClose: () => void;
 }) {
+  const { t } = useT();
   const [form, setForm] = useState({
     display_name: '', email: '', password: '',
     role: 'user', daily_goal: 5, native_lang: 'tr', learning_lang: 'en',
@@ -26,13 +34,19 @@ function CreateUserModal({ languages, onSave, onClose }: {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.email || !form.password || !form.display_name) { setError('Ad, e-posta ve şifre zorunludur.'); return; }
-    if (form.native_lang === form.learning_lang) { setError('Öğrenilen dil ana dilden farklı olmalı.'); return; }
+    if (!form.email || !form.password || !form.display_name) { setError(t('admin.users.create.errorRequired')); return; }
+    if (form.native_lang === form.learning_lang) { setError(t('admin.users.create.errorLangSame')); return; }
     setSaving(true);
     try { await onSave(form); onClose(); }
-    catch (err: any) { setError(err?.response?.data?.detail || 'Kullanıcı oluşturulamadı.'); }
+    catch (err: any) { setError(err?.response?.data?.detail || t('admin.users.create.errorGeneric')); }
     finally { setSaving(false); }
   };
+
+  const fields = [
+    { f: 'display_name', l: t('admin.users.create.fieldName'), inputType: 'text', ph: t('auth.register.displayNamePlaceholder') },
+    { f: 'email', l: t('admin.users.create.fieldEmail'), inputType: 'email', ph: t('auth.register.emailPlaceholder') },
+    { f: 'password', l: t('admin.users.create.fieldPassword'), inputType: 'password', ph: t('auth.register.passwordPlaceholder') },
+  ];
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -40,34 +54,30 @@ function CreateUserModal({ languages, onSave, onClose }: {
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 sticky top-0 bg-white">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#EEEDFE] flex items-center justify-center"><Users className="w-4 h-4 text-[#534AB7]" /></div>
-            <h2 className="text-base font-semibold text-gray-900">Yeni Kullanıcı</h2>
+            <h2 className="text-base font-semibold text-gray-900">{t('admin.users.create.title')}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
-          {[
-            { f: 'display_name', l: 'Ad Soyad *', t: 'text', ph: 'Ahmet Yılmaz' },
-            { f: 'email', l: 'E-posta *', t: 'email', ph: 'ornek@email.com' },
-            { f: 'password', l: 'Şifre *', t: 'password', ph: 'En az 6 karakter' },
-          ].map(({ f, l, t, ph }) => (
+          {fields.map(({ f, l, inputType, ph }) => (
             <div key={f}>
               <label className="block text-xs font-medium text-gray-600 mb-1">{l}</label>
-              <input type={t} value={(form as any)[f]} onChange={(e) => set(f, e.target.value)} placeholder={ph}
+              <input type={inputType} value={(form as any)[f]} onChange={(e) => set(f, e.target.value)} placeholder={ph}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition" />
             </div>
           ))}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="flex items-center gap-1 text-xs font-medium text-gray-600 mb-1"><Globe className="w-3 h-3" />Ana dil</label>
+              <label className="flex items-center gap-1 text-xs font-medium text-gray-600 mb-1"><Globe className="w-3 h-3" />{t('admin.users.nativeLang')}</label>
               <select value={form.native_lang} onChange={(e) => set('native_lang', e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition">
                 {languages.map((l) => <option key={l.code} value={l.code}>{l.flag_emoji} {l.name_native}</option>)}
               </select>
             </div>
             <div>
-              <label className="flex items-center gap-1 text-xs font-medium text-gray-600 mb-1"><GraduationCap className="w-3 h-3" />Öğrenilen</label>
+              <label className="flex items-center gap-1 text-xs font-medium text-gray-600 mb-1"><GraduationCap className="w-3 h-3" />{t('admin.users.create.learningLangShort')}</label>
               <select value={form.learning_lang} onChange={(e) => set('learning_lang', e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition">
                 {languages.map((l) => <option key={l.code} value={l.code}>{l.flag_emoji} {l.name_native}</option>)}
@@ -77,14 +87,14 @@ function CreateUserModal({ languages, onSave, onClose }: {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Rol</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('profile.role')}</label>
               <select value={form.role} onChange={(e) => set('role', e.target.value)}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition">
                 <option value="user">user</option><option value="admin">admin</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Günlük Hedef</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('dashboard.dailyGoal')}</label>
               <input type="number" min={1} max={50} value={form.daily_goal} onChange={(e) => set('daily_goal', Number(e.target.value))}
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition" />
             </div>
@@ -94,9 +104,9 @@ function CreateUserModal({ languages, onSave, onClose }: {
         </form>
 
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">İptal</button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('activityModal.cancel')}</button>
           <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#534AB7] hover:bg-[#473fa0] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
-            {saving ? 'Oluşturuluyor…' : 'Oluştur'}
+            {saving ? t('admin.users.create.submitting') : t('admin.users.create.submit')}
           </button>
         </div>
       </div>
@@ -106,6 +116,7 @@ function CreateUserModal({ languages, onSave, onClose }: {
 
 // ── Detay paneli ──────────────────────────────────────────────
 function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => void }) {
+  const { t, lang } = useT();
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -117,7 +128,7 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 sticky top-0 bg-white">
-          <h2 className="text-base font-semibold text-gray-900">Kullanıcı Detayı</h2>
+          <h2 className="text-base font-semibold text-gray-900">{t('admin.users.detail.title')}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
         </div>
 
@@ -134,24 +145,24 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
                 <p className="text-sm text-gray-500">{detail.email}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${detail.role === 'admin' ? 'bg-[#EEEDFE] text-[#534AB7]' : 'bg-gray-100 text-gray-500'}`}>{detail.role}</span>
-                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${detail.is_active ? 'bg-[#EAF3DE] text-[#3B6D11]' : 'bg-red-50 text-red-600'}`}>{detail.is_active ? 'Aktif' : 'Pasif'}</span>
+                  <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${detail.is_active ? 'bg-[#EAF3DE] text-[#3B6D11]' : 'bg-red-50 text-red-600'}`}>{detail.is_active ? t('admin.users.status.active') : t('admin.users.status.inactive')}</span>
                 </div>
               </div>
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Kelime İstatistikleri</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('admin.users.detail.wordStatsTitle')}</p>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { l: 'Toplam', v: detail.total_words, bg: 'bg-[#E6F1FB]', t: 'text-[#185FA5]', i: <BookOpen className="w-4 h-4" /> },
-                  { l: 'Öğrenildi', v: detail.learned, bg: 'bg-[#EAF3DE]', t: 'text-[#3B6D11]', i: <CheckCircle2 className="w-4 h-4" /> },
-                  { l: 'Öğreniliyor', v: detail.learning, bg: 'bg-[#FAEEDA]', t: 'text-[#854F0B]', i: <RefreshCw className="w-4 h-4" /> },
-                  { l: 'Bugün', v: detail.words_today, bg: 'bg-[#E1F5EE]', t: 'text-[#0F6E56]', i: <Target className="w-4 h-4" /> },
-                  { l: 'Aktif Liste', v: detail.active_words, bg: 'bg-[#E6F1FB]', t: 'text-[#185FA5]', i: <Archive className="w-4 h-4" /> },
-                  { l: 'Pasif Liste', v: detail.passive_words, bg: 'bg-gray-100', t: 'text-gray-500', i: <Archive className="w-4 h-4" /> },
-                ].map(({ l, v, bg, t, i }) => (
+                  { l: t('admin.users.detail.stat.total'), v: detail.total_words, bg: 'bg-[#E6F1FB]', t: 'text-[#185FA5]', i: <BookOpen className="w-4 h-4" /> },
+                  { l: t('dashboard.learned'), v: detail.learned, bg: 'bg-[#EAF3DE]', t: 'text-[#3B6D11]', i: <CheckCircle2 className="w-4 h-4" /> },
+                  { l: t('dashboard.learning'), v: detail.learning, bg: 'bg-[#FAEEDA]', t: 'text-[#854F0B]', i: <RefreshCw className="w-4 h-4" /> },
+                  { l: t('admin.users.detail.stat.today'), v: detail.words_today, bg: 'bg-[#E1F5EE]', t: 'text-[#0F6E56]', i: <Target className="w-4 h-4" /> },
+                  { l: t('admin.users.detail.stat.activeList'), v: detail.active_words, bg: 'bg-[#E6F1FB]', t: 'text-[#185FA5]', i: <Archive className="w-4 h-4" /> },
+                  { l: t('admin.users.detail.stat.passiveList'), v: detail.passive_words, bg: 'bg-gray-100', t: 'text-gray-500', i: <Archive className="w-4 h-4" /> },
+                ].map(({ l, v, bg, t: color, i }) => (
                   <div key={l} className="bg-slate-50 rounded-xl p-3 flex items-center gap-2">
-                    <div className={`w-7 h-7 rounded-lg ${bg} ${t} flex items-center justify-center shrink-0`}>{i}</div>
+                    <div className={`w-7 h-7 rounded-lg ${bg} ${color} flex items-center justify-center shrink-0`}>{i}</div>
                     <div><p className="text-base font-bold text-gray-900">{v}</p><p className="text-xs text-gray-500">{l}</p></div>
                   </div>
                 ))}
@@ -159,16 +170,16 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
             </div>
 
             <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Hesap Bilgileri</p>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">{t('admin.users.detail.accountInfoTitle')}</p>
               <div>
                 {[
-                  { l: 'Kullanıcı adı', v: detail.username || '—', i: <Users className="w-3.5 h-3.5" /> },
-                  { l: 'Şifre', v: detail.password_masked || '••••••••••', i: <KeyRound className="w-3.5 h-3.5" /> },
-                  { l: 'Ana dil', v: detail.native_lang || '—', i: <Globe className="w-3.5 h-3.5" /> },
-                  { l: 'Öğrenilen dil', v: detail.learning_lang || '—', i: <GraduationCap className="w-3.5 h-3.5" /> },
-                  { l: 'Günlük hedef', v: `${detail.daily_goal ?? 5} kelime`, i: <Target className="w-3.5 h-3.5" /> },
-                  { l: 'Kayıt tarihi', v: new Date(detail.created_at).toLocaleDateString('tr-TR', { day:'numeric', month:'long', year:'numeric' }), i: <Calendar className="w-3.5 h-3.5" /> },
-                  { l: 'Kullanıcı ID', v: detail.id, i: <Users className="w-3.5 h-3.5" /> },
+                  { l: t('profile.username'), v: detail.username || '—', i: <Users className="w-3.5 h-3.5" /> },
+                  { l: t('auth.login.password'), v: detail.password_masked || '••••••••••', i: <KeyRound className="w-3.5 h-3.5" /> },
+                  { l: t('admin.users.nativeLang'), v: detail.native_lang || '—', i: <Globe className="w-3.5 h-3.5" /> },
+                  { l: t('admin.users.detail.field.learningLang'), v: detail.learning_lang || '—', i: <GraduationCap className="w-3.5 h-3.5" /> },
+                  { l: t('dashboard.dailyGoal'), v: t('admin.users.detail.wordsUnit', { n: detail.daily_goal ?? 5 }), i: <Target className="w-3.5 h-3.5" /> },
+                  { l: t('admin.users.detail.field.createdAt'), v: new Date(detail.created_at).toLocaleDateString(DATE_LOCALE[lang], { day:'numeric', month:'long', year:'numeric' }), i: <Calendar className="w-3.5 h-3.5" /> },
+                  { l: t('admin.users.detail.field.userId'), v: detail.id, i: <Users className="w-3.5 h-3.5" /> },
                 ].map(({ l, v, i }) => (
                   <div key={l} className="flex items-center justify-between py-2.5 border-b border-gray-50 last:border-0">
                     <div className="flex items-center gap-2 text-xs text-gray-500">{i}{l}</div>
@@ -178,7 +189,7 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
               </div>
             </div>
           </div>
-        ) : <p className="p-6 text-sm text-gray-400">Detay yüklenemedi.</p>}
+        ) : <p className="p-6 text-sm text-gray-400">{t('admin.users.detail.loadError')}</p>}
       </div>
     </div>
   );
@@ -186,6 +197,7 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
 
 // ── Ana sayfa ─────────────────────────────────────────────────
 export default function AdminUsersPage() {
+  const { t, lang } = useT();
   const [users, setUsers]     = useState<AdminUser[]>([]);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(true);
@@ -197,7 +209,7 @@ export default function AdminUsersPage() {
   const load = async () => {
     setLoading(true);
     try { setUsers(await adminApi.getUsers()); }
-    catch { setError('Kullanıcılar yüklenemedi.'); }
+    catch { setError(t('admin.users.loadError')); }
     finally { setLoading(false); }
   };
 
@@ -207,24 +219,25 @@ export default function AdminUsersPage() {
       { code: 'en', name_native: 'English', name_en: 'English', flag_emoji: '🇬🇧', is_active: true },
       { code: 'tr', name_native: 'Türkçe', name_en: 'Turkish', flag_emoji: '🇹🇷', is_active: true },
     ]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRoleToggle = async (u: AdminUser) => {
     const newRole = u.role === 'admin' ? 'user' : 'admin';
-    if (!confirm(`${u.email} rolü "${newRole}" olsun mu?`)) return;
-    try { await adminApi.updateUserRole(u.id, newRole); load(); } catch { alert('Rol güncellenemedi.'); }
+    if (!confirm(t('admin.users.confirmRoleChange', { email: u.email, role: newRole }))) return;
+    try { await adminApi.updateUserRole(u.id, newRole); load(); } catch { alert(t('admin.users.roleUpdateError')); }
   };
 
   const handleToggleActive = async (u: AdminUser) => {
     try {
       if (u.is_active) {
-        if (!confirm(`${u.email} deaktif edilsin mi?`)) return;
+        if (!confirm(t('admin.users.confirmDeactivate', { email: u.email }))) return;
         await adminApi.deactivateUser(u.id);
       } else {
         await adminApi.activateUser(u.id);
       }
       load();
-    } catch { alert('İşlem başarısız.'); }
+    } catch { alert(t('admin.users.actionError')); }
   };
 
   const handleCreate = async (data: any) => { await adminApi.createUser(data); load(); };
@@ -236,40 +249,46 @@ export default function AdminUsersPage() {
     (u.username || '').toLowerCase().includes(search.toLowerCase())
   );
 
+  const columns = [
+    t('admin.users.col.user'), t('admin.users.col.email'), t('profile.username'),
+    t('auth.login.password'), t('profile.role'), t('admin.users.col.status'),
+    t('admin.users.col.registered'), '',
+  ];
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Kişiler</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Sistemdeki tüm kullanıcılar</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('admin.users.title')}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('admin.users.subtitle')}</p>
         </div>
         <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-[#534AB7] hover:bg-[#473fa0] text-white rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition-colors">
-          <Plus className="w-4 h-4" />Kullanıcı Ekle
+          <Plus className="w-4 h-4" />{t('admin.users.addButton')}
         </button>
       </div>
 
       <div className="relative max-w-sm">
         <Users className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input type="text" placeholder="İsim, e-posta veya kullanıcı adı ara…" value={search} onChange={(e) => setSearch(e.target.value)}
+        <input type="text" placeholder={t('admin.users.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)}
           className="pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm w-full focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition" />
       </div>
 
       {loading ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">Yükleniyor…</span></div>
+          <div className="flex flex-col items-center gap-3 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">{t('app.loading')}</span></div>
         </div>
       ) : error ? (
         <div className="bg-red-50 text-red-600 rounded-2xl px-4 py-3 text-sm">{error}</div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-700">Kullanıcılar</h2>
-            <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{filtered.length} kayıt</span>
+            <h2 className="text-sm font-semibold text-gray-700">{t('admin.users.tableTitle')}</h2>
+            <span className="text-xs font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t('admin.users.recordCount', { n: filtered.length })}</span>
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                {['Kullanıcı','E-posta','Kullanıcı adı','Şifre','Rol','Durum','Kayıt',''].map((h, i) => (
+                {columns.map((h, i) => (
                   <th key={i} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -288,17 +307,17 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${u.is_active ? 'bg-[#EAF3DE] text-[#3B6D11]' : 'bg-red-50 text-red-600'}`}>
-                      {u.is_active ? 'Aktif' : 'Pasif'}
+                      {u.is_active ? t('admin.users.status.active') : t('admin.users.status.inactive')}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400">{new Date(u.created_at).toLocaleDateString('tr-TR', { day:'numeric', month:'short', year:'numeric' })}</td>
+                  <td className="px-4 py-3 text-xs text-gray-400">{new Date(u.created_at).toLocaleDateString(DATE_LOCALE[lang], { day:'numeric', month:'short', year:'numeric' })}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">
-                      <button onClick={() => setDetailId(u.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#534AB7] hover:bg-[#EEEDFE] transition-colors" title="Detay"><ChevronRight className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleRoleToggle(u)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#534AB7] hover:bg-[#EEEDFE] transition-colors opacity-0 group-hover:opacity-100" title={u.role === 'admin' ? 'Admin kaldır' : 'Admin yap'}>
+                      <button onClick={() => setDetailId(u.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#534AB7] hover:bg-[#EEEDFE] transition-colors" title={t('admin.users.action.detail')}><ChevronRight className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleRoleToggle(u)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#534AB7] hover:bg-[#EEEDFE] transition-colors opacity-0 group-hover:opacity-100" title={u.role === 'admin' ? t('admin.users.action.removeAdmin') : t('admin.users.action.makeAdmin')}>
                         {u.role === 'admin' ? <ShieldOff className="w-3.5 h-3.5" /> : <ShieldCheck className="w-3.5 h-3.5" />}
                       </button>
-                      <button onClick={() => handleToggleActive(u)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100 ${u.is_active ? 'text-gray-400 hover:text-red-500 hover:bg-red-50' : 'text-gray-400 hover:text-[#3B6D11] hover:bg-[#EAF3DE]'}`} title={u.is_active ? 'Deaktif et' : 'Aktif et'}>
+                      <button onClick={() => handleToggleActive(u)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100 ${u.is_active ? 'text-gray-400 hover:text-red-500 hover:bg-red-50' : 'text-gray-400 hover:text-[#3B6D11] hover:bg-[#EAF3DE]'}`} title={u.is_active ? t('admin.users.action.deactivate') : t('admin.users.action.activate')}>
                         {u.is_active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                       </button>
                     </div>

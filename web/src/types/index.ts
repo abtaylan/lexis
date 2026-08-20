@@ -17,6 +17,64 @@ export interface User {
   created_at: string;
 }
 
+// ── Game (Kelime Oyunu) ─────────────────────────────────────────
+
+export interface GameWordItem {
+  id: string;
+  word: string;
+  meaning: string;
+  example?: string;
+}
+
+export interface GameSession {
+  id: string;
+  mode: string;
+  pool_source: string;
+  direction: string;
+  learning_lang: string;
+  score: number;
+  xp_earned: number;
+  started_at: string;
+  ended_at?: string;
+  words: GameWordItem[];
+}
+
+export interface GameAttemptResult {
+  id: string;
+  is_correct: boolean;
+  xp_awarded: number;
+  total_score: number;
+  total_xp: number;
+}
+
+export interface GameHistoryItem {
+  id: string;
+  mode: string;
+  pool_source: string;
+  score: number;
+  xp_earned: number;
+  started_at: string;
+  ended_at?: string;
+}
+
+// ── Subscription (Premium) ──────────────────────────────────────
+
+export interface PlanInfo {
+  code: string;
+  name: string;
+  price_try: number;
+  period: string;
+  features: string[];
+}
+
+export interface SubscriptionStatus {
+  is_premium: boolean;
+  premium_until?: string;
+  plan_code?: string;
+  status?: string;
+  current_period_end?: string;
+}
+
 export interface AuthResponse {
   access_token: string;
   refresh_token: string;

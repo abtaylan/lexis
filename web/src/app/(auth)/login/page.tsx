@@ -5,11 +5,13 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { authApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
+import { useT } from '@/lib/i18n';
 import type { User } from '@/types';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
+  const { t } = useT();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -33,14 +35,16 @@ export default function LoginPage() {
       const me = await authApi.getMe();
 
       const user: User = {
-        id:           me.id,
-        email:        me.email,
-        display_name: me.display_name,
-        username:     (me as any).username || me.display_name || '',
-        is_admin:     (me as any).is_admin ?? (me as any).role === 'admin',
-        role:         (me as any).role,
-        daily_goal:   (me as any).daily_goal ?? 5,
-        created_at:   (me as any).created_at || new Date().toISOString(),
+        id:            me.id,
+        email:         me.email,
+        display_name:  me.display_name,
+        username:      (me as any).username || me.display_name || '',
+        is_admin:      (me as any).is_admin ?? (me as any).role === 'admin',
+        role:          (me as any).role,
+        daily_goal:    (me as any).daily_goal ?? 5,
+        native_lang:   me.native_lang,
+        learning_lang: me.learning_lang,
+        created_at:    (me as any).created_at || new Date().toISOString(),
       };
 
       login(res.access_token, user);
@@ -48,7 +52,7 @@ export default function LoginPage() {
     } catch (err: any) {
       localStorage.removeItem('lexis_token');
       setError(
-        err?.response?.data?.detail || 'Giriş yapılamadı. Bilgilerinizi kontrol edin.'
+        err?.response?.data?.detail || t('auth.login.error')
       );
     } finally {
       setLoading(false);
@@ -58,11 +62,11 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-md p-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">Lexis'e Giriş Yap</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6 text-center">{t('auth.login.title')}</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">E-posta</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('auth.login.email')}</label>
             <input
               type="email"
               name="email"
@@ -74,7 +78,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Şifre</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('auth.login.password')}</label>
             <input
               type="password"
               name="password"
@@ -94,14 +98,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-medium rounded-lg py-2 text-sm transition-colors"
           >
-            {loading ? 'Giriş yapılıyor…' : 'Giriş Yap'}
+            {loading ? t('auth.login.submitting') : t('auth.login.submit')}
           </button>
         </form>
 
         <p className="mt-4 text-center text-sm text-gray-500">
-          Hesabın yok mu?{' '}
+          {t('auth.login.noAccount')}{' '}
           <Link href="/register" className="text-blue-600 hover:underline">
-            Kayıt ol
+            {t('auth.login.registerLink')}
           </Link>
         </p>
       </div>

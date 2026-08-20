@@ -3,9 +3,16 @@
 import { useEffect, useState } from 'react';
 import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '@/lib/api';
+import { useT } from '@/lib/i18n';
 import type { User as UserType } from '@/types';
 
+const LOCALE_MAP: Record<string, string> = {
+  tr: 'tr-TR', en: 'en-US', de: 'de-DE', fr: 'fr-FR',
+  es: 'es-ES', it: 'it-IT', ar: 'ar-SA', ru: 'ru-RU', ja: 'ja-JP',
+};
+
 export default function ProfilePage() {
+  const { t, lang } = useT();
   const [user, setUser]               = useState<UserType | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername]       = useState('');
@@ -28,7 +35,7 @@ export default function ProfilePage() {
         setEmail(u.email ?? '');
         setDailyGoal(u.daily_goal ?? 10);
       })
-      .catch(() => setError('Profil bilgileri yüklenemedi.'))
+      .catch(() => setError(t('profile.loadError')))
       .finally(() => setLoading(false));
   }, []);
 
@@ -60,15 +67,16 @@ export default function ProfilePage() {
         }
       }
     } catch (err: any) {
-      setError(err?.response?.data?.detail || 'Kaydedilemedi, tekrar deneyin.');
+      setError(err?.response?.data?.detail || t('profile.saveError'));
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading) return <div className="p-6 text-sm text-gray-400">Yükleniyor…</div>;
+  if (loading) return <div className="p-6 text-sm text-gray-400">{t('app.loading')}</div>;
 
   const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
+  const dateLocale = LOCALE_MAP[lang] ?? 'tr-TR';
 
   return (
     <div className="p-6 max-w-lg space-y-6">
@@ -77,7 +85,7 @@ export default function ProfilePage() {
           <User className="w-5 h-5 text-blue-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Profil</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('profile.title')}</h1>
           <p className="text-sm text-gray-400">{user?.email}</p>
         </div>
       </div>
@@ -85,28 +93,28 @@ export default function ProfilePage() {
       <form onSubmit={handleSave} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
         {/* Görünen ad */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Görünen ad</label>
-          <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Adınız" maxLength={60} className={inputCls} />
+          <label className="block text-xs font-medium text-gray-600 mb-1">{t('profile.displayName')}</label>
+          <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder={t('profile.displayNamePlaceholder')} maxLength={60} className={inputCls} />
         </div>
 
         {/* Kullanıcı adı — düzenlenebilir */}
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1"><AtSign className="w-3 h-3" />Kullanıcı adı</label>
-          <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="kullaniciadi" maxLength={50} className={inputCls} />
+          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1"><AtSign className="w-3 h-3" />{t('profile.username')}</label>
+          <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder={t('profile.usernamePlaceholder')} maxLength={50} className={inputCls} />
         </div>
 
         {/* E-posta — düzenlenebilir */}
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1"><Mail className="w-3 h-3" />E-posta</label>
+          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1"><Mail className="w-3 h-3" />{t('profile.email')}</label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@email.com" className={inputCls} />
-          <p className="text-xs text-gray-400 mt-1">E-postayı değiştirirsen Supabase doğrulama maili gönderebilir.</p>
+          <p className="text-xs text-gray-400 mt-1">{t('profile.emailNote')}</p>
         </div>
 
         {/* Şifre — yeni şifre */}
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1"><Lock className="w-3 h-3" />Yeni şifre</label>
+          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1"><Lock className="w-3 h-3" />{t('profile.newPassword')}</label>
           <div className="relative">
-            <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Değiştirmek istemiyorsan boş bırak" className={inputCls} />
+            <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('profile.newPasswordPlaceholder')} className={inputCls} />
             <button type="button" onClick={() => setShowPw((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -115,7 +123,7 @@ export default function ProfilePage() {
 
         {/* Günlük hedef */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">Günlük kelime hedefi</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">{t('profile.dailyGoal')}</label>
           <div className="flex items-center gap-3">
             <input type="range" min={1} max={50} value={dailyGoal} onChange={(e) => setDailyGoal(Number(e.target.value))} className="flex-1 accent-blue-600" />
             <span className="w-12 text-center text-sm font-semibold text-blue-600 bg-blue-50 rounded-lg py-1">{dailyGoal}</span>
@@ -125,15 +133,15 @@ export default function ProfilePage() {
         {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
 
         <button type="submit" disabled={saving} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
-          {saved ? <><CheckCircle className="w-4 h-4" /> Kaydedildi</> : <><Save className="w-4 h-4" />{saving ? 'Kaydediliyor…' : 'Kaydet'}</>}
+          {saved ? <><CheckCircle className="w-4 h-4" /> {t('profile.saved')}</> : <><Save className="w-4 h-4" />{saving ? t('profile.saving') : t('profile.save')}</>}
         </button>
       </form>
 
       <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5 space-y-3">
-        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Hesap Bilgileri</h2>
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('profile.accountInfo')}</h2>
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div><p className="text-gray-400 text-xs">Rol</p><p className="font-medium text-gray-700 capitalize">{user?.role ?? '—'}</p></div>
-          <div><p className="text-gray-400 text-xs">Üyelik tarihi</p><p className="font-medium text-gray-700">{user?.created_at ? new Date(user.created_at).toLocaleDateString('tr-TR') : '—'}</p></div>
+          <div><p className="text-gray-400 text-xs">{t('profile.role')}</p><p className="font-medium text-gray-700 capitalize">{user?.role ?? '—'}</p></div>
+          <div><p className="text-gray-400 text-xs">{t('profile.memberSince')}</p><p className="font-medium text-gray-700">{user?.created_at ? new Date(user.created_at).toLocaleDateString(dateLocale) : '—'}</p></div>
         </div>
       </div>
     </div>

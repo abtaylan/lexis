@@ -5,27 +5,34 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, Layers, HelpCircle,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3,
+  Gamepad2, Crown,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
+import { useT } from '@/lib/i18n';
 
+// Not: kelime oyunu ve premium menüleri dil/kullanıcı ayrımı yapılmadan
+// tüm kullanıcılara açık — bkz. kalan işler listesi Madde 1c.
 const navItems = [
-  { href: '/dashboard',  label: 'Dashboard',  icon: LayoutDashboard },
-  { href: '/words',      label: 'Kelimeler',   icon: BookOpen },
-  { href: '/flashcards', label: 'Flashcards',  icon: Layers },
-  { href: '/quiz',       label: 'Quiz',        icon: HelpCircle },
-  { href: '/schedule',   label: 'Program',     icon: CalendarDays },
-  { href: '/stats',      label: 'İstatistik',  icon: BarChart3 },
-  { href: '/profile',    label: 'Profil',      icon: User },
+  { href: '/dashboard',  key: 'nav.dashboard',  icon: LayoutDashboard },
+  { href: '/words',      key: 'nav.words',      icon: BookOpen },
+  { href: '/flashcards', key: 'nav.flashcards', icon: Layers },
+  { href: '/quiz',       key: 'nav.quiz',       icon: HelpCircle },
+  { href: '/game',       key: 'nav.game',       icon: Gamepad2 },
+  { href: '/schedule',   key: 'nav.schedule',   icon: CalendarDays },
+  { href: '/stats',      key: 'nav.stats',      icon: BarChart3 },
+  { href: '/premium',    key: 'nav.premium',    icon: Crown },
+  { href: '/profile',    key: 'nav.profile',    icon: User },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const router   = useRouter();
   const { user, logout } = useAuth();
+  const { t } = useT();
 
   const handleLogout = () => { logout(); router.push('/login'); };
 
-  const displayName = user?.display_name || user?.username || user?.email?.split('@')[0] || 'Kullanıcı';
+  const displayName = user?.display_name || user?.username || user?.email?.split('@')[0] || t('sidebar.user');
   const avatarLetter = displayName[0].toUpperCase();
 
   return (
@@ -35,14 +42,14 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, key, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
             <Link key={href} href={href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 active ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
               }`}>
-              <Icon className="w-4 h-4 shrink-0" />{label}
+              <Icon className="w-4 h-4 shrink-0" />{t(key)}
             </Link>
           );
         })}
@@ -52,7 +59,7 @@ export function Sidebar() {
       {user?.is_admin && (
         <Link href="/admin/users"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-[#534AB7] bg-[#EEEDFE] hover:bg-[#e0ddfc] transition-colors mb-3">
-          <ShieldCheck className="w-4 h-4 shrink-0" />Yönetim Paneli
+          <ShieldCheck className="w-4 h-4 shrink-0" />{t('sidebar.adminPanel')}
         </Link>
       )}
 
@@ -65,7 +72,7 @@ export function Sidebar() {
           </div>
         </div>
         <button onClick={handleLogout} className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-          <LogOut className="w-4 h-4 shrink-0" />Çıkış Yap
+          <LogOut className="w-4 h-4 shrink-0" />{t('sidebar.logout')}
         </button>
       </div>
     </aside>

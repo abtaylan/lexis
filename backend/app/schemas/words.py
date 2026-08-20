@@ -43,16 +43,16 @@ class WordResponse(BaseModel):
     id: str
     word: str
     meaning: str
-    meaning_tr: Optional[str]
-    meaning_en: Optional[str]
-    example: Optional[str]
-    word_type: Optional[str]
-    word_type_tr: Optional[str]
+    meaning_tr: Optional[str] = None
+    meaning_en: Optional[str] = None
+    example: Optional[str] = None
+    word_type: Optional[str] = None
+    word_type_tr: Optional[str] = None
     list_type: str
     status: str
-    repetition_count: int
-    last_reviewed_at: Optional[datetime]
-    next_review_at: Optional[datetime]
+    repetition_count: int = 0
+    last_reviewed_at: Optional[datetime] = None
+    next_review_at: Optional[datetime] = None
     created_at: datetime
 
 

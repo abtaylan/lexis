@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # .env'de Settings'te tanımsız ek alanlar (IYZICO_*, OTP_*, SMTP_*, TELEGRAM_*, vb.) olabiliyor; bunlar başka yerlerde os.getenv ile okunuyor
 
 
 settings = Settings()
