@@ -3,13 +3,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Trash2, X, Clock, CalendarDays, ExternalLink, Loader2,
-  Sparkles, Flame, Zap, Coffee, Check,
+  Sparkles, Flame, Zap, Coffee, Check, Headphones, BookOpen,
+  GraduationCap, Save, Star, User as UserIcon, Bell,
 } from 'lucide-react';
 import { scheduleApi } from '@/lib/api';
-import { useAuth } from '@/store/auth';
-import { useT } from '@/lib/i18n';
-import { TEMPLATE_DEFS, resolveTemplate, SUPPORTED_TEMPLATE_LANGS, type LangCode } from '@/lib/scheduleTemplates';
-import type { ScheduleItem, ScheduleCreate } from '@/types';
+import { useLocale } from '@/lib/i18n';
+import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem } from '@/types';
 
 // Gün adları artık useT() ile çözülüyor; sıra (0=Pazar…6=Cumartesi) TEMPLATE_DEFS'teki
 // day_of_week ile birebir eşleşecek şekilde korunuyor.
@@ -26,6 +25,39 @@ const DAY_COLORS = [
   { bg: 'bg-[#E1F5EE]', text: 'text-[#0F6E56]', dot: 'bg-[#0F6E56]' },
   { bg: 'bg-[#E6F1FB]', text: 'text-[#185FA5]', dot: 'bg-[#185FA5]' },
   { bg: 'bg-[#FAEEDA]', text: 'text-[#854F0B]', dot: 'bg-[#854F0B]' },
+];
+
+const TASK_LINKS: Record<string, string> = {
+  'Teknik Makale': 'https://medium.com/tag/english-learning',
+  'Haber Okuma': 'https://www.bbc.co.uk/learningenglish',
+  'LingoClip': 'https://lingoclip.com/',
+  'Video Analizi': 'https://www.youtube.com/@TEDEd',
+  'Genel Tekrar': 'https://quizlet.com/',
+  'Kelime Tekrarı': '',
+  'Dizi/Film': 'https://www.netflix.com/',
+  'Podcast': 'https://www.bbc.co.uk/learningenglish/english/features/6-minute-english',
+  // Aşama 4: yeni kaynak-bazlı etkinlikler
+  'WordBox English': '',
+  'News in Levels': 'https://www.newsinlevels.com/',
+  'More to Read': '',
+  'Max and Mia Podcast': 'https://learnenglish.britishcouncil.org/general-english/audio-series/max-and-mia',
+  'YÖKDİL Sözlük Kitabı': '',
+  'Voice of America': 'https://learningenglish.voanews.com/',
+  "Luke's English Podcast": 'https://teacherluke.co.uk/',
+};
+
+// Aşama 5: çok dilli program kaynakları — activity_key seçici için kategori etiketleri.
+// Backend ACTIVITY_CATEGORIES ile birebir eşleşir (learning_resources.category).
+// Not: bu etiketler kasıtlı olarak i18n sistemine dahil edilmedi — Program sayfasında
+// yalnızca UI etiketleri çevriliyor, müfredat/kaynak kategorisi içeriği değil
+// (bkz. TASK_LINKS ve TEMPLATES içindeki aktivite adları — onlar da çevrilmiyor).
+const CATEGORY_OPTIONS: { key: string; label: string }[] = [
+  { key: '', label: 'Kaynak kategorisi yok (elle link)' },
+  { key: 'news_reading', label: 'Haber Okuma' },
+  { key: 'technical_article', label: 'Teknik Makale' },
+  { key: 'video_analysis', label: 'Video Analizi' },
+  { key: 'audio_practice', label: 'Dinleme Pratiği' },
+  { key: 'general_review', label: 'Genel Tekrar' },
 ];
 
 // ── Hazır program şablonları ──────────────────────────────────
@@ -47,42 +79,136 @@ const TEMPLATE_ICONS: Record<'flame' | 'zap' | 'coffee', React.ReactNode> = {
   coffee: <Coffee className="w-5 h-5" />,
 };
 
-function buildTemplates(
-  learningLang: string | undefined,
-  t: (key: string, vars?: Record<string, string | number>) => string
-): Template[] {
-  const lang: LangCode = SUPPORTED_TEMPLATE_LANGS.includes(learningLang as LangCode)
-    ? (learningLang as LangCode)
-    : 'en';
-  return TEMPLATE_DEFS.map((def) => ({
-    id: def.id,
-    // Şablon adı/açıklaması kullanıcının arayüz diline göre çevrilir (def.id
-    // her zaman yogun/orta/hafif olduğundan i18n.ts'teki template.* anahtarlarıyla eşleşir).
-    name: t(`template.${def.id}.name`),
-    desc: t(`template.${def.id}.desc`),
-    icon: TEMPLATE_ICONS[def.icon],
-    accent: def.accent,
-    items: resolveTemplate(def, lang),
-  }));
-}
+const TEMPLATES: Template[] = [
+  {
+    id: 'yogun',
+    name: 'Yoğun',
+    desc: 'Her gün, sabah + akşam · ~hızlı ilerleme',
+    icon: <Flame className="w-5 h-5" />,
+    accent: '#854F0B',
+    items: [
+      { day_of_week: 1, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 1, time_slot: '20:00', activity: 'LingoClip', duration_min: 20, link_url: link('LingoClip') },
+      { day_of_week: 2, time_slot: '08:00', activity: 'Haber Okuma', duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 2, time_slot: '20:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 3, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 3, time_slot: '20:00', activity: 'Podcast', duration_min: 20, link_url: link('Podcast') },
+      { day_of_week: 4, time_slot: '08:00', activity: 'Haber Okuma', duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 4, time_slot: '20:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 5, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 5, time_slot: '20:00', activity: 'LingoClip', duration_min: 20, link_url: link('LingoClip') },
+      { day_of_week: 6, time_slot: '10:00', activity: 'Dizi/Film', duration_min: 45, link_url: link('Dizi/Film') },
+      { day_of_week: 0, time_slot: '10:00', activity: 'Genel Tekrar', duration_min: 45, link_url: link('Genel Tekrar') },
+    ],
+  },
+  {
+    id: 'orta',
+    name: 'Dengeli',
+    desc: 'Hafta içi günde 1 oturum · sürdürülebilir',
+    icon: <Zap className="w-5 h-5" />,
+    accent: '#185FA5',
+    items: [
+      { day_of_week: 1, time_slot: '19:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
+      { day_of_week: 2, time_slot: '19:00', activity: 'Haber Okuma', duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 3, time_slot: '19:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 4, time_slot: '19:00', activity: 'LingoClip', duration_min: 20, link_url: link('LingoClip') },
+      { day_of_week: 5, time_slot: '19:00', activity: 'Genel Tekrar', duration_min: 30, link_url: link('Genel Tekrar') },
+    ],
+  },
+  {
+    id: 'hafif',
+    name: 'Hafif',
+    desc: 'Haftada 3 gün · yoğun programa alternatif',
+    icon: <Coffee className="w-5 h-5" />,
+    accent: '#3B6D11',
+    items: [
+      { day_of_week: 1, time_slot: '20:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
+      { day_of_week: 3, time_slot: '20:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 6, time_slot: '11:00', activity: 'Genel Tekrar', duration_min: 40, link_url: link('Genel Tekrar') },
+    ],
+  },
+  // ── Aşama 4: kaynak-bazlı yeni alternatifler ──────────────
+  {
+    id: 'podcast',
+    name: 'Podcast Ağırlıklı',
+    desc: 'Dinleme becerisine odaklı · haftada 4 oturum',
+    icon: <Headphones className="w-5 h-5" />,
+    accent: '#B7451B',
+    items: [
+      { day_of_week: 1, time_slot: '20:00', activity: 'Voice of America', duration_min: 20, link_url: link('Voice of America') },
+      { day_of_week: 2, time_slot: '20:00', activity: "Luke's English Podcast", duration_min: 30, link_url: link("Luke's English Podcast") },
+      { day_of_week: 4, time_slot: '20:00', activity: 'Max and Mia Podcast', duration_min: 15, link_url: link('Max and Mia Podcast') },
+      { day_of_week: 6, time_slot: '11:00', activity: 'LingoClip', duration_min: 20, link_url: link('LingoClip') },
+    ],
+  },
+  {
+    id: 'okuma',
+    name: 'Okuma Ağırlıklı',
+    desc: 'Okuma-kelime dağarcığı odaklı · haftada 4 oturum',
+    icon: <BookOpen className="w-5 h-5" />,
+    accent: '#0F6E56',
+    items: [
+      { day_of_week: 1, time_slot: '19:30', activity: 'News in Levels', duration_min: 20, link_url: link('News in Levels') },
+      { day_of_week: 3, time_slot: '19:30', activity: 'More to Read', duration_min: 25, link_url: link('More to Read') },
+      { day_of_week: 5, time_slot: '19:30', activity: 'Teknik Makale', duration_min: 25, link_url: link('Teknik Makale') },
+      { day_of_week: 0, time_slot: '11:00', activity: 'WordBox English', duration_min: 20, link_url: link('WordBox English') },
+    ],
+  },
+  {
+    id: 'yokdil',
+    name: 'YÖKDİL Hazırlık',
+    desc: 'Sınav odaklı · yoğun kelime + okuma',
+    icon: <GraduationCap className="w-5 h-5" />,
+    accent: '#6D1B7B',
+    items: [
+      { day_of_week: 1, time_slot: '08:00', activity: 'YÖKDİL Sözlük Kitabı', duration_min: 30, link_url: link('YÖKDİL Sözlük Kitabı') },
+      { day_of_week: 2, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 25, link_url: link('Teknik Makale') },
+      { day_of_week: 3, time_slot: '08:00', activity: 'YÖKDİL Sözlük Kitabı', duration_min: 30, link_url: link('YÖKDİL Sözlük Kitabı') },
+      { day_of_week: 4, time_slot: '08:00', activity: 'News in Levels', duration_min: 20, link_url: link('News in Levels') },
+      { day_of_week: 5, time_slot: '08:00', activity: 'YÖKDİL Sözlük Kitabı', duration_min: 30, link_url: link('YÖKDİL Sözlük Kitabı') },
+      { day_of_week: 6, time_slot: '10:00', activity: 'Genel Tekrar', duration_min: 45, link_url: link('Genel Tekrar') },
+    ],
+  },
+];
 
-const EMPTY_FORM: ScheduleCreate = { day_of_week: 1, time_slot: '09:00', activity: '', duration_min: 30, link_url: '' };
+const EMPTY_FORM: ScheduleCreate = { day_of_week: 1, time_slot: '09:00', activity: '', duration_min: 30, link_url: '', activity_key: '' };
 
 // ── Şablon seçici modal ───────────────────────────────────────
 function TemplateModal({ templates, hasExisting, onApply, onClose }: {
   templates: Template[];
   hasExisting: boolean;
-  onApply: (t: Template, replace: boolean) => Promise<void>;
+  onApply: (items: ScheduleCreate[], replace: boolean) => Promise<void>;
   onClose: () => void;
 }) {
-  const { t } = useT();
+  const { t } = useLocale();
   const [applying, setApplying] = useState<string | null>(null);
-  const [replace, setReplace]   = useState(true);
+  const [replace, setReplace] = useState(true);
+  const [customTemplates, setCustomTemplates] = useState<ScheduleTemplate[]>([]);
+  const [loadingCustom, setLoadingCustom] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const apply = async (tpl: Template) => {
-    setApplying(tpl.id);
-    try { await onApply(tpl, replace); onClose(); }
+  useEffect(() => {
+    scheduleApi.getTemplates()
+      .then(setCustomTemplates)
+      .catch(() => setCustomTemplates([]))
+      .finally(() => setLoadingCustom(false));
+  }, []);
+
+  const apply = async (id: string, items: ScheduleCreate[]) => {
+    setApplying(id);
+    try { await onApply(items, replace); onClose(); }
     finally { setApplying(null); }
+  };
+
+  const removeCustom = async (id: string) => {
+    if (!confirm(t('deleteTemplateConfirm'))) return;
+    setDeletingId(id);
+    try {
+      await scheduleApi.deleteTemplate(id);
+      setCustomTemplates((prev) => prev.filter((t) => t.id !== id));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   return (
@@ -91,22 +217,22 @@ function TemplateModal({ templates, hasExisting, onApply, onClose }: {
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 sticky top-0 bg-white">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#EEEDFE] flex items-center justify-center"><Sparkles className="w-4 h-4 text-[#534AB7]" /></div>
-            <h2 className="text-base font-semibold text-gray-900">{t('templateModal.title')}</h2>
+            <h2 className="text-base font-semibold text-gray-900">{t('templatesModalTitle')}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="px-6 py-4 space-y-3">
-          <p className="text-sm text-gray-500">{t('templateModal.desc')}</p>
+          <p className="text-sm text-gray-500">{t('templatesModalDesc')}</p>
 
           {hasExisting && (
             <label className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 cursor-pointer">
               <input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} className="accent-[#534AB7]" />
-              {t('templateModal.replaceExisting')}
+              {t('replaceExistingLabel')}
             </label>
           )}
 
-          {templates.map((tpl) => (
+          {TEMPLATES.map((tpl) => (
             <div key={tpl.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
@@ -114,21 +240,73 @@ function TemplateModal({ templates, hasExisting, onApply, onClose }: {
                   <div>
                     <p className="font-semibold text-gray-900">{tpl.name}</p>
                     <p className="text-xs text-gray-500 mt-0.5">{tpl.desc}</p>
-                    <p className="text-xs text-gray-400 mt-1">{tpl.items.length} {t('templateModal.itemsPerWeek')}</p>
+                    <p className="text-xs text-gray-400 mt-1">{t('perWeekTpl').replace('{n}', String(tpl.items.length))}</p>
                   </div>
                 </div>
                 <button
-                  onClick={() => apply(tpl)}
+                  onClick={() => apply(tpl.id, tpl.items)}
                   disabled={applying !== null}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white shrink-0 transition-colors disabled:opacity-50"
                   style={{ backgroundColor: tpl.accent }}
                 >
                   {applying === tpl.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-                  {t('templateModal.apply')}
+                  {t('applyBtn')}
                 </button>
               </div>
             </div>
           ))}
+
+          {/* ── Kişiye özel şablonlar ── */}
+          <div className="pt-2">
+            <div className="flex items-center gap-2 mb-2">
+              <UserIcon className="w-4 h-4 text-gray-400" />
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('myTemplatesLabel')}</p>
+            </div>
+
+            {loadingCustom ? (
+              <div className="flex items-center gap-2 text-sm text-gray-400 px-1 py-2">
+                <Loader2 className="w-4 h-4 animate-spin" />{t('loading')}
+              </div>
+            ) : customTemplates.length === 0 ? (
+              <p className="text-xs text-gray-400 px-1 py-2">
+                {t('noCustomTemplates')}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {customTemplates.map((tpl) => (
+                  <div key={tpl.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#FEF3E7] text-[#B7791F]"><Star className="w-5 h-5" /></div>
+                        <div>
+                          <p className="font-semibold text-gray-900">{tpl.name}</p>
+                          <p className="text-xs text-gray-400 mt-1">{t('perWeekTpl').replace('{n}', String(tpl.items.length))}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => removeCustom(tpl.id)}
+                          disabled={deletingId === tpl.id}
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          title={t('deleteTemplateTooltip')}
+                        >
+                          {deletingId === tpl.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                        <button
+                          onClick={() => apply(tpl.id, tpl.items)}
+                          disabled={applying !== null}
+                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium text-white bg-[#B7791F] hover:bg-[#9c6519] transition-colors disabled:opacity-50"
+                        >
+                          {applying === tpl.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          {t('applyBtn')}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -137,7 +315,8 @@ function TemplateModal({ templates, hasExisting, onApply, onClose }: {
 
 // ── Etkinlik ekleme modalı ────────────────────────────────────
 function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => Promise<void>; onClose: () => void }) {
-  const { t } = useT();
+  const { t } = useLocale();
+  const weekdays = t('weekdayLabels').split(',');
   const [form, setForm] = useState<ScheduleCreate>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -145,10 +324,17 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.activity.trim()) { setError(t('activityModal.required')); return; }
+    if (!form.activity.trim()) { setError(t('activityRequired')); return; }
     setSaving(true);
-    try { await onSave(form); onClose(); }
-    catch (err: any) { setError(err?.response?.data?.detail || t('activityModal.saveError')); }
+    try {
+      const payload: ScheduleCreate = {
+        ...form,
+        activity_key: form.activity_key || undefined,
+        reminder_lead: (form.reminder_lead || undefined) as ScheduleCreate['reminder_lead'],
+      };
+      await onSave(payload); onClose();
+    }
+    catch (err: any) { setError(err?.response?.data?.detail || t('saveScheduleFailed')); }
     finally { setSaving(false); }
   };
 
@@ -160,28 +346,115 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#E1F5EE] flex items-center justify-center"><CalendarDays className="w-4 h-4 text-[#0F6E56]" /></div>
-            <h2 className="text-base font-semibold text-gray-900">{t('activityModal.title')}</h2>
+            <h2 className="text-base font-semibold text-gray-900">{t('addActivityModalTitle')}</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">{t('activityModal.day')}</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">{t('dayLabel')}</label>
             <select value={form.day_of_week} onChange={(e) => set('day_of_week', Number(e.target.value))} className={inputCls}>
-              {DAY_KEYS.map((key, i) => <option key={i} value={i}>{t(key)}</option>)}
+              {weekdays.map((d, i) => <option key={i} value={i}>{d}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('activityModal.time')}</label><input type="time" value={form.time_slot} onChange={(e) => set('time_slot', e.target.value)} className={inputCls} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('activityModal.duration')}</label><input type="number" min={5} step={5} value={form.duration_min} onChange={(e) => set('duration_min', Number(e.target.value))} className={inputCls} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('timeLabel')}</label><input type="time" value={form.time_slot} onChange={(e) => set('time_slot', e.target.value)} className={inputCls} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('durationLabel')}</label><input type="number" min={5} step={5} value={form.duration_min} onChange={(e) => set('duration_min', Number(e.target.value))} className={inputCls} /></div>
           </div>
-          <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('activityModal.activity')}</label><input type="text" value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder={t('activityModal.activityPlaceholder')} className={inputCls} /></div>
-          <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('activityModal.link')}</label><input type="url" value={form.link_url ?? ''} onChange={(e) => set('link_url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
+          <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('activityLabel')}</label><input type="text" value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder="örn. Flashcard çalışması" className={inputCls} /></div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Kaynak Kategorisi (opsiyonel)</label>
+            <select value={form.activity_key ?? ''} onChange={(e) => set('activity_key', e.target.value)} className={inputCls}>
+              {CATEGORY_OPTIONS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
+            </select>
+            <p className="text-[11px] text-gray-400 mt-1">Seçilirse, öğrenme dilinize göre otomatik bir kaynak linki önerilir (BBC, DW, TED-Ed vb.).</p>
+          </div>
+          <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('linkLabel')}</label><input type="url" value={form.link_url ?? ''} onChange={(e) => set('link_url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1"><Bell className="w-3 h-3" />{t('reminderLabel')}</label>
+            <select value={form.reminder_lead ?? ''} onChange={(e) => set('reminder_lead', e.target.value)} className={inputCls}>
+              <option value="">{t('reminderNone')}</option>
+              <option value="15min">{t('reminder15Min')}</option>
+              <option value="1hour">{t('reminder1Hour')}</option>
+              <option value="day_start">{t('reminderDayStart')}</option>
+            </select>
+          </div>
           {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
         </form>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('activityModal.cancel')}</button>
-          <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">{saving ? t('activityModal.saving') : t('activityModal.save')}</button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('cancelBtn')}</button>
+          <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">{saving ? t('savingBtn') : t('saveBtn')}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Şablon olarak kaydet modalı ───────────────────────────────
+function SaveTemplateModal({ items, onSaved, onClose }: {
+  items: ScheduleItem[];
+  onSaved: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useLocale();
+  const [name, setName] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSave = async () => {
+    if (!name.trim()) { setError(t('templateNameRequired')); return; }
+    setSaving(true);
+    setError('');
+    try {
+      const templateItems: ScheduleTemplateItem[] = items
+        .filter((it) => it.is_active !== false)
+        .map((it) => ({
+          day_of_week: it.day_of_week,
+          time_slot: it.time_slot,
+          activity: it.activity,
+          duration_min: it.duration_min,
+          link_url: it.link_url,
+        }));
+      await scheduleApi.createTemplate({ name: name.trim(), items: templateItems });
+      onSaved();
+      onClose();
+    } catch (err: any) {
+      setError(err?.response?.data?.detail || t('saveTemplateFailed'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#FEF3E7] flex items-center justify-center"><Star className="w-4 h-4 text-[#B7791F]" /></div>
+            <h2 className="text-base font-semibold text-gray-900">{t('saveTemplateModalTitle')}</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="px-6 py-4 space-y-3">
+          <p className="text-xs text-gray-500">{t('saveTemplateDesc')}</p>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">{t('templateNameLabel')}</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="örn. Benim Sınav Programım"
+              autoFocus
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
+        </div>
+        <div className="flex gap-3 px-6 pb-6">
+          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('cancelBtn')}</button>
+          <button onClick={handleSave} disabled={saving} className="flex-1 bg-[#B7791F] hover:bg-[#9c6519] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
+            {saving ? t('savingBtn') : t('saveBtn')}
+          </button>
         </div>
       </div>
     </div>
@@ -190,12 +463,13 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
 
 // ── Ana sayfa ─────────────────────────────────────────────────
 export default function SchedulePage() {
-  const { user } = useAuth();
-  const { t } = useT();
-  const [items, setItems]     = useState<ScheduleItem[]>([]);
+  const { t } = useLocale();
+  const weekdays = t('weekdayLabels').split(',');
+  const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal]       = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
 
   // Kullanıcının aktif öğrenme diline göre şablon kaynak linkleri (Madde 4);
   // şablon adı/açıklaması ise arayüz diline (native_lang) göre çevrilir.
@@ -210,26 +484,36 @@ export default function SchedulePage() {
 
   const handleCreate = async (data: ScheduleCreate) => { await scheduleApi.create(data); load(); };
   const handleDelete = async (id: string) => {
-    if (!confirm(t('schedule.deleteConfirm'))) return;
+    if (!confirm(t('deleteScheduleConfirm'))) return;
     await scheduleApi.delete(id); load();
   };
   const handleToggle = async (item: ScheduleItem) => {
     try { await scheduleApi.update(item.id, { is_active: !item.is_active }); load(); } catch { /* sessiz */ }
   };
+  const handleReminderChange = async (item: ScheduleItem, value: string) => {
+    try {
+      if (!value) {
+        await scheduleApi.update(item.id, { clear_reminder: true });
+      } else {
+        await scheduleApi.update(item.id, { reminder_lead: value as ScheduleItem['reminder_lead'] });
+      }
+      load();
+    } catch { /* sessiz */ }
+  };
 
-  const applyTemplate = async (tpl: Template, replace: boolean) => {
+  const applyTemplate = async (templateItems: ScheduleCreate[], replace: boolean) => {
     if (replace) {
       await Promise.all(items.map((it) => scheduleApi.delete(it.id).catch(() => {})));
     }
     // Sıralı ekle (rate-limit'e takılmamak için)
-    for (const it of tpl.items) {
+    for (const it of templateItems) {
       await scheduleApi.create(it).catch(() => {});
     }
     await load();
   };
 
-  const grouped = DAY_KEYS.map((key, i) => ({
-    day: t(key), dayIndex: i, color: DAY_COLORS[i],
+  const grouped = DAYS.map((day, i) => ({
+    day: weekdays[i] ?? day, dayIndex: i, color: DAY_COLORS[i],
     items: items.filter((it) => it.day_of_week === i).sort((a, b) => a.time_slot.localeCompare(b.time_slot)),
   }));
 
@@ -240,34 +524,39 @@ export default function SchedulePage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('schedule.title')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{t('schedule.summary', { days: activeDays, items: totalItems })}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('scheduleTitle')}</h1>
+          <p className="text-sm text-gray-500 mt-0.5">{t('activeDaysStatsTpl').replace('{days}', String(activeDays)).replace('{items}', String(totalItems))}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {items.length > 0 && (
+            <button onClick={() => setShowSaveTemplate(true)} className="flex items-center gap-2 bg-[#FEF3E7] hover:bg-[#fbe8cf] text-[#B7791F] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+              <Save className="w-4 h-4" />{t('saveAsTemplateBtn')}
+            </button>
+          )}
           <button onClick={() => setShowTemplates(true)} className="flex items-center gap-2 bg-[#EEEDFE] hover:bg-[#e0ddfc] text-[#534AB7] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-            <Sparkles className="w-4 h-4" />{t('schedule.templatesBtn')}
+            <Sparkles className="w-4 h-4" />{t('templatesBtn')}
           </button>
           <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition-colors">
-            <Plus className="w-4 h-4" />{t('schedule.addActivityBtn')}
+            <Plus className="w-4 h-4" />{t('addActivityBtn')}
           </button>
         </div>
       </div>
 
       {loading ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">{t('app.loading')}</span></div>
+          <div className="flex flex-col items-center gap-3 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">{t('loading')}</span></div>
         </div>
       ) : items.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#EEEDFE] flex items-center justify-center"><Sparkles className="w-7 h-7 text-[#534AB7]" /></div>
-          <p className="text-sm font-medium text-gray-700">{t('schedule.empty.title')}</p>
-          <p className="text-xs text-gray-400 max-w-xs">{t('schedule.empty.desc')}</p>
+          <p className="text-sm font-medium text-gray-700">{t('noScheduleYet')}</p>
+          <p className="text-xs text-gray-400 max-w-xs">{t('noScheduleYetSub')}</p>
           <div className="flex gap-2 mt-2">
             <button onClick={() => setShowTemplates(true)} className="flex items-center gap-2 bg-[#534AB7] hover:bg-[#473fa0] text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors">
-              <Sparkles className="w-4 h-4" />{t('schedule.chooseTemplateBtn')}
+              <Sparkles className="w-4 h-4" />{t('chooseTemplateBtn')}
             </button>
             <button onClick={() => setShowModal(true)} className="flex items-center gap-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl px-4 py-2 text-sm font-medium transition-colors">
-              <Plus className="w-4 h-4" />{t('schedule.manualAddBtn')}
+              <Plus className="w-4 h-4" />{t('manualAddBtn')}
             </button>
           </div>
         </div>
@@ -282,23 +571,39 @@ export default function SchedulePage() {
                   {dayItems.length > 0 && <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/60 ${color.text}`}>{dayItems.length}</span>}
                 </div>
                 <div className="p-3 space-y-2">
-                  {isEmpty ? <p className="text-xs text-gray-400 text-center py-2">{t('schedule.noActivity')}</p> : dayItems.map((item) => (
-                    <div key={item.id} className={`rounded-xl p-3 transition-colors group ${item.is_active === false ? 'bg-gray-50 opacity-50' : 'bg-slate-50 hover:bg-slate-100'}`}>
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-1 text-xs font-semibold text-[#185FA5]"><Clock className="w-3 h-3" />{item.time_slot}<span className="font-normal text-gray-400 ml-0.5">· {item.duration_min}{t('schedule.minutesShort')}</span></div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300'}`} title="Aç/Kapat" />
-                          <button onClick={() => handleDelete(item.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="w-3 h-3" /></button>
+                  {isEmpty ? <p className="text-xs text-gray-400 text-center py-2">{t('noActivity')}</p> : dayItems.map((item) => {
+                    const displayLink = item.resolved_link_url || item.link_url;
+                    return (
+                      <div key={item.id} className={`rounded-xl p-3 transition-colors group ${item.is_active === false ? 'bg-gray-50 opacity-50' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="flex items-center gap-1 text-xs font-semibold text-[#185FA5]"><Clock className="w-3 h-3" />{item.time_slot}<span className="font-normal text-gray-400 ml-0.5">· {item.duration_min}dk</span></div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300'}`} title={t('toggleTooltip')} />
+                            <button onClick={() => handleDelete(item.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="w-3 h-3" /></button>
+                          </div>
+                        </div>
+                        <p className="text-sm font-medium text-gray-800 truncate">{item.activity}</p>
+                        {displayLink && (
+                          <a href={displayLink} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-[#185FA5] transition-colors truncate">
+                            <ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{item.resolved_resource_title || displayLink.replace(/^https?:\/\//, '')}</span>
+                          </a>
+                        )}
+                        <div className="mt-1.5 flex items-center gap-1">
+                          <Bell className="w-3 h-3 text-gray-300 shrink-0" />
+                          <select
+                            value={item.reminder_lead ?? ''}
+                            onChange={(e) => handleReminderChange(item, e.target.value)}
+                            className="text-[11px] text-gray-500 bg-transparent border-none focus:outline-none focus:ring-0 py-0 pl-0 pr-4 cursor-pointer hover:text-[#185FA5]"
+                          >
+                            <option value="">{t('reminderNone')}</option>
+                            <option value="15min">{t('reminder15Min')}</option>
+                            <option value="1hour">{t('reminder1Hour')}</option>
+                            <option value="day_start">{t('reminderDayStart')}</option>
+                          </select>
                         </div>
                       </div>
-                      <p className="text-sm font-medium text-gray-800 truncate">{item.activity}</p>
-                      {item.link_url && (
-                        <a href={item.link_url} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-[#185FA5] transition-colors truncate">
-                          <ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{item.link_url.replace(/^https?:\/\//, '')}</span>
-                        </a>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -307,14 +612,8 @@ export default function SchedulePage() {
       )}
 
       {showModal && <ScheduleModal onSave={handleCreate} onClose={() => setShowModal(false)} />}
-      {showTemplates && (
-        <TemplateModal
-          templates={templates}
-          hasExisting={items.length > 0}
-          onApply={applyTemplate}
-          onClose={() => setShowTemplates(false)}
-        />
-      )}
+      {showTemplates && <TemplateModal hasExisting={items.length > 0} onApply={applyTemplate} onClose={() => setShowTemplates(false)} />}
+      {showSaveTemplate && <SaveTemplateModal items={items} onSaved={() => {}} onClose={() => setShowSaveTemplate(false)} />}
     </div>
   );
 }

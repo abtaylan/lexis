@@ -3,11 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  BookOpen, Clock, Target, Layers, Brain, CheckCircle2,
+  BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, CheckCheck,
 } from 'lucide-react';
-import { statsApi, wordsApi } from '@/lib/api';
-import { useT } from '@/lib/i18n';
-import type { Stats, Word, DailyProgress } from '@/types';
+import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi } from '@/lib/api';
+import { useLocale } from '@/lib/i18n';
+import type { Stats, Word, DailyProgress, Language, UserLanguage, Notification } from '@/types';
 
 function getWeekDays(history: DailyProgress[], dayLabels: string[]): {
   label: string;
@@ -38,14 +38,24 @@ function getWeekDays(history: DailyProgress[], dayLabels: string[]): {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { t } = useT();
-  const [stats, setStats]             = useState<Stats | null>(null);
-  const [dueWords, setDueWords]       = useState<Word[]>([]);
-  const [history, setHistory]         = useState<DailyProgress[]>([]);
+  const { t } = useLocale();
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [dueWords, setDueWords] = useState<Word[]>([]);
+  const [history, setHistory] = useState<DailyProgress[]>([]);
   const [recentWords, setRecentWords] = useState<Word[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState('');
-  const [username, setUsername]       = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [username, setUsername] = useState('');
+
+  // ── Aktif öğrenme dili değiştirici (Kullanıcı Madde 2: çoklu dil) ──
+  const [userLangs, setUserLangs] = useState<UserLanguage[]>([]);
+  const [languages, setLanguages] = useState<Language[]>([]);
+  const [switchingLang, setSwitchingLang] = useState(false);
+
+  // ── Bildirimler / hatırlatmalar (Madde 3a) ──
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notifLoading, setNotifLoading] = useState(true);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -73,18 +83,72 @@ export default function DashboardPage() {
         setHistory(hist);
         setRecentWords(words.items);
       } catch {
-        setError(t('dashboard.loadError'));
+        setError(t('loadingError'));
       } finally {
         setLoading(false);
       }
     };
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    userLanguagesApi.getAll().then(setUserLangs).catch(() => {});
+    languagesApi.getAll().then(setLanguages).catch(() => {});
+  }, []);
+
+  const loadNotifications = () => {
+    notificationsApi
+      .getAll(8)
+      .then((res) => {
+        setNotifications(res.items);
+        setUnreadCount(res.unread_count);
+      })
+      .catch(() => {})
+      .finally(() => setNotifLoading(false));
+  };
+  useEffect(() => { loadNotifications(); }, []);
+
+  const handleMarkRead = async (id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    setUnreadCount((c) => Math.max(0, c - 1));
+    try { await notificationsApi.markRead(id); } catch { loadNotifications(); }
+  };
+
+  const handleMarkAllRead = async () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+    try { await notificationsApi.markAllRead(); } catch { loadNotifications(); }
+  };
+
+  const handleSwitchLang = async (code: string) => {
+    if (switchingLang) return;
+    setSwitchingLang(true);
+    try {
+      await userLanguagesApi.setActive(code);
+      const [ul, s, due, hist, words] = await Promise.all([
+        userLanguagesApi.getAll(),
+        statsApi.getSummary(),
+        wordsApi.getDue(),
+        statsApi.getHistory(14),
+        wordsApi.getAll({ page: 1, per_page: 4 }),
+      ]);
+      setUserLangs(ul);
+      setStats(s);
+      setDueWords(due);
+      setHistory(hist);
+      setRecentWords(words.items);
+    } catch {
+      // Sessizce yut — dashboard verisi bir önceki dilde kalır, kullanıcı tekrar deneyebilir.
+    } finally {
+      setSwitchingLang(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64 text-sm text-gray-400">
-        {t('app.loading')}
+        {t('loading')}
       </div>
     );
   }
@@ -97,10 +161,7 @@ export default function DashboardPage() {
     ? Math.min(100, Math.round((stats.today_added / (stats.daily_goal || 1)) * 100))
     : 0;
 
-  const dayLabels = [
-    t('days.mon'), t('days.tue'), t('days.wed'), t('days.thu'),
-    t('days.fri'), t('days.sat'), t('days.sun'),
-  ];
+  const dayLabels = t('dayLabels').split(',');
   const weekDays = getWeekDays(history, dayLabels);
 
   const thisWeekTotal = weekDays.reduce((acc, d) => acc + d.count, 0);
@@ -113,22 +174,105 @@ export default function DashboardPage() {
     })
     .reduce((acc, h) => acc + h.words_added, 0);
 
-  const total       = stats?.total_words || 1;
-  const newCount    = Math.max(0, total - (stats?.learning ?? 0) - (stats?.learned ?? 0));
+  const total = stats?.total_words || 1;
+  const newCount = Math.max(0, total - (stats?.learning ?? 0) - (stats?.learned ?? 0));
   const learningPct = Math.round(((stats?.learning ?? 0) / total) * 100);
-  const learnedPct  = Math.round(((stats?.learned  ?? 0) / total) * 100);
-  const newPct      = Math.round((newCount / total) * 100);
+  const learnedPct = Math.round(((stats?.learned ?? 0) / total) * 100);
+  const newPct = Math.round((newCount / total) * 100);
+
+  const activeLangCode = userLangs.find((l) => l.is_active)?.learning_lang ?? '';
 
   return (
     <div className="p-6 space-y-4 max-w-5xl">
 
       {/* Başlık */}
-      <div className="mb-2">
-        <p className="text-lg font-medium text-gray-900">
-          {t('dashboard.greeting')}{username ? `, ${username}` : ''}
-        </p>
-        <p className="text-sm text-gray-400">{t('dashboard.subtitle')}</p>
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-lg font-medium text-gray-900">
+            {t('greeting')}{username ? `, ${username}` : ''}
+          </p>
+          <p className="text-sm text-gray-400">{t('dailySummarySubtitle')}</p>
+        </div>
+        {userLangs.length > 1 && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <label className="text-xs text-gray-400">{t('activeLanguageSwitcherLabel')}</label>
+            <select
+              value={activeLangCode}
+              onChange={(e) => handleSwitchLang(e.target.value)}
+              disabled={switchingLang}
+              className="text-sm border border-gray-200 rounded-xl px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              {userLangs.map((ul) => {
+                const meta = languages.find((l) => l.code === ul.learning_lang);
+                return (
+                  <option key={ul.learning_lang} value={ul.learning_lang}>
+                    {meta?.flag_emoji} {meta?.name_native ?? ul.learning_lang}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
       </div>
+
+      {/* Bildirimler / hatırlatmalar (Madde 3a) */}
+      {!notifLoading && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#FAEEDA] flex items-center justify-center">
+                {unreadCount > 0 ? (
+                  <BellRing className="w-3.5 h-3.5 text-[#854F0B]" />
+                ) : (
+                  <Bell className="w-3.5 h-3.5 text-[#854F0B]" />
+                )}
+              </div>
+              <p className="text-sm font-medium text-gray-700">{t('notificationsTitle')}</p>
+              {unreadCount > 0 && (
+                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-[#FAEEDA] text-[#854F0B]">
+                  {t('unreadCountTpl').replace('{n}', String(unreadCount))}
+                </span>
+              )}
+            </div>
+            {unreadCount > 0 && (
+              <button
+                onClick={handleMarkAllRead}
+                className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#185FA5] transition-colors"
+              >
+                <CheckCheck className="w-3.5 h-3.5" />
+                {t('markAllReadBtn')}
+              </button>
+            )}
+          </div>
+
+          {notifications.length === 0 ? (
+            <div className="text-center py-3">
+              <p className="text-xs text-gray-400">{t('noNotifications')}</p>
+              <p className="text-[11px] text-gray-300 mt-0.5">{t('noNotificationsSub')}</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {notifications.map((n) => (
+                <button
+                  key={n.id}
+                  onClick={() => !n.is_read && handleMarkRead(n.id)}
+                  className={`w-full flex items-start gap-2 text-left rounded-xl px-2.5 py-2 transition-colors ${
+                    n.is_read ? 'opacity-60' : 'bg-slate-50 hover:bg-slate-100'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.is_read ? 'bg-gray-200' : 'bg-[#378ADD]'}`}
+                  />
+                  <span className="min-w-0">
+                    <p className="text-xs font-medium text-gray-700 truncate">{n.title}</p>
+                    <p className="text-[11px] text-gray-400 truncate">{n.message}</p>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Streak banner */}
       {(stats?.current_streak ?? 0) > 0 && (
@@ -138,10 +282,10 @@ export default function DashboardPage() {
         >
           <div>
             <p className="text-sm font-medium" style={{ color: '#854F0B' }}>
-              {t('dashboard.streak', { n: stats!.current_streak })}
+              {stats!.current_streak} {t('streakActive')}
             </p>
             <p className="text-xs mt-0.5" style={{ color: '#BA7517' }}>
-              {t('dashboard.streakSub')}
+              {t('streakEncourage')}
             </p>
           </div>
           <span className="text-3xl">🔥</span>
@@ -152,23 +296,23 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         {[
           {
-            label: t('dashboard.totalWords'),
+            label: t('totalWords'),
             value: stats?.total_words ?? 0,
-            sub: t('dashboard.thisWeekPlus', { n: thisWeekTotal }),
+            sub: `+${thisWeekTotal} ${t('thisWeekLabel')}`,
             icon: <BookOpen className="w-4 h-4" />,
             iconBg: '#E6F1FB', iconColor: '#185FA5',
           },
           {
-            label: t('dashboard.todayAdded'),
+            label: t('addedToday'),
             value: stats?.today_added ?? 0,
-            sub: t('dashboard.goalN', { n: stats?.daily_goal ?? 5 }),
+            sub: `${t('goalLabel')}: ${stats?.daily_goal ?? 5}`,
             icon: <CheckCircle2 className="w-4 h-4" />,
             iconBg: '#EAF3DE', iconColor: '#3B6D11',
           },
           {
-            label: t('dashboard.dueReview'),
+            label: t('dueReview'),
             value: dueWords.length,
-            sub: t('dashboard.wordsInQueue'),
+            sub: t('wordsInQueue'),
             icon: <Clock className="w-4 h-4" />,
             iconBg: '#EEEDFE', iconColor: '#534AB7',
           },
@@ -191,16 +335,16 @@ export default function DashboardPage() {
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="text-sm font-medium text-gray-700">{t('dashboard.dailyGoal')}</p>
+            <p className="text-sm font-medium text-gray-700">{t('dailyGoal')}</p>
             <p className="text-xs text-gray-400">
-              {t('dashboard.wordsOfGoal', { a: stats?.today_added ?? 0, b: stats?.daily_goal ?? 5 })}
+              {stats?.today_added ?? 0} / {stats?.daily_goal ?? 5} {t('wordsUnit')}
             </p>
           </div>
           <span
             className="text-xs font-medium px-2 py-0.5 rounded-full"
             style={{ background: '#E6F1FB', color: '#185FA5' }}
           >
-            {t('dashboard.remaining', { n: Math.max(0, (stats?.daily_goal ?? 5) - (stats?.today_added ?? 0)) })}
+            {Math.max(0, (stats?.daily_goal ?? 5) - (stats?.today_added ?? 0))} {t('remainingLabel')}
           </span>
         </div>
         <div className="h-2 rounded-full overflow-hidden bg-gray-100">
@@ -213,7 +357,7 @@ export default function DashboardPage() {
 
       {/* Haftalık ilerleme */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-        <p className="text-sm font-medium text-gray-700 mb-3">{t('dashboard.weeklyProgress')}</p>
+        <p className="text-sm font-medium text-gray-700 mb-3">{t('weeklyProgress')}</p>
         <div className="flex justify-between items-end pb-3">
           {weekDays.map((d, i) => (
             <div key={i} className="flex flex-col items-center gap-1">
@@ -237,15 +381,15 @@ export default function DashboardPage() {
                   fontWeight: d.isToday ? 500 : 400,
                 }}
               >
-                {d.isToday ? t('dashboard.todayShort') : d.count > 0 ? d.count : '—'}
+                {d.isToday ? t('todayAbbr') : d.count > 0 ? d.count : '—'}
               </span>
             </div>
           ))}
         </div>
         <div className="h-px bg-gray-100 mb-3" />
         <div className="flex gap-4 text-xs text-gray-400">
-          <span>{t('dashboard.thisWeekLabel')} <strong className="text-gray-700">{thisWeekTotal} {t('dashboard.wordsUnit')}</strong></span>
-          <span>{t('dashboard.lastWeekLabel')} <strong className="text-gray-700">{lastWeekTotal} {t('dashboard.wordsUnit')}</strong></span>
+          <span>{t('thisWeekColon')}: <strong className="text-gray-700">{thisWeekTotal} {t('wordsUnit')}</strong></span>
+          <span>{t('lastWeekColon')}: <strong className="text-gray-700">{lastWeekTotal} {t('wordsUnit')}</strong></span>
         </div>
       </div>
 
@@ -253,22 +397,22 @@ export default function DashboardPage() {
       <div className="grid grid-cols-3 gap-3">
         {[
           {
-            label: t('dashboard.flashcardStudy'),
-            sub: t('dashboard.cardsWaiting', { n: dueWords.length }),
+            label: t('flashcardPractice'),
+            sub: `${dueWords.length} ${t('cardsWaitingLabel')}`,
             icon: <Layers className="w-4 h-4" />,
             iconBg: '#E6F1FB', iconColor: '#185FA5',
             href: '/flashcards',
           },
           {
-            label: t('dashboard.quizStart'),
-            sub: t('dashboard.testYourself'),
+            label: t('startQuiz'),
+            sub: t('testKnowledge'),
             icon: <Brain className="w-4 h-4" />,
             iconBg: '#EEEDFE', iconColor: '#534AB7',
             href: '/quiz',
           },
           {
-            label: t('dashboard.addWord'),
-            sub: t('dashboard.expandList'),
+            label: t('addWord'),
+            sub: t('expandList'),
             icon: <Target className="w-4 h-4" />,
             iconBg: '#E1F5EE', iconColor: '#0F6E56',
             href: '/words',
@@ -297,11 +441,11 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 gap-3">
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <p className="text-sm font-medium text-gray-700 mb-3">{t('dashboard.levelDistribution')}</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">{t('levelDistribution')}</p>
           {[
-            { label: t('dashboard.new'),      count: newCount,          pct: newPct,      color: '#B5D4F4' },
-            { label: t('dashboard.learning'), count: stats?.learning ?? 0, pct: learningPct, color: '#9FE1CB' },
-            { label: t('dashboard.learned'),  count: stats?.learned  ?? 0, pct: learnedPct,  color: '#C0DD97' },
+            { label: t('newLabel'), count: newCount, pct: newPct, color: '#B5D4F4' },
+            { label: t('learningLabel'), count: stats?.learning ?? 0, pct: learningPct, color: '#9FE1CB' },
+            { label: t('learnedLabel'), count: stats?.learned ?? 0, pct: learnedPct, color: '#C0DD97' },
           ].map(({ label, count, pct, color }) => (
             <div key={label} className="flex items-center gap-2 mb-2 text-xs">
               <span className="w-20 text-gray-400 shrink-0">{label}</span>
@@ -314,9 +458,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <p className="text-sm font-medium text-gray-700 mb-3">{t('dashboard.recentWords')}</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">{t('recentWordsTitle')}</p>
           {recentWords.length === 0 ? (
-            <p className="text-xs text-gray-400">{t('dashboard.noWordsYet')}</p>
+            <p className="text-xs text-gray-400">{t('noWordsYet')}</p>
           ) : (
             recentWords.map((w, i) => (
               <div
@@ -331,11 +475,11 @@ export default function DashboardPage() {
                       className="rounded px-1.5 py-0.5"
                       style={{ background: '#EEEDFE', color: '#534AB7', fontSize: 10 }}
                     >
-                      {t('dashboard.new').toLowerCase()}
+                      {t('newBadge')}
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-gray-400">{w.meaning_tr || w.meaning}</span>
+                <span className="text-xs text-gray-400">{w.meaning_native || w.meaning}</span>
               </div>
             ))
           )}
@@ -350,10 +494,10 @@ export default function DashboardPage() {
         >
           <div>
             <p className="text-sm font-medium" style={{ color: '#185FA5' }}>
-              {t('dashboard.dueBanner', { n: dueWords.length })}
+              {dueWords.length} {t('dueTimeLabel')}
             </p>
             <p className="text-xs mt-0.5" style={{ color: '#378ADD' }}>
-              {t('dashboard.dueBannerSub')}
+              {t('streakEncourage')}
             </p>
           </div>
           <button
@@ -361,7 +505,7 @@ export default function DashboardPage() {
             className="text-xs font-medium px-3 py-1.5 rounded-lg text-white transition-colors"
             style={{ background: '#378ADD' }}
           >
-            {t('dashboard.start')}
+            {t('startBtn')}
           </button>
         </div>
       )}

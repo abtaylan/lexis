@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { CheckCircle2, XCircle, Loader2, Trophy, RotateCcw, Brain } from 'lucide-react';
 import { wordsApi } from '@/lib/api';
-import { useT } from '@/lib/i18n';
+import { useLocale } from '@/lib/i18n';
 import type { Word } from '@/types';
 
 interface QuizCard {
@@ -18,10 +18,10 @@ function shuffle<T>(arr: T[]): T[] {
 
 function buildQuiz(words: Word[]): QuizCard[] {
   return words.map((word) => {
-    const correct = word.meaning_tr || word.meaning;
+    const correct = word.meaning_native || word.meaning;
     const others = words
       .filter((w) => w.id !== word.id)
-      .map((w) => w.meaning_tr || w.meaning)
+      .map((w) => w.meaning_native || w.meaning)
       .filter(Boolean);
     const distractors = shuffle(others).slice(0, 3);
     const allOptions = shuffle([correct, ...distractors]);
@@ -31,12 +31,12 @@ function buildQuiz(words: Word[]): QuizCard[] {
 
 // ── Oturum sonu ───────────────────────────────────────────────
 function DoneScreen({ score, total, onRestart }: { score: number; total: number; onRestart: () => void }) {
-  const { t } = useT();
+  const { t } = useLocale();
   const pct = total > 0 ? Math.round((score / total) * 100) : 0;
   const tier =
-    pct >= 80 ? { label: t('quiz.tierPerfect'),   bg: '#EAF3DE', text: '#3B6D11', bar: '#3B6D11' } :
-    pct >= 50 ? { label: t('quiz.tierGood'),       bg: '#FAEEDA', text: '#854F0B', bar: '#854F0B' } :
-                { label: t('quiz.tierKeepGoing'),  bg: '#FEE2E2', text: '#b91c1c', bar: '#ef4444' };
+    pct >= 80 ? { label: t('tierExcellent'), bg: '#EAF3DE', text: '#3B6D11', bar: '#3B6D11' } :
+    pct >= 50 ? { label: t('tierGood'), bg: '#FAEEDA', text: '#854F0B', bar: '#854F0B' } :
+    { label: t('tierKeepGoing'), bg: '#FEE2E2', text: '#b91c1c', bar: '#ef4444' };
 
   return (
     <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
@@ -46,23 +46,23 @@ function DoneScreen({ score, total, onRestart }: { score: number; total: number;
         </div>
         <div>
           <p className="text-2xl font-bold text-gray-900">{tier.label}</p>
-          <p className="text-sm text-gray-500 mt-1">{t('quiz.completedCount', { n: total })}</p>
+          <p className="text-sm text-gray-500 mt-1">{t('questionsCompletedTpl').replace('{n}', String(total))}</p>
         </div>
 
         <div className="w-full grid grid-cols-2 gap-3">
           <div className="rounded-xl p-3 bg-[#EAF3DE]">
             <p className="text-2xl font-bold text-[#3B6D11]">{score}</p>
-            <p className="text-xs text-[#3B6D11] font-medium mt-0.5">{t('quiz.correct')}</p>
+            <p className="text-xs text-[#3B6D11] font-medium mt-0.5">{t('correctLabel')}</p>
           </div>
           <div className="rounded-xl p-3 bg-red-50">
             <p className="text-2xl font-bold text-red-600">{total - score}</p>
-            <p className="text-xs text-red-600 font-medium mt-0.5">{t('quiz.wrong')}</p>
+            <p className="text-xs text-red-600 font-medium mt-0.5">{t('wrongLabel')}</p>
           </div>
         </div>
 
         <div className="w-full">
           <div className="flex justify-between text-xs text-gray-500 mb-1.5">
-            <span>{t('quiz.successRate')}</span>
+            <span>{t('successRate')}</span>
             <span className="font-semibold" style={{ color: tier.text }}>{pct}%</span>
           </div>
           <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -78,7 +78,7 @@ function DoneScreen({ score, total, onRestart }: { score: number; total: number;
           className="w-full flex items-center justify-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl py-3 text-sm font-medium transition-colors"
         >
           <RotateCcw className="w-4 h-4" />
-          {t('quiz.retry')}
+          {t('retryQuizBtn')}
         </button>
       </div>
     </div>
@@ -87,15 +87,15 @@ function DoneScreen({ score, total, onRestart }: { score: number; total: number;
 
 // ── Ana Sayfa ─────────────────────────────────────────────────
 export default function QuizPage() {
-  const { t } = useT();
-  const [cards, setCards]           = useState<QuizCard[]>([]);
-  const [index, setIndex]           = useState(0);
-  const [selected, setSelected]     = useState<number | null>(null);
-  const [score, setScore]           = useState(0);
-  const [done, setDone]             = useState(false);
-  const [loading, setLoading]       = useState(true);
+  const { t } = useLocale();
+  const [cards, setCards] = useState<QuizCard[]>([]);
+  const [index, setIndex] = useState(0);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState('');
+  const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,20 +106,21 @@ export default function QuizPage() {
     setError('');
     try {
       const res = await wordsApi.getAll({ page: 1, per_page: 100 });
-      const pool = (res.items || []).filter((w) => (w.meaning_tr || w.meaning));
+      const pool = (res.items || []).filter((w) => (w.meaning_native || w.meaning));
       if (pool.length < 4) {
-        setError(t('quiz.notEnoughWords'));
+        setError(t('quizMinWordsError'));
         return;
       }
       // Karıştır ve en fazla 20 soru al
       const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 20);
       setCards(buildQuiz(shuffled));
     } catch {
-      setError(t('quiz.loadError'));
+      setError(t('wordsLoadError'));
     } finally {
       setLoading(false);
     }
-  }, [t]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => { load(); }, [load]);
 
@@ -152,7 +153,7 @@ export default function QuizPage() {
       <div className="p-6 flex items-center justify-center min-h-[60vh]">
         <div className="flex flex-col items-center gap-3 text-gray-400">
           <Loader2 className="w-6 h-6 animate-spin" />
-          <span className="text-sm">{t('app.loading')}</span>
+          <span className="text-sm">{t('loading')}</span>
         </div>
       </div>
     );
@@ -184,14 +185,14 @@ export default function QuizPage() {
           <div className="w-8 h-8 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
             <Brain className="w-4 h-4 text-[#534AB7]" />
           </div>
-          <span className="text-sm font-semibold text-gray-700">{t('nav.quiz')}</span>
+          <span className="text-sm font-semibold text-gray-700">{t('quiz')}</span>
         </div>
         <div className="flex items-center gap-3 text-xs font-medium">
           <span className="flex items-center gap-1 text-[#3B6D11]">
             <span className="w-2 h-2 rounded-full bg-[#3B6D11] inline-block" />
-            {t('quiz.correctCount', { n: score })}
+            {t('correctCountTpl').replace('{n}', String(score))}
           </span>
-          <span className="text-gray-400">{t('quiz.questionCounter', { current: index + 1, total: cards.length })}</span>
+          <span className="text-gray-400">{t('questionCounterTpl').replace('{i}', String(index + 1)).replace('{n}', String(cards.length))}</span>
         </div>
       </div>
 
@@ -206,7 +207,7 @@ export default function QuizPage() {
       {/* Soru kartı */}
       <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
-          {t('quiz.questionPrompt')}
+          {t('quizQuestionPrompt')}
         </p>
         <p className="text-4xl font-bold text-gray-900 tracking-tight">{current.word.word}</p>
         {current.word.word_type && (

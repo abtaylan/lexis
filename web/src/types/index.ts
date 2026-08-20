@@ -14,57 +14,25 @@ export interface User {
   daily_goal: number;
   native_lang?: string;
   learning_lang?: string;
+  learning_langs?: string[];
   created_at: string;
+  is_premium?: boolean;
+  premium_until?: string;
 }
 
-// ── Game (Kelime Oyunu) ─────────────────────────────────────────
-
-export interface GameWordItem {
-  id: string;
-  word: string;
-  meaning: string;
-  example?: string;
-}
-
-export interface GameSession {
-  id: string;
-  mode: string;
-  pool_source: string;
-  direction: string;
-  learning_lang: string;
-  score: number;
-  xp_earned: number;
-  started_at: string;
-  ended_at?: string;
-  words: GameWordItem[];
-}
-
-export interface GameAttemptResult {
-  id: string;
-  is_correct: boolean;
-  xp_awarded: number;
-  total_score: number;
-  total_xp: number;
-}
-
-export interface GameHistoryItem {
-  id: string;
-  mode: string;
-  pool_source: string;
-  score: number;
-  xp_earned: number;
-  started_at: string;
-  ended_at?: string;
-}
-
-// ── Subscription (Premium) ──────────────────────────────────────
-
-export interface PlanInfo {
-  code: string;
+export interface PricingPlan {
+  code: 'monthly' | 'yearly';
   name: string;
-  price_try: number;
-  period: string;
-  features: string[];
+  price: number;
+  currency: string;
+  interval_label: string;
+  iyzico_pricing_plan_ref: string;
+}
+
+export interface CheckoutResponse {
+  checkout_form_content?: string;
+  payment_page_url?: string;
+  token?: string;
 }
 
 export interface SubscriptionStatus {
@@ -72,8 +40,14 @@ export interface SubscriptionStatus {
   premium_until?: string;
   plan_code?: string;
   status?: string;
-  current_period_end?: string;
 }
+
+// Not: Oyun (game) tipleri artık burada değil, lib/api.ts içinde tanımlı
+// (GameSession, GameWordOption, NextWordResult, GameAttemptResult,
+// GuessLetterResult, GameFinishResult — bkz. Games API bölümü). Eski
+// GameWordItem/GameHistoryItem/PlanInfo tipleri, branch merge'i ile birlikte
+// gelen yeni oyun/abonelik altyapısı tarafından karşılığı olmadığı için
+// kaldırıldı.
 
 export interface AuthResponse {
   access_token: string;
@@ -85,7 +59,19 @@ export interface AuthResponse {
   };
 }
 
-// ── Language ─────────────────────────────────────────────────
+export interface OtpPendingResponse {
+  pending: true;
+  email: string;
+  purpose: 'login' | 'register';
+  message?: string;
+}
+
+export interface RegisterResponse {
+  pending: true;
+  email: string;
+  purpose: 'register';
+  message?: string;
+}
 
 export interface Language {
   code: string;
@@ -95,18 +81,28 @@ export interface Language {
   is_active: boolean;
 }
 
-// ── Word ─────────────────────────────────────────────────────
+// Kullanıcının öğrendiği bir dile ait satır (user_learning_languages tablosu,
+// Kullanıcı Madde 2 — çoklu dil öğrenme). GET/POST/PATCH /me/languages
+// endpoint'lerinden dönen ham satır şekli.
+export interface UserLanguage {
+  id: string;
+  user_id: string;
+  learning_lang: string;
+  is_active: boolean;
+  daily_goal?: number | null;
+  added_at: string;
+}
 
 export interface Word {
   id: string;
   user_id: string;
   word: string;
   meaning: string;
-  meaning_tr?: string;
-  meaning_en?: string;
+  meaning_native?: string;
+  meaning_target?: string;
   example?: string;
   word_type?: string;
-  word_type_tr?: string;
+  word_type_native?: string;
   list_type: 'active' | 'passive';
   status: 'learning' | 'learned' | 'archived';
   repetition_count: number;
@@ -120,21 +116,21 @@ export interface Word {
 export interface WordCreate {
   word: string;
   meaning: string;
-  meaning_tr?: string;
-  meaning_en?: string;
+  meaning_native?: string;
+  meaning_target?: string;
   example?: string;
   word_type?: string;
-  word_type_tr?: string;
+  word_type_native?: string;
   list_type: 'active' | 'passive';
 }
 
 export interface WordUpdate {
   meaning?: string;
-  meaning_tr?: string;
-  meaning_en?: string;
+  meaning_native?: string;
+  meaning_target?: string;
   example?: string;
   word_type?: string;
-  word_type_tr?: string;
+  word_type_native?: string;
   list_type?: 'active' | 'passive';
   status?: 'learning' | 'learned' | 'archived';
 }
@@ -143,13 +139,11 @@ export interface WordReview {
   success: boolean;
 }
 
-// ── Dictionary ───────────────────────────────────────────────
-
 export interface DictionaryMeaning {
   word_type: string;
-  word_type_tr: string;
-  meaning_en: string;
-  meaning_tr: string;
+  word_type_native: string;
+  meaning_target: string;
+  meaning_native: string;
   examples: string[];
 }
 
@@ -157,8 +151,6 @@ export interface DictionaryResult {
   meanings: DictionaryMeaning[];
   error: string | null;
 }
-
-// ── Stats ────────────────────────────────────────────────────
 
 export interface DailyProgress {
   date: string;
@@ -179,7 +171,8 @@ export interface Stats {
   daily_history: DailyProgress[];
 }
 
-// ── Schedule ─────────────────────────────────────────────────
+// Madde 3a — görev bazında hatırlatma tercihi. undefined/null = kapalı.
+export type ReminderLead = '15min' | '1hour' | 'day_start';
 
 export interface ScheduleItem {
   id: string;
@@ -189,7 +182,11 @@ export interface ScheduleItem {
   activity: string;
   duration_min: number;
   link_url?: string;
+  activity_key?: string;
+  resolved_link_url?: string;
+  resolved_resource_title?: string;
   is_active: boolean;
+  reminder_lead?: ReminderLead | null;
 }
 
 export interface ScheduleCreate {
@@ -198,9 +195,40 @@ export interface ScheduleCreate {
   activity: string;
   duration_min: number;
   link_url?: string;
+  activity_key?: string;
+  reminder_lead?: ReminderLead | null;
 }
 
-// ── Admin ────────────────────────────────────────────────────
+export interface Notification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  schedule_item_id?: string | null;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface ScheduleTemplateItem {
+  day_of_week: number;
+  time_slot: string;
+  activity: string;
+  duration_min: number;
+  link_url?: string;
+}
+
+export interface ScheduleTemplate {
+  id: string;
+  user_id: string;
+  name: string;
+  items: ScheduleTemplateItem[];
+  created_at: string;
+}
+
+export interface ScheduleTemplateCreate {
+  name: string;
+  items: ScheduleTemplateItem[];
+}
 
 export interface AdminUser {
   id: string;
@@ -233,8 +261,6 @@ export interface AdminStats {
   words_today: number;
 }
 
-// ── Pagination ───────────────────────────────────────────────
-
 export interface PaginatedWords {
   items: Word[];
   total: number;
@@ -242,9 +268,6 @@ export interface PaginatedWords {
   per_page: number;
   pages: number;
 }
-
-
-// ── Analytics ────────────────────────────────────────────────
 
 export interface TypeBreakdown {
   word_type: string;

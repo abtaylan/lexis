@@ -18,23 +18,21 @@ class ListType(str, Enum):
 class WordCreate(BaseModel):
     word: str = Field(..., min_length=1, max_length=200)
     meaning: str = Field(..., min_length=1)
-    meaning_tr: Optional[str] = None
-    meaning_en: Optional[str] = None
+    meaning_native: Optional[str] = None
+    meaning_target: Optional[str] = None
     example: Optional[str] = None
     word_type: Optional[str] = None
-    word_type_tr: Optional[str] = None
+    word_type_native: Optional[str] = None
     list_type: ListType = ListType.active
-    source_lang: str = "en"
-    target_lang: str = "tr"
 
 
 class WordUpdate(BaseModel):
     meaning: Optional[str] = None
-    meaning_tr: Optional[str] = None
-    meaning_en: Optional[str] = None
+    meaning_native: Optional[str] = None
+    meaning_target: Optional[str] = None
     example: Optional[str] = None
     word_type: Optional[str] = None
-    word_type_tr: Optional[str] = None
+    word_type_native: Optional[str] = None
     list_type: Optional[ListType] = None
     status: Optional[WordStatus] = None
 
@@ -43,11 +41,11 @@ class WordResponse(BaseModel):
     id: str
     word: str
     meaning: str
-    meaning_tr: Optional[str] = None
-    meaning_en: Optional[str] = None
+    meaning_native: Optional[str] = None
+    meaning_target: Optional[str] = None
     example: Optional[str] = None
     word_type: Optional[str] = None
-    word_type_tr: Optional[str] = None
+    word_type_native: Optional[str] = None
     list_type: str
     status: str
     repetition_count: int = 0
