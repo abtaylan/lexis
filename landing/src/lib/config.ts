@@ -1,6 +1,6 @@
-// Uygulamanın (web/) barındırıldığı adres. Production'a alınırken .env.local'de
-// NEXT_PUBLIC_APP_URL gerçek alan adına ayarlanmalı (ör. https://app.lexis... ).
-export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+// Uygulamanın (web/) barındırıldığı adres. Vercel env var tanımlıysa onu, değilse
+// gerçek production adresini kullanır (21 Ağustos 2026'da lexis-web olarak deploy edildi).
+export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://lexis-web.vercel.app';
 
 export const LOGIN_URL = `${APP_URL}/login`;
 export const REGISTER_URL = `${APP_URL}/register`;
