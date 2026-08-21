@@ -17,7 +17,6 @@ from typing import Any, Literal, Optional
 from app.core.database import supabase_admin
 
 XPSourceType = Literal[
-    "quiz",
     "flashcard_review",
     "schedule_complete",
     "daily_goal_bonus",
@@ -32,8 +31,19 @@ XPSourceType = Literal[
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
+#
+# NOT (teknik borc maddesi cozuldu): "quiz" kaynagi buradan kaldirildi. Kod
+# taramasi gosterdi ki award_xp() SADECE games.py icinden, source_type olarak
+# ya dinamik f"game_{session['mode']}" (wordle/multiple_choice/typing/matching/
+# listening/sprint) ya da sabit "game_wordle" ile cagriliyor -- "quiz" hicbir
+# kod yolunda uretilmiyordu. Oyun modlari (games.py) ayrilmadan onceki eski,
+# genel "quiz" kavraminin kalintisiydi; artik onun yerini
+# game_multiple_choice / game_multiple_choice_reverse /
+# game_multiple_choice_definition aliyor. flashcard_review / schedule_complete /
+# daily_goal_bonus ise su an icin de cagrilmiyor ama bunlar planlanan,
+# henuz route'lara baglanmamis ozellikler (kelime tekrari, program tamamlama,
+# gunluk hedef bonusu) icin bilerek tutuluyor -- kaldirilmadi.
 XP_AMOUNTS: dict[str, int] = {
-    "quiz": 5,
     "flashcard_review": 3,
     "schedule_complete": 10,
     "daily_goal_bonus": 20,

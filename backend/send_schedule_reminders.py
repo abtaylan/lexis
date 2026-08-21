@@ -39,6 +39,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core.database import supabase_admin
 from app.services.email_service import send_schedule_reminder_email
+from app.services.job_log import job_run
 
 # Script'in ne sıklıkla çalıştığı varsayımı — cron satırıyla eşleşmeli.
 REMINDER_WINDOW_MINUTES = 5
@@ -93,7 +94,7 @@ def _already_sent(schedule_item_id: str, reminder_date: date) -> bool:
     return bool(result.data)
 
 
-def main():
+def main() -> int:
     items = (
         supabase_admin.table("study_schedule")
         .select("id, user_id, day_of_week, time_slot, activity, reminder_lead")
@@ -104,7 +105,7 @@ def main():
 
     if not items:
         print("Hatırlatma tercihi olan aktif görev yok, çıkılıyor.")
-        return
+        return 0
 
     user_ids = sorted({it["user_id"] for it in items})
     profiles = (
@@ -176,7 +177,10 @@ def main():
 
     print(f"[{datetime.now(ZoneInfo(DEFAULT_TIMEZONE)).isoformat()}] {sent_count} hatırlatma gönderildi "
           f"({len(items)} aday görev kontrol edildi).")
+    return sent_count
 
 
 if __name__ == "__main__":
-    main()
+    with job_run("send_schedule_reminders") as run:
+        sent = main()
+        run.detail = {"sent_count": sent}

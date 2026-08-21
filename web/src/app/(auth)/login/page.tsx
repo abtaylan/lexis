@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock, Zap } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { Button, Input, Card } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
+import { getErrorMessage } from '@/lib/errors';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,8 +32,8 @@ export default function LoginPage() {
       // Şifre doğrulanır, OTP kodu gönderilir — token burada dönmez.
       await authApi.login(form);
       router.push(`/verify-otp?email=${encodeURIComponent(form.email)}&purpose=login`);
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || t('loginErrorMsg'));
+    } catch (err) {
+      setError(getErrorMessage(err, t('loginErrorMsg')));
     } finally {
       setLoading(false);
     }
@@ -40,8 +42,8 @@ export default function LoginPage() {
   return (
     <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60">
       <div className="mb-8 flex items-center gap-3">
-        <div className="w-11 h-11 bg-sky-500 rounded-xl flex items-center justify-center shrink-0">
-          <Zap size={20} className="text-white" strokeWidth={2.5} />
+        <div className="w-11 h-11 bg-sky-500 rounded-xl flex items-center justify-center shrink-0 p-2">
+          <Image src="/logo-icon.png" alt="Lexis" width={28} height={28} />
         </div>
         <h1 className="text-2xl font-bold text-slate-800">{t('loginTitle')}</h1>
       </div>

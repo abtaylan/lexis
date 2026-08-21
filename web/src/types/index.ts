@@ -10,7 +10,7 @@ export interface User {
   username: string;
   display_name?: string;
   is_admin: boolean;
-  role?: 'user' | 'admin';
+  role?: 'user' | 'admin' | 'admin_readonly';
   daily_goal: number;
   native_lang?: string;
   learning_lang?: string;
@@ -21,6 +21,7 @@ export interface User {
 }
 
 export interface PricingPlan {
+  id: string;
   code: 'monthly' | 'yearly';
   name: string;
   price: number;
@@ -235,7 +236,7 @@ export interface AdminUser {
   email: string;
   display_name?: string;
   username?: string;
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'admin_readonly';
   is_active: boolean;
   native_lang?: string;
   learning_lang?: string;
@@ -298,4 +299,262 @@ export interface AnalyticsData {
   type_breakdown: TypeBreakdown[];
   daily_added: DailyAdded[];
   daily_progress: DailyProgressRow[];
+}
+
+// ============================================================
+// Madde 1d — Admin panel: kapsamlı yönetim platformu tipleri
+// ============================================================
+
+export interface CronJobStatus {
+  job_name: string;
+  last_run: {
+    id: string;
+    job_name: string;
+    status: 'running' | 'success' | 'failed';
+    started_at: string;
+    finished_at?: string | null;
+    detail?: Record<string, unknown> | null;
+    error?: string | null;
+  } | null;
+  scheduled: boolean;
+}
+
+export interface SystemHealth {
+  backend: { status: string; uptime_seconds: number; version: string };
+  database: { status: string; latency_ms: number | null };
+  integrations: {
+    iyzico_configured: boolean;
+    otp_mode: string;
+    smtp_configured: boolean;
+    social_post_mode: string;
+    telegram_configured: boolean;
+    slack_configured: boolean;
+  };
+  cron_jobs: CronJobStatus[];
+  mobile_app: { status: string; note: string };
+}
+
+export interface DetailedStats {
+  language_distribution: {
+    learning_lang: Record<string, number>;
+    native_lang: Record<string, number>;
+  };
+  growth: { date: string; new_users: number }[];
+  retention: {
+    eligible_users: number;
+    active_last_7_days: number;
+    retention_rate_percent: number;
+    definition: string;
+  };
+}
+
+export interface Payment {
+  id: string;
+  user_id: string;
+  plan_code: string;
+  status: string;
+  iyzico_subscription_ref?: string | null;
+  current_period_end?: string | null;
+  cancelled_at?: string | null;
+  created_at: string;
+  display_name?: string | null;
+  username?: string | null;
+  email?: string | null;
+}
+
+export interface PaymentsSummary {
+  total_subscriptions: number;
+  by_status: Record<string, number>;
+  active_by_plan: Record<string, number>;
+  mrr_estimate: number;
+  currency: string;
+}
+
+export interface WordPoolEntry {
+  id: string;
+  source_lang: string;
+  target_lang: string;
+  word: string;
+  meaning: string;
+  example?: string | null;
+  difficulty_level?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface WordPoolCreate {
+  source_lang: string;
+  target_lang: string;
+  word: string;
+  meaning: string;
+  example?: string;
+  difficulty_level?: string;
+}
+
+export interface SocialPost {
+  id: string;
+  post_date: string;
+  content_type: 'word' | 'quiz';
+  general_word_id?: string | null;
+  question_text?: string | null;
+  options?: string[] | null;
+  correct_answer?: string | null;
+  telegram_sent: boolean;
+  slack_sent: boolean;
+  created_at: string;
+}
+
+export interface NotificationLogEntry {
+  id: string;
+  channel: 'email' | 'telegram' | 'slack';
+  category: string;
+  recipient?: string | null;
+  status: 'sent' | 'skipped' | 'failed';
+  detail?: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface GameModeSummary {
+  mode: string;
+  sessions: number;
+  completed_sessions: number;
+  avg_score: number;
+  total_xp_earned: number;
+}
+
+export interface GameAnalytics {
+  total_sessions: number;
+  by_mode: GameModeSummary[];
+  by_learning_lang: Record<string, number>;
+  total_attempts: number;
+  accuracy_percent: number;
+}
+
+// ============================================================
+// Madde 6, Faz 1 — Arkadaşlık + Takip + Profil görüntüleme
+// ============================================================
+
+export type RelationshipStatus = 'self' | 'none' | 'pending_sent' | 'pending_received' | 'friends';
+
+export interface UserCard {
+  id: string;
+  username?: string;
+  display_name?: string;
+  avatar_url?: string;
+  level: number;
+  relationship_status?: RelationshipStatus;
+  is_following?: boolean;
+}
+
+export interface FriendshipItem {
+  id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  responded_at?: string | null;
+  user: UserCard;
+}
+
+export interface PendingRequests {
+  incoming: FriendshipItem[];
+  outgoing: FriendshipItem[];
+}
+
+export interface PublicProfileStats {
+  learning_lang: string;
+  total_words: number;
+  learned: number;
+  learning: number;
+  current_streak: number;
+}
+
+export interface PublicScheduleItem {
+  day_of_week: number;
+  time_slot: string;
+  activity: string;
+  duration_min: number;
+}
+
+export interface PublicProfile {
+  id: string;
+  username?: string;
+  display_name?: string;
+  avatar_url?: string;
+  level: number;
+  total_xp: number;
+  created_at: string;
+  friend_count: number;
+  follower_count: number;
+  following_count: number;
+  relationship_status: RelationshipStatus;
+  friendship_id?: string | null;
+  is_following: boolean;
+  stats: PublicProfileStats;
+  schedule: PublicScheduleItem[];
+}
+
+// ============================================================
+// Madde 6, Faz 2 — Engelleme + Mesajlaşma
+// ============================================================
+
+export interface MessageItem {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+  read_at?: string | null;
+}
+
+export interface ConversationItem {
+  id: string;
+  other_user: UserCard;
+  last_message_preview?: string | null;
+  last_message_sender_id?: string | null;
+  last_message_at: string;
+  unread_count: number;
+}
+
+export interface ConversationThread {
+  conversation_id: string;
+  other_user: UserCard;
+  messages: MessageItem[];
+}
+
+// ============================================================
+// Madde 6, Faz 3 — Meydan okuma (challenge)
+// ============================================================
+
+export type ChallengeStatus = 'pending' | 'accepted' | 'declined' | 'completed' | 'cancelled';
+
+export interface ChallengeItem {
+  id: string;
+  mode: string;
+  status: ChallengeStatus;
+  is_challenger: boolean;
+  other_user?: UserCard | null;
+  your_session_id?: string | null;
+  opponent_session_id?: string | null;
+  winner_id?: string | null;
+  you_won?: boolean | null;
+  created_at: string;
+  responded_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface ChallengesList {
+  incoming: ChallengeItem[];
+  outgoing: ChallengeItem[];
+  active: ChallengeItem[];
+  completed: ChallengeItem[];
+}
+
+export interface AuditLogEntry {
+  id: string;
+  actor_id?: string | null;
+  actor_email?: string | null;
+  action: string;
+  target_type?: string | null;
+  target_id?: string | null;
+  detail?: Record<string, unknown> | null;
+  created_at: string;
 }

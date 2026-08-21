@@ -39,6 +39,7 @@ export interface ScheduleTemplateItem {
 
 export interface ResolvedScheduleTemplateItem extends ScheduleTemplateItem {
   link_url: string;
+  activity_key?: string;
 }
 
 export interface ScheduleTemplateDef {
@@ -190,8 +191,31 @@ export const TASK_LINKS_BY_LANG: Record<LangCode, Record<string, string>> = {
   },
 };
 
+// activity (görünen ad) -> learning_resources.category / activity_key eşlemesi.
+// backend/schedule_templates.py'deki ACTIVITY_KEY_MAP ile birebir aynı tutulmalı
+// (bkz. app/api/routes/schedule.py ACTIVITY_CATEGORIES). Bu olmadan backend
+// _resolve_resource() hiç çalışmıyor ve öğe, oluşturulduğu andaki dile sabit
+// link_url'de kalıp kullanıcı sonradan öğrenilen dilini değiştirse bile
+// güncellenmiyordu — teknik borç maddesiydi, burada çözüldü.
+//
+// LingoClip ve Dizi/Film BİLİNÇLİ olarak eşleme DIŞINDA bırakıldı:
+// TASK_LINKS_BY_LANG'da her dilde birebir aynı (dilden bağımsız) sabit URL
+// kullanıyorlar, dinamik çöz(ül)meye ihtiyaçları yok. Kelime Tekrarı için de
+// karşılık gelen bir learning_resources kategorisi yok.
+const ACTIVITY_KEY_MAP: Record<string, string> = {
+  'Teknik Makale': 'technical_article',
+  'Haber Okuma': 'news_reading',
+  'Video Analizi': 'video_analysis',
+  'Podcast': 'audio_practice',
+  'Genel Tekrar': 'general_review',
+};
+
 /** Bir şablon tanımını, verilen dilin linkleriyle birleştirip API'ye gönderilebilir hale getirir. */
 export function resolveTemplate(def: ScheduleTemplateDef, lang: LangCode): ResolvedScheduleTemplateItem[] {
   const links = TASK_LINKS_BY_LANG[lang] ?? TASK_LINKS_BY_LANG.en;
-  return def.items.map((it) => ({ ...it, link_url: links[it.activity] ?? '' }));
+  return def.items.map((it) => ({
+    ...it,
+    link_url: links[it.activity] ?? '',
+    activity_key: ACTIVITY_KEY_MAP[it.activity],
+  }));
 }

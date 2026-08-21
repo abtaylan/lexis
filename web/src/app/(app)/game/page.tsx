@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
   CheckCircle2,
   XCircle,
@@ -15,9 +16,15 @@ import {
   ListChecks,
   Keyboard,
   ArrowLeftRight,
+  Type as TypeIcon,
+  Ear,
+  Zap,
+  Shuffle,
+  Volume2,
 } from 'lucide-react';
 import {
   gamesApi,
+  socialApi,
   type PoolSource,
   type GameMode,
   type Direction,
@@ -35,6 +42,22 @@ type Strings = {
   modeMultipleDesc: string;
   modeWordleLabel: string;
   modeWordleDesc: string;
+  modeTypingLabel: string;
+  modeTypingDesc: string;
+  typingPromptLabel: string;
+  typingInputPlaceholder: string;
+  typingCheckBtn: string;
+  modeListeningLabel: string;
+  modeListeningDesc: string;
+  listeningPromptLabel: string;
+  listeningPlayBtn: string;
+  modeSprintLabel: string;
+  modeSprintDesc: string;
+  sprintTimeLeftTpl: string;
+  sprintTimeUpTitle: string;
+  modeMatchingLabel: string;
+  modeMatchingDesc: string;
+  matchingPromptLabel: string;
   chooseDirectionTitle: string;
   dirWordToMeaningLabel: string;
   dirWordToMeaningDesc: string;
@@ -74,6 +97,11 @@ type Strings = {
   wordleWonTitle: string;
   wordleLostTitle: string;
   correctWordTpl: string;
+  // Madde 6, Faz 3 — Meydan okuma (challenge) entegrasyonu
+  challengeModeHint: string;
+  challengeSubmittedMsg: string;
+  challengeSubmitError: string;
+  backToChallengesBtn: string;
 };
 
 const STRINGS: Record<Locale, Strings> = {
@@ -85,6 +113,22 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Doğru anlamı 4 seçenek arasından bul',
     modeWordleLabel: 'Adam Asmaca',
     modeWordleDesc: 'Anlamına bakarak kelimeyi harf harf bul',
+    modeTypingLabel: 'Yazma',
+    modeTypingDesc: 'Anlama bakarak kelimeyi yaz',
+    typingPromptLabel: 'Bu anlama gelen kelimeyi yaz',
+    typingInputPlaceholder: 'Kelimeyi yaz…',
+    typingCheckBtn: 'Kontrol Et',
+    modeListeningLabel: 'Dinleme',
+    modeListeningDesc: 'Kelimeyi dinle, duyduğunu yaz',
+    listeningPromptLabel: 'Duyduğun kelimeyi yaz',
+    listeningPlayBtn: 'Dinle',
+    modeSprintLabel: 'Sprint',
+    modeSprintDesc: 'Süre bitmeden olabildiğince çok kelime yaz',
+    sprintTimeLeftTpl: 'Kalan süre: {s}sn',
+    sprintTimeUpTitle: 'Süre doldu!',
+    modeMatchingLabel: 'Eşleştirme',
+    modeMatchingDesc: 'Kelimeleri anlamlarıyla eşleştir',
+    matchingPromptLabel: 'Kelimeleri doğru anlamlarıyla eşleştir',
     chooseDirectionTitle: 'Hangi yönde çalışmak istersin?',
     dirWordToMeaningLabel: 'Kelime → Anlam',
     dirWordToMeaningDesc: 'Kelimeyi gör, doğru anlamı seç',
@@ -124,6 +168,10 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Kelimeyi buldun! 🎉',
     wordleLostTitle: 'Hakların bitti',
     correctWordTpl: 'Doğru kelime: {word}',
+    challengeModeHint: 'Bu oyunu bir meydan okuma için oynuyorsun.',
+    challengeSubmittedMsg: 'Skorun meydan okumaya gönderildi!',
+    challengeSubmitError: 'Skor gönderilemedi, Arkadaşlar sayfasından tekrar deneyebilirsin.',
+    backToChallengesBtn: 'Meydan Okumalara Dön',
   },
   en: {
     pageTitle: 'Word Game',
@@ -133,6 +181,22 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Pick the right meaning from 4 options',
     modeWordleLabel: 'Hangman',
     modeWordleDesc: 'Guess the word letter by letter from its meaning',
+    modeTypingLabel: 'Typing',
+    modeTypingDesc: 'Type the word from its meaning',
+    typingPromptLabel: 'Type the word that matches this meaning',
+    typingInputPlaceholder: 'Type the word…',
+    typingCheckBtn: 'Check',
+    modeListeningLabel: 'Listening',
+    modeListeningDesc: 'Listen to the word and type what you hear',
+    listeningPromptLabel: 'Type the word you hear',
+    listeningPlayBtn: 'Play',
+    modeSprintLabel: 'Sprint',
+    modeSprintDesc: 'Type as many words as you can before time runs out',
+    sprintTimeLeftTpl: 'Time left: {s}s',
+    sprintTimeUpTitle: "Time's up!",
+    modeMatchingLabel: 'Matching',
+    modeMatchingDesc: 'Match each word with its meaning',
+    matchingPromptLabel: 'Match the words with their meanings',
     chooseDirectionTitle: 'Which direction do you want to practice?',
     dirWordToMeaningLabel: 'Word → Meaning',
     dirWordToMeaningDesc: 'See the word, pick the right meaning',
@@ -172,6 +236,10 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'You got it! 🎉',
     wordleLostTitle: 'Out of lives',
     correctWordTpl: 'Correct word: {word}',
+    challengeModeHint: "You're playing this game for a challenge.",
+    challengeSubmittedMsg: 'Your score was submitted to the challenge!',
+    challengeSubmitError: 'Could not submit your score — you can retry from the Friends page.',
+    backToChallengesBtn: 'Back to Challenges',
   },
   ar: {
     pageTitle: 'لعبة الكلمات',
@@ -181,6 +249,22 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'اختر المعنى الصحيح من بين 4 خيارات',
     modeWordleLabel: 'المشنقة',
     modeWordleDesc: 'خمّن الكلمة حرفًا بحرف من خلال معناها',
+    modeTypingLabel: 'الكتابة',
+    modeTypingDesc: 'اكتب الكلمة بالاعتماد على معناها',
+    typingPromptLabel: 'اكتب الكلمة التي تطابق هذا المعنى',
+    typingInputPlaceholder: 'اكتب الكلمة…',
+    typingCheckBtn: 'تحقق',
+    modeListeningLabel: 'الاستماع',
+    modeListeningDesc: 'استمع إلى الكلمة واكتب ما سمعته',
+    listeningPromptLabel: 'اكتب الكلمة التي سمعتها',
+    listeningPlayBtn: 'تشغيل',
+    modeSprintLabel: 'سباق سريع',
+    modeSprintDesc: 'اكتب أكبر عدد ممكن من الكلمات قبل انتهاء الوقت',
+    sprintTimeLeftTpl: 'الوقت المتبقي: {s} ثانية',
+    sprintTimeUpTitle: 'انتهى الوقت!',
+    modeMatchingLabel: 'المطابقة',
+    modeMatchingDesc: 'طابق كل كلمة مع معناها',
+    matchingPromptLabel: 'طابق الكلمات مع معانيها',
     chooseDirectionTitle: 'بأي اتجاه تريد التدرب؟',
     dirWordToMeaningLabel: 'كلمة ← معنى',
     dirWordToMeaningDesc: 'شاهد الكلمة، اختر المعنى الصحيح',
@@ -220,6 +304,10 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'لقد عرفتها! 🎉',
     wordleLostTitle: 'انتهت محاولاتك',
     correctWordTpl: 'الكلمة الصحيحة: {word}',
+    challengeModeHint: 'أنت تلعب هذه اللعبة من أجل مبارزة.',
+    challengeSubmittedMsg: 'تم إرسال نتيجتك إلى المبارزة!',
+    challengeSubmitError: 'تعذّر إرسال النتيجة — يمكنك المحاولة مرة أخرى من صفحة الأصدقاء.',
+    backToChallengesBtn: 'العودة إلى المبارزات',
   },
   ru: {
     pageTitle: 'Словесная игра',
@@ -229,6 +317,22 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Выбери правильное значение из 4 вариантов',
     modeWordleLabel: 'Виселица',
     modeWordleDesc: 'Угадай слово по буквам, глядя на его значение',
+    modeTypingLabel: 'Печать',
+    modeTypingDesc: 'Напиши слово по его значению',
+    typingPromptLabel: 'Напиши слово, соответствующее этому значению',
+    typingInputPlaceholder: 'Введите слово…',
+    typingCheckBtn: 'Проверить',
+    modeListeningLabel: 'Аудирование',
+    modeListeningDesc: 'Прослушай слово и напиши то, что услышал',
+    listeningPromptLabel: 'Напиши услышанное слово',
+    listeningPlayBtn: 'Слушать',
+    modeSprintLabel: 'Спринт',
+    modeSprintDesc: 'Напиши как можно больше слов, пока не закончилось время',
+    sprintTimeLeftTpl: 'Осталось времени: {s} с',
+    sprintTimeUpTitle: 'Время вышло!',
+    modeMatchingLabel: 'Сопоставление',
+    modeMatchingDesc: 'Сопоставь слова с их значениями',
+    matchingPromptLabel: 'Сопоставь слова с их значениями',
     chooseDirectionTitle: 'В каком направлении хочешь тренироваться?',
     dirWordToMeaningLabel: 'Слово → Значение',
     dirWordToMeaningDesc: 'Смотри слово, выбирай правильное значение',
@@ -268,6 +372,10 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Вы угадали! 🎉',
     wordleLostTitle: 'Жизни закончились',
     correctWordTpl: 'Правильное слово: {word}',
+    challengeModeHint: 'Вы играете в эту игру ради состязания.',
+    challengeSubmittedMsg: 'Ваш результат отправлен в состязание!',
+    challengeSubmitError: 'Не удалось отправить результат — попробуйте снова со страницы «Друзья».',
+    backToChallengesBtn: 'Назад к состязаниям',
   },
   de: {
     pageTitle: 'Wortspiel',
@@ -277,6 +385,22 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Wähle die richtige Bedeutung aus 4 Optionen',
     modeWordleLabel: 'Galgenmännchen',
     modeWordleDesc: 'Errate das Wort anhand der Bedeutung, Buchstabe für Buchstabe',
+    modeTypingLabel: 'Tippen',
+    modeTypingDesc: 'Schreibe das Wort anhand seiner Bedeutung',
+    typingPromptLabel: 'Schreibe das Wort, das zu dieser Bedeutung passt',
+    typingInputPlaceholder: 'Wort eingeben…',
+    typingCheckBtn: 'Prüfen',
+    modeListeningLabel: 'Hören',
+    modeListeningDesc: 'Höre das Wort und schreibe, was du hörst',
+    listeningPromptLabel: 'Schreibe das gehörte Wort',
+    listeningPlayBtn: 'Abspielen',
+    modeSprintLabel: 'Sprint',
+    modeSprintDesc: 'Schreibe so viele Wörter wie möglich, bevor die Zeit abläuft',
+    sprintTimeLeftTpl: 'Verbleibende Zeit: {s}s',
+    sprintTimeUpTitle: 'Zeit ist um!',
+    modeMatchingLabel: 'Zuordnen',
+    modeMatchingDesc: 'Ordne die Wörter ihrer Bedeutung zu',
+    matchingPromptLabel: 'Ordne die Wörter ihrer Bedeutung zu',
     chooseDirectionTitle: 'In welche Richtung möchtest du üben?',
     dirWordToMeaningLabel: 'Wort → Bedeutung',
     dirWordToMeaningDesc: 'Sieh das Wort, wähle die richtige Bedeutung',
@@ -316,6 +440,10 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Du hast es erraten! 🎉',
     wordleLostTitle: 'Keine Leben mehr',
     correctWordTpl: 'Richtiges Wort: {word}',
+    challengeModeHint: 'Du spielst dieses Spiel für eine Herausforderung.',
+    challengeSubmittedMsg: 'Dein Ergebnis wurde an die Herausforderung gesendet!',
+    challengeSubmitError: 'Ergebnis konnte nicht gesendet werden — versuche es erneut über die Freunde-Seite.',
+    backToChallengesBtn: 'Zurück zu Herausforderungen',
   },
   fr: {
     pageTitle: 'Jeu de mots',
@@ -325,6 +453,22 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Choisis le bon sens parmi 4 options',
     modeWordleLabel: 'Pendu',
     modeWordleDesc: "Devine le mot lettre par lettre à partir de son sens",
+    modeTypingLabel: 'Saisie',
+    modeTypingDesc: 'Écris le mot à partir de son sens',
+    typingPromptLabel: 'Écris le mot qui correspond à ce sens',
+    typingInputPlaceholder: 'Écris le mot…',
+    typingCheckBtn: 'Vérifier',
+    modeListeningLabel: 'Écoute',
+    modeListeningDesc: 'Écoute le mot et écris ce que tu entends',
+    listeningPromptLabel: 'Écris le mot que tu entends',
+    listeningPlayBtn: 'Écouter',
+    modeSprintLabel: 'Sprint',
+    modeSprintDesc: "Écris autant de mots que possible avant la fin du temps",
+    sprintTimeLeftTpl: 'Temps restant : {s}s',
+    sprintTimeUpTitle: 'Temps écoulé !',
+    modeMatchingLabel: 'Association',
+    modeMatchingDesc: 'Associe chaque mot à son sens',
+    matchingPromptLabel: 'Associe les mots à leur sens',
     chooseDirectionTitle: 'Dans quel sens veux-tu t\u2019entraîner ?',
     dirWordToMeaningLabel: 'Mot → Sens',
     dirWordToMeaningDesc: 'Vois le mot, choisis le bon sens',
@@ -364,6 +508,10 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: "Tu l'as trouvé ! 🎉",
     wordleLostTitle: 'Plus de vies',
     correctWordTpl: 'Mot correct : {word}',
+    challengeModeHint: 'Tu joues cette partie pour un défi.',
+    challengeSubmittedMsg: 'Ton score a été envoyé au défi !',
+    challengeSubmitError: "Impossible d'envoyer le score — réessaie depuis la page Amis.",
+    backToChallengesBtn: 'Retour aux défis',
   },
   es: {
     pageTitle: 'Juego de palabras',
@@ -373,6 +521,22 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Elige el significado correcto entre 4 opciones',
     modeWordleLabel: 'Ahorcado',
     modeWordleDesc: 'Adivina la palabra letra por letra a partir de su significado',
+    modeTypingLabel: 'Escritura',
+    modeTypingDesc: 'Escribe la palabra a partir de su significado',
+    typingPromptLabel: 'Escribe la palabra que corresponde a este significado',
+    typingInputPlaceholder: 'Escribe la palabra…',
+    typingCheckBtn: 'Comprobar',
+    modeListeningLabel: 'Escucha',
+    modeListeningDesc: 'Escucha la palabra y escribe lo que oyes',
+    listeningPromptLabel: 'Escribe la palabra que escuchas',
+    listeningPlayBtn: 'Reproducir',
+    modeSprintLabel: 'Sprint',
+    modeSprintDesc: 'Escribe tantas palabras como puedas antes de que se acabe el tiempo',
+    sprintTimeLeftTpl: 'Tiempo restante: {s}s',
+    sprintTimeUpTitle: '¡Se acabó el tiempo!',
+    modeMatchingLabel: 'Emparejar',
+    modeMatchingDesc: 'Empareja cada palabra con su significado',
+    matchingPromptLabel: 'Empareja las palabras con sus significados',
     chooseDirectionTitle: '¿En qué dirección quieres practicar?',
     dirWordToMeaningLabel: 'Palabra → Significado',
     dirWordToMeaningDesc: 'Ve la palabra, elige el significado correcto',
@@ -412,6 +576,10 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: '¡La adivinaste! 🎉',
     wordleLostTitle: 'Sin vidas',
     correctWordTpl: 'Palabra correcta: {word}',
+    challengeModeHint: 'Estás jugando esta partida para un desafío.',
+    challengeSubmittedMsg: '¡Tu puntuación fue enviada al desafío!',
+    challengeSubmitError: 'No se pudo enviar la puntuación — puedes reintentar desde la página de Amigos.',
+    backToChallengesBtn: 'Volver a los desafíos',
   },
   it: {
     pageTitle: 'Gioco di parole',
@@ -421,6 +589,22 @@ const STRINGS: Record<Locale, Strings> = {
     modeMultipleDesc: 'Scegli il significato corretto tra 4 opzioni',
     modeWordleLabel: 'Impiccato',
     modeWordleDesc: 'Indovina la parola lettera per lettera a partire dal suo significato',
+    modeTypingLabel: 'Digitazione',
+    modeTypingDesc: 'Scrivi la parola a partire dal suo significato',
+    typingPromptLabel: 'Scrivi la parola che corrisponde a questo significato',
+    typingInputPlaceholder: 'Scrivi la parola…',
+    typingCheckBtn: 'Verifica',
+    modeListeningLabel: 'Ascolto',
+    modeListeningDesc: "Ascolta la parola e scrivi quello che senti",
+    listeningPromptLabel: 'Scrivi la parola che senti',
+    listeningPlayBtn: 'Riproduci',
+    modeSprintLabel: 'Sprint',
+    modeSprintDesc: 'Scrivi il maggior numero possibile di parole prima che scada il tempo',
+    sprintTimeLeftTpl: 'Tempo rimanente: {s}s',
+    sprintTimeUpTitle: 'Tempo scaduto!',
+    modeMatchingLabel: 'Abbinamento',
+    modeMatchingDesc: 'Abbina ogni parola al suo significato',
+    matchingPromptLabel: 'Abbina le parole ai loro significati',
     chooseDirectionTitle: 'In quale direzione vuoi esercitarti?',
     dirWordToMeaningLabel: 'Parola → Significato',
     dirWordToMeaningDesc: 'Vedi la parola, scegli il significato corretto',
@@ -460,16 +644,127 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: "L'hai indovinata! 🎉",
     wordleLostTitle: 'Vite finite',
     correctWordTpl: 'Parola corretta: {word}',
+    challengeModeHint: 'Stai giocando questa partita per una sfida.',
+    challengeSubmittedMsg: 'Il tuo punteggio è stato inviato alla sfida!',
+    challengeSubmitError: 'Impossibile inviare il punteggio — riprova dalla pagina Amici.',
+    backToChallengesBtn: 'Torna alle sfide',
+  },
+  ja: {
+    pageTitle: '単語ゲーム',
+    pageSubtitle: 'ゲームモードを選んで、単語を学びながらXPを獲得しよう。',
+    chooseModeTitle: 'どうやって遊びますか?',
+    modeMultipleLabel: '四択',
+    modeMultipleDesc: '4つの選択肢から正しい意味を選ぶ',
+    modeWordleLabel: 'ハングマン',
+    modeWordleDesc: '意味をヒントに一文字ずつ単語を当てる',
+    modeTypingLabel: 'タイピング',
+    modeTypingDesc: '意味を見て単語を入力する',
+    typingPromptLabel: 'この意味に合う単語を入力してください',
+    typingInputPlaceholder: '単語を入力…',
+    typingCheckBtn: '確認',
+    modeListeningLabel: 'リスニング',
+    modeListeningDesc: '単語を聞いて、聞こえたとおりに入力する',
+    listeningPromptLabel: '聞こえた単語を入力してください',
+    listeningPlayBtn: '再生',
+    modeSprintLabel: 'スプリント',
+    modeSprintDesc: '時間切れになる前にできるだけ多くの単語を入力しよう',
+    sprintTimeLeftTpl: '残り時間: {s}秒',
+    sprintTimeUpTitle: '時間切れです!',
+    modeMatchingLabel: 'マッチング',
+    modeMatchingDesc: '単語とその意味を結びつける',
+    matchingPromptLabel: '単語をその意味と結びつけてください',
+    chooseDirectionTitle: 'どの方向で練習しますか?',
+    dirWordToMeaningLabel: '単語 → 意味',
+    dirWordToMeaningDesc: '単語を見て正しい意味を選ぶ',
+    dirMeaningToWordLabel: '意味 → 単語',
+    dirMeaningToWordDesc: '意味を見て正しい単語を選ぶ(難しい、獲得XPアップ)',
+    dirDefinitionToWordLabel: '定義 → 単語',
+    dirDefinitionToWordDesc: '英語の定義を見て正しい単語を選ぶ(最も難しい、獲得XP最大)',
+    choosePoolTitle: 'どの単語プールで遊びますか?',
+    poolOwnLabel: '自分の単語',
+    poolOwnDesc: '学習中の単語で練習する',
+    poolGeneralLabel: '一般プール',
+    poolGeneralDesc: '大きな単語プールからランダムに出題',
+    backBtn: '戻る',
+    startBtn: 'ゲーム開始',
+    loadingLabel: '読み込み中…',
+    genericError: '問題が発生しました。もう一度お試しください。',
+    ownEmptyError: 'まだ単語を追加していません。まず単語をいくつか追加してください。',
+    generalEmptyError: 'この言語ペアの一般プールに単語がありません。',
+    questionPrompt: 'この単語の意味は?',
+    questionPromptReverse: 'この意味に合う単語はどれ?',
+    questionPromptDefinition: 'この定義に合う単語はどれ?',
+    questionCounterTpl: '問題 {n}',
+    scoreLabel: 'スコア',
+    xpLabel: 'XP',
+    levelUpTpl: '🎉 レベル{n}!',
+    finishBtn: '終了',
+    correctLabel: '正解!',
+    wrongLabel: '不正解',
+    doneTitle: 'セッション完了!',
+    doneScoreTpl: '{correct}/{total} 正解',
+    doneXpTpl: '+{xp} XP 獲得しました',
+    playAgainBtn: 'もう一度プレイ',
+    backToDashboardBtn: 'ダッシュボードに戻る',
+    hangmanHintLabel: 'ヒント(意味)',
+    livesLabel: 'ライフ',
+    guessedLabel: '入力した文字',
+    wordleWonTitle: '正解です! 🎉',
+    wordleLostTitle: 'ライフがなくなりました',
+    correctWordTpl: '正解の単語: {word}',
+    challengeModeHint: 'これはチャレンジのためのプレイです。',
+    challengeSubmittedMsg: 'スコアをチャレンジに送信しました!',
+    challengeSubmitError: 'スコアを送信できませんでした — フレンドページから再試行できます。',
+    backToChallengesBtn: 'チャレンジに戻る',
   },
 };
 
 const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+
+// Eşleştirme (matching) modunda kart sırasını karıştırmak için basit
+// Fisher-Yates — orijinal diziyi bozmadan yeni bir dizi döndürür.
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const MATCHING_BATCH_SIZE = 4;
+
+type MatchingItem = {
+  uid: string;
+  word: string;
+  meaning: string;
+  word_id?: string;
+  general_word_id?: string;
+};
 
 type Stage = 'mode' | 'direction' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
 
 export default function GamePage() {
   const { locale } = useLocale();
   const t = STRINGS[locale];
+  const searchParams = useSearchParams();
+
+  // Madde 6, Faz 3 — Meydan okuma (challenge) entegrasyonu. Yeni bir oyun
+  // akışı yok: /game?challengeId=...&mode=... ile açılınca mod seçimi
+  // atlanır (challenge'ın modu zorunlu), oyun normal şekilde oynanır,
+  // bitince bitmiş session otomatik olarak challenge'a "sonucum bu" diye
+  // gönderilir (bkz. challenge_service.submit_score).
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const [challengeSubmitted, setChallengeSubmitted] = useState(false);
+  const [challengeSubmitError, setChallengeSubmitError] = useState('');
+  // loadNext/handleFinish, mount sırasında useCallback([]) ile bir kez
+  // memoize ediliyor (bkz. aşağıdaki eslint-disable'lar) — bu yüzden
+  // challengeId/challengeSubmitted state'lerini DEĞİL, her zaman güncel
+  // olan ref'leri okuyoruz; aksi halde ilk render'daki (henüz null olan)
+  // challengeId closure'a "donmuş" olarak takılır ve gönderim hiç
+  // çalışmazdı.
+  const challengeIdRef = useRef<string | null>(null);
+  const challengeSubmittedRef = useRef(false);
 
   const [stage, setStage] = useState<Stage>('mode');
   const [gameMode, setGameMode] = useState<GameMode>('multiple_choice');
@@ -491,12 +786,68 @@ export default function GamePage() {
   const [revealedWord, setRevealedWord] = useState<string | null>(null);
   const [letterBusy, setLetterBusy] = useState(false);
 
+  // ── yazma (typing) state — dinleme ve sprint modları da bunu paylaşır,
+  // çünkü doğruluk kontrolü üçünde de aynı: current.word ile karşılaştırma ──
+  const [typedAnswer, setTypedAnswer] = useState('');
+  const [typingResult, setTypingResult] = useState<'correct' | 'wrong' | null>(null);
+
+  // ── sprint state — tüm oturum için tek bir geri sayım ──
+  const [sprintSecondsLeft, setSprintSecondsLeft] = useState(60);
+  const sprintTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const SPRINT_DURATION_SECS = 60;
+
+  // ── eşleştirme (matching) state — tek seferde birden fazla kelime çekilip
+  // iki sütun halinde gösterilir, kullanıcı kelime + anlam çiftini tıklayarak
+  // eşleştirir. Backend next-word endpoint'i tek tek çağrılarak havuz
+  // dolduruluyor (bkz. loadMatchingBatch) — ek bir backend değişikliği yok. ──
+  const [matchingItems, setMatchingItems] = useState<MatchingItem[]>([]);
+  const [matchingWordSlots, setMatchingWordSlots] = useState<string[]>([]);
+  const [matchingMeaningSlots, setMatchingMeaningSlots] = useState<string[]>([]);
+  const [matchedUids, setMatchedUids] = useState<string[]>([]);
+  const [selectedWordUid, setSelectedWordUid] = useState<string | null>(null);
+  const [selectedMeaningUid, setSelectedMeaningUid] = useState<string | null>(null);
+  const [wrongPairFlash, setWrongPairFlash] = useState<{ w: string; m: string } | null>(null);
+
   const [score, setScore] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
   const [questionNum, setQuestionNum] = useState(0);
   const [levelUp, setLevelUp] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [finishResult, setFinishResult] = useState<GameFinishResult | null>(null);
+
+  // URL'den challenge parametrelerini oku — varsa mod seçimi atlanır ve
+  // challenge'ın modu zorunlu kılınır (bkz. friends/page.tsx "Oyna" butonu).
+  useEffect(() => {
+    const cid = searchParams.get('challengeId');
+    const modeParam = searchParams.get('mode') as GameMode | null;
+    if (!cid || !modeParam) return;
+    challengeIdRef.current = cid;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
+    setChallengeId(cid);
+    setGameMode(modeParam);
+    if (modeParam === 'wordle') {
+      setDirection('meaning_to_word');
+      setStage('setup');
+    } else {
+      setStage('direction');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Bitmiş bir oyun oturumunu challenge'a "sonucum bu" diye gönder —
+  // sadece challengeId varsa ve daha önce gönderilmediyse çalışır.
+  const submitChallengeIfNeeded = useCallback(async (sid: string) => {
+    const cid = challengeIdRef.current;
+    if (!cid || challengeSubmittedRef.current) return;
+    try {
+      await socialApi.submitChallengeScore(cid, sid);
+      challengeSubmittedRef.current = true;
+      setChallengeSubmitted(true);
+    } catch {
+      setChallengeSubmitError(t.challengeSubmitError);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadNext = useCallback(async (sid: string, hadAnswered: boolean, pool: PoolSource) => {
     try {
@@ -513,6 +864,7 @@ export default function GamePage() {
         } catch {
           /* sessiz */
         }
+        await submitChallengeIfNeeded(sid);
         setStage('done');
         return;
       }
@@ -525,7 +877,76 @@ export default function GamePage() {
       setMaxWrongGuesses(nw.max_wrong_guesses ?? 6);
       setRoundResult(null);
       setRevealedWord(null);
+      setTypedAnswer('');
+      setTypingResult(null);
       setQuestionNum((n) => n + 1);
+      setStage('playing');
+    } catch {
+      setErrorMsg(t.genericError);
+      setStage('error');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── eşleştirme (matching) — tek next-word yerine MATCHING_BATCH_SIZE kadar
+  // kelimeyi arka arkaya çekip bir "tur" oluşturur. Havuz biterse (nw.finished)
+  // ve elimizde hiç kelime yoksa loadNext'teki ile aynı boş-havuz hatası
+  // gösterilir; en az bir kelime toplandıysa elimizdekiyle devam edilir.
+  //
+  // ÖNEMLİ: backend next-word, bir kelimeyi sadece o kelime için gerçek bir
+  // "attempt" (games.py -> submit_attempt) kaydedilince havuzdan çıkarıyor
+  // (bkz. _attempted_ids). Aynı anda birden fazla next-word çağrısı arasında
+  // henüz attempt gönderilmediği için havuz küçükse (ör. test hesaplarındaki
+  // 4 kelimelik "own" havuzu) random.choice aynı kelimeyi birden fazla kez
+  // seçebilir. Bu yüzden burada word_id/general_word_id'ye göre istemci
+  // tarafında tekilleştirme yapılıyor; tekrar gelirse atlanıp yeniden çekiliyor
+  // (üst sınır: MATCHING_BATCH_SIZE'ın birkaç katı deneme). ──
+  const loadMatchingBatch = useCallback(async (sid: string, hadAnswered: boolean, pool: PoolSource) => {
+    setStage('loading');
+    try {
+      const items: MatchingItem[] = [];
+      const seenKeys = new Set<string>();
+      const maxTries = MATCHING_BATCH_SIZE * 6;
+      let tries = 0;
+      while (items.length < MATCHING_BATCH_SIZE && tries < maxTries) {
+        tries++;
+        const nw = await gamesApi.nextWord(sid);
+        if (nw.finished) break;
+        const key = nw.word_id ?? nw.general_word_id ?? null;
+        if (key && seenKeys.has(key)) continue; // aynı turda zaten var, atla
+        if (key) seenKeys.add(key);
+        items.push({
+          uid: `${items.length}-${key ?? 'x'}-${Math.random().toString(36).slice(2)}`,
+          word: nw.word ?? '',
+          meaning: nw.meaning ?? '',
+          word_id: nw.word_id ?? undefined,
+          general_word_id: nw.general_word_id ?? undefined,
+        });
+      }
+      if (items.length === 0) {
+        if (!hadAnswered) {
+          setErrorMsg(pool === 'own' ? t.ownEmptyError : t.generalEmptyError);
+          setStage('error');
+          return;
+        }
+        try {
+          const res = await gamesApi.finishSession(sid);
+          setFinishResult(res);
+        } catch {
+          /* sessiz */
+        }
+        await submitChallengeIfNeeded(sid);
+        setStage('done');
+        return;
+      }
+      setMatchingItems(items);
+      setMatchedUids([]);
+      setSelectedWordUid(null);
+      setSelectedMeaningUid(null);
+      setWrongPairFlash(null);
+      setMatchingWordSlots(shuffleArray(items.map((it) => it.uid)));
+      setMatchingMeaningSlots(shuffleArray(items.map((it) => it.uid)));
+      setQuestionNum((n) => n + items.length);
       setStage('playing');
     } catch {
       setErrorMsg(t.genericError);
@@ -544,10 +965,24 @@ export default function GamePage() {
     setQuestionNum(0);
     setLevelUp(null);
     setFinishResult(null);
+    if (mode === 'sprint') setSprintSecondsLeft(SPRINT_DURATION_SECS);
+    if (mode === 'matching') {
+      setMatchingItems([]);
+      setMatchedUids([]);
+      setSelectedWordUid(null);
+      setSelectedMeaningUid(null);
+      setWrongPairFlash(null);
+      setMatchingWordSlots([]);
+      setMatchingMeaningSlots([]);
+    }
     try {
       const session = await gamesApi.createSession(mode, pool, dir);
       setSessionId(session.id);
-      await loadNext(session.id, false, pool);
+      if (mode === 'matching') {
+        await loadMatchingBatch(session.id, false, pool);
+      } else {
+        await loadNext(session.id, false, pool);
+      }
     } catch {
       setErrorMsg(t.genericError);
       setStage('error');
@@ -581,6 +1016,105 @@ export default function GamePage() {
     setTimeout(() => {
       loadNext(sessionId, true, poolSource);
     }, 900);
+  };
+
+  // ── yazma (typing) cevap kontrolü — doğruluk istemci tarafında belirlenir,
+  // aynı multiple_choice'ta olduğu gibi (backend next-word yanıtında zaten
+  // doğru kelimeyi düz metin olarak döndürüyor, bkz. games.py). ──
+  const handleTypingSubmit = async () => {
+    if (typingResult || !current || !sessionId || !typedAnswer.trim()) return;
+    const correctWord = (current.word ?? '').trim().toLocaleLowerCase();
+    const isCorrect = typedAnswer.trim().toLocaleLowerCase() === correctWord;
+    setTypingResult(isCorrect ? 'correct' : 'wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        word_id: current.word_id ?? undefined,
+        general_word_id: current.general_word_id ?? undefined,
+        is_correct: isCorrect,
+      });
+      setScore(res.session_score);
+      setXpEarned((x) => x + res.xp_awarded);
+      if (res.leveled_up) setLevelUp(res.new_level);
+    } catch {
+      /* sessiz */
+    }
+
+    setTimeout(
+      () => {
+        loadNext(sessionId, true, poolSource);
+      },
+      isCorrect ? 900 : 1600
+    );
+  };
+
+  // ── dinleme (listening) — kelimeyi tarayıcının SpeechSynthesis API'siyle
+  // sesli okur. Dil kodu şimdilik verilmiyor (tarayıcı varsayılan/otomatik
+  // algılama sesini kullanır); ileride NextWordResult'a öğrenilen dilin
+  // BCP-47 kodu eklenirse utter.lang'a bağlanabilir. ──
+  const speakWord = useCallback((text: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis || !text) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utter);
+    } catch {
+      /* sessiz — tarayıcı TTS desteklemiyor olabilir */
+    }
+  }, []);
+
+  // ── eşleştirme (matching) — kelime/anlam çifti tıklanınca kontrol ──
+  const attemptMatch = useCallback(
+    async (wordUid: string, meaningUid: string) => {
+      if (wordUid === meaningUid) {
+        const newMatched = [...matchedUids, wordUid];
+        setMatchedUids(newMatched);
+        setSelectedWordUid(null);
+        setSelectedMeaningUid(null);
+        setScore((s) => s + 1);
+        const item = matchingItems.find((it) => it.uid === wordUid);
+        if (sessionId && item) {
+          try {
+            const res = await gamesApi.submitAttempt(sessionId, {
+              word_id: item.word_id,
+              general_word_id: item.general_word_id,
+              is_correct: true,
+            });
+            setXpEarned((x) => x + res.xp_awarded);
+            if (res.leveled_up) setLevelUp(res.new_level);
+          } catch {
+            /* sessiz */
+          }
+        }
+        if (newMatched.length === matchingItems.length && sessionId) {
+          setTimeout(() => loadMatchingBatch(sessionId, true, poolSource), 600);
+        }
+      } else {
+        setWrongPairFlash({ w: wordUid, m: meaningUid });
+        setTimeout(() => {
+          setWrongPairFlash(null);
+          setSelectedWordUid(null);
+          setSelectedMeaningUid(null);
+        }, 600);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [matchedUids, matchingItems, sessionId, poolSource]
+  );
+
+  const handleMatchWordClick = (uid: string) => {
+    if (matchedUids.includes(uid) || wrongPairFlash) return;
+    setSelectedWordUid(uid);
+    if (selectedMeaningUid) {
+      attemptMatch(uid, selectedMeaningUid);
+    }
+  };
+
+  const handleMatchMeaningClick = (uid: string) => {
+    if (matchedUids.includes(uid) || wrongPairFlash) return;
+    setSelectedMeaningUid(uid);
+    if (selectedWordUid) {
+      attemptMatch(selectedWordUid, uid);
+    }
   };
 
   // ── adam asmaca harf tahmini ──
@@ -619,6 +1153,10 @@ export default function GamePage() {
 
   const handleFinish = async () => {
     if (!sessionId) return;
+    if (sprintTimerRef.current) {
+      clearInterval(sprintTimerRef.current);
+      sprintTimerRef.current = null;
+    }
     setStage('loading');
     try {
       const res = await gamesApi.finishSession(sessionId);
@@ -626,8 +1164,44 @@ export default function GamePage() {
     } catch {
       /* sessiz */
     }
+    await submitChallengeIfNeeded(sessionId);
     setStage('done');
   };
+
+  // ── sprint geri sayımı — 'playing' aşamasına girince başlar, süre 0'a
+  // inince oturumu otomatik bitirir. Sekme değişince/oyun bitince temizlenir. ──
+  useEffect(() => {
+    if (gameMode !== 'sprint' || stage !== 'playing') return;
+    if (sprintTimerRef.current) return;
+    sprintTimerRef.current = setInterval(() => {
+      setSprintSecondsLeft((s) => {
+        if (s <= 1) {
+          if (sprintTimerRef.current) {
+            clearInterval(sprintTimerRef.current);
+            sprintTimerRef.current = null;
+          }
+          handleFinish();
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => {
+      if (sprintTimerRef.current) {
+        clearInterval(sprintTimerRef.current);
+        sprintTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameMode, stage]);
+
+  // ── dinleme (listening) — her yeni kelimede otomatik bir kez seslendir ──
+  useEffect(() => {
+    if (gameMode === 'listening' && stage === 'playing' && current?.word) {
+      speakWord(current.word);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameMode, stage, current?.word]);
 
   // ── Mod seçimi ──
   if (stage === 'mode') {
@@ -672,6 +1246,71 @@ export default function GamePage() {
               <div>
                 <p className="text-sm font-semibold text-gray-800">{t.modeWordleLabel}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{t.modeWordleDesc}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setGameMode('typing');
+                setDirection('meaning_to_word');
+                setStage('setup');
+              }}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-[#FDEAF0] flex items-center justify-center">
+                <TypeIcon className="w-4 h-4 text-[#9F1D53]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">{t.modeTypingLabel}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{t.modeTypingDesc}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setGameMode('listening');
+                setDirection('meaning_to_word');
+                setStage('setup');
+              }}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-[#E6F1FB] flex items-center justify-center">
+                <Ear className="w-4 h-4 text-[#378ADD]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">{t.modeListeningLabel}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{t.modeListeningDesc}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setGameMode('sprint');
+                setDirection('meaning_to_word');
+                setSprintSecondsLeft(SPRINT_DURATION_SECS);
+                setStage('setup');
+              }}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-[#FFF1D6] flex items-center justify-center">
+                <Zap className="w-4 h-4 text-[#9A6400]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">{t.modeSprintLabel}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{t.modeSprintDesc}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setGameMode('matching');
+                setDirection('meaning_to_word');
+                setStage('setup');
+              }}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-[#E4F5EA] flex items-center justify-center">
+                <Shuffle className="w-4 h-4 text-[#1D7A46]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800">{t.modeMatchingLabel}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{t.modeMatchingDesc}</p>
               </div>
             </button>
           </div>
@@ -823,6 +1462,21 @@ export default function GamePage() {
             <Sparkles className="w-4 h-4 text-[#534AB7]" />
             <p className="text-sm font-semibold text-[#534AB7]">{t.doneXpTpl.replace('{xp}', String(xp))}</p>
           </div>
+
+          {challengeId && (
+            <div
+              className={`w-full rounded-xl p-3 text-xs font-medium text-center ${
+                challengeSubmitError
+                  ? 'bg-red-50 text-red-600'
+                  : challengeSubmitted
+                    ? 'bg-[#EAF3DE] text-[#3B6D11]'
+                    : 'bg-gray-50 text-gray-400'
+              }`}
+            >
+              {challengeSubmitError || (challengeSubmitted ? t.challengeSubmittedMsg : t.challengeModeHint)}
+            </div>
+          )}
+
           <div className="w-full flex flex-col gap-2">
             <button
               onClick={() => setStage('mode')}
@@ -831,19 +1485,124 @@ export default function GamePage() {
               <RotateCcw className="w-4 h-4" />
               {t.playAgainBtn}
             </button>
-            <Link href="/dashboard" className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2">
-              {t.backToDashboardBtn}
-            </Link>
+            {challengeId ? (
+              <Link href="/friends" className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2">
+                {t.backToChallengesBtn}
+              </Link>
+            ) : (
+              <Link href="/dashboard" className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2">
+                {t.backToDashboardBtn}
+              </Link>
+            )}
           </div>
         </div>
       </div>
     );
   }
 
-  // ── Oynanış ──
+  // ── Oynanış: eşleştirme (matching) — current tekil kelime state'i
+  // kullanmıyor (matchingItems kullanıyor), bu yüzden tamamen ayrı, erken
+  // bir return olarak ele alınıyor; böylece aşağıdaki `current` null-check'i
+  // diğer tüm modlar için temiz kalıyor. ──
+  if (gameMode === 'matching') {
+    if (matchingItems.length === 0) return null;
+    return (
+      <div className="p-6 flex flex-col items-center gap-6 max-w-xl mx-auto">
+        <div className="w-full flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
+              <Gamepad2 className="w-4 h-4 text-[#534AB7]" />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">
+              {t.questionCounterTpl.replace('{n}', String(questionNum))}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 text-xs font-medium">
+            <span className="flex items-center gap-1 text-[#3B6D11]">
+              <span className="w-2 h-2 rounded-full bg-[#3B6D11] inline-block" />
+              {t.scoreLabel}: {score}
+            </span>
+            <span className="flex items-center gap-1 text-[#534AB7]">
+              <Sparkles className="w-3 h-3" />
+              {xpEarned} {t.xpLabel}
+            </span>
+          </div>
+        </div>
+
+        {levelUp !== null && (
+          <div className="w-full bg-[#EEEDFE] text-[#534AB7] rounded-xl px-4 py-2 text-sm font-semibold text-center">
+            {t.levelUpTpl.replace('{n}', String(levelUp))}
+          </div>
+        )}
+
+        <p className="w-full text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">
+          {t.matchingPromptLabel}
+        </p>
+
+        <div className="w-full grid grid-cols-2 gap-3">
+          <div className="flex flex-col gap-2">
+            {matchingWordSlots.map((uid) => {
+              const item = matchingItems.find((it) => it.uid === uid);
+              if (!item) return null;
+              const isMatched = matchedUids.includes(uid);
+              const isSelected = selectedWordUid === uid;
+              const isWrong = wrongPairFlash?.w === uid;
+              let cls = 'border-gray-200 text-gray-700 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
+              if (isMatched) cls = 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11] opacity-60 cursor-default';
+              else if (isWrong) cls = 'border-red-400 bg-red-50 text-red-600';
+              else if (isSelected) cls = 'border-[#378ADD] bg-[#E6F1FB] text-[#378ADD]';
+              return (
+                <button
+                  key={uid}
+                  onClick={() => handleMatchWordClick(uid)}
+                  disabled={isMatched}
+                  className={`w-full border-2 rounded-xl px-3 py-3 text-sm font-medium transition-all ${cls}`}
+                >
+                  {item.word}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-col gap-2">
+            {matchingMeaningSlots.map((uid) => {
+              const item = matchingItems.find((it) => it.uid === uid);
+              if (!item) return null;
+              const isMatched = matchedUids.includes(uid);
+              const isSelected = selectedMeaningUid === uid;
+              const isWrong = wrongPairFlash?.m === uid;
+              let cls = 'border-gray-200 text-gray-700 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
+              if (isMatched) cls = 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11] opacity-60 cursor-default';
+              else if (isWrong) cls = 'border-red-400 bg-red-50 text-red-600';
+              else if (isSelected) cls = 'border-[#378ADD] bg-[#E6F1FB] text-[#378ADD]';
+              return (
+                <button
+                  key={uid}
+                  onClick={() => handleMatchMeaningClick(uid)}
+                  disabled={isMatched}
+                  className={`w-full border-2 rounded-xl px-3 py-3 text-sm font-medium transition-all ${cls}`}
+                >
+                  {item.meaning}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button onClick={handleFinish} className="text-xs text-gray-400 hover:text-gray-600 underline">
+          {t.finishBtn}
+        </button>
+      </div>
+    );
+  }
+
+  // ── Oynanış: diğer modlar ──
   if (!current) return null;
 
   const isWordle = gameMode === 'wordle';
+  const isTyping = gameMode === 'typing';
+  const isListening = gameMode === 'listening';
+  const isSprint = gameMode === 'sprint';
+  const isMultipleChoice = gameMode === 'multiple_choice';
   const activeDirection = current.direction ?? direction;
   const isDefinition = activeDirection === 'definition_to_word';
   const isReverse = !isWordle && (activeDirection === 'meaning_to_word' || isDefinition);
@@ -868,6 +1627,12 @@ export default function GamePage() {
             <Sparkles className="w-3 h-3" />
             {xpEarned} {t.xpLabel}
           </span>
+          {isSprint && (
+            <span className="flex items-center gap-1 text-[#9A6400]">
+              <Zap className="w-3 h-3" />
+              {t.sprintTimeLeftTpl.replace('{s}', String(sprintSecondsLeft))}
+            </span>
+          )}
         </div>
       </div>
 
@@ -877,7 +1642,7 @@ export default function GamePage() {
         </div>
       )}
 
-      {!isWordle && (
+      {isMultipleChoice && (
         <>
           <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
@@ -1025,6 +1790,126 @@ export default function GamePage() {
           {guessedLetters.length > 0 && (
             <p className="text-xs text-gray-400 text-center">
               {t.guessedLabel}: {guessedLetters.join(', ').toUpperCase()}
+            </p>
+          )}
+        </>
+      )}
+
+      {(isTyping || isSprint) && (
+        <>
+          <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+              {t.typingPromptLabel}
+            </p>
+            <p className="text-3xl font-bold text-gray-900 tracking-tight">{current.meaning}</p>
+          </div>
+
+          <div className="w-full flex flex-col gap-3">
+            <input
+              type="text"
+              value={typedAnswer}
+              onChange={(e) => setTypedAnswer(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleTypingSubmit();
+              }}
+              disabled={typingResult !== null}
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={t.typingInputPlaceholder}
+              className={`w-full border-2 rounded-xl px-4 py-3.5 text-base text-center font-medium transition-all outline-none ${
+                typingResult === 'correct'
+                  ? 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]'
+                  : typingResult === 'wrong'
+                    ? 'border-red-400 bg-red-50 text-red-600'
+                    : 'border-gray-200 focus:border-[#378ADD]'
+              }`}
+            />
+            {typingResult === null && (
+              <button
+                onClick={handleTypingSubmit}
+                disabled={!typedAnswer.trim()}
+                className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
+              >
+                {t.typingCheckBtn}
+              </button>
+            )}
+          </div>
+
+          {typingResult !== null && (
+            <p
+              className={`text-sm font-semibold text-center ${
+                typingResult === 'correct' ? 'text-[#3B6D11]' : 'text-red-500'
+              }`}
+            >
+              {typingResult === 'correct'
+                ? t.correctLabel
+                : `${t.wrongLabel} — ${t.correctWordTpl.replace('{word}', current.word ?? '')}`}
+            </p>
+          )}
+        </>
+      )}
+
+      {isListening && (
+        <>
+          <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
+              {t.listeningPromptLabel}
+            </p>
+            <button
+              type="button"
+              onClick={() => current.word && speakWord(current.word)}
+              className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-[#E6F1FB] hover:bg-[#d3e7fa] transition-colors"
+              aria-label={t.listeningPlayBtn}
+            >
+              <Volume2 className="w-7 h-7 text-[#378ADD]" />
+            </button>
+            {current.meaning && <p className="text-xs text-gray-400 mt-4 italic">{current.meaning}</p>}
+          </div>
+
+          <div className="w-full flex flex-col gap-3">
+            <input
+              type="text"
+              value={typedAnswer}
+              onChange={(e) => setTypedAnswer(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleTypingSubmit();
+              }}
+              disabled={typingResult !== null}
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={t.typingInputPlaceholder}
+              className={`w-full border-2 rounded-xl px-4 py-3.5 text-base text-center font-medium transition-all outline-none ${
+                typingResult === 'correct'
+                  ? 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]'
+                  : typingResult === 'wrong'
+                    ? 'border-red-400 bg-red-50 text-red-600'
+                    : 'border-gray-200 focus:border-[#378ADD]'
+              }`}
+            />
+            {typingResult === null && (
+              <button
+                onClick={handleTypingSubmit}
+                disabled={!typedAnswer.trim()}
+                className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
+              >
+                {t.typingCheckBtn}
+              </button>
+            )}
+          </div>
+
+          {typingResult !== null && (
+            <p
+              className={`text-sm font-semibold text-center ${
+                typingResult === 'correct' ? 'text-[#3B6D11]' : 'text-red-500'
+              }`}
+            >
+              {typingResult === 'correct'
+                ? t.correctLabel
+                : `${t.wrongLabel} — ${t.correctWordTpl.replace('{word}', current.word ?? '')}`}
             </p>
           )}
         </>

@@ -4,12 +4,17 @@ import Image from 'next/image';
 import { useLocale } from '@/lib/i18n';
 
 export function Showcase() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  // 9 dilin tamamı için (tr varsayılan + en/de/fr/es/it/ru/ar/ja) ayrı ekran
+  // görüntüleri çekildi (bkz. lexis_kalan_isler_guncel.md, Madde 5 — tamamlandı).
+  const LOCALIZED_SCREENSHOTS = ['en', 'de', 'fr', 'es', 'it', 'ru', 'ar', 'ja'];
+  const screenshotSrc = (name: string) =>
+    LOCALIZED_SCREENSHOTS.includes(locale) ? `/screenshots/${locale}/${name}.png` : `/screenshots/${name}.png`;
 
   const items = [
-    { src: '/screenshots/dashboard.png', caption: t('showcaseItem1') },
-    { src: '/screenshots/words.png', caption: t('showcaseItem2') },
-    { src: '/screenshots/game.png', caption: t('showcaseItem3') },
+    { src: screenshotSrc('dashboard'), caption: t('showcaseItem1') },
+    { src: screenshotSrc('words'), caption: t('showcaseItem2') },
+    { src: screenshotSrc('game'), caption: t('showcaseItem3') },
   ];
 
   return (

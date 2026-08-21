@@ -17,6 +17,7 @@ from typing import Optional
 import httpx
 
 from app.core.config import settings
+from app.services.notification_log import log_notification
 
 TELEGRAM_API_BASE = "https://api.telegram.org"
 
@@ -34,10 +35,12 @@ def post_word_to_telegram(word: str, meaning: str, example: Optional[str], image
 
     if _dry_run():
         print(f"[SOCIAL-DEV][Telegram/word] {caption}")
+        log_notification("telegram", "social_word", settings.TELEGRAM_CHANNEL_ID or "(dev)", "skipped", {"reason": "SOCIAL_POST_MODE=fixed"})
         return True
 
     if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHANNEL_ID:
         print("[SOCIAL] Telegram ayarlanmamış (TELEGRAM_BOT_TOKEN/TELEGRAM_CHANNEL_ID boş), atlandı.")
+        log_notification("telegram", "social_word", None, "skipped", {"reason": "not configured"})
         return False
 
     url = f"{TELEGRAM_API_BASE}/bot{settings.TELEGRAM_BOT_TOKEN}/sendPhoto"
@@ -49,9 +52,11 @@ def post_word_to_telegram(word: str, meaning: str, example: Optional[str], image
             timeout=20,
         )
         resp.raise_for_status()
+        log_notification("telegram", "social_word", settings.TELEGRAM_CHANNEL_ID, "sent")
         return True
     except Exception as e:
         print(f"TELEGRAM WORD POST ERROR: {e}")
+        log_notification("telegram", "social_word", settings.TELEGRAM_CHANNEL_ID, "failed", {"error": str(e)})
         return False
 
 
@@ -64,10 +69,12 @@ def post_quiz_to_telegram(question_text: str, options: list[str], correct_answer
 
     if _dry_run():
         print(f"[SOCIAL-DEV][Telegram/quiz] {question} seçenekler={options} doğru={correct_answer}")
+        log_notification("telegram", "social_quiz", settings.TELEGRAM_CHANNEL_ID or "(dev)", "skipped", {"reason": "SOCIAL_POST_MODE=fixed"})
         return True
 
     if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHANNEL_ID:
         print("[SOCIAL] Telegram ayarlanmamış, quiz atlandı.")
+        log_notification("telegram", "social_quiz", None, "skipped", {"reason": "not configured"})
         return False
 
     url = f"{TELEGRAM_API_BASE}/bot{settings.TELEGRAM_BOT_TOKEN}/sendPoll"
@@ -85,9 +92,11 @@ def post_quiz_to_telegram(question_text: str, options: list[str], correct_answer
             timeout=20,
         )
         resp.raise_for_status()
+        log_notification("telegram", "social_quiz", settings.TELEGRAM_CHANNEL_ID, "sent")
         return True
     except Exception as e:
         print(f"TELEGRAM QUIZ POST ERROR: {e}")
+        log_notification("telegram", "social_quiz", settings.TELEGRAM_CHANNEL_ID, "failed", {"error": str(e)})
         return False
 
 
@@ -100,7 +109,7 @@ def post_word_to_slack(word: str, meaning: str, example: Optional[str]) -> bool:
     if example:
         text += f"\n_\"{example}\"_"
 
-    return _post_slack(text)
+    return _post_slack(text, category="social_word")
 
 
 def post_quiz_to_slack(question_text: str, options: list[str], correct_answer: str) -> bool:
@@ -108,22 +117,26 @@ def post_quiz_to_slack(question_text: str, options: list[str], correct_answer: s
         f"{'✅' if o == correct_answer else '▫️'} {o}" for o in options
     )
     text = f"❓ *Quiz — \"{question_text}\" kelimesinin anlamı nedir?*\n\n{options_text}"
-    return _post_slack(text)
+    return _post_slack(text, category="social_quiz")
 
 
-def _post_slack(text: str) -> bool:
+def _post_slack(text: str, category: str = "social_word") -> bool:
     if _dry_run():
         print(f"[SOCIAL-DEV][Slack] {text}")
+        log_notification("slack", category, "(dev)", "skipped", {"reason": "SOCIAL_POST_MODE=fixed"})
         return True
 
     if not settings.SLACK_WEBHOOK_URL:
         print("[SOCIAL] Slack ayarlanmamış (SLACK_WEBHOOK_URL boş), atlandı.")
+        log_notification("slack", category, None, "skipped", {"reason": "not configured"})
         return False
 
     try:
         resp = httpx.post(settings.SLACK_WEBHOOK_URL, json={"text": text}, timeout=20)
         resp.raise_for_status()
+        log_notification("slack", category, "webhook", "sent")
         return True
     except Exception as e:
         print(f"SLACK POST ERROR: {e}")
+        log_notification("slack", category, "webhook", "failed", {"error": str(e)})
         return False

@@ -6,7 +6,12 @@ import { useLocale } from '@/lib/i18n';
 import { LOGIN_URL, REGISTER_URL } from '@/lib/config';
 
 export function Hero() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  // 9 dilin tamamı için (tr varsayılan + en/de/fr/es/it/ru/ar/ja) ayrı ekran
+  // görüntüleri çekildi (bkz. lexis_kalan_isler_guncel.md, Madde 5 — tamamlandı).
+  const LOCALIZED_SCREENSHOTS = ['en', 'de', 'fr', 'es', 'it', 'ru', 'ar', 'ja'];
+  const screenshotSrc = (name: string) =>
+    LOCALIZED_SCREENSHOTS.includes(locale) ? `/screenshots/${locale}/${name}.png` : `/screenshots/${name}.png`;
 
   const stats = [
     { value: t('heroStat1Value'), label: t('heroStat1Label') },
@@ -61,7 +66,7 @@ export function Hero() {
           <div className="relative animate-fade-in" style={{ animationDelay: '120ms' }}>
             <div className="relative mx-auto max-w-xl rounded-[28px] border border-gray-100 bg-white shadow-2xl shadow-slate-300/40 p-3 animate-float">
               <Image
-                src="/screenshots/dashboard.png"
+                src={screenshotSrc('dashboard')}
                 alt="Lexis Dashboard"
                 width={900}
                 height={577}

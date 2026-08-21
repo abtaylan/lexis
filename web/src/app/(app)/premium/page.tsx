@@ -8,13 +8,14 @@ import { Button, Card, Spinner, Badge } from '@/components/ui';
 import { useAuth } from '@/store/auth';
 import { subscriptionApi } from '@/lib/api';
 import type { PricingPlan, SubscriptionStatus } from '@/types';
+import { useLocale, type Locale } from '@/lib/i18n';
 
-const FEATURES = [
-  'Kelime öğrenirken reklam görmezsin',
-  'Kelime tahmin oyununda ekstra XP',
-  'Haftalık/aylık lider tablosu ödüllerine katılım önceliği',
-  'Tüm günlük aktivite modüllerine sınırsız erişim',
-];
+// Yerel tarih biçimi için toLocaleDateString hedef locale'i — interfaceLanguageLabel
+// vb. gibi ayrı bir sözlük anahtarı gerektirmiyor, sadece Intl için doğru kodu seçiyor.
+const DATE_LOCALE: Record<Locale, string> = {
+  tr: 'tr-TR', en: 'en-US', ar: 'ar-SA', ru: 'ru-RU',
+  de: 'de-DE', fr: 'fr-FR', es: 'es-ES', it: 'it-IT', ja: 'ja-JP',
+};
 
 function injectAndRunScripts(container: HTMLDivElement) {
   const scripts = Array.from(container.querySelectorAll('script'));
@@ -27,15 +28,22 @@ function injectAndRunScripts(container: HTMLDivElement) {
 }
 
 export default function PremiumPage() {
-  const { user, updateUser } = useAuth();
+  const { updateUser } = useAuth();
+  const { t, locale } = useLocale();
   const searchParams = useSearchParams();
   const statusParam = searchParams.get('status');
+
+  const FEATURES = [t('premiumFeature1'), t('premiumFeature2'), t('premiumFeature3'), t('premiumFeature4')];
 
   const [plans, setPlans] = useState<PricingPlan[]>([]);
   const [subStatus, setSubStatus] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState<string | null>(null);
   const [error, setError] = useState('');
+  // Döviz bazlı fiyatlandırma — backend sadece .env'de fiyat/ref tanımlı olan
+  // para birimlerini döner. Bugün için (TRY dışında hiçbir şey yapılandırılmadıysa)
+  // bu her zaman tek elemanlı ['TRY'] olur ve seçici hiç görünmez.
+  const [selectedCurrency, setSelectedCurrency] = useState<string>('TRY');
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,46 +54,51 @@ export default function PremiumPage() {
           subscriptionApi.getStatus(),
         ]);
         setPlans(plansRes);
+        const currencies = Array.from(new Set(plansRes.map((p) => p.currency)));
+        if (currencies.length && !currencies.includes('TRY')) {
+          setSelectedCurrency(currencies[0]);
+        }
         setSubStatus(statusRes);
         updateUser({ is_premium: statusRes.is_premium, premium_until: statusRes.premium_until });
       } catch {
-        setError('Plan bilgileri alınamadı.');
+        setError(t('premiumPlansLoadError'));
       } finally {
         setLoading(false);
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- 't' kasıtlı dışarıda: dahil edilirse arayüz dili değiştiğinde plan/abonelik durumu gereksiz yere yeniden çekilir
   }, [updateUser]);
 
-  const handleCheckout = async (planCode: 'monthly' | 'yearly') => {
+  const handleCheckout = async (planId: string) => {
     setError('');
-    setCheckingOut(planCode);
+    setCheckingOut(planId);
     try {
-      const res = await subscriptionApi.checkout(planCode);
+      const res = await subscriptionApi.checkout(planId);
       if (res.payment_page_url) {
-        window.location.href = res.payment_page_url;
+        window.location.assign(res.payment_page_url);
         return;
       }
       if (res.checkout_form_content && checkoutContainerRef.current) {
         checkoutContainerRef.current.innerHTML = res.checkout_form_content;
         injectAndRunScripts(checkoutContainerRef.current);
       } else {
-        setError('Ödeme formu oluşturulamadı.');
+        setError(t('premiumCheckoutFormError'));
       }
     } catch {
-      setError('Ödeme başlatılamadı, lütfen tekrar deneyin.');
+      setError(t('premiumCheckoutStartError'));
     } finally {
       setCheckingOut(null);
     }
   };
 
   const handleCancel = async () => {
-    if (!confirm('Aboneliğini iptal etmek istediğine emin misin? Dönem sonuna kadar premium erişimin devam eder.')) return;
+    if (!confirm(t('premiumCancelConfirm'))) return;
     try {
       await subscriptionApi.cancel();
       const statusRes = await subscriptionApi.getStatus();
       setSubStatus(statusRes);
     } catch {
-      setError('Abonelik iptal edilemedi.');
+      setError(t('premiumCancelError'));
     }
   };
 
@@ -96,19 +109,21 @@ export default function PremiumPage() {
   }
 
   const isPremium = !!subStatus?.is_premium;
+  const currencies = Array.from(new Set(plans.map((p) => p.currency)));
+  const visiblePlans = plans.filter((p) => p.currency === selectedCurrency);
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
-      <PageHeader title="Lexis Premium" subtitle="Reklamsız, sınırsız kelime öğrenme deneyimi" />
+      <PageHeader title="Lexis Premium" subtitle={t('premiumPageSubtitle')} />
 
       {statusParam === 'success' && (
         <div className="mb-6 p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm">
-          Ödemen alındı, premium üyeliğin aktifleşti 🎉
+          {t('premiumSuccessMsg')}
         </div>
       )}
       {statusParam === 'failed' && (
         <div className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 text-sm">
-          Ödeme tamamlanamadı. Tekrar deneyebilirsin.
+          {t('premiumFailedMsg')}
         </div>
       )}
       {error && (
@@ -122,23 +137,41 @@ export default function PremiumPage() {
               <Crown className="w-5 h-5 text-amber-500" />
             </div>
             <div>
-              <p className="font-semibold text-slate-800">Premium üyesin</p>
+              <p className="font-semibold text-slate-800">{t('premiumActive')}</p>
               <p className="text-sm text-slate-400">
-                {subStatus?.premium_until && `Dönem sonu: ${new Date(subStatus.premium_until).toLocaleDateString('tr-TR')}`}
+                {subStatus?.premium_until && t('premiumPeriodEndTpl').replace('{date}', new Date(subStatus.premium_until).toLocaleDateString(DATE_LOCALE[locale]))}
               </p>
             </div>
           </div>
-          <Button variant="outline" onClick={handleCancel}>Aboneliği İptal Et</Button>
+          <Button variant="outline" onClick={handleCancel}>{t('premiumCancelBtn')}</Button>
         </Card>
       ) : (
         <>
+          {currencies.length > 1 && (
+            <div className="flex gap-2 mb-4">
+              {currencies.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setSelectedCurrency(c)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                    selectedCurrency === c
+                      ? 'bg-indigo-600 text-white border-indigo-600'
+                      : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid sm:grid-cols-2 gap-4 mb-8">
-            {plans.map((plan) => (
-              <Card key={plan.code} className="p-6 flex flex-col">
+            {visiblePlans.map((plan) => (
+              <Card key={plan.id} className="p-6 flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
                   <Crown className="w-4 h-4 text-amber-500" />
                   <span className="text-sm font-medium text-slate-500">{plan.interval_label}</span>
-                  {plan.code === 'yearly' && <Badge variant="warning">En avantajlı</Badge>}
+                  {plan.code === 'yearly' && <Badge variant="warning">{t('premiumBestValueBadge')}</Badge>}
                 </div>
                 <p className="text-3xl font-bold text-slate-800 mb-4">
                   {plan.price.toFixed(2)} <span className="text-base font-normal text-slate-400">{plan.currency}</span>
@@ -146,17 +179,17 @@ export default function PremiumPage() {
                 <Button
                   variant="primary"
                   className="mt-auto"
-                  loading={checkingOut === plan.code}
-                  onClick={() => handleCheckout(plan.code)}
+                  loading={checkingOut === plan.id}
+                  onClick={() => handleCheckout(plan.id)}
                 >
-                  {plan.interval_label} Abone Ol
+                  {t('premiumSubscribeBtnTpl').replace('{interval}', plan.interval_label)}
                 </Button>
               </Card>
             ))}
           </div>
 
           <Card className="p-6 mb-8">
-            <p className="font-semibold text-slate-800 mb-3">Premium ile neler değişir?</p>
+            <p className="font-semibold text-slate-800 mb-3">{t('premiumFeaturesTitle')}</p>
             <ul className="space-y-2">
               {FEATURES.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
@@ -164,7 +197,7 @@ export default function PremiumPage() {
                 </li>
               ))}
               <li className="flex items-start gap-2 text-sm text-slate-400">
-                <X className="w-4 h-4 mt-0.5 shrink-0" />Premium olmayan hesaplarda kenar reklamları gösterilir
+                <X className="w-4 h-4 mt-0.5 shrink-0" />{t('premiumNoAdsNegative')}
               </li>
             </ul>
           </Card>

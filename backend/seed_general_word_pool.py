@@ -12,26 +12,36 @@ zinciri, kelime ekleme akışında zaten canlıda kullanılan aynı kod)
 bulunamazsa o kelime ATLANIR (tabloya yanlış/uydurma veri yazılmaz) ve
 script sonunda "bulunamayan kelimeler" listesi olarak raporlanır.
 
-Kapsam (v1): source_lang='en', target_lang='tr' (README'de şu an tam
-desteklenen tek dil çifti bu). Diğer dil çiftleri ileride ayrı bir
-script/parametre ile eklenebilir.
+Kapsam: source_lang='en', target_lang= TARGET_LANGS listesindeki her dil
+(varsayılan: tr + de/fr/es/it/ar/ru/ja — admin panelin "İçerik" sayfasında
+eksik olarak işaretlenen diller). Aynı İngilizce kelime listesi (~300
+kelime) her hedef dil için ayrı ayrı işlenir; anlam o dile çevrilir.
 
-Çalıştırma:
+Çalıştırma (tüm diller):
     cd backend
     venv\\Scripts\\activate      # Windows
     python seed_general_word_pool.py
 
+Tek bir dil için çalıştırmak isterseniz (ör. sadece Rusça):
+    python seed_general_word_pool.py ru
+
 Var olan (aynı source_lang + target_lang + word, case-insensitive)
-kayıtları tekrar eklemez.
+kayıtları tekrar eklemez — script kesintiye uğrarsa güvenle tekrar
+çalıştırılabilir, sadece eksik kalanlar işlenir.
 """
 
 import asyncio
+import sys
 
 from app.core.database import supabase_admin
 from app.services.dictionary_service import lookup_word
 
 SOURCE_LANG = "en"
-TARGET_LANG = "tr"
+TARGET_LANGS = ["tr", "de", "fr", "es", "it", "ar", "ru", "ja"]
+
+# Komut satırından tek dil verilirse sadece onu işle (ör: `python seed_general_word_pool.py ru`)
+if len(sys.argv) > 1:
+    TARGET_LANGS = [sys.argv[1]]
 
 # Sözlük API'lerine nazik davranmak için istekler arası bekleme (saniye)
 REQUEST_DELAY_SECONDS = 0.4
@@ -111,30 +121,29 @@ WORDS = (
 )
 
 
-def word_exists(word: str) -> bool:
+def word_exists(word: str, target_lang: str) -> bool:
     existing = (
         supabase_admin.table("general_word_pool")
         .select("id")
         .eq("source_lang", SOURCE_LANG)
-        .eq("target_lang", TARGET_LANG)
+        .eq("target_lang", target_lang)
         .ilike("word", word)
         .execute()
     )
     return bool(existing.data)
 
 
-async def seed() -> None:
-    print(f"{len(WORDS)} kelime işlenecek (en -> tr)...\n")
+async def seed_language(target_lang: str) -> None:
+    print(f"\n=== en -> {target_lang}: {len(WORDS)} kelime işlenecek ===\n")
 
     inserted, skipped_existing, not_found = 0, 0, []
 
     for word, level in WORDS:
-        if word_exists(word):
+        if word_exists(word, target_lang):
             skipped_existing += 1
-            print(f"  [ATLA] {word} — zaten havuzda")
             continue
 
-        result = await lookup_word(word, SOURCE_LANG, TARGET_LANG)
+        result = await lookup_word(word, SOURCE_LANG, target_lang)
         meanings = result.get("meanings") or []
 
         if not meanings:
@@ -156,7 +165,7 @@ async def seed() -> None:
 
         row = {
             "source_lang": SOURCE_LANG,
-            "target_lang": TARGET_LANG,
+            "target_lang": target_lang,
             "word": word,
             "meaning": meaning_native,
             "example": example,
@@ -174,12 +183,18 @@ async def seed() -> None:
 
         await asyncio.sleep(REQUEST_DELAY_SECONDS)
 
-    print("\n── Özet ──")
+    print(f"\n── {target_lang} özeti ──")
     print(f"Eklendi: {inserted}")
     print(f"Zaten vardı (atlandı): {skipped_existing}")
     print(f"Bulunamadı/hata (atlandı): {len(not_found)}")
     if not_found:
         print("Bulunamayan kelimeler:", ", ".join(not_found))
+
+
+async def seed() -> None:
+    for lang in TARGET_LANGS:
+        await seed_language(lang)
+    print("\n=== Tüm diller tamamlandı ===")
 
 
 if __name__ == "__main__":

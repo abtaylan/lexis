@@ -1,15 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
-  Menu, X,
+  Menu, X, Users,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { XPBar } from '@/components/layout/XPBar';
 
 // Merkezi i18n.tsx sözlüğüne dokunmadan yerel çeviri (forgot-password/reset-password/
 // verify-otp sayfalarında kullanılan güvenli desenle aynı yaklaşım).
@@ -22,6 +24,20 @@ const GAME_LABEL: Record<Locale, string> = {
   fr: 'Jeu de mots',
   es: 'Juego de palabras',
   it: 'Gioco di parole',
+  ja: '単語ゲーム',
+};
+
+// Madde 6, Faz 1 — Arkadaşlık + Takip + Profil görüntüleme
+const FRIENDS_LABEL: Record<Locale, string> = {
+  tr: 'Arkadaşlar',
+  en: 'Friends',
+  ar: 'الأصدقاء',
+  ru: 'Друзья',
+  de: 'Freunde',
+  fr: 'Amis',
+  es: 'Amigos',
+  it: 'Amici',
+  ja: '友達',
 };
 
 export function Sidebar() {
@@ -46,6 +62,7 @@ export function Sidebar() {
     { href: '/flashcards', label: t('flashcards'), icon: Layers },
     { href: '/quiz', label: t('quiz'), icon: HelpCircle },
     { href: '/game', label: GAME_LABEL[locale], icon: Gamepad2 },
+    { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
     { href: '/stats', label: t('stats'), icon: BarChart3 },
     { href: '/profile', label: t('profile'), icon: User },
@@ -68,7 +85,8 @@ export function Sidebar() {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <span className="ml-2 text-lg font-bold text-blue-600 tracking-tight">Lexis</span>
+        <Image src="/logo-icon.png" alt="Lexis" width={24} height={24} className="ml-2" />
+        <span className="ml-1.5 text-lg font-bold text-blue-600 tracking-tight">Lexis</span>
       </div>
 
       {/* Karartma — mobil menü açıkken arka planı kapatır, dışına tıklayınca menüyü kapatır */}
@@ -86,7 +104,10 @@ export function Sidebar() {
         } md:translate-x-0`}
       >
         <div className="mb-8 px-2 flex items-center justify-between">
-          <span className="text-xl font-bold text-blue-600 tracking-tight">Lexis</span>
+          <span className="flex items-center gap-1.5">
+            <Image src="/logo-icon.png" alt="Lexis" width={28} height={28} />
+            <span className="text-xl font-bold text-blue-600 tracking-tight">Lexis</span>
+          </span>
           <button
             type="button"
             onClick={() => setMobileOpen(false)}
@@ -128,6 +149,8 @@ export function Sidebar() {
       )}
 
       <div className="border-t border-gray-100 pt-4">
+        {/* Madde: XPBar ön yüz bileşeni — hesap geneli seviye/XP göstergesi */}
+        <XPBar compact />
         <div className="flex items-center gap-3 px-2 mb-3">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">{avatarLetter}</div>
           <div className="min-w-0">

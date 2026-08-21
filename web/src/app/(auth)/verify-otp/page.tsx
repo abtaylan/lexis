@@ -8,6 +8,7 @@ import { useAuth } from '@/store/auth';
 import { Button, Card } from '@/components/ui';
 import type { User as UserType } from '@/types';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { getErrorMessage } from '@/lib/errors';
 
 type VOStrings = {
   invalidLink: string;
@@ -128,6 +129,19 @@ const STRINGS: Record<Locale, VOStrings> = {
     resendingLabel: 'Invio…',
     resendLabel: 'Reinvia codice',
   },
+  ja: {
+    invalidLink: '無効な確認リンクです。',
+    backToLogin: 'ログインに戻る',
+    title: '確認コードを入力',
+    subtitleTpl: '{email} に送信された6桁のコードを入力してください。',
+    codeIncomplete: '6桁のコードをすべて入力してください。',
+    genericVerifyError: 'コードが正しくないか、期限切れです。',
+    resendGenericError: 'コードを再送信できませんでした。',
+    verifyBtn: '確認',
+    resendCooldownTpl: '新しいコード ({s}秒)',
+    resendingLabel: '送信中…',
+    resendLabel: 'コードを再送信',
+  },
 };
 
 function VerifyOtpContent() {
@@ -205,10 +219,13 @@ function VerifyOtpContent() {
       };
 
       login(res.access_token, user);
-      router.push('/dashboard');
-    } catch (err: any) {
+      // Admin/admin_readonly rolündeki kullanıcılar doğrudan admin panele
+      // yönlendirilsin — aksi halde /dashboard'a düşüp panele manuel
+      // gitmeleri gerekiyordu.
+      router.push(user.role === 'admin' || user.role === 'admin_readonly' ? '/admin' : '/dashboard');
+    } catch (err) {
       localStorage.removeItem('lexis_token');
-      setError(err?.response?.data?.detail || t.genericVerifyError);
+      setError(getErrorMessage(err, t.genericVerifyError));
       setDigits(Array(6).fill(''));
       inputsRef.current[0]?.focus();
     } finally {
@@ -234,8 +251,8 @@ function VerifyOtpContent() {
       setCooldown(60);
       setDigits(Array(6).fill(''));
       inputsRef.current[0]?.focus();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || t.resendGenericError);
+    } catch (err) {
+      setError(getErrorMessage(err, t.resendGenericError));
     } finally {
       setResending(false);
     }

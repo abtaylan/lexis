@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { Mail, Send } from 'lucide-react';
 import { useLocale } from '@/lib/i18n';
 import { LOGIN_URL, REGISTER_URL, CONTACT_EMAIL, SOCIAL_LINKS } from '@/lib/config';
-import { XLogoIcon, SlackLogoIcon, YoutubeLogoIcon, InstagramLogoIcon } from './icons';
+import { XLogoIcon, SlackLogoIcon, YoutubeLogoIcon, InstagramLogoIcon, LinkedinLogoIcon } from './icons';
 
 const ICONS = {
   youtube: YoutubeLogoIcon,
@@ -12,6 +12,7 @@ const ICONS = {
   x: XLogoIcon,
   telegram: Send,
   slack: SlackLogoIcon,
+  linkedin: LinkedinLogoIcon,
 };
 
 export function Footer() {

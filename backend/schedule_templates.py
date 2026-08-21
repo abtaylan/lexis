@@ -120,12 +120,35 @@ TASK_LINKS = {
 }
 
 
+# activity (goruntulenen ad) -> learning_resources.category / activity_key
+# eslemesi (bkz. app/api/routes/schedule.py ACTIVITY_CATEGORIES,
+# seed_learning_resources.py RESOURCES). Bu doldurulmadigi surece backend
+# _resolve_resource() hicbir zaman calismiyor ve schedule item'lari, olusturuldugu
+# andaki dile sabitlenmis link_url'de kalip kullanici sonradan ogrenilen dilini
+# degistirse bile guncellenmiyordu -- teknik borc maddesiydi, burada cozuldu.
+#
+# LingoClip ve Dizi/Film BILINCLI olarak esleme DISINDA birakildi: TASK_LINKS'te
+# her dilde birebir ayni (dilden bagimsiz) sabit URL kullaniyorlar, dinamik
+# coz(ul)meye ihtiyaclari yok. Kelime Tekrari de PROGRAM'da kullanilmiyor.
+ACTIVITY_KEY_MAP = {
+    "Teknik Makale": "technical_article",
+    "Haber Okuma": "news_reading",
+    "Video Analizi": "video_analysis",
+    "Podcast": "audio_practice",
+    "Genel Tekrar": "general_review",
+}
+
+
 def program_for_lang(lang: str) -> list[dict]:
-    """Verilen dile gore link_url alani doldurulmus PROGRAM listesini dondurur."""
+    """Verilen dile gore link_url ve activity_key alanlari doldurulmus PROGRAM listesini dondurur."""
     if lang not in TASK_LINKS:
         raise ValueError(f"Desteklenmeyen dil: {lang!r}. Desteklenenler: {SUPPORTED_LANGS}")
     links = TASK_LINKS[lang]
     return [
-        {**entry, "link_url": links.get(entry["activity"], "")}
+        {
+            **entry,
+            "link_url": links.get(entry["activity"], ""),
+            "activity_key": ACTIVITY_KEY_MAP.get(entry["activity"]),
+        }
         for entry in PROGRAM
     ]

@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Zap, Globe, ChevronDown, Sparkles } from 'lucide-react';
+import Image from 'next/image';
+import { Globe, ChevronDown, Sparkles } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { useLocale, LOCALE_META } from '@/lib/i18n';
 
@@ -81,8 +82,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         {/* Logo */}
         <div className="flex items-center gap-3 relative">
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
-            <Zap size={20} className="text-white" strokeWidth={2.5} />
+          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm p-1.5">
+            <Image src="/logo-icon.png" alt="Lexis" width={28} height={28} />
           </div>
           <span className="text-2xl font-bold tracking-tight">Lexis</span>
         </div>

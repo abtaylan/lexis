@@ -38,6 +38,7 @@ from datetime import date, timezone
 from datetime import datetime
 
 from app.core.database import supabase_admin
+from app.services.job_log import job_run
 from app.services.social_content import generate_word_card, pick_quiz, pick_word
 from app.services.social_publisher import (
     post_quiz_to_slack,
@@ -72,10 +73,10 @@ def _next_content_type() -> str:
     return "quiz" if last[0]["content_type"] == "word" else "word"
 
 
-def main():
+def main() -> dict:
     if _already_posted_today():
         print(f"[{datetime.now(timezone.utc).isoformat()}] Bugün için zaten bir paylaşım var, çıkılıyor.")
-        return
+        return {"posted": False, "reason": "already_posted_today"}
 
     content_type = _next_content_type()
     row = {"post_date": date.today().isoformat(), "content_type": content_type}
@@ -84,7 +85,7 @@ def main():
         chosen = pick_word()
         if not chosen:
             print("Genel havuzda kelime bulunamadı, çıkılıyor.")
-            return
+            return {"posted": False, "reason": "no_word_available", "content_type": content_type}
 
         image_bytes = generate_word_card(chosen["word"], chosen["meaning"], chosen.get("example"))
         telegram_ok = post_word_to_telegram(chosen["word"], chosen["meaning"], chosen.get("example"), image_bytes)
@@ -101,7 +102,7 @@ def main():
         quiz = pick_quiz()
         if not quiz:
             print("Genel havuzda quiz için yeterli kelime bulunamadı, çıkılıyor.")
-            return
+            return {"posted": False, "reason": "no_quiz_available", "content_type": content_type}
 
         telegram_ok = post_quiz_to_telegram(quiz["question_text"], quiz["options"], quiz["correct_answer"])
         slack_ok = post_quiz_to_slack(quiz["question_text"], quiz["options"], quiz["correct_answer"])
@@ -124,13 +125,20 @@ def main():
         # yapıldıysa bile bu tekrar denemeyi engellemez (kabul edilebilir,
         # çok nadir bir durum: günde bir kez çalışan bir script için).
         print(f"SOCIAL_POSTS INSERT ERROR: {e}")
-        return
+        return {"posted": False, "reason": "insert_error", "content_type": content_type, "error": str(e)}
 
     print(
         f"[{datetime.now(timezone.utc).isoformat()}] '{content_type}' paylaşıldı "
         f"(telegram={row.get('telegram_sent')}, slack={row.get('slack_sent')})."
     )
+    return {
+        "posted": True,
+        "content_type": content_type,
+        "telegram_sent": row.get("telegram_sent"),
+        "slack_sent": row.get("slack_sent"),
+    }
 
 
 if __name__ == "__main__":
-    main()
+    with job_run("post_daily_content") as run:
+        run.detail = main()

@@ -27,9 +27,28 @@ import type {
   Language,
   DictionaryResult,
   AnalyticsData,
+  SystemHealth,
+  DetailedStats,
+  Payment,
+  PaymentsSummary,
+  WordPoolEntry,
+  WordPoolCreate as WordPoolCreatePayload,
+  SocialPost,
+  NotificationLogEntry,
+  GameAnalytics,
+  AuditLogEntry,
   PricingPlan,
   CheckoutResponse,
   SubscriptionStatus,
+  UserCard,
+  FriendshipItem,
+  PendingRequests,
+  PublicProfile,
+  MessageItem,
+  ConversationItem,
+  ConversationThread,
+  ChallengeItem,
+  ChallengesList,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -59,6 +78,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && hadAuthHeader && typeof window !== 'undefined') {
       localStorage.removeItem('lexis_token');
       localStorage.removeItem('lexis_user');
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- axios interceptor React ağacının dışında çalışıyor (useRouter() burada yok); 401'de auth state'in (React Query cache, store) tam sıfırlanması için kasıtlı tam sayfa yenilemesi
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -254,6 +274,24 @@ export interface XpSummary {
   xp_to_next_level: number;
 }
 
+// Sıralama (leaderboard) — bkz. backend/app/services/leaderboard_service.py
+export type LeaderboardPeriod = 'all' | 'weekly' | 'monthly';
+
+export interface LeaderboardEntry {
+  rank: number;
+  user_id: string;
+  username: string;
+  display_name: string | null;
+  level: number;
+  xp: number;
+}
+
+export interface LeaderboardResponse {
+  period: LeaderboardPeriod;
+  top: LeaderboardEntry[];
+  me: LeaderboardEntry & { in_top: boolean };
+}
+
 export const statsApi = {
   getSummary: async (): Promise<Stats> => {
     const res = await api.get<Stats>('/stats/summary');
@@ -269,6 +307,15 @@ export const statsApi = {
   },
   getXp: async (): Promise<XpSummary> => {
     const res = await api.get<XpSummary>('/stats/xp');
+    return res.data;
+  },
+  getLeaderboard: async (
+    period: LeaderboardPeriod = 'all',
+    limit = 20
+  ): Promise<LeaderboardResponse> => {
+    const res = await api.get<LeaderboardResponse>('/stats/leaderboard', {
+      params: { period, limit },
+    });
     return res.data;
   },
 };
@@ -318,8 +365,8 @@ export const subscriptionApi = {
     const res = await api.get<SubscriptionStatus>('/subscription/me');
     return res.data;
   },
-  checkout: async (plan_code: 'monthly' | 'yearly'): Promise<CheckoutResponse> => {
-    const res = await api.post<CheckoutResponse>('/subscription/checkout', { plan_code });
+  checkout: async (plan_id: string): Promise<CheckoutResponse> => {
+    const res = await api.post<CheckoutResponse>('/subscription/checkout', { plan_id });
     return res.data;
   },
   cancel: async (): Promise<{ message: string }> => {
@@ -350,7 +397,7 @@ export const adminApi = {
     const res = await api.post('/admin/users', data);
     return res.data;
   },
-  updateUserRole: async (id: string, role: 'user' | 'admin'): Promise<AdminUser> => {
+  updateUserRole: async (id: string, role: 'user' | 'admin' | 'admin_readonly'): Promise<AdminUser> => {
     const res = await api.patch<AdminUser>(`/admin/users/${id}/role`, null, { params: { role } });
     return res.data;
   },
@@ -362,6 +409,60 @@ export const adminApi = {
   },
   getStats: async (): Promise<AdminStats> => {
     const res = await api.get<AdminStats>('/admin/stats');
+    return res.data;
+  },
+
+  // ── Madde 1d — kapsamlı yönetim platformu ────────────────────
+  getSystemHealth: async (): Promise<SystemHealth> => {
+    const res = await api.get<SystemHealth>('/admin/system-health');
+    return res.data;
+  },
+  getDetailedStats: async (days = 30): Promise<DetailedStats> => {
+    const res = await api.get<DetailedStats>('/admin/stats/detailed', { params: { days } });
+    return res.data;
+  },
+  getPayments: async (params?: { status_filter?: string; plan_code?: string }): Promise<Payment[]> => {
+    const res = await api.get('/admin/payments', { params });
+    return res.data.payments;
+  },
+  getPaymentsSummary: async (): Promise<PaymentsSummary> => {
+    const res = await api.get<PaymentsSummary>('/admin/payments/summary');
+    return res.data;
+  },
+  getWordPool: async (params?: {
+    source_lang?: string; target_lang?: string; search?: string;
+    include_inactive?: boolean; page?: number; page_size?: number;
+  }): Promise<{ items: WordPoolEntry[]; total: number; coverage: Record<string, number> }> => {
+    const res = await api.get('/admin/word-pool', { params });
+    return res.data;
+  },
+  createWordPoolEntry: async (data: WordPoolCreatePayload): Promise<WordPoolEntry> => {
+    const res = await api.post<WordPoolEntry>('/admin/word-pool', data);
+    return res.data;
+  },
+  updateWordPoolEntry: async (id: string, data: Partial<WordPoolCreatePayload> & { is_active?: boolean }): Promise<WordPoolEntry> => {
+    const res = await api.patch<WordPoolEntry>(`/admin/word-pool/${id}`, data);
+    return res.data;
+  },
+  deleteWordPoolEntry: async (id: string): Promise<void> => {
+    await api.delete(`/admin/word-pool/${id}`);
+  },
+  getSocialPosts: async (limit = 30): Promise<{ posts: SocialPost[]; last_cron_run: { started_at: string; status: string } | null; mode: string }> => {
+    const res = await api.get('/admin/social-posts', { params: { limit } });
+    return res.data;
+  },
+  getNotificationsLog: async (params?: {
+    channel?: string; category?: string; status_filter?: string; limit?: number;
+  }): Promise<{ items: NotificationLogEntry[]; total: number }> => {
+    const res = await api.get('/admin/notifications-log', { params });
+    return res.data;
+  },
+  getGameAnalytics: async (): Promise<GameAnalytics> => {
+    const res = await api.get<GameAnalytics>('/admin/game-analytics');
+    return res.data;
+  },
+  getAuditLog: async (params?: { action?: string; target_type?: string; limit?: number }): Promise<{ items: AuditLogEntry[]; total: number }> => {
+    const res = await api.get('/admin/audit-log', { params });
     return res.data;
   },
 };
@@ -477,6 +578,118 @@ export const gamesApi = {
 
   finishSession: async (sessionId: string): Promise<GameFinishResult> => {
     const res = await api.post<GameFinishResult>(`/games/sessions/${sessionId}/finish`);
+    return res.data;
+  },
+};
+
+// ── Social API (Madde 6, Faz 1 — Arkadaşlık + Takip + Profil) ──
+export const socialApi = {
+  searchUsers: async (q: string, limit = 20): Promise<UserCard[]> => {
+    const res = await api.get('/social/users/search', { params: { q, limit } });
+    return res.data.items;
+  },
+
+  // ── Arkadaşlık ──
+  getFriends: async (): Promise<FriendshipItem[]> => {
+    const res = await api.get('/social/friends');
+    return res.data.items;
+  },
+  getPendingRequests: async (): Promise<PendingRequests> => {
+    const res = await api.get<PendingRequests>('/social/friends/pending');
+    return res.data;
+  },
+  sendFriendRequest: async (username: string): Promise<FriendshipItem> => {
+    const res = await api.post<FriendshipItem>('/social/friends/request', { username });
+    return res.data;
+  },
+  acceptFriendRequest: async (friendshipId: string): Promise<FriendshipItem> => {
+    const res = await api.post<FriendshipItem>(`/social/friends/${friendshipId}/accept`);
+    return res.data;
+  },
+  declineFriendRequest: async (friendshipId: string): Promise<FriendshipItem> => {
+    const res = await api.post<FriendshipItem>(`/social/friends/${friendshipId}/decline`);
+    return res.data;
+  },
+  removeFriend: async (userId: string): Promise<void> => {
+    await api.delete(`/social/friends/${userId}`);
+  },
+
+  // ── Takip ──
+  follow: async (userId: string): Promise<void> => {
+    await api.post(`/social/follow/${userId}`);
+  },
+  unfollow: async (userId: string): Promise<void> => {
+    await api.delete(`/social/follow/${userId}`);
+  },
+  getFollowers: async (): Promise<UserCard[]> => {
+    const res = await api.get('/social/followers');
+    return res.data.items;
+  },
+  getFollowing: async (): Promise<UserCard[]> => {
+    const res = await api.get('/social/following');
+    return res.data.items;
+  },
+
+  // ── Herkese açık profil ──
+  getPublicProfile: async (username: string): Promise<PublicProfile> => {
+    const res = await api.get<PublicProfile>(`/social/profile/${username}`);
+    return res.data;
+  },
+
+  // ── Engelleme (Faz 2) ──
+  blockUser: async (userId: string): Promise<void> => {
+    await api.post(`/social/block/${userId}`);
+  },
+  unblockUser: async (userId: string): Promise<void> => {
+    await api.delete(`/social/block/${userId}`);
+  },
+  getBlockedUsers: async (): Promise<UserCard[]> => {
+    const res = await api.get('/social/blocked');
+    return res.data.items;
+  },
+
+  // ── Mesajlaşma (Faz 2) — polling tabanlı, gerçek zamanlı değil ──
+  getConversations: async (): Promise<ConversationItem[]> => {
+    const res = await api.get('/social/conversations');
+    return res.data.items;
+  },
+  getConversationThread: async (username: string): Promise<ConversationThread> => {
+    const res = await api.get<ConversationThread>(`/social/conversations/${username}`);
+    return res.data;
+  },
+  sendMessage: async (username: string, body: string): Promise<MessageItem> => {
+    const res = await api.post<MessageItem>(`/social/conversations/${username}`, { body });
+    return res.data;
+  },
+  getUnreadMessageCount: async (): Promise<number> => {
+    const res = await api.get('/social/messages/unread-count');
+    return res.data.unread_count;
+  },
+
+  // ── Meydan okuma (Faz 3) ──
+  createChallenge: async (username: string, mode: string): Promise<ChallengeItem> => {
+    const res = await api.post<ChallengeItem>('/social/challenges', { username, mode });
+    return res.data;
+  },
+  getChallenges: async (): Promise<ChallengesList> => {
+    const res = await api.get<ChallengesList>('/social/challenges');
+    return res.data;
+  },
+  acceptChallenge: async (challengeId: string): Promise<ChallengeItem> => {
+    const res = await api.post<ChallengeItem>(`/social/challenges/${challengeId}/accept`);
+    return res.data;
+  },
+  declineChallenge: async (challengeId: string): Promise<ChallengeItem> => {
+    const res = await api.post<ChallengeItem>(`/social/challenges/${challengeId}/decline`);
+    return res.data;
+  },
+  cancelChallenge: async (challengeId: string): Promise<void> => {
+    await api.post(`/social/challenges/${challengeId}/cancel`);
+  },
+  submitChallengeScore: async (challengeId: string, sessionId: string): Promise<ChallengeItem> => {
+    const res = await api.post<ChallengeItem>(`/social/challenges/${challengeId}/submit`, {
+      session_id: sessionId,
+    });
     return res.data;
   },
 };

@@ -2,10 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
 from typing import Optional
 from datetime import date
-from app.core.auth import get_current_admin
+from app.core.auth import get_current_admin, get_current_admin_full, ADMIN_ROLES
 from app.core.database import supabase_admin
+from app.services.audit_log import log_admin_action
 
 router = APIRouter()
+
+# 'admin' ve 'admin_readonly' dışında bir rol atanamaz (bkz. Madde 1d — RBAC).
+ASSIGNABLE_ROLES = ADMIN_ROLES | {"user"}
 
 
 class CreateUserRequest(BaseModel):
@@ -95,7 +99,7 @@ async def get_user_detail(user_id: str, admin=Depends(get_current_admin)):
 
 # ── Yeni kullanıcı oluştur ────────────────────────────────────
 @router.post("/users", status_code=201)
-async def create_user(req: CreateUserRequest, admin=Depends(get_current_admin)):
+async def create_user(req: CreateUserRequest, admin=Depends(get_current_admin_full)):
     # Önce e-posta zaten var mı kontrol et — net hata için
     try:
         page = supabase_admin.auth.admin.list_users()
@@ -127,6 +131,7 @@ async def create_user(req: CreateUserRequest, admin=Depends(get_current_admin)):
             "learning_lang": req.learning_lang,
         }).eq("id", user_id).execute()
 
+        log_admin_action(admin.id, admin.email, "user.create", "user", user_id, {"email": req.email, "role": req.role})
         return {"message": "Kullanıcı oluşturuldu.", "id": user_id}
     except HTTPException:
         raise
@@ -140,22 +145,27 @@ async def create_user(req: CreateUserRequest, admin=Depends(get_current_admin)):
 
 # ── Rol güncelle ──────────────────────────────────────────────
 @router.patch("/users/{user_id}/role")
-async def change_role(user_id: str, role: str, admin=Depends(get_current_admin)):
+async def change_role(user_id: str, role: str, admin=Depends(get_current_admin_full)):
+    if role not in ASSIGNABLE_ROLES:
+        raise HTTPException(status_code=400, detail=f"Geçersiz rol: {role}")
     supabase_admin.table("profiles").update({"role": role}).eq("id", user_id).execute()
+    log_admin_action(admin.id, admin.email, "user.role_change", "user", user_id, {"new_role": role})
     return {"message": f"Rol güncellendi: {role}"}
 
 
 # ── Deaktif et ────────────────────────────────────────────────
 @router.delete("/users/{user_id}")
-async def deactivate_user(user_id: str, admin=Depends(get_current_admin)):
+async def deactivate_user(user_id: str, admin=Depends(get_current_admin_full)):
     supabase_admin.table("profiles").update({"is_active": False}).eq("id", user_id).execute()
+    log_admin_action(admin.id, admin.email, "user.deactivate", "user", user_id)
     return {"message": "Kullanıcı deaktif edildi"}
 
 
 # ── Yeniden aktif et ──────────────────────────────────────────
 @router.patch("/users/{user_id}/activate")
-async def activate_user(user_id: str, admin=Depends(get_current_admin)):
+async def activate_user(user_id: str, admin=Depends(get_current_admin_full)):
     supabase_admin.table("profiles").update({"is_active": True}).eq("id", user_id).execute()
+    log_admin_action(admin.id, admin.email, "user.activate", "user", user_id)
     return {"message": "Kullanıcı aktifleştirildi"}
 
 

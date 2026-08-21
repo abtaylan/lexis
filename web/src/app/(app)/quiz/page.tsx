@@ -122,6 +122,7 @@ export default function QuizPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
   useEffect(() => { load(); }, [load]);
 
   const current = cards[index];

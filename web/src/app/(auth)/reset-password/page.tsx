@@ -7,6 +7,7 @@ import { Eye, EyeOff, Lock, KeyRound } from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { Button, Input, Card } from '@/components/ui';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { getErrorMessage } from '@/lib/errors';
 
 type RPStrings = {
   invalidLink: string;
@@ -190,6 +191,26 @@ const STRINGS: Record<Locale, RPStrings> = {
     updateBtn: 'Aggiorna password',
     backToLogin: 'Torna al login',
   },
+  ja: {
+    invalidLink: '無効なリンクです。',
+    backToForgot: 'パスワードを忘れた場合のページに戻る',
+    codeIncomplete: '6桁のコードをすべて入力してください。',
+    tooShort: 'パスワードは6文字以上にしてください。',
+    mismatch: 'パスワードが一致しません。',
+    genericError: 'コードが正しくないか、期限切れです。',
+    doneTitle: 'パスワードを更新しました',
+    doneBody: '新しいパスワードでログインできます。',
+    goToLoginBtn: 'ログインへ',
+    title: 'パスワードをリセット',
+    subtitleTpl: '{email} に送信された6桁のコードと新しいパスワードを入力してください。',
+    codeLabel: '確認コード',
+    newPasswordLabel: '新しいパスワード',
+    newPasswordPlaceholder: '6文字以上',
+    confirmLabel: '新しいパスワード(確認)',
+    confirmPlaceholder: 'もう一度パスワードを入力',
+    updateBtn: 'パスワードを更新',
+    backToLogin: 'ログインに戻る',
+  },
 };
 
 function ResetPasswordContent() {
@@ -229,8 +250,7 @@ function ResetPasswordContent() {
       await authApi.resetPassword({ email, code: code.trim(), new_password: newPassword });
       setDone(true);
     } catch (err: unknown) {
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      setError(axiosErr?.response?.data?.detail || t.genericError);
+      setError(getErrorMessage(err, t.genericError));
     } finally {
       setLoading(false);
     }

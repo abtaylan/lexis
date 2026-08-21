@@ -14,27 +14,47 @@ from app.schemas.subscription import (
 
 router = APIRouter()
 
-PLANS: list[PricingPlan] = [
-    PricingPlan(
-        code="monthly",
-        name="Lexis Premium — Aylık",
-        price=settings.PREMIUM_MONTHLY_PRICE,
-        interval_label="Aylık",
-        iyzico_pricing_plan_ref=settings.IYZICO_MONTHLY_PLAN_REF,
-    ),
-    PricingPlan(
-        code="yearly",
-        name="Lexis Premium — Yıllık",
-        price=settings.PREMIUM_YEARLY_PRICE,
-        interval_label="Yıllık",
-        iyzico_pricing_plan_ref=settings.IYZICO_YEARLY_PLAN_REF,
-    ),
+# Her para birimi kendi fiyatına VE kendi iyzico pricing-plan referansına
+# sahip (iyzico'da bir "pricing plan" tek bir para birimine bağlı olduğu
+# için panelden ayrı ayrı oluşturulmaları gerekiyor). Bir para biriminin
+# fiyatı ya da ref'i boş/0 ise o para birimi listeye hiç girmiyor — böylece
+# sadece TRY doluyken davranış bugünküyle birebir aynı kalıyor.
+_CURRENCY_CONFIGS = [
+    ("TRY", settings.PREMIUM_MONTHLY_PRICE, settings.PREMIUM_YEARLY_PRICE,
+     settings.IYZICO_MONTHLY_PLAN_REF, settings.IYZICO_YEARLY_PLAN_REF),
+    ("USD", settings.PREMIUM_MONTHLY_PRICE_USD, settings.PREMIUM_YEARLY_PRICE_USD,
+     settings.IYZICO_MONTHLY_PLAN_REF_USD, settings.IYZICO_YEARLY_PLAN_REF_USD),
+    ("EUR", settings.PREMIUM_MONTHLY_PRICE_EUR, settings.PREMIUM_YEARLY_PRICE_EUR,
+     settings.IYZICO_MONTHLY_PLAN_REF_EUR, settings.IYZICO_YEARLY_PLAN_REF_EUR),
 ]
+_INTERVAL_LABELS = {"monthly": "Aylık", "yearly": "Yıllık"}
+_PLAN_NAMES = {"monthly": "Lexis Premium — Aylık", "yearly": "Lexis Premium — Yıllık"}
 
 
-def _plan_by_code(code: str) -> PricingPlan:
+def _build_plans() -> list[PricingPlan]:
+    plans: list[PricingPlan] = []
+    for currency, monthly_price, yearly_price, monthly_ref, yearly_ref in _CURRENCY_CONFIGS:
+        if monthly_price and monthly_ref:
+            plans.append(PricingPlan(
+                id=f"monthly_{currency.lower()}", code="monthly", name=_PLAN_NAMES["monthly"],
+                price=monthly_price, currency=currency, interval_label=_INTERVAL_LABELS["monthly"],
+                iyzico_pricing_plan_ref=monthly_ref,
+            ))
+        if yearly_price and yearly_ref:
+            plans.append(PricingPlan(
+                id=f"yearly_{currency.lower()}", code="yearly", name=_PLAN_NAMES["yearly"],
+                price=yearly_price, currency=currency, interval_label=_INTERVAL_LABELS["yearly"],
+                iyzico_pricing_plan_ref=yearly_ref,
+            ))
+    return plans
+
+
+PLANS: list[PricingPlan] = _build_plans()
+
+
+def _plan_by_id(plan_id: str) -> PricingPlan:
     for p in PLANS:
-        if p.code == code:
+        if p.id == plan_id:
             return p
     raise HTTPException(status_code=400, detail="Geçersiz plan kodu.")
 
@@ -75,7 +95,7 @@ async def get_my_subscription(current_user=Depends(get_current_user)):
 
 @router.post("/checkout", response_model=CheckoutResponse)
 async def start_checkout(req: CheckoutRequest, current_user=Depends(get_current_user)):
-    plan = _plan_by_code(req.plan_code)
+    plan = _plan_by_id(req.plan_id)
 
     # Kullanıcının profil bilgisini al (isim/soyisim iyzico'ya zorunlu)
     profile = (
@@ -96,6 +116,7 @@ async def start_checkout(req: CheckoutRequest, current_user=Depends(get_current_
         "id": pending_id,
         "user_id": current_user.id,
         "plan_code": plan.code,
+        "currency": plan.currency,
         "status": "pending",
         "iyzico_pricing_plan_ref": plan.iyzico_pricing_plan_ref,
     }).execute()

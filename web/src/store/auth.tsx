@@ -28,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedUser  = localStorage.getItem(USER_KEY);
     if (savedToken && savedUser) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
         setToken(savedToken);
         setUser(JSON.parse(savedUser));
       } catch {

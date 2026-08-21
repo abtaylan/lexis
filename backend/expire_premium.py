@@ -13,9 +13,10 @@ Onerilen cron satiri (VPS'te uzlas.io yedekleme cron'una benzer sekilde):
 from datetime import datetime, timezone
 
 from app.core.database import supabase_admin
+from app.services.job_log import job_run
 
 
-def main():
+def main() -> int:
     now_iso = datetime.now(timezone.utc).isoformat()
 
     expired = (
@@ -34,7 +35,12 @@ def main():
         ).eq("status", "active").execute()
 
     print(f"[{now_iso}] {len(rows)} kullanıcının premium süresi doldu, is_premium=false yapıldı.")
+    return len(rows)
 
 
 if __name__ == "__main__":
-    main()
+    # Madde 1d — admin panelde "sistem sağlığı" ekranının bu job'ın son
+    # çalışmasını görebilmesi için cron_job_runs tablosuna kaydediliyor.
+    with job_run("expire_premium") as run:
+        expired_count = main()
+        run.detail = {"expired_count": expired_count}

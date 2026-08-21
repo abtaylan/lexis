@@ -17,7 +17,7 @@ const UI_SUPPORTED_CODES = new Set<string>(LOCALE_META.map((l) => l.code));
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
 
   const [form, setForm] = useState({
     email: '',
@@ -48,14 +48,17 @@ export default function RegisterPage() {
   useEffect(() => {
     if (didPrefillLang.current || languages.length === 0) return;
     didPrefillLang.current = true;
-    if (languages.some((l) => l.code === guestLang)) {
+    if (languages.some((l) => l.code === locale)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
       setForm((p) => ({
         ...p,
-        native_lang: guestLang,
-        learning_lang: p.learning_lang === guestLang ? (guestLang === 'en' ? 'tr' : 'en') : p.learning_lang,
+        native_lang: locale,
+        // Ana dil misafir arayüz diline eşitleniyor — o dil öğrenme
+        // listesinde kalmışsa çıkar (setNativeLang'daki desenle aynı).
+        learning_langs: p.learning_langs.filter((c) => c !== locale),
       }));
     }
-  }, [languages, guestLang]);
+  }, [languages, locale]);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -147,7 +150,7 @@ export default function RegisterPage() {
         <Input
           label={t('emailLabel')}
           type="email"
-          placeholder={t('auth.register.emailPlaceholder')}
+          placeholder="ornek@email.com"
           value={form.email}
           onChange={set('email')}
           leftIcon={<Mail size={16} />}

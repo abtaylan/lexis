@@ -33,3 +33,11 @@ export function SlackLogoIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function LinkedinLogoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M4.983 3.5a2 2 0 1 1 0 4.001 2 2 0 0 1 0-4.001zM3.32 8.98h3.325V21H3.32V8.98zM9.353 8.98h3.187v1.645h.045c.444-.84 1.53-1.727 3.148-1.727 3.366 0 3.988 2.216 3.988 5.098V21h-3.324v-5.4c0-1.288-.023-2.945-1.795-2.945-1.797 0-2.073 1.404-2.073 2.852V21H9.353V8.98z" />
+    </svg>
+  );
+}

@@ -3,7 +3,8 @@ from typing import Optional
 
 
 class PricingPlan(BaseModel):
-    code: str                 # 'monthly' | 'yearly'
+    id: str                   # 'monthly_try' | 'monthly_usd' | 'yearly_eur' | ... — checkout'ta kullanılan benzersiz kimlik
+    code: str                 # 'monthly' | 'yearly' — abonelik periyodu (subscriptions.plan_code ile eşleşir)
     name: str
     price: float
     currency: str = "TRY"
@@ -12,7 +13,7 @@ class PricingPlan(BaseModel):
 
 
 class CheckoutRequest(BaseModel):
-    plan_code: str            # 'monthly' | 'yearly'
+    plan_id: str               # PricingPlan.id — ör. 'monthly_try', 'yearly_usd'
 
 
 class CheckoutResponse(BaseModel):

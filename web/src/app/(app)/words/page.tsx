@@ -8,16 +8,12 @@ import {
 import { wordsApi, dictionaryApi, languagesApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { useLocale } from '@/lib/i18n';
+import { getErrorMessage } from '@/lib/errors';
 import type { Word, WordCreate, WordUpdate, DictionaryMeaning, Language } from '@/types';
 
 const EMPTY_FORM: WordCreate = {
   word: '', meaning: '', meaning_native: '', meaning_target: '',
   example: '', word_type: '', list_type: 'active',
-};
-
-const DATE_LOCALE: Record<string, string> = {
-  tr: 'tr-TR', en: 'en-US', de: 'de-DE', fr: 'fr-FR', es: 'es-ES',
-  it: 'it-IT', ar: 'ar-SA', ru: 'ru-RU', ja: 'ja-JP',
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -116,8 +112,8 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
     try {
       await onSave(form);
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || t('saveFailed'));
+    } catch (err) {
+      setError(getErrorMessage(err, t('saveFailed')));
     } finally {
       setSaving(false);
     }
@@ -156,7 +152,7 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
                 value={form.word}
                 onChange={(e) => set('word', e.target.value)}
                 onKeyDown={(e) => { if (allowLookup && e.key === 'Enter') { e.preventDefault(); handleLookup(); } }}
-                placeholder={t('words.form.wordPh')}
+                placeholder="örn. perseverance"
                 className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
               />
               {allowLookup && (
@@ -286,6 +282,7 @@ export default function WordsPage() {
     } finally { setLoading(false); }
   }, [page, search, statusFilter, listFilter]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
   useEffect(() => { load(); }, [load]);
 
   const handleCreate = async (data: WordCreate) => { await wordsApi.create(data); setPage(1); load(); };

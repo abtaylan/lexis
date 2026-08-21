@@ -111,6 +111,7 @@ export default function FlashcardsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
   useEffect(() => { loadCards(); }, [loadCards]);
 
   const current = queue[index];

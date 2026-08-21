@@ -3,6 +3,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from app.core.config import settings
+from app.services.notification_log import log_notification
 
 
 def send_otp_email(to_email: str, code: str, purpose: str) -> None:
@@ -19,10 +20,12 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
     """
     if settings.OTP_MODE != "real":
         print(f"[OTP-DEV] {to_email} ({purpose}) → kod: {code}")
+        log_notification("email", "otp", to_email, "skipped", {"purpose": purpose, "reason": "OTP_MODE=fixed"})
         return
 
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
         print(f"[OTP] SMTP ayarlanmamış (SMTP_USER/SMTP_PASSWORD boş), kod gönderilemedi: {to_email} → {code}")
+        log_notification("email", "otp", to_email, "failed", {"purpose": purpose, "reason": "SMTP not configured"})
         return
 
     if purpose == "login":
@@ -62,8 +65,10 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+        log_notification("email", "otp", to_email, "sent", {"purpose": purpose})
     except Exception as e:
         print(f"OTP EMAIL SEND ERROR ({to_email}): {e}")
+        log_notification("email", "otp", to_email, "failed", {"purpose": purpose, "error": str(e)})
 
 
 def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, lead_label: str) -> None:
@@ -81,10 +86,12 @@ def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, l
     """
     if settings.OTP_MODE != "real":
         print(f"[REMINDER-DEV] {to_email} → '{activity}' ({time_slot}) {lead_label} başlıyor")
+        log_notification("email", "schedule_reminder", to_email, "skipped", {"activity": activity, "reason": "OTP_MODE=fixed"})
         return
 
     if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
         print(f"[REMINDER] SMTP ayarlanmamış, hatırlatma gönderilemedi: {to_email} → {activity}")
+        log_notification("email", "schedule_reminder", to_email, "failed", {"activity": activity, "reason": "SMTP not configured"})
         return
 
     subject = f"Lexis Hatırlatma: {activity}"
@@ -118,5 +125,7 @@ def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, l
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+        log_notification("email", "schedule_reminder", to_email, "sent", {"activity": activity})
     except Exception as e:
         print(f"REMINDER EMAIL SEND ERROR ({to_email}): {e}")
+        log_notification("email", "schedule_reminder", to_email, "failed", {"activity": activity, "error": str(e)})

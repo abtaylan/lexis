@@ -325,7 +325,9 @@ async def get_me(current_user=Depends(get_current_user)):
             "native_lang": data.get("native_lang", "tr"),
             "learning_lang": data.get("learning_lang", "en"),
             "learning_langs": [l["learning_lang"] for l in langs],
-            "is_admin": data.get("role") == "admin",
+            # Madde 1d — RBAC: 'admin_readonly' de admin paneline girebilir
+            # (salt-okunur), sadece mutasyon endpoint'leri 'admin' ister.
+            "is_admin": data.get("role") in ("admin", "admin_readonly"),
             "created_at": data.get("created_at", ""),
             "is_premium": data.get("is_premium", False),
             "premium_until": data.get("premium_until"),
@@ -421,7 +423,7 @@ async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_u
         "native_lang": d.get("native_lang", "tr"),
         "learning_lang": d.get("learning_lang", "en"),
         "learning_langs": [l["learning_lang"] for l in langs],
-        "is_admin": d.get("role") == "admin",
+        "is_admin": d.get("role") in ("admin", "admin_readonly"),
         "created_at": d.get("created_at", ""),
         "is_premium": d.get("is_premium", False),
         "premium_until": d.get("premium_until"),

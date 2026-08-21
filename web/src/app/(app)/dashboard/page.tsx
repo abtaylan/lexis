@@ -1,13 +1,44 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
-  BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, CheckCheck,
+  BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, CheckCheck, MessageCircle,
 } from 'lucide-react';
-import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi } from '@/lib/api';
-import { useLocale } from '@/lib/i18n';
-import type { Stats, Word, DailyProgress, Language, UserLanguage, Notification } from '@/types';
+import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi, socialApi } from '@/lib/api';
+import { useLocale, type Locale } from '@/lib/i18n';
+import { XPBar } from '@/components/layout/XPBar';
+import { Leaderboard } from '@/components/layout/Leaderboard';
+import type { Stats, Word, DailyProgress, Language, UserLanguage, Notification, ConversationItem } from '@/types';
+
+// Madde 6, Faz 2 — Mesajlaşma: dashboard'daki gelen kutusu önizlemesi ve
+// çalışma dili seçicisinin yanındaki okunmamış mesaj rozeti/simgesi.
+// Merkezi i18n.tsx sözlüğüne dokunmadan yerel çeviri — Sidebar.tsx'teki
+// FRIENDS_LABEL/GAME_LABEL deseniyle aynı yaklaşım.
+const MSG_LABELS: Record<
+  Locale,
+  {
+    iconLabel: string;
+    title: string;
+    empty: string;
+    emptySub: string;
+    viewAll: string;
+    you: string;
+  }
+> = {
+  tr: { iconLabel: 'Mesajlar', title: 'Mesajlar', empty: 'Henüz bir konuşman yok.', emptySub: 'Bir arkadaşının profilinden mesaj gönderebilirsin.', viewAll: 'Tümünü gör', you: 'Sen' },
+  en: { iconLabel: 'Messages', title: 'Messages', empty: "You don't have any conversations yet.", emptySub: "Message a friend from their profile to start.", viewAll: 'View all', you: 'You' },
+  de: { iconLabel: 'Nachrichten', title: 'Nachrichten', empty: 'Du hast noch keine Unterhaltungen.', emptySub: 'Schreibe einem Freund über sein Profil.', viewAll: 'Alle anzeigen', you: 'Du' },
+  fr: { iconLabel: 'Messages', title: 'Messages', empty: "Tu n'as pas encore de conversation.", emptySub: "Envoie un message à un ami depuis son profil.", viewAll: 'Tout voir', you: 'Toi' },
+  es: { iconLabel: 'Mensajes', title: 'Mensajes', empty: 'Todavía no tienes conversaciones.', emptySub: 'Escribe a un amigo desde su perfil.', viewAll: 'Ver todo', you: 'Tú' },
+  it: { iconLabel: 'Messaggi', title: 'Messaggi', empty: 'Non hai ancora conversazioni.', emptySub: 'Scrivi a un amico dal suo profilo.', viewAll: 'Vedi tutto', you: 'Tu' },
+  ar: { iconLabel: 'الرسائل', title: 'الرسائل', empty: 'ليس لديك أي محادثات بعد.', emptySub: 'يمكنك مراسلة صديق من ملفه الشخصي.', viewAll: 'عرض الكل', you: 'أنت' },
+  ru: { iconLabel: 'Сообщения', title: 'Сообщения', empty: 'У вас пока нет переписок.', emptySub: 'Напишите другу из его профиля.', viewAll: 'Смотреть все', you: 'Вы' },
+  ja: { iconLabel: 'メッセージ', title: 'メッセージ', empty: 'まだ会話がありません。', emptySub: '友達のプロフィールからメッセージを送れます。', viewAll: 'すべて見る', you: 'あなた' },
+};
+
+const MSG_POLL_MS = 15000;
 
 function getWeekDays(history: DailyProgress[], dayLabels: string[]): {
   label: string;
@@ -38,7 +69,8 @@ function getWeekDays(history: DailyProgress[], dayLabels: string[]): {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const msgT = MSG_LABELS[locale] ?? MSG_LABELS.en;
   const [stats, setStats] = useState<Stats | null>(null);
   const [dueWords, setDueWords] = useState<Word[]>([]);
   const [history, setHistory] = useState<DailyProgress[]>([]);
@@ -57,12 +89,18 @@ export default function DashboardPage() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifLoading, setNotifLoading] = useState(true);
 
+  // ── Mesajlar (Madde 6, Faz 2) — gelen kutusu önizlemesi + rozet ──
+  const [conversations, setConversations] = useState<ConversationItem[]>([]);
+  const [msgLoading, setMsgLoading] = useState(true);
+  const msgPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('lexis_user');
       if (stored) {
         try {
           const u = JSON.parse(stored);
+          // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
           setUsername(u.display_name || u.username || '');
         } catch {}
       }
@@ -108,6 +146,22 @@ export default function DashboardPage() {
       .finally(() => setNotifLoading(false));
   };
   useEffect(() => { loadNotifications(); }, []);
+
+  const loadConversations = () => {
+    socialApi.getConversations()
+      .then(setConversations)
+      .catch(() => {})
+      .finally(() => setMsgLoading(false));
+  };
+  useEffect(() => {
+    loadConversations();
+    msgPollRef.current = setInterval(loadConversations, MSG_POLL_MS);
+    return () => {
+      if (msgPollRef.current) clearInterval(msgPollRef.current);
+    };
+  }, []);
+
+  const unreadMsgCount = conversations.reduce((acc, c) => acc + c.unread_count, 0);
 
   const handleMarkRead = async (id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
@@ -193,26 +247,44 @@ export default function DashboardPage() {
           </p>
           <p className="text-sm text-gray-400">{t('dailySummarySubtitle')}</p>
         </div>
-        {userLangs.length > 1 && (
-          <div className="flex items-center gap-1.5 shrink-0">
-            <label className="text-xs text-gray-400">{t('activeLanguageSwitcherLabel')}</label>
-            <select
-              value={activeLangCode}
-              onChange={(e) => handleSwitchLang(e.target.value)}
-              disabled={switchingLang}
-              className="text-sm border border-gray-200 rounded-xl px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {userLangs.map((ul) => {
-                const meta = languages.find((l) => l.code === ul.learning_lang);
-                return (
-                  <option key={ul.learning_lang} value={ul.learning_lang}>
-                    {meta?.flag_emoji} {meta?.name_native ?? ul.learning_lang}
-                  </option>
-                );
-              })}
-            </select>
-          </div>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          {userLangs.length > 1 && (
+            <div className="flex items-center gap-1.5">
+              <label className="text-xs text-gray-400">{t('activeLanguageSwitcherLabel')}</label>
+              <select
+                value={activeLangCode}
+                onChange={(e) => handleSwitchLang(e.target.value)}
+                disabled={switchingLang}
+                className="text-sm border border-gray-200 rounded-xl px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {userLangs.map((ul) => {
+                  const meta = languages.find((l) => l.code === ul.learning_lang);
+                  return (
+                    <option key={ul.learning_lang} value={ul.learning_lang}>
+                      {meta?.flag_emoji} {meta?.name_native ?? ul.learning_lang}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+
+          {/* Madde 6, Faz 2 — mesajlaşma rozeti + simgesi (çalışma dili
+              seçicisinin hemen yanında, kullanıcı isteğiyle burada). */}
+          <Link
+            href="/messages"
+            aria-label={msgT.iconLabel}
+            title={msgT.iconLabel}
+            className="relative w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-200 transition-colors"
+          >
+            <MessageCircle className="w-4 h-4" />
+            {unreadMsgCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                {unreadMsgCount > 9 ? '9+' : unreadMsgCount}
+              </span>
+            )}
+          </Link>
+        </div>
       </div>
 
       {/* Bildirimler / hatırlatmalar (Madde 3a) */}
@@ -273,6 +345,72 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+
+      {/* Gelen kutusu önizlemesi — Madde 6, Faz 2 */}
+      {!msgLoading && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-[#E6F1FB] flex items-center justify-center">
+                <MessageCircle className="w-3.5 h-3.5 text-[#185FA5]" />
+              </div>
+              <p className="text-sm font-medium text-gray-700">{msgT.title}</p>
+              {unreadMsgCount > 0 && (
+                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">
+                  {unreadMsgCount}
+                </span>
+              )}
+            </div>
+            {conversations.length > 0 && (
+              <Link href="/messages" className="text-xs text-gray-400 hover:text-[#185FA5] transition-colors">
+                {msgT.viewAll}
+              </Link>
+            )}
+          </div>
+
+          {conversations.length === 0 ? (
+            <div className="text-center py-3">
+              <p className="text-xs text-gray-400">{msgT.empty}</p>
+              <p className="text-[11px] text-gray-300 mt-0.5">{msgT.emptySub}</p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {conversations.slice(0, 4).map((c) => {
+                const name = c.other_user.display_name || c.other_user.username || '?';
+                return (
+                  <Link
+                    key={c.id}
+                    href={c.other_user.username ? `/messages/${c.other_user.username}` : '/messages'}
+                    className={`flex items-center gap-2 text-left rounded-xl px-2.5 py-2 transition-colors ${
+                      c.unread_count > 0 ? 'bg-slate-50 hover:bg-slate-100' : 'hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.unread_count > 0 ? 'bg-[#378ADD]' : 'bg-gray-200'}`} />
+                    <span className="min-w-0 flex-1">
+                      <p className="text-xs font-medium text-gray-700 truncate">{name}</p>
+                      <p className="text-[11px] text-gray-400 truncate">
+                        {c.last_message_sender_id && c.last_message_preview
+                          ? `${c.last_message_sender_id !== c.other_user.id ? `${msgT.you}: ` : ''}${c.last_message_preview}`
+                          : ''}
+                      </p>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Seviye / XP — Madde: XPBar ön yüz bileşeni */}
+      <XPBar />
+
+      {/* Sıralama — kendi puanın + rakip karşılaştırması (Genel/Haftalık/Aylık).
+          limit=5: ilk 5 gösterilir; kullanıcı ilk 5'te değilse (örn. 10.
+          sırada) 6-9 arası atlanır, sadece kendi satırı ayrıca eklenir
+          (bkz. Leaderboard.tsx — data.top zaten sadece top N döner, "me"
+          top'ta değilse ayraç + tek satır olarak ekleniyor). */}
+      <Leaderboard limit={5} />
 
       {/* Streak banner */}
       {(stats?.current_streak ?? 0) > 0 && (

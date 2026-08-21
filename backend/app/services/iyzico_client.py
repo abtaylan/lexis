@@ -53,17 +53,46 @@ class IyzicoClient:
 
     async def _post(self, uri_path: str, body: dict) -> dict:
         headers = _build_auth_header(uri_path, body)
+        # ÖNEMLİ: gönderilen body baytları, imzayı hesaplarken kullanılan
+        # JSON string ile TAM olarak aynı olmalı — aksi halde iyzico
+        # sunucu tarafında imza doğrulaması başarısız olur (401 Unauthorized).
+        # httpx'in `json=` parametresi kendi içinde Python'un varsayılan
+        # json.dumps ayarlarıyla serileştirir (boşluklu ayraçlar,
+        # ensure_ascii=True → Türkçe karakterleri \uXXXX'e kaçırır), ki bu
+        # _build_auth_header'daki compact + ensure_ascii=False imzalama
+        # ayarlarından FARKLI. Bu yüzden aynı ayarlarla elle serileştirip
+        # `content=` ile ham bayt olarak gönderiyoruz.
+        body_bytes = json.dumps(body, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
         async with httpx.AsyncClient(timeout=15) as client:
-            resp = await client.post(f"{self.base_url}{uri_path}", headers=headers, json=body)
-            resp.raise_for_status()
+            resp = await client.post(f"{self.base_url}{uri_path}", headers=headers, content=body_bytes)
+            self._raise_with_body(resp)
             return resp.json()
 
     async def _get(self, uri_path: str) -> dict:
         headers = _build_auth_header(uri_path, None)
         async with httpx.AsyncClient(timeout=15) as client:
             resp = await client.get(f"{self.base_url}{uri_path}", headers=headers)
-            resp.raise_for_status()
+            self._raise_with_body(resp)
             return resp.json()
+
+    @staticmethod
+    def _raise_with_body(resp: httpx.Response) -> None:
+        """httpx'in normal `raise_for_status()`'ı iyzico'nun döndürdüğü asıl
+        hata gövdesini (ör. {"status":"failure","errorCode":"...",
+        "errorMessage":"..."}) gizliyor — sadece "401" diyor, NEDEN 401
+        olduğunu söylemiyor. Bu yüzden hata varsa gövdeyi de exception
+        mesajına ekliyoruz ki gerçek sebep (imza hatası mı, yanlış
+        API key mi, "Abonelik" modülü hesapta aktif değil mi, vs.)
+        terminalde görünsün."""
+        if resp.status_code >= 400:
+            try:
+                detail = resp.text
+            except Exception:
+                detail = "<gövde okunamadı>"
+            raise RuntimeError(
+                f"iyzico API hatası: HTTP {resp.status_code} — {resp.request.url}\n"
+                f"Yanıt gövdesi: {detail}"
+            )
 
     async def initialize_checkout_form(
         self,
@@ -127,6 +156,48 @@ class IyzicoClient:
     async def cancel_subscription(self, subscription_reference_code: str) -> dict:
         uri_path = f"/v2/subscription/subscriptions/{subscription_reference_code}/cancel"
         body = {"subscriptionReferenceCode": subscription_reference_code}
+        return await self._post(uri_path, body)
+
+    # ── Ürün / fiyatlandırma planı kurulumu (bkz. backend/setup_iyzico_plans.py) ──
+    # Döviz bazlı Premium (TRY/USD/EUR) için iyzico tarafında bir "product" ve
+    # onun altında 6 "pricing plan" (her para birimi için aylık+yıllık)
+    # oluşturmak amacıyla kullanılıyor. Referans:
+    # https://docs.iyzico.com/en/products/subscription/subscription-implementation/subscription-product
+    # https://docs.iyzico.com/en/products/subscription/subscription-implementation/payment-plan
+
+    async def create_product(
+        self, *, name: str, description: str = "", conversation_id: str = ""
+    ) -> dict:
+        uri_path = "/v2/subscription/products"
+        body = {
+            "name": name,
+            "description": description,
+            "locale": "tr",
+            "conversationId": conversation_id,
+        }
+        return await self._post(uri_path, body)
+
+    async def create_pricing_plan(
+        self,
+        *,
+        product_reference_code: str,
+        name: str,
+        price: float,
+        currency_code: str,
+        payment_interval: str,
+        conversation_id: str = "",
+    ) -> dict:
+        """payment_interval: 'MONTHLY' | 'YEARLY'. currency_code: 'TRY' | 'USD' | 'EUR'."""
+        uri_path = f"/v2/subscription/products/{product_reference_code}/pricing-plans"
+        body = {
+            "name": name,
+            "price": price,
+            "currencyCode": currency_code,
+            "paymentInterval": payment_interval,
+            "planPaymentType": "RECURRING",
+            "locale": "tr",
+            "conversationId": conversation_id,
+        }
         return await self._post(uri_path, body)
 
 

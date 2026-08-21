@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Plus, Trash2, X, Clock, CalendarDays, ExternalLink, Loader2,
   Sparkles, Flame, Zap, Coffee, Check, Headphones, BookOpen,
@@ -8,14 +8,12 @@ import {
 } from 'lucide-react';
 import { scheduleApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
+import { getErrorMessage } from '@/lib/errors';
 import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem } from '@/types';
 
-// Gün adları artık useT() ile çözülüyor; sıra (0=Pazar…6=Cumartesi) TEMPLATE_DEFS'teki
-// day_of_week ile birebir eşleşecek şekilde korunuyor.
-const DAY_KEYS = [
-  'schedule.days.sun', 'schedule.days.mon', 'schedule.days.tue', 'schedule.days.wed',
-  'schedule.days.thu', 'schedule.days.fri', 'schedule.days.sat',
-];
+// Haftanın günlerini index'lemek için (0=Pazar…6=Cumartesi) — weekdays[i]
+// çevirisiyle birlikte kullanılıyor, bkz. `grouped` aşağıda.
+const DAYS = [0, 1, 2, 3, 4, 5, 6];
 
 const DAY_COLORS = [
   { bg: 'bg-[#FAEEDA]', text: 'text-[#854F0B]', dot: 'bg-[#854F0B]' },
@@ -73,11 +71,10 @@ interface Template {
   items: ScheduleCreate[];
 }
 
-const TEMPLATE_ICONS: Record<'flame' | 'zap' | 'coffee', React.ReactNode> = {
-  flame: <Flame className="w-5 h-5" />,
-  zap: <Zap className="w-5 h-5" />,
-  coffee: <Coffee className="w-5 h-5" />,
-};
+// TEMPLATES aşağıdaki her item için TASK_LINKS'ten link_url çözer.
+function link(activity: string): string {
+  return TASK_LINKS[activity] ?? '';
+}
 
 const TEMPLATES: Template[] = [
   {
@@ -232,7 +229,7 @@ function TemplateModal({ templates, hasExisting, onApply, onClose }: {
             </label>
           )}
 
-          {TEMPLATES.map((tpl) => (
+          {templates.map((tpl) => (
             <div key={tpl.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
@@ -334,7 +331,7 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
       };
       await onSave(payload); onClose();
     }
-    catch (err: any) { setError(err?.response?.data?.detail || t('saveScheduleFailed')); }
+    catch (err) { setError(getErrorMessage(err, t('saveScheduleFailed'))); }
     finally { setSaving(false); }
   };
 
@@ -418,8 +415,8 @@ function SaveTemplateModal({ items, onSaved, onClose }: {
       await scheduleApi.createTemplate({ name: name.trim(), items: templateItems });
       onSaved();
       onClose();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || t('saveTemplateFailed'));
+    } catch (err) {
+      setError(getErrorMessage(err, t('saveTemplateFailed')));
     } finally {
       setSaving(false);
     }
@@ -471,15 +468,20 @@ export default function SchedulePage() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
 
-  // Kullanıcının aktif öğrenme diline göre şablon kaynak linkleri (Madde 4);
-  // şablon adı/açıklaması ise arayüz diline (native_lang) göre çevrilir.
-  const templates = useMemo(() => buildTemplates(user?.learning_lang, t), [user?.learning_lang, t]);
+  // NOT: lib/scheduleTemplates.ts, öğrenme diline göre çok dilli şablon
+  // çözümü için bilinçli olarak "hazır ama bağlanmamış" tutuluyor (bkz. o
+  // dosyanın başındaki not) — sadece 3 şablonu (yoğun/orta/hafif) kapsıyor.
+  // Burada hâlâ TEMPLATES kullanılıyor çünkü 6 şablonun tamamını (+ podcast/
+  // okuma/YÖKDİL) içeriyor; dile göre otomatik çözüm ayrı bir iş olarak
+  // "Devam eden" listesinde kalmalı.
+  const templates = TEMPLATES;
 
   const load = async () => {
     setLoading(true);
     try { setItems(await scheduleApi.getAll()); }
     finally { setLoading(false); }
   };
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
   useEffect(() => { load(); }, []);
 
   const handleCreate = async (data: ScheduleCreate) => { await scheduleApi.create(data); load(); };
@@ -612,7 +614,7 @@ export default function SchedulePage() {
       )}
 
       {showModal && <ScheduleModal onSave={handleCreate} onClose={() => setShowModal(false)} />}
-      {showTemplates && <TemplateModal hasExisting={items.length > 0} onApply={applyTemplate} onClose={() => setShowTemplates(false)} />}
+      {showTemplates && <TemplateModal templates={templates} hasExisting={items.length > 0} onApply={applyTemplate} onClose={() => setShowTemplates(false)} />}
       {showSaveTemplate && <SaveTemplateModal items={items} onSaved={() => {}} onClose={() => setShowSaveTemplate(false)} />}
     </div>
   );

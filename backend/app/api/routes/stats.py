@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.services.xp_service import get_xp_summary
+from app.services.leaderboard_service import get_leaderboard
 from datetime import date, timedelta
 from collections import defaultdict
 
@@ -90,6 +91,24 @@ async def get_stats_history(days: int = 14, current_user=Depends(get_current_use
 @router.get("/xp")
 async def get_xp(current_user=Depends(get_current_user)):
     return await get_xp_summary(current_user.id)
+
+# ── Sıralama (leaderboard) — kendi puanın + rakip karşılaştırması ──
+# period: all (genel/kalıcı total_xp) | weekly (bu hafta Pazartesi'den beri
+# kazanılan XP) | monthly (bu ayın 1'inden beri kazanılan XP). Yanıt her
+# zaman "me" alanında isteği yapan kullanıcının kendi sırasını içerir —
+# top listede olmasa bile (bkz. leaderboard_service.get_leaderboard).
+@router.get("/leaderboard")
+async def get_leaderboard_route(
+    period: str = "all",
+    limit: int = 20,
+    current_user=Depends(get_current_user),
+):
+    if period not in ("all", "weekly", "monthly"):
+        raise HTTPException(
+            status_code=400, detail="Geçersiz period. 'all', 'weekly' veya 'monthly' olmalı."
+        )
+    limit = max(1, min(limit, 100))
+    return await get_leaderboard(current_user.id, period, limit)  # type: ignore[arg-type]
 
 # ── Detaylı analiz — grafik sayfası için ──────────────────────
 @router.get("/analytics")

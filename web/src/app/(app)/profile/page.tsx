@@ -1,23 +1,56 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus } from 'lucide-react';
-import { authApi, languagesApi, userLanguagesApi } from '@/lib/api';
+import { AxiosError } from 'axios';
+import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus, Ban } from 'lucide-react';
+import { authApi, languagesApi, userLanguagesApi, socialApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
-import { useLocale, LOCALE_META } from '@/lib/i18n';
-import type { User as UserType, Language, UserLanguage } from '@/types';
+import { useLocale, LOCALE_META, type Locale } from '@/lib/i18n';
+import type { User as UserType, Language, UserLanguage, UserCard } from '@/types';
+
+// backend HTTPException'ların { detail: string } gövdesini `any` kullanmadan
+// okumak için — dosyadaki tüm catch bloklarında (legacy dahil) bu yardımcı
+// kullanılıyor, friends/page.tsx'teki desenle aynı.
+function errorDetail(err: unknown): string | undefined {
+  if (err instanceof AxiosError) {
+    return (err.response?.data as { detail?: string } | undefined)?.detail;
+  }
+  return undefined;
+}
+
+// Madde 6, Faz 2 — Engellenenler bölümü. Merkezi i18n.tsx sözlüğüne
+// dokunmadan yerel çeviri (Sidebar.tsx/friends/page.tsx'teki desenle aynı).
+const BLOCK_LABELS: Record<
+  Locale,
+  {
+    title: string;
+    loading: string;
+    empty: string;
+    emptySub: string;
+    unblockBtn: string;
+    unblockConfirm: string;
+    error: string;
+    levelPrefix: string;
+  }
+> = {
+  tr: { title: 'Engellenenler', loading: 'Yükleniyor…', empty: 'Kimseyi engellemedin.', emptySub: 'Engellediğin kullanıcılar burada listelenir.', unblockBtn: 'Engeli kaldır', unblockConfirm: 'Bu kişinin engelini kaldırmak istediğine emin misin?', error: 'İşlem başarısız oldu.', levelPrefix: 'Sv.' },
+  en: { title: 'Blocked users', loading: 'Loading…', empty: "You haven't blocked anyone.", emptySub: 'Users you block will be listed here.', unblockBtn: 'Unblock', unblockConfirm: 'Are you sure you want to unblock this person?', error: 'The action failed.', levelPrefix: 'Lv.' },
+  de: { title: 'Blockierte Nutzer', loading: 'Lädt…', empty: 'Du hast niemanden blockiert.', emptySub: 'Von dir blockierte Nutzer werden hier aufgelistet.', unblockBtn: 'Blockierung aufheben', unblockConfirm: 'Möchtest du die Blockierung dieser Person wirklich aufheben?', error: 'Aktion fehlgeschlagen.', levelPrefix: 'Lvl.' },
+  fr: { title: 'Utilisateurs bloqués', loading: 'Chargement…', empty: "Tu n'as bloqué personne.", emptySub: 'Les utilisateurs que tu bloques apparaîtront ici.', unblockBtn: 'Débloquer', unblockConfirm: 'Veux-tu vraiment débloquer cette personne ?', error: "L'action a échoué.", levelPrefix: 'Niv.' },
+  es: { title: 'Usuarios bloqueados', loading: 'Cargando…', empty: 'No has bloqueado a nadie.', emptySub: 'Los usuarios que bloquees aparecerán aquí.', unblockBtn: 'Desbloquear', unblockConfirm: '¿Seguro que quieres desbloquear a esta persona?', error: 'La acción falló.', levelPrefix: 'Niv.' },
+  it: { title: 'Utenti bloccati', loading: 'Caricamento…', empty: 'Non hai bloccato nessuno.', emptySub: 'Gli utenti che blocchi verranno elencati qui.', unblockBtn: 'Sblocca', unblockConfirm: 'Sei sicuro di voler sbloccare questa persona?', error: "L'azione non è riuscita.", levelPrefix: 'Liv.' },
+  ar: { title: 'المستخدمون المحظورون', loading: 'جارٍ التحميل…', empty: 'لم تحظر أي شخص.', emptySub: 'سيتم إدراج المستخدمين الذين تحظرهم هنا.', unblockBtn: 'إلغاء الحظر', unblockConfirm: 'هل أنت متأكد أنك تريد إلغاء حظر هذا الشخص؟', error: 'فشل الإجراء.', levelPrefix: 'مستوى' },
+  ru: { title: 'Заблокированные', loading: 'Загрузка…', empty: 'Вы никого не заблокировали.', emptySub: 'Заблокированные вами пользователи появятся здесь.', unblockBtn: 'Разблокировать', unblockConfirm: 'Вы уверены, что хотите разблокировать этого человека?', error: 'Действие не выполнено.', levelPrefix: 'Ур.' },
+  ja: { title: 'ブロック中のユーザー', loading: '読み込み中…', empty: '誰もブロックしていません。', emptySub: 'ブロックしたユーザーがここに表示されます。', unblockBtn: 'ブロック解除', unblockConfirm: 'このユーザーのブロックを解除してもよろしいですか?', error: '操作に失敗しました。', levelPrefix: 'Lv.' },
+};
 
 // Arayüz (UI) çevirisi olmayan diller ana dil seçeneği olarak sunulmamalı —
 // aksi halde LocaleProvider sessizce Türkçe'ye düşüyor (bkz. Bug 2, Ağustos 2026).
 const UI_SUPPORTED_CODES = new Set<string>(LOCALE_META.map((l) => l.code));
 
-const LOCALE_MAP: Record<string, string> = {
-  tr: 'tr-TR', en: 'en-US', de: 'de-DE', fr: 'fr-FR',
-  es: 'es-ES', it: 'it-IT', ar: 'ar-SA', ru: 'ru-RU', ja: 'ja-JP',
-};
-
 export default function ProfilePage() {
   const { t, locale } = useLocale();
+  const bt = BLOCK_LABELS[locale] ?? BLOCK_LABELS.en;
   const { updateUser } = useAuth();
   const [user, setUser] = useState<UserType | null>(null);
   const [displayName, setDisplayName] = useState('');
@@ -43,6 +76,12 @@ export default function ProfilePage() {
   const [addLangCode, setAddLangCode] = useState('');
   const [langActionError, setLangActionError] = useState('');
   const [langActionLoading, setLangActionLoading] = useState(false);
+
+  // ── Engellenenler (Madde 6, Faz 2) ──
+  const [blockedUsers, setBlockedUsers] = useState<UserCard[]>([]);
+  const [blockedLoading, setBlockedLoading] = useState(true);
+  const [blockedActionError, setBlockedActionError] = useState('');
+  const [unblockBusyId, setUnblockBusyId] = useState<string | null>(null);
 
   useEffect(() => {
     authApi.getMe()
@@ -78,8 +117,36 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
     loadUserLangs();
   }, []);
+
+  const loadBlocked = () => {
+    setBlockedLoading(true);
+    socialApi.getBlockedUsers()
+      .then(setBlockedUsers)
+      .catch(() => {})
+      .finally(() => setBlockedLoading(false));
+  };
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
+    loadBlocked();
+  }, []);
+
+  const handleUnblock = async (card: UserCard) => {
+    if (!window.confirm(bt.unblockConfirm)) return;
+    setUnblockBusyId(card.id);
+    setBlockedActionError('');
+    try {
+      await socialApi.unblockUser(card.id);
+      loadBlocked();
+    } catch (err) {
+      setBlockedActionError(errorDetail(err) || bt.error);
+    } finally {
+      setUnblockBusyId(null);
+    }
+  };
 
   const handleSetActiveLang = async (code: string) => {
     setLangActionError('');
@@ -91,8 +158,8 @@ export default function ProfilePage() {
       setUser(me);
       setLearningLang(me.learning_lang ?? code);
       updateUser(me);
-    } catch (err: any) {
-      setLangActionError(err?.response?.data?.detail || t('setActiveFailed'));
+    } catch (err) {
+      setLangActionError(errorDetail(err) || t('setActiveFailed'));
     } finally {
       setLangActionLoading(false);
     }
@@ -109,8 +176,8 @@ export default function ProfilePage() {
     try {
       await userLanguagesApi.remove(lang.learning_lang);
       loadUserLangs();
-    } catch (err: any) {
-      setLangActionError(err?.response?.data?.detail || t('removeLanguageFailed'));
+    } catch (err) {
+      setLangActionError(errorDetail(err) || t('removeLanguageFailed'));
     } finally {
       setLangActionLoading(false);
     }
@@ -129,8 +196,8 @@ export default function ProfilePage() {
       setShowAddLangModal(false);
       setAddLangCode('');
       loadUserLangs();
-    } catch (err: any) {
-      setLangActionError(err?.response?.data?.detail || t('addLanguageFailed'));
+    } catch (err) {
+      setLangActionError(errorDetail(err) || t('addLanguageFailed'));
     } finally {
       setLangActionLoading(false);
     }
@@ -169,8 +236,8 @@ export default function ProfilePage() {
       // böylece arayüz dili sayfa yenilemeden anında değişir.
       updateUser(updated);
       loadUserLangs();
-    } catch (err: any) {
-      setError(err?.response?.data?.detail || t('saveFailed'));
+    } catch (err) {
+      setError(errorDetail(err) || t('saveFailed'));
     } finally {
       setSaving(false);
     }
@@ -362,6 +429,51 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
+
+      {/* Engellenenler — Madde 6, Faz 2 */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+          <Ban className="w-4 h-4" /> {bt.title}
+        </h2>
+
+        {blockedLoading ? (
+          <p className="text-sm text-gray-400">{bt.loading}</p>
+        ) : blockedUsers.length === 0 ? (
+          <div className="text-center py-3">
+            <p className="text-sm text-gray-400">{bt.empty}</p>
+            <p className="text-xs text-gray-300 mt-1">{bt.emptySub}</p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {blockedUsers.map((card) => {
+              const name = card.display_name || card.username || '?';
+              return (
+                <li key={card.id} className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-gray-500 shrink-0">
+                      {name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-700 truncate">{name}</p>
+                      {card.username && <p className="text-xs text-gray-400 truncate">@{card.username}</p>}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={unblockBusyId === card.id}
+                    onClick={() => handleUnblock(card)}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 shrink-0"
+                  >
+                    {bt.unblockBtn}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+
+        {blockedActionError && <p className="text-xs text-red-600">{blockedActionError}</p>}
+      </div>
 
       <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5 space-y-3">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('accountInfoTitle')}</h2>

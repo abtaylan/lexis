@@ -32,6 +32,23 @@ class Settings(BaseSettings):
     PREMIUM_MONTHLY_PRICE: float = 49.99
     PREMIUM_YEARLY_PRICE: float = 449.99
 
+    # Döviz bazlı fiyatlandırma (USD/EUR) — Premium sayfasında birden fazla
+    # para birimi seçeneği sunmak için (kullanıcı talebi). iyzico'da HER para
+    # birimi için ayrı bir "pricing plan" oluşturulması gerekiyor (iyzico
+    # panelinden) — o yüzden her para birimi kendi PLAN_REF'ine sahip.
+    # Fiyat veya ref boş/0 bırakılırsa o para birimi /subscription/plans
+    # listesinde hiç görünmez — TRY-only mevcut davranış korunur, yeni bir
+    # şey kırılmaz. iyzico canlı doğrulaması yapılmadan (bkz. proje durum
+    # notları) bu ref'ler sandbox'ta bile test edilmemiştir.
+    IYZICO_MONTHLY_PLAN_REF_USD: str = ""
+    IYZICO_YEARLY_PLAN_REF_USD: str = ""
+    IYZICO_MONTHLY_PLAN_REF_EUR: str = ""
+    IYZICO_YEARLY_PLAN_REF_EUR: str = ""
+    PREMIUM_MONTHLY_PRICE_USD: float = 0.0
+    PREMIUM_YEARLY_PRICE_USD: float = 0.0
+    PREMIUM_MONTHLY_PRICE_EUR: float = 0.0
+    PREMIUM_YEARLY_PRICE_EUR: float = 0.0
+
     # ── OTP doğrulama (giriş + kayıt sonrası) ──────────────────────
     # "fixed"  → test/geliştirme: kod her zaman OTP_FIXED_CODE, mail atılmaz, sadece log'a yazılır.
     # "real"   → production: rastgele 6 haneli kod üretilir ve SMTP ile e-postaya gönderilir.

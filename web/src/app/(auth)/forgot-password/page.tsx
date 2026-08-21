@@ -7,6 +7,7 @@ import { Mail, KeyRound } from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { Button, Input, Card } from '@/components/ui';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { getErrorMessage } from '@/lib/errors';
 
 type FPStrings = {
   title: string;
@@ -127,6 +128,19 @@ const STRINGS: Record<Locale, FPStrings> = {
     enterCodeBtn: 'Inserisci codice',
     backToLogin: 'Torna al login',
   },
+  ja: {
+    title: 'パスワードをお忘れですか?',
+    subtitle: 'メールアドレスを入力すると、リセットコードをお送りします。',
+    emailLabel: 'メールアドレス',
+    emailPlaceholder: 'you@example.com',
+    emailInvalid: '有効なメールアドレスを入力してください。',
+    genericError: '問題が発生しました。もう一度お試しください。',
+    sendBtn: 'リセットコードを送信',
+    checkEmailTitle: 'メールを確認してください',
+    checkEmailBodyTpl: '{email} が登録されている場合、パスワードをリセットする6桁のコードを送信しました。',
+    enterCodeBtn: 'コードを入力',
+    backToLogin: 'ログインに戻る',
+  },
 };
 
 export default function ForgotPasswordPage() {
@@ -155,8 +169,7 @@ export default function ForgotPasswordPage() {
     } catch (err: unknown) {
       // Backend güvenlik gereği zaten hata döndürmüyor (her zaman genel mesaj) —
       // ama ağ hatası gibi durumlar için yine de bir fallback bırakıyoruz.
-      const axiosErr = err as { response?: { data?: { detail?: string } } };
-      setError(axiosErr?.response?.data?.detail || t.genericError);
+      setError(getErrorMessage(err, t.genericError));
     } finally {
       setLoading(false);
     }
