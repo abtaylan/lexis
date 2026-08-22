@@ -117,27 +117,27 @@ export default function PremiumPage() {
       <PageHeader title="Lexis Premium" subtitle={t('premiumPageSubtitle')} />
 
       {statusParam === 'success' && (
-        <div className="mb-6 p-4 rounded-xl bg-emerald-50 text-emerald-700 text-sm">
+        <div className="mb-6 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-sm">
           {t('premiumSuccessMsg')}
         </div>
       )}
       {statusParam === 'failed' && (
-        <div className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 text-sm">
+        <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 text-sm">
           {t('premiumFailedMsg')}
         </div>
       )}
       {error && (
-        <div className="mb-6 p-4 rounded-xl bg-red-50 text-red-700 text-sm">{error}</div>
+        <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 text-sm">{error}</div>
       )}
 
       {isPremium ? (
         <Card className="p-6 mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-              <Crown className="w-5 h-5 text-amber-500" />
+            <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center">
+              <Crown className="w-5 h-5 text-amber-500 dark:text-amber-400" />
             </div>
             <div>
-              <p className="font-semibold text-slate-800">{t('premiumActive')}</p>
+              <p className="font-semibold text-slate-800 dark:text-slate-100">{t('premiumActive')}</p>
               <p className="text-sm text-slate-400">
                 {subStatus?.premium_until && t('premiumPeriodEndTpl').replace('{date}', new Date(subStatus.premium_until).toLocaleDateString(DATE_LOCALE[locale]))}
               </p>
@@ -157,7 +157,7 @@ export default function PremiumPage() {
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
                     selectedCurrency === c
                       ? 'bg-indigo-600 text-white border-indigo-600'
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
                   }`}
                 >
                   {c}
@@ -169,11 +169,11 @@ export default function PremiumPage() {
             {visiblePlans.map((plan) => (
               <Card key={plan.id} className="p-6 flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
-                  <Crown className="w-4 h-4 text-amber-500" />
+                  <Crown className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                   <span className="text-sm font-medium text-slate-500">{plan.interval_label}</span>
                   {plan.code === 'yearly' && <Badge variant="warning">{t('premiumBestValueBadge')}</Badge>}
                 </div>
-                <p className="text-3xl font-bold text-slate-800 mb-4">
+                <p className="text-3xl font-bold text-slate-800 dark:text-slate-100 mb-4">
                   {plan.price.toFixed(2)} <span className="text-base font-normal text-slate-400">{plan.currency}</span>
                 </p>
                 <Button
@@ -189,11 +189,11 @@ export default function PremiumPage() {
           </div>
 
           <Card className="p-6 mb-8">
-            <p className="font-semibold text-slate-800 mb-3">{t('premiumFeaturesTitle')}</p>
+            <p className="font-semibold text-slate-800 dark:text-slate-100 mb-3">{t('premiumFeaturesTitle')}</p>
             <ul className="space-y-2">
               {FEATURES.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
-                  <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />{f}
+                <li key={f} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400 mt-0.5 shrink-0" />{f}
                 </li>
               ))}
               <li className="flex items-start gap-2 text-sm text-slate-400">

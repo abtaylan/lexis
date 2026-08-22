@@ -35,7 +35,7 @@ export function AdminSidebar() {
   const isReadonly = user?.role === 'admin_readonly';
 
   return (
-    <aside className="flex flex-col w-60 min-h-screen bg-[#1e1b2e] text-gray-300 px-4 py-6 fixed left-0 top-0 overflow-y-auto">
+    <aside className="flex flex-col w-60 min-h-screen bg-[#1e1b2e] text-gray-300 dark:text-slate-600 px-4 py-6 fixed left-0 top-0 overflow-y-auto">
       {/* Logo */}
       <div className="mb-6 px-2 flex items-center gap-2">
         <div className="w-8 h-8 rounded-xl bg-[#534AB7] flex items-center justify-center shrink-0">
@@ -43,7 +43,7 @@ export function AdminSidebar() {
         </div>
         <div className="min-w-0">
           <span className="text-base font-bold text-white tracking-tight">Lexis</span>
-          <span className="block text-[10px] text-gray-400 -mt-0.5 uppercase tracking-wider">Yönetim Paneli</span>
+          <span className="block text-[10px] text-gray-400 dark:text-slate-500 -mt-0.5 uppercase tracking-wider">Yönetim Paneli</span>
         </div>
       </div>
 
@@ -61,7 +61,7 @@ export function AdminSidebar() {
           return (
             <Link key={href} href={href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                active ? 'bg-[#534AB7] text-white' : 'text-gray-400 dark:text-slate-500 hover:bg-white/5 hover:text-white'
               }`}>
               <Icon className="w-4 h-4 shrink-0" />{label}
             </Link>
@@ -72,7 +72,7 @@ export function AdminSidebar() {
       {/* Alt — uygulamaya dön + kullanıcı + çıkış */}
       <div className="mt-6 border-t border-white/10 pt-4 space-y-1">
         <Link href="/dashboard"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white transition-colors">
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 dark:text-slate-500 hover:bg-white/5 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4 shrink-0" />Uygulamaya Dön
         </Link>
 
@@ -82,12 +82,12 @@ export function AdminSidebar() {
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium text-white truncate">{displayName}</p>
-            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 truncate">{user?.email}</p>
           </div>
         </div>
 
         <button onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-400 hover:bg-white/5 hover:text-white transition-colors">
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-400 dark:text-slate-500 hover:bg-white/5 hover:text-white transition-colors">
           <LogOut className="w-4 h-4 shrink-0" />Çıkış Yap
         </button>
       </div>

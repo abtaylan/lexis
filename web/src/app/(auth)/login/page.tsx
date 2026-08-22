@@ -45,7 +45,7 @@ export default function LoginPage() {
         <div className="w-11 h-11 bg-sky-500 rounded-xl flex items-center justify-center shrink-0 p-2">
           <Image src="/logo-icon.png" alt="Lexis" width={28} height={28} />
         </div>
-        <h1 className="text-2xl font-bold text-slate-800">{t('loginTitle')}</h1>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t('loginTitle')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -69,21 +69,21 @@ export default function LoginPage() {
             onChange={handleChange}
             leftIcon={<Lock size={16} />}
             rightIcon={
-              <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600">
+              <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600 hover:dark:text-slate-300">
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             }
             required
           />
           <div className="text-right mt-1.5">
-            <Link href="/forgot-password" className="text-xs text-sky-600 font-medium hover:underline">
+            <Link href="/forgot-password" className="text-xs text-sky-600 dark:text-sky-400 font-medium hover:underline">
               {t('forgotPasswordLink')}
             </Link>
           </div>
         </div>
 
         {error && (
-          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+          <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
@@ -95,7 +95,7 @@ export default function LoginPage() {
 
       <p className="text-center text-sm text-slate-400 mt-6">
         {t('noAccountQuestion')}{' '}
-        <Link href="/register" className="text-sky-600 font-medium hover:underline">
+        <Link href="/register" className="text-sky-600 dark:text-sky-400 font-medium hover:underline">
           {t('registerLinkText')}
         </Link>
       </p>

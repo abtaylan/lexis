@@ -259,8 +259,8 @@ function ResetPasswordContent() {
   if (!email) {
     return (
       <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60 text-center">
-        <p className="text-slate-600">{t.invalidLink}</p>
-        <Link href="/forgot-password" className="text-sky-600 font-medium hover:underline mt-4 inline-block">
+        <p className="text-slate-600 dark:text-slate-300">{t.invalidLink}</p>
+        <Link href="/forgot-password" className="text-sky-600 dark:text-sky-400 font-medium hover:underline mt-4 inline-block">
           {t.backToForgot}
         </Link>
       </Card>
@@ -273,7 +273,7 @@ function ResetPasswordContent() {
         <div className="w-11 h-11 bg-sky-500 rounded-xl flex items-center justify-center shrink-0 mx-auto mb-4">
           <KeyRound size={20} className="text-white" strokeWidth={2.5} />
         </div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">{t.doneTitle}</h1>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">{t.doneTitle}</h1>
         <p className="text-slate-400 text-sm mb-6">{t.doneBody}</p>
         <Button type="button" className="w-full" size="lg" onClick={() => router.push('/login')}>
           {t.goToLoginBtn}
@@ -287,10 +287,10 @@ function ResetPasswordContent() {
   return (
     <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-800">{t.title}</h1>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t.title}</h1>
         <p className="text-slate-400 text-sm mt-2">
           {subtitleBefore}
-          <span className="font-medium text-slate-600">{email}</span>
+          <span className="font-medium text-slate-600 dark:text-slate-300">{email}</span>
           {subtitleAfter}
         </p>
       </div>
@@ -317,7 +317,7 @@ function ResetPasswordContent() {
           onChange={(e) => setNewPassword(e.target.value)}
           leftIcon={<Lock size={16} />}
           rightIcon={
-            <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600">
+            <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600 hover:dark:text-slate-300">
               {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           }
@@ -335,7 +335,7 @@ function ResetPasswordContent() {
         />
 
         {error && (
-          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+          <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
@@ -346,7 +346,7 @@ function ResetPasswordContent() {
       </form>
 
       <p className="text-center text-sm text-slate-400 mt-6">
-        <Link href="/login" className="text-sky-600 font-medium hover:underline">
+        <Link href="/login" className="text-sky-600 dark:text-sky-400 font-medium hover:underline">
           {t.backToLogin}
         </Link>
       </p>

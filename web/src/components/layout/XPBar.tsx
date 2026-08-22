@@ -59,13 +59,13 @@ export function XPBar({ compact, className }: XPBarProps) {
     return (
       <div className={clsx('px-2 mb-3', className)}>
         <div className="flex items-center justify-between mb-1">
-          <span className="flex items-center gap-1 text-xs font-semibold text-gray-700">
-            <Zap className="w-3 h-3 text-amber-500" />
+          <span className="flex items-center gap-1 text-xs font-semibold text-gray-700 dark:text-slate-300">
+            <Zap className="w-3 h-3 text-amber-500 dark:text-amber-400" />
             {labels.level} {xp.level}
           </span>
-          <span className="text-[11px] text-gray-400">{xp.xp_into_level}/{span}</span>
+          <span className="text-[11px] text-gray-400 dark:text-slate-500">{xp.xp_into_level}/{span}</span>
         </div>
-        <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
           <div
             className="h-full rounded-full bg-gradient-to-r from-sky-400 to-amber-400 transition-all duration-500"
             style={{ width: `${pct}%` }}
@@ -76,22 +76,22 @@ export function XPBar({ compact, className }: XPBarProps) {
   }
 
   return (
-    <div className={clsx('bg-white rounded-2xl border border-gray-100 shadow-sm p-4', className)}>
+    <div className={clsx('bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4', className)}>
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-amber-50 text-amber-600 font-semibold text-sm shrink-0">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 font-semibold text-sm shrink-0">
             {xp.level}
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-700">{labels.level} {xp.level}</p>
-            <p className="text-xs text-gray-400">{xp.total_xp} XP</p>
+            <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{labels.level} {xp.level}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">{xp.total_xp} XP</p>
           </div>
         </div>
-        <span className="text-xs text-gray-400 text-right">
+        <span className="text-xs text-gray-400 dark:text-slate-500 text-right">
           {xp.xp_to_next_level} XP {labels.toNextLevel}
         </span>
       </div>
-      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+      <div className="h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
         <div
           className="h-full rounded-full bg-gradient-to-r from-sky-400 to-amber-400 transition-all duration-500"
           style={{ width: `${pct}%` }}

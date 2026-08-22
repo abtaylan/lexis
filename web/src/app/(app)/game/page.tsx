@@ -1207,13 +1207,13 @@ export default function GamePage() {
   if (stage === 'mode') {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 w-full max-w-md text-center">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-8 w-full max-w-md text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#EEEDFE] flex items-center justify-center mx-auto mb-4">
             <Gamepad2 className="w-7 h-7 text-[#534AB7]" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{t.pageTitle}</h1>
-          <p className="text-sm text-gray-500 mt-1 mb-6">{t.pageSubtitle}</p>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3 text-left">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t.pageTitle}</h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 mb-6">{t.pageSubtitle}</p>
+          <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3 text-left">
             {t.chooseModeTitle}
           </p>
           <div className="flex flex-col gap-3">
@@ -1222,14 +1222,14 @@ export default function GamePage() {
                 setGameMode('multiple_choice');
                 setStage('direction');
               }}
-              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
               <div className="w-9 h-9 shrink-0 rounded-lg bg-[#E6F1FB] flex items-center justify-center">
                 <ListChecks className="w-4 h-4 text-[#378ADD]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">{t.modeMultipleLabel}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t.modeMultipleDesc}</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeMultipleLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeMultipleDesc}</p>
               </div>
             </button>
             <button
@@ -1238,14 +1238,14 @@ export default function GamePage() {
                 setDirection('meaning_to_word');
                 setStage('setup');
               }}
-              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
               <div className="w-9 h-9 shrink-0 rounded-lg bg-[#FAEEDA] flex items-center justify-center">
                 <Keyboard className="w-4 h-4 text-[#854F0B]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">{t.modeWordleLabel}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t.modeWordleDesc}</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeWordleLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeWordleDesc}</p>
               </div>
             </button>
             <button
@@ -1254,14 +1254,14 @@ export default function GamePage() {
                 setDirection('meaning_to_word');
                 setStage('setup');
               }}
-              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
               <div className="w-9 h-9 shrink-0 rounded-lg bg-[#FDEAF0] flex items-center justify-center">
                 <TypeIcon className="w-4 h-4 text-[#9F1D53]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">{t.modeTypingLabel}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t.modeTypingDesc}</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeTypingLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeTypingDesc}</p>
               </div>
             </button>
             <button
@@ -1270,14 +1270,14 @@ export default function GamePage() {
                 setDirection('meaning_to_word');
                 setStage('setup');
               }}
-              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
               <div className="w-9 h-9 shrink-0 rounded-lg bg-[#E6F1FB] flex items-center justify-center">
                 <Ear className="w-4 h-4 text-[#378ADD]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">{t.modeListeningLabel}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t.modeListeningDesc}</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeListeningLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeListeningDesc}</p>
               </div>
             </button>
             <button
@@ -1287,14 +1287,14 @@ export default function GamePage() {
                 setSprintSecondsLeft(SPRINT_DURATION_SECS);
                 setStage('setup');
               }}
-              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
               <div className="w-9 h-9 shrink-0 rounded-lg bg-[#FFF1D6] flex items-center justify-center">
                 <Zap className="w-4 h-4 text-[#9A6400]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">{t.modeSprintLabel}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t.modeSprintDesc}</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeSprintLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeSprintDesc}</p>
               </div>
             </button>
             <button
@@ -1303,14 +1303,14 @@ export default function GamePage() {
                 setDirection('meaning_to_word');
                 setStage('setup');
               }}
-              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
               <div className="w-9 h-9 shrink-0 rounded-lg bg-[#E4F5EA] flex items-center justify-center">
                 <Shuffle className="w-4 h-4 text-[#1D7A46]" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">{t.modeMatchingLabel}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t.modeMatchingDesc}</p>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeMatchingLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeMatchingDesc}</p>
               </div>
             </button>
           </div>
@@ -1323,47 +1323,47 @@ export default function GamePage() {
   if (stage === 'direction') {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 w-full max-w-md text-center">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-8 w-full max-w-md text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#EEEDFE] flex items-center justify-center mx-auto mb-4">
             <ArrowLeftRight className="w-7 h-7 text-[#534AB7]" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{t.pageTitle}</h1>
-          <p className="text-sm text-gray-500 mt-1 mb-6">{t.chooseDirectionTitle}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t.pageTitle}</h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 mb-6">{t.chooseDirectionTitle}</p>
           <div className="flex flex-col gap-3">
             <button
               onClick={() => {
                 setDirection('word_to_meaning');
                 setStage('setup');
               }}
-              className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+              className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
-              <p className="text-sm font-semibold text-gray-800">{t.dirWordToMeaningLabel}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{t.dirWordToMeaningDesc}</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.dirWordToMeaningLabel}</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.dirWordToMeaningDesc}</p>
             </button>
             <button
               onClick={() => {
                 setDirection('meaning_to_word');
                 setStage('setup');
               }}
-              className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+              className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
-              <p className="text-sm font-semibold text-gray-800">{t.dirMeaningToWordLabel}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{t.dirMeaningToWordDesc}</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.dirMeaningToWordLabel}</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.dirMeaningToWordDesc}</p>
             </button>
             <button
               onClick={() => {
                 setDirection('definition_to_word');
                 setStage('setup');
               }}
-              className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+              className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
-              <p className="text-sm font-semibold text-gray-800">{t.dirDefinitionToWordLabel}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{t.dirDefinitionToWordDesc}</p>
+              <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.dirDefinitionToWordLabel}</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.dirDefinitionToWordDesc}</p>
             </button>
           </div>
           <button
             onClick={() => setStage('mode')}
-            className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 mt-5"
+            className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400 mt-5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             {t.backBtn}
@@ -1377,15 +1377,15 @@ export default function GamePage() {
   if (stage === 'setup' || stage === 'loading') {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 w-full max-w-md text-center">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-8 w-full max-w-md text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#EEEDFE] flex items-center justify-center mx-auto mb-4">
             <Gamepad2 className="w-7 h-7 text-[#534AB7]" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">{t.pageTitle}</h1>
-          <p className="text-sm text-gray-500 mt-1 mb-6">{t.choosePoolTitle}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t.pageTitle}</h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 mb-6">{t.choosePoolTitle}</p>
 
           {stage === 'loading' ? (
-            <div className="flex flex-col items-center gap-3 text-gray-400 py-6">
+            <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-slate-500 py-6">
               <Loader2 className="w-6 h-6 animate-spin" />
               <span className="text-sm">{t.loadingLabel}</span>
             </div>
@@ -1394,24 +1394,24 @@ export default function GamePage() {
               <div className="flex flex-col gap-3">
                 <button
                   onClick={() => start(gameMode, 'general', direction)}
-                  className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+                  className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
                 >
-                  <p className="text-sm font-semibold text-gray-800">{t.poolGeneralLabel}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{t.poolGeneralDesc}</p>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.poolGeneralLabel}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.poolGeneralDesc}</p>
                 </button>
                 {direction !== 'definition_to_word' && (
                   <button
                     onClick={() => start(gameMode, 'own', direction)}
-                    className="w-full text-left border-2 border-gray-200 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+                    className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
                   >
-                    <p className="text-sm font-semibold text-gray-800">{t.poolOwnLabel}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{t.poolOwnDesc}</p>
+                    <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.poolOwnLabel}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.poolOwnDesc}</p>
                   </button>
                 )}
               </div>
               <button
                 onClick={() => setStage(gameMode === 'multiple_choice' ? 'direction' : 'mode')}
-                className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 hover:text-gray-600 mt-5"
+                className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400 mt-5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 {t.backBtn}
@@ -1448,13 +1448,13 @@ export default function GamePage() {
     const xp = finishResult?.xp_earned ?? xpEarned;
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 flex flex-col items-center gap-5 w-full max-w-sm text-center">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-10 flex flex-col items-center gap-5 w-full max-w-sm text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#EAF3DE]">
             <Trophy className="w-8 h-8 text-[#3B6D11]" />
           </div>
           <div>
-            <p className="text-2xl font-bold text-gray-900">{t.doneTitle}</p>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t.doneTitle}</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
               {t.doneScoreTpl.replace('{correct}', String(correct)).replace('{total}', String(total))}
             </p>
           </div>
@@ -1467,10 +1467,10 @@ export default function GamePage() {
             <div
               className={`w-full rounded-xl p-3 text-xs font-medium text-center ${
                 challengeSubmitError
-                  ? 'bg-red-50 text-red-600'
+                  ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
                   : challengeSubmitted
                     ? 'bg-[#EAF3DE] text-[#3B6D11]'
-                    : 'bg-gray-50 text-gray-400'
+                    : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500'
               }`}
             >
               {challengeSubmitError || (challengeSubmitted ? t.challengeSubmittedMsg : t.challengeModeHint)}
@@ -1486,11 +1486,11 @@ export default function GamePage() {
               {t.playAgainBtn}
             </button>
             {challengeId ? (
-              <Link href="/friends" className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2">
+              <Link href="/friends" className="w-full text-center text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 hover:dark:text-slate-300 py-2">
                 {t.backToChallengesBtn}
               </Link>
             ) : (
-              <Link href="/dashboard" className="w-full text-center text-sm text-gray-500 hover:text-gray-700 py-2">
+              <Link href="/dashboard" className="w-full text-center text-sm text-gray-500 dark:text-slate-400 hover:text-gray-700 hover:dark:text-slate-300 py-2">
                 {t.backToDashboardBtn}
               </Link>
             )}
@@ -1513,7 +1513,7 @@ export default function GamePage() {
             <div className="w-8 h-8 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
               <Gamepad2 className="w-4 h-4 text-[#534AB7]" />
             </div>
-            <span className="text-sm font-semibold text-gray-700">
+            <span className="text-sm font-semibold text-gray-700 dark:text-slate-300">
               {t.questionCounterTpl.replace('{n}', String(questionNum))}
             </span>
           </div>
@@ -1535,7 +1535,7 @@ export default function GamePage() {
           </div>
         )}
 
-        <p className="w-full text-xs font-semibold text-gray-400 uppercase tracking-wide text-center">
+        <p className="w-full text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide text-center">
           {t.matchingPromptLabel}
         </p>
 
@@ -1547,9 +1547,9 @@ export default function GamePage() {
               const isMatched = matchedUids.includes(uid);
               const isSelected = selectedWordUid === uid;
               const isWrong = wrongPairFlash?.w === uid;
-              let cls = 'border-gray-200 text-gray-700 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
+              let cls = 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
               if (isMatched) cls = 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11] opacity-60 cursor-default';
-              else if (isWrong) cls = 'border-red-400 bg-red-50 text-red-600';
+              else if (isWrong) cls = 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400';
               else if (isSelected) cls = 'border-[#378ADD] bg-[#E6F1FB] text-[#378ADD]';
               return (
                 <button
@@ -1570,9 +1570,9 @@ export default function GamePage() {
               const isMatched = matchedUids.includes(uid);
               const isSelected = selectedMeaningUid === uid;
               const isWrong = wrongPairFlash?.m === uid;
-              let cls = 'border-gray-200 text-gray-700 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
+              let cls = 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
               if (isMatched) cls = 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11] opacity-60 cursor-default';
-              else if (isWrong) cls = 'border-red-400 bg-red-50 text-red-600';
+              else if (isWrong) cls = 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400';
               else if (isSelected) cls = 'border-[#378ADD] bg-[#E6F1FB] text-[#378ADD]';
               return (
                 <button
@@ -1588,7 +1588,7 @@ export default function GamePage() {
           </div>
         </div>
 
-        <button onClick={handleFinish} className="text-xs text-gray-400 hover:text-gray-600 underline">
+        <button onClick={handleFinish} className="text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400 underline">
           {t.finishBtn}
         </button>
       </div>
@@ -1614,7 +1614,7 @@ export default function GamePage() {
           <div className="w-8 h-8 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
             <Gamepad2 className="w-4 h-4 text-[#534AB7]" />
           </div>
-          <span className="text-sm font-semibold text-gray-700">
+          <span className="text-sm font-semibold text-gray-700 dark:text-slate-300">
             {t.questionCounterTpl.replace('{n}', String(questionNum))}
           </span>
         </div>
@@ -1644,15 +1644,15 @@ export default function GamePage() {
 
       {isMultipleChoice && (
         <>
-          <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">
               {isDefinition ? t.questionPromptDefinition : isReverse ? t.questionPromptReverse : t.questionPrompt}
             </p>
-            <p className="text-4xl font-bold text-gray-900 tracking-tight">
+            <p className="text-4xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
               {isReverse ? current.meaning : current.word}
             </p>
             {!isReverse && current.example && (
-              <p className="text-sm text-gray-400 mt-3 italic">&ldquo;{current.example}&rdquo;</p>
+              <p className="text-sm text-gray-400 dark:text-slate-500 mt-3 italic">&ldquo;{current.example}&rdquo;</p>
             )}
           </div>
 
@@ -1663,7 +1663,7 @@ export default function GamePage() {
               const isSelected = opt.id === selectedId;
               const answered = selectedId !== null;
 
-              let cls = 'border-gray-200 text-gray-700 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
+              let cls = 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
               let icon: React.ReactNode = null;
 
               if (answered) {
@@ -1671,10 +1671,10 @@ export default function GamePage() {
                   cls = 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]';
                   icon = <CheckCircle2 className="w-4 h-4 shrink-0 text-[#3B6D11]" />;
                 } else if (isSelected) {
-                  cls = 'border-red-400 bg-red-50 text-red-600';
-                  icon = <XCircle className="w-4 h-4 shrink-0 text-red-400" />;
+                  cls = 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400';
+                  icon = <XCircle className="w-4 h-4 shrink-0 text-red-400 dark:text-red-300" />;
                 } else {
-                  cls = 'border-gray-100 text-gray-300';
+                  cls = 'border-gray-100 dark:border-slate-800 text-gray-300 dark:text-slate-600';
                 }
               }
 
@@ -1693,7 +1693,7 @@ export default function GamePage() {
           </div>
 
           {feedback !== null && (
-            <p className={`text-sm font-semibold ${feedback ? 'text-[#3B6D11]' : 'text-red-500'}`}>
+            <p className={`text-sm font-semibold ${feedback ? 'text-[#3B6D11]' : 'text-red-500 dark:text-red-400'}`}>
               {feedback ? t.correctLabel : t.wrongLabel}
             </p>
           )}
@@ -1703,23 +1703,23 @@ export default function GamePage() {
       {isWordle && (
         <>
           {/* İpucu / anlam */}
-          <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-6 text-center">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+          <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 text-center">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">
               {t.hangmanHintLabel}
             </p>
-            <p className="text-lg font-semibold text-gray-800">{current.meaning}</p>
+            <p className="text-lg font-semibold text-gray-800 dark:text-slate-200">{current.meaning}</p>
           </div>
 
           {/* Canlar */}
           <div className="w-full flex items-center justify-center gap-2">
-            <span className="text-xs font-medium text-gray-400 mr-1">{t.livesLabel}</span>
+            <span className="text-xs font-medium text-gray-400 dark:text-slate-500 mr-1">{t.livesLabel}</span>
             {Array.from({ length: maxWrongGuesses }).map((_, i) => (
               <Heart
                 key={i}
                 className={`w-5 h-5 ${
                   i < maxWrongGuesses - wrongGuesses
-                    ? 'text-red-400 fill-red-400'
-                    : 'text-gray-200 fill-gray-200'
+                    ? 'text-red-400 dark:text-red-300 fill-red-400'
+                    : 'text-gray-200 dark:text-slate-700 fill-gray-200'
                 }`}
               />
             ))}
@@ -1732,7 +1732,7 @@ export default function GamePage() {
                 key={i}
                 className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase ${
                   ch === '_'
-                    ? 'bg-gray-50 border-2 border-gray-200 text-transparent'
+                    ? 'bg-gray-50 dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 text-transparent'
                     : 'bg-[#EAF3DE] border-2 border-[#3B6D11]/30 text-[#3B6D11]'
                 }`}
               >
@@ -1745,7 +1745,7 @@ export default function GamePage() {
           {roundResult && (
             <div
               className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-center ${
-                roundResult === 'won' ? 'bg-[#EAF3DE] text-[#3B6D11]' : 'bg-red-50 text-red-600'
+                roundResult === 'won' ? 'bg-[#EAF3DE] text-[#3B6D11]' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
               }`}
             >
               <p>{roundResult === 'won' ? t.wordleWonTitle : t.wordleLostTitle}</p>
@@ -1773,8 +1773,8 @@ export default function GamePage() {
                           isGuessed
                             ? isCorrectGuess
                               ? 'bg-[#EAF3DE] text-[#3B6D11] border-2 border-[#3B6D11]/30'
-                              : 'bg-gray-100 text-gray-300 border-2 border-gray-100'
-                            : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#378ADD] hover:bg-[#E6F1FB]'
+                              : 'bg-gray-100 dark:bg-slate-800 text-gray-300 dark:text-slate-600 border-2 border-gray-100 dark:border-slate-800'
+                            : 'bg-white dark:bg-slate-900 border-2 border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-[#378ADD] hover:bg-[#E6F1FB]'
                         }`}
                       >
                         {letter}
@@ -1788,7 +1788,7 @@ export default function GamePage() {
 
           {/* Denenen harfler */}
           {guessedLetters.length > 0 && (
-            <p className="text-xs text-gray-400 text-center">
+            <p className="text-xs text-gray-400 dark:text-slate-500 text-center">
               {t.guessedLabel}: {guessedLetters.join(', ').toUpperCase()}
             </p>
           )}
@@ -1797,11 +1797,11 @@ export default function GamePage() {
 
       {(isTyping || isSprint) && (
         <>
-          <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+          <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">
               {t.typingPromptLabel}
             </p>
-            <p className="text-3xl font-bold text-gray-900 tracking-tight">{current.meaning}</p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">{current.meaning}</p>
           </div>
 
           <div className="w-full flex flex-col gap-3">
@@ -1822,8 +1822,8 @@ export default function GamePage() {
                 typingResult === 'correct'
                   ? 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]'
                   : typingResult === 'wrong'
-                    ? 'border-red-400 bg-red-50 text-red-600'
-                    : 'border-gray-200 focus:border-[#378ADD]'
+                    ? 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                    : 'border-gray-200 dark:border-slate-700 focus:border-[#378ADD]'
               }`}
             />
             {typingResult === null && (
@@ -1840,7 +1840,7 @@ export default function GamePage() {
           {typingResult !== null && (
             <p
               className={`text-sm font-semibold text-center ${
-                typingResult === 'correct' ? 'text-[#3B6D11]' : 'text-red-500'
+                typingResult === 'correct' ? 'text-[#3B6D11]' : 'text-red-500 dark:text-red-400'
               }`}
             >
               {typingResult === 'correct'
@@ -1853,8 +1853,8 @@ export default function GamePage() {
 
       {isListening && (
         <>
-          <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
+          <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-4">
               {t.listeningPromptLabel}
             </p>
             <button
@@ -1865,7 +1865,7 @@ export default function GamePage() {
             >
               <Volume2 className="w-7 h-7 text-[#378ADD]" />
             </button>
-            {current.meaning && <p className="text-xs text-gray-400 mt-4 italic">{current.meaning}</p>}
+            {current.meaning && <p className="text-xs text-gray-400 dark:text-slate-500 mt-4 italic">{current.meaning}</p>}
           </div>
 
           <div className="w-full flex flex-col gap-3">
@@ -1886,8 +1886,8 @@ export default function GamePage() {
                 typingResult === 'correct'
                   ? 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]'
                   : typingResult === 'wrong'
-                    ? 'border-red-400 bg-red-50 text-red-600'
-                    : 'border-gray-200 focus:border-[#378ADD]'
+                    ? 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                    : 'border-gray-200 dark:border-slate-700 focus:border-[#378ADD]'
               }`}
             />
             {typingResult === null && (
@@ -1904,7 +1904,7 @@ export default function GamePage() {
           {typingResult !== null && (
             <p
               className={`text-sm font-semibold text-center ${
-                typingResult === 'correct' ? 'text-[#3B6D11]' : 'text-red-500'
+                typingResult === 'correct' ? 'text-[#3B6D11]' : 'text-red-500 dark:text-red-400'
               }`}
             >
               {typingResult === 'correct'
@@ -1915,7 +1915,7 @@ export default function GamePage() {
         </>
       )}
 
-      <button onClick={handleFinish} className="text-xs text-gray-400 hover:text-gray-600 underline">
+      <button onClick={handleFinish} className="text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400 underline">
         {t.finishBtn}
       </button>
     </div>

@@ -133,7 +133,7 @@ export default function RegisterPage() {
           <Zap size={20} className="text-white" strokeWidth={2.5} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">{t('registerTitleText')}</h1>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t('registerTitleText')}</h1>
           <p className="text-slate-400 text-sm mt-0.5">{t('registerSubtitleText')}</p>
         </div>
       </div>
@@ -174,7 +174,7 @@ export default function RegisterPage() {
           onChange={set('password')}
           leftIcon={<Lock size={16} />}
           rightIcon={
-            <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600">
+            <button type="button" onClick={() => setShowPw((v) => !v)} className="text-slate-400 hover:text-slate-600 hover:dark:text-slate-300">
               {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           }
@@ -185,13 +185,13 @@ export default function RegisterPage() {
         {/* ── Dil seçimi ── */}
         <div className="space-y-3">
           <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1.5">
+            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">
               <Globe size={14} /> {t('nativeLangSelectLabel')}
             </label>
             <select
               value={form.native_lang}
               onChange={setNativeLang}
-              className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition bg-white"
+              className="w-full border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5 text-sm text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition bg-white dark:bg-slate-900"
             >
               {languages.filter((l) => UI_SUPPORTED_CODES.has(l.code)).map((l) => (
                 <option key={l.code} value={l.code}>
@@ -201,7 +201,7 @@ export default function RegisterPage() {
             </select>
           </div>
           <div>
-            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 mb-1.5">
+            <label className="flex items-center gap-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 mb-1.5">
               <GraduationCap size={14} /> {t('learningLangsSelectLabel')}
             </label>
             <div className="flex flex-wrap gap-2">
@@ -216,8 +216,8 @@ export default function RegisterPage() {
                       onClick={() => toggleLearningLang(l.code)}
                       className={`flex items-center gap-1.5 rounded-xl border px-3 py-2 text-sm transition ${
                         selected
-                          ? 'border-sky-500 bg-sky-50 text-sky-700'
-                          : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                          ? 'border-sky-500 bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400'
+                          : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:border-slate-300'
                       }`}
                     >
                       <span>{l.flag_emoji}</span>
@@ -229,11 +229,11 @@ export default function RegisterPage() {
           </div>
         </div>
         {errors.learning_langs && (
-          <p className="text-xs text-red-600 -mt-2">{errors.learning_langs}</p>
+          <p className="text-xs text-red-600 dark:text-red-400 -mt-2">{errors.learning_langs}</p>
         )}
 
         {errors.form && (
-          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+          <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
             {errors.form}
           </div>
         )}
@@ -245,7 +245,7 @@ export default function RegisterPage() {
 
       <p className="text-center text-sm text-slate-400 mt-6">
         {t('haveAccountQuestion')}{' '}
-        <Link href="/login" className="text-sky-600 font-medium hover:underline">
+        <Link href="/login" className="text-sky-600 dark:text-sky-400 font-medium hover:underline">
           {t('loginLinkText')}
         </Link>
       </p>

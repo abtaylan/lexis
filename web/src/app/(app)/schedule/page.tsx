@@ -210,34 +210,34 @@ function TemplateModal({ templates, hasExisting, onApply, onClose }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 sticky top-0 bg-white">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#EEEDFE] flex items-center justify-center"><Sparkles className="w-4 h-4 text-[#534AB7]" /></div>
-            <h2 className="text-base font-semibold text-gray-900">{t('templatesModalTitle')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">{t('templatesModalTitle')}</h2>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:bg-gray-100 hover:dark:bg-slate-800 transition-colors"><X className="w-4 h-4" /></button>
         </div>
 
         <div className="px-6 py-4 space-y-3">
-          <p className="text-sm text-gray-500">{t('templatesModalDesc')}</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400">{t('templatesModalDesc')}</p>
 
           {hasExisting && (
-            <label className="flex items-center gap-2 text-sm text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 cursor-pointer">
+            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-400 bg-amber-50 dark:bg-amber-500/10 border border-amber-100 dark:border-amber-500/20 rounded-xl px-3 py-2 cursor-pointer">
               <input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} className="accent-[#534AB7]" />
               {t('replaceExistingLabel')}
             </label>
           )}
 
           {templates.map((tpl) => (
-            <div key={tpl.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
+            <div key={tpl.id} className="border border-gray-100 dark:border-slate-800 rounded-2xl p-4 hover:border-gray-200 hover:dark:border-slate-700 transition-colors">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${tpl.accent}1a`, color: tpl.accent }}>{tpl.icon}</div>
                   <div>
-                    <p className="font-semibold text-gray-900">{tpl.name}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{tpl.desc}</p>
-                    <p className="text-xs text-gray-400 mt-1">{t('perWeekTpl').replace('{n}', String(tpl.items.length))}</p>
+                    <p className="font-semibold text-gray-900 dark:text-slate-100">{tpl.name}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{tpl.desc}</p>
+                    <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{t('perWeekTpl').replace('{n}', String(tpl.items.length))}</p>
                   </div>
                 </div>
                 <button
@@ -256,35 +256,35 @@ function TemplateModal({ templates, hasExisting, onApply, onClose }: {
           {/* ── Kişiye özel şablonlar ── */}
           <div className="pt-2">
             <div className="flex items-center gap-2 mb-2">
-              <UserIcon className="w-4 h-4 text-gray-400" />
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('myTemplatesLabel')}</p>
+              <UserIcon className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">{t('myTemplatesLabel')}</p>
             </div>
 
             {loadingCustom ? (
-              <div className="flex items-center gap-2 text-sm text-gray-400 px-1 py-2">
+              <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-slate-500 px-1 py-2">
                 <Loader2 className="w-4 h-4 animate-spin" />{t('loading')}
               </div>
             ) : customTemplates.length === 0 ? (
-              <p className="text-xs text-gray-400 px-1 py-2">
+              <p className="text-xs text-gray-400 dark:text-slate-500 px-1 py-2">
                 {t('noCustomTemplates')}
               </p>
             ) : (
               <div className="space-y-3">
                 {customTemplates.map((tpl) => (
-                  <div key={tpl.id} className="border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-colors">
+                  <div key={tpl.id} className="border border-gray-100 dark:border-slate-800 rounded-2xl p-4 hover:border-gray-200 hover:dark:border-slate-700 transition-colors">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-[#FEF3E7] text-[#B7791F]"><Star className="w-5 h-5" /></div>
                         <div>
-                          <p className="font-semibold text-gray-900">{tpl.name}</p>
-                          <p className="text-xs text-gray-400 mt-1">{t('perWeekTpl').replace('{n}', String(tpl.items.length))}</p>
+                          <p className="font-semibold text-gray-900 dark:text-slate-100">{tpl.name}</p>
+                          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{t('perWeekTpl').replace('{n}', String(tpl.items.length))}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => removeCustom(tpl.id)}
                           disabled={deletingId === tpl.id}
-                          className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-red-500 hover:dark:text-red-400 hover:bg-red-50 hover:dark:bg-red-500/10 transition-colors disabled:opacity-50"
                           title={t('deleteTemplateTooltip')}
                         >
                           {deletingId === tpl.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
@@ -335,40 +335,40 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
     finally { setSaving(false); }
   };
 
-  const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition";
+  const inputCls = "w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition";
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#E1F5EE] flex items-center justify-center"><CalendarDays className="w-4 h-4 text-[#0F6E56]" /></div>
-            <h2 className="text-base font-semibold text-gray-900">{t('addActivityModalTitle')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">{t('addActivityModalTitle')}</h2>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:bg-gray-100 hover:dark:bg-slate-800 transition-colors"><X className="w-4 h-4" /></button>
         </div>
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">{t('dayLabel')}</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('dayLabel')}</label>
             <select value={form.day_of_week} onChange={(e) => set('day_of_week', Number(e.target.value))} className={inputCls}>
               {weekdays.map((d, i) => <option key={i} value={i}>{d}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('timeLabel')}</label><input type="time" value={form.time_slot} onChange={(e) => set('time_slot', e.target.value)} className={inputCls} /></div>
-            <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('durationLabel')}</label><input type="number" min={5} step={5} value={form.duration_min} onChange={(e) => set('duration_min', Number(e.target.value))} className={inputCls} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('timeLabel')}</label><input type="time" value={form.time_slot} onChange={(e) => set('time_slot', e.target.value)} className={inputCls} /></div>
+            <div><label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('durationLabel')}</label><input type="number" min={5} step={5} value={form.duration_min} onChange={(e) => set('duration_min', Number(e.target.value))} className={inputCls} /></div>
           </div>
-          <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('activityLabel')}</label><input type="text" value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder="örn. Flashcard çalışması" className={inputCls} /></div>
+          <div><label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('activityLabel')}</label><input type="text" value={form.activity} onChange={(e) => set('activity', e.target.value)} placeholder="örn. Flashcard çalışması" className={inputCls} /></div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Kaynak Kategorisi (opsiyonel)</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Kaynak Kategorisi (opsiyonel)</label>
             <select value={form.activity_key ?? ''} onChange={(e) => set('activity_key', e.target.value)} className={inputCls}>
               {CATEGORY_OPTIONS.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
             </select>
-            <p className="text-[11px] text-gray-400 mt-1">Seçilirse, öğrenme dilinize göre otomatik bir kaynak linki önerilir (BBC, DW, TED-Ed vb.).</p>
+            <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-1">Seçilirse, öğrenme dilinize göre otomatik bir kaynak linki önerilir (BBC, DW, TED-Ed vb.).</p>
           </div>
-          <div><label className="block text-xs font-medium text-gray-600 mb-1">{t('linkLabel')}</label><input type="url" value={form.link_url ?? ''} onChange={(e) => set('link_url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
+          <div><label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('linkLabel')}</label><input type="url" value={form.link_url ?? ''} onChange={(e) => set('link_url', e.target.value)} placeholder="https://…" className={inputCls} /></div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1 flex items-center gap-1"><Bell className="w-3 h-3" />{t('reminderLabel')}</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1 flex items-center gap-1"><Bell className="w-3 h-3" />{t('reminderLabel')}</label>
             <select value={form.reminder_lead ?? ''} onChange={(e) => set('reminder_lead', e.target.value)} className={inputCls}>
               <option value="">{t('reminderNone')}</option>
               <option value="15min">{t('reminder15Min')}</option>
@@ -376,10 +376,10 @@ function ScheduleModal({ onSave, onClose }: { onSave: (data: ScheduleCreate) => 
               <option value="day_start">{t('reminderDayStart')}</option>
             </select>
           </div>
-          {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
         </form>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('cancelBtn')}</button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800 transition-colors">{t('cancelBtn')}</button>
           <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">{saving ? t('savingBtn') : t('saveBtn')}</button>
         </div>
       </div>
@@ -424,31 +424,31 @@ function SaveTemplateModal({ items, onSaved, onClose }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#FEF3E7] flex items-center justify-center"><Star className="w-4 h-4 text-[#B7791F]" /></div>
-            <h2 className="text-base font-semibold text-gray-900">{t('saveTemplateModalTitle')}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">{t('saveTemplateModalTitle')}</h2>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors"><X className="w-4 h-4" /></button>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:bg-gray-100 hover:dark:bg-slate-800 transition-colors"><X className="w-4 h-4" /></button>
         </div>
         <div className="px-6 py-4 space-y-3">
-          <p className="text-xs text-gray-500">{t('saveTemplateDesc')}</p>
+          <p className="text-xs text-gray-500 dark:text-slate-400">{t('saveTemplateDesc')}</p>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">{t('templateNameLabel')}</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('templateNameLabel')}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="örn. Benim Sınav Programım"
               autoFocus
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
+              className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
             />
           </div>
-          {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('cancelBtn')}</button>
+          <button onClick={onClose} className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800 transition-colors">{t('cancelBtn')}</button>
           <button onClick={handleSave} disabled={saving} className="flex-1 bg-[#B7791F] hover:bg-[#9c6519] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
             {saving ? t('savingBtn') : t('saveBtn')}
           </button>
@@ -526,8 +526,8 @@ export default function SchedulePage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('scheduleTitle')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{t('activeDaysStatsTpl').replace('{days}', String(activeDays)).replace('{items}', String(totalItems))}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('scheduleTitle')}</h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">{t('activeDaysStatsTpl').replace('{days}', String(activeDays)).replace('{items}', String(totalItems))}</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {items.length > 0 && (
@@ -545,19 +545,19 @@ export default function SchedulePage() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">{t('loading')}</span></div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-12 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-slate-500"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">{t('loading')}</span></div>
         </div>
       ) : items.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-center">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#EEEDFE] flex items-center justify-center"><Sparkles className="w-7 h-7 text-[#534AB7]" /></div>
-          <p className="text-sm font-medium text-gray-700">{t('noScheduleYet')}</p>
-          <p className="text-xs text-gray-400 max-w-xs">{t('noScheduleYetSub')}</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{t('noScheduleYet')}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 max-w-xs">{t('noScheduleYetSub')}</p>
           <div className="flex gap-2 mt-2">
             <button onClick={() => setShowTemplates(true)} className="flex items-center gap-2 bg-[#534AB7] hover:bg-[#473fa0] text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors">
               <Sparkles className="w-4 h-4" />{t('chooseTemplateBtn')}
             </button>
-            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-xl px-4 py-2 text-sm font-medium transition-colors">
+            <button onClick={() => setShowModal(true)} className="flex items-center gap-2 border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800 rounded-xl px-4 py-2 text-sm font-medium transition-colors">
               <Plus className="w-4 h-4" />{t('manualAddBtn')}
             </button>
           </div>
@@ -567,35 +567,35 @@ export default function SchedulePage() {
           {grouped.map(({ day, color, items: dayItems }) => {
             const isEmpty = dayItems.length === 0;
             return (
-              <div key={day} className={`bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden ${isEmpty ? 'opacity-50' : ''}`}>
+              <div key={day} className={`bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden ${isEmpty ? 'opacity-50' : ''}`}>
                 <div className={`px-4 py-3 flex items-center justify-between ${color.bg}`}>
                   <div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${color.dot}`} /><span className={`text-xs font-semibold ${color.text}`}>{day}</span></div>
                   {dayItems.length > 0 && <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/60 ${color.text}`}>{dayItems.length}</span>}
                 </div>
                 <div className="p-3 space-y-2">
-                  {isEmpty ? <p className="text-xs text-gray-400 text-center py-2">{t('noActivity')}</p> : dayItems.map((item) => {
+                  {isEmpty ? <p className="text-xs text-gray-400 dark:text-slate-500 text-center py-2">{t('noActivity')}</p> : dayItems.map((item) => {
                     const displayLink = item.resolved_link_url || item.link_url;
                     return (
-                      <div key={item.id} className={`rounded-xl p-3 transition-colors group ${item.is_active === false ? 'bg-gray-50 opacity-50' : 'bg-slate-50 hover:bg-slate-100'}`}>
+                      <div key={item.id} className={`rounded-xl p-3 transition-colors group ${item.is_active === false ? 'bg-gray-50 dark:bg-slate-800 opacity-50' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 hover:dark:bg-slate-800'}`}>
                         <div className="flex items-center justify-between mb-1">
-                          <div className="flex items-center gap-1 text-xs font-semibold text-[#185FA5]"><Clock className="w-3 h-3" />{item.time_slot}<span className="font-normal text-gray-400 ml-0.5">· {item.duration_min}dk</span></div>
+                          <div className="flex items-center gap-1 text-xs font-semibold text-[#185FA5]"><Clock className="w-3 h-3" />{item.time_slot}<span className="font-normal text-gray-400 dark:text-slate-500 ml-0.5">· {item.duration_min}dk</span></div>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300'}`} title={t('toggleTooltip')} />
-                            <button onClick={() => handleDelete(item.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="w-3 h-3" /></button>
+                            <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300 dark:bg-slate-600'}`} title={t('toggleTooltip')} />
+                            <button onClick={() => handleDelete(item.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-red-500 hover:dark:text-red-400 hover:bg-red-50 hover:dark:bg-red-500/10 transition-colors"><Trash2 className="w-3 h-3" /></button>
                           </div>
                         </div>
-                        <p className="text-sm font-medium text-gray-800 truncate">{item.activity}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-slate-200 truncate">{item.activity}</p>
                         {displayLink && (
-                          <a href={displayLink} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-gray-400 hover:text-[#185FA5] transition-colors truncate">
+                          <a href={displayLink} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-gray-400 dark:text-slate-500 hover:text-[#185FA5] transition-colors truncate">
                             <ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{item.resolved_resource_title || displayLink.replace(/^https?:\/\//, '')}</span>
                           </a>
                         )}
                         <div className="mt-1.5 flex items-center gap-1">
-                          <Bell className="w-3 h-3 text-gray-300 shrink-0" />
+                          <Bell className="w-3 h-3 text-gray-300 dark:text-slate-600 shrink-0" />
                           <select
                             value={item.reminder_lead ?? ''}
                             onChange={(e) => handleReminderChange(item, e.target.value)}
-                            className="text-[11px] text-gray-500 bg-transparent border-none focus:outline-none focus:ring-0 py-0 pl-0 pr-4 cursor-pointer hover:text-[#185FA5]"
+                            className="text-[11px] text-gray-500 dark:text-slate-400 bg-transparent border-none focus:outline-none focus:ring-0 py-0 pl-0 pr-4 cursor-pointer hover:text-[#185FA5]"
                           >
                             <option value="">{t('reminderNone')}</option>
                             <option value="15min">{t('reminder15Min')}</option>

@@ -20,7 +20,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-slate-50">
+      <div className="h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-800">
         <div className="flex flex-col items-center gap-3">
           <Spinner size="lg" />
           <p className="text-sm text-slate-400">{t('loading')}</p>
@@ -32,7 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-800">
       <Sidebar />
       <main className="flex-1 ml-60 min-h-screen overflow-y-auto">
         {children}

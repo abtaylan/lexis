@@ -93,13 +93,13 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
   const meInTop = data?.me?.in_top ?? false;
 
   return (
-    <div className={clsx('bg-white rounded-2xl border border-gray-100 shadow-sm p-4', className)}>
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-3">
-        <Trophy className="w-4 h-4 text-amber-500" />
+    <div className={clsx('bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4', className)}>
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-slate-300 mb-3">
+        <Trophy className="w-4 h-4 text-amber-500 dark:text-amber-400" />
         {labels.title}
       </h3>
 
-      <div className="flex gap-1 mb-3 bg-slate-50 rounded-xl p-1">
+      <div className="flex gap-1 mb-3 bg-slate-50 dark:bg-slate-800 rounded-xl p-1">
         {tabs.map((t) => (
           <button
             key={t.key}
@@ -107,7 +107,7 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
             onClick={() => setPeriod(t.key)}
             className={clsx(
               'flex-1 text-xs font-medium py-1.5 rounded-lg transition-colors',
-              period === t.key ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+              period === t.key ? 'bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-200 shadow-sm' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400'
             )}
           >
             {t.label}
@@ -115,10 +115,10 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
         ))}
       </div>
 
-      {loading && <p className="text-xs text-gray-400 py-4 text-center">{labels.loading}</p>}
-      {!loading && error && <p className="text-xs text-red-400 py-4 text-center">{labels.error}</p>}
+      {loading && <p className="text-xs text-gray-400 dark:text-slate-500 py-4 text-center">{labels.loading}</p>}
+      {!loading && error && <p className="text-xs text-red-400 dark:text-red-300 py-4 text-center">{labels.error}</p>}
       {!loading && !error && data && data.top.length === 0 && (
-        <p className="text-xs text-gray-400 py-4 text-center">{labels.empty}</p>
+        <p className="text-xs text-gray-400 dark:text-slate-500 py-4 text-center">{labels.empty}</p>
       )}
 
       {!loading && !error && data && data.top.length > 0 && (
@@ -134,7 +134,7 @@ export function Leaderboard({ limit = 10, className }: LeaderboardProps) {
           ))}
           {!meInTop && (
             <>
-              <div className="text-center text-gray-300 text-xs py-0.5">···</div>
+              <div className="text-center text-gray-300 dark:text-slate-600 text-xs py-0.5">···</div>
               <LeaderboardRow entry={data.me} isMe youLabel={labels.you} pointsLabel={labels.points} />
             </>
           )}
@@ -165,38 +165,38 @@ function LeaderboardRow({
       href={`/u/${entry.username}`}
       className={clsx(
         'flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors',
-        isMe ? 'bg-amber-50 ring-1 ring-amber-200' : 'hover:bg-slate-50'
+        isMe ? 'bg-amber-50 dark:bg-amber-500/10 ring-1 ring-amber-200 dark:ring-amber-500/30' : 'hover:bg-slate-50 hover:dark:bg-slate-800'
       )}
     >
       <span
         className={clsx(
           'w-5 flex items-center justify-center text-xs font-semibold shrink-0',
           entry.rank === 1
-            ? 'text-amber-500'
+            ? 'text-amber-500 dark:text-amber-400'
             : entry.rank === 2
               ? 'text-slate-400'
               : entry.rank === 3
                 ? 'text-orange-400'
-                : 'text-gray-400'
+                : 'text-gray-400 dark:text-slate-500'
         )}
       >
         {entry.rank <= 3 ? <Crown className="w-3.5 h-3.5" /> : entry.rank}
       </span>
-      <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-gray-500 shrink-0">
+      <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-semibold text-gray-500 dark:text-slate-400 shrink-0">
         {initial}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-700 truncate">
+        <p className="text-sm font-medium text-gray-700 dark:text-slate-300 truncate">
           {entry.username}
           {isMe && (
-            <span className="ml-1.5 text-[10px] font-semibold text-amber-600 align-middle">
+            <span className="ml-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 align-middle">
               ({youLabel})
             </span>
           )}
         </p>
-        <p className="text-[11px] text-gray-400">Lv. {entry.level}</p>
+        <p className="text-[11px] text-gray-400 dark:text-slate-500">Lv. {entry.level}</p>
       </div>
-      <span className="text-xs font-semibold text-gray-600 shrink-0">
+      <span className="text-xs font-semibold text-gray-600 dark:text-slate-400 shrink-0">
         {entry.xp.toLocaleString()} {pointsLabel}
       </span>
     </Link>

@@ -20,16 +20,16 @@ const C = {
 const TYPE_COLORS = ['#378ADD', '#534AB7', '#3B6D11', '#854F0B', '#0F6E56', '#94a3b8'];
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-5 ${className}`}>{children}</div>;
+  return <div className={`bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5 ${className}`}>{children}</div>;
 }
 
 function ChartTitle({ icon, title, sub }: { icon: React.ReactNode; title: string; sub?: string }) {
   return (
     <div className="flex items-start gap-2 mb-4">
-      <div className="text-gray-400 mt-0.5">{icon}</div>
+      <div className="text-gray-400 dark:text-slate-500 mt-0.5">{icon}</div>
       <div>
-        <h2 className="text-sm font-semibold text-gray-800">{title}</h2>
-        {sub && <p className="text-xs text-gray-400 mt-0.5">{sub}</p>}
+        <h2 className="text-sm font-semibold text-gray-800 dark:text-slate-200">{title}</h2>
+        {sub && <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{sub}</p>}
       </div>
     </div>
   );
@@ -58,11 +58,11 @@ export default function StatsPage() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-3 text-gray-400"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">{t('loading')}</span></div>
+        <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-slate-500"><Loader2 className="w-6 h-6 animate-spin" /><span className="text-sm">{t('loading')}</span></div>
       </div>
     );
   }
-  if (error) return <div className="p-6"><div className="bg-red-50 text-red-600 rounded-2xl px-4 py-3 text-sm">{error}</div></div>;
+  if (error) return <div className="p-6"><div className="bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-2xl px-4 py-3 text-sm">{error}</div></div>;
   if (!data) return null;
 
   const totals = data.totals;
@@ -106,15 +106,15 @@ export default function StatsPage() {
   return (
     <div className="p-6 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">{t('statsPageTitle')}</h1>
-        <p className="text-sm text-gray-500 mt-0.5">{t('statsPageSubtitle')}</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('statsPageTitle')}</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">{t('statsPageSubtitle')}</p>
       </div>
 
       {empty ? (
         <Card className="p-12 flex flex-col items-center gap-3 text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#E6F1FB] flex items-center justify-center"><Sparkles className="w-7 h-7 text-[#185FA5]" /></div>
-          <p className="text-sm font-medium text-gray-700">{t('noDataYet')}</p>
-          <p className="text-xs text-gray-400">{t('noDataYetSub')}</p>
+          <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{t('noDataYet')}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500">{t('noDataYetSub')}</p>
         </Card>
       ) : (
         <>
@@ -123,7 +123,7 @@ export default function StatsPage() {
             {summary.map((s) => (
               <Card key={s.label} className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl ${s.bg} ${s.text} flex items-center justify-center`}>{s.icon}</div>
-                <div><p className="text-2xl font-bold text-gray-900">{s.value}</p><p className="text-xs text-gray-500">{s.label}</p></div>
+                <div><p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{s.value}</p><p className="text-xs text-gray-500 dark:text-slate-400">{s.label}</p></div>
               </Card>
             ))}
           </div>
@@ -143,7 +143,7 @@ export default function StatsPage() {
               </ResponsiveContainer>
               <div className="text-center -mt-2">
                 <p className="text-3xl font-bold text-[#3B6D11]">{learnRate}%</p>
-                <p className="text-xs text-gray-400">{t('learnedPercentLabel')}</p>
+                <p className="text-xs text-gray-400 dark:text-slate-500">{t('learnedPercentLabel')}</p>
               </div>
             </Card>
 

@@ -14,6 +14,28 @@ type Stage = 'mode' | 'direction' | 'setup' | 'loading' | 'playing' | 'error' | 
 
 const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 
+// ── Eşleştirme (matching) — web'deki app/(app)/game/page.tsx'teki aynı mantık
+// mobile'a taşındı: tek seferde MATCHING_BATCH_SIZE kadar kelime çekilip iki
+// sütun halinde gösterilir, kelime + anlam çifti tıklanarak eşleştirilir. ──
+const MATCHING_BATCH_SIZE = 4;
+
+type MatchingItem = {
+  uid: string;
+  word: string;
+  meaning: string;
+  word_id?: string;
+  general_word_id?: string;
+};
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export default function GameScreen() {
   const { gt } = useLocale();
   const c = useThemeColors();
@@ -35,6 +57,14 @@ export default function GameScreen() {
   const [roundResult, setRoundResult] = useState<'won' | 'lost' | null>(null);
   const [revealedWord, setRevealedWord] = useState<string | null>(null);
   const [letterBusy, setLetterBusy] = useState(false);
+
+  const [matchingItems, setMatchingItems] = useState<MatchingItem[]>([]);
+  const [matchingWordSlots, setMatchingWordSlots] = useState<string[]>([]);
+  const [matchingMeaningSlots, setMatchingMeaningSlots] = useState<string[]>([]);
+  const [matchedUids, setMatchedUids] = useState<string[]>([]);
+  const [selectedWordUid, setSelectedWordUid] = useState<string | null>(null);
+  const [selectedMeaningUid, setSelectedMeaningUid] = useState<string | null>(null);
+  const [wrongPairFlash, setWrongPairFlash] = useState<{ w: string; m: string } | null>(null);
 
   const [score, setScore] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
@@ -78,6 +108,112 @@ export default function GameScreen() {
     }
   };
 
+  // ── eşleştirme (matching) — tek next-word yerine MATCHING_BATCH_SIZE kadar
+  // kelimeyi arka arkaya çekip bir "tur" oluşturur (bkz. web/game/page.tsx'teki
+  // aynı isimli fonksiyon — backend tarafında ek bir değişiklik gerekmiyor). ──
+  const loadMatchingBatch = async (sid: string, hadAnswered: boolean, pool: PoolSource) => {
+    setStage('loading');
+    try {
+      const items: MatchingItem[] = [];
+      const seenKeys = new Set<string>();
+      const maxTries = MATCHING_BATCH_SIZE * 6;
+      let tries = 0;
+      while (items.length < MATCHING_BATCH_SIZE && tries < maxTries) {
+        tries++;
+        const nw = await gamesApi.nextWord(sid);
+        if (nw.finished) break;
+        const key = nw.word_id ?? nw.general_word_id ?? null;
+        if (key && seenKeys.has(key)) continue;
+        if (key) seenKeys.add(key);
+        items.push({
+          uid: `${items.length}-${key ?? 'x'}-${Math.random().toString(36).slice(2)}`,
+          word: nw.word ?? '',
+          meaning: nw.meaning ?? '',
+          word_id: nw.word_id ?? undefined,
+          general_word_id: nw.general_word_id ?? undefined,
+        });
+      }
+      if (items.length === 0) {
+        if (!hadAnswered) {
+          setErrorMsg(pool === 'own' ? gt.ownEmptyError : gt.generalEmptyError);
+          setStage('error');
+          return;
+        }
+        try {
+          const res = await gamesApi.finishSession(sid);
+          setFinishResult(res);
+        } catch {
+          /* sessiz */
+        }
+        setStage('done');
+        return;
+      }
+      setMatchingItems(items);
+      setMatchedUids([]);
+      setSelectedWordUid(null);
+      setSelectedMeaningUid(null);
+      setWrongPairFlash(null);
+      setMatchingWordSlots(shuffleArray(items.map((it) => it.uid)));
+      setMatchingMeaningSlots(shuffleArray(items.map((it) => it.uid)));
+      setQuestionNum((n) => n + items.length);
+      setStage('playing');
+    } catch {
+      setErrorMsg(gt.genericError);
+      setStage('error');
+    }
+  };
+
+  // ── eşleştirme (matching) — kelime/anlam çifti tıklanınca kontrol ──
+  const attemptMatch = async (wordUid: string, meaningUid: string, sid: string, pool: PoolSource) => {
+    if (wordUid === meaningUid) {
+      const newMatched = [...matchedUids, wordUid];
+      setMatchedUids(newMatched);
+      setSelectedWordUid(null);
+      setSelectedMeaningUid(null);
+      setScore((s) => s + 1);
+      const item = matchingItems.find((it) => it.uid === wordUid);
+      if (item) {
+        try {
+          const res = await gamesApi.submitAttempt(sid, {
+            word_id: item.word_id,
+            general_word_id: item.general_word_id,
+            is_correct: true,
+          });
+          setXpEarned((x) => x + res.xp_awarded);
+          if (res.leveled_up) setLevelUp(res.new_level);
+        } catch {
+          /* sessiz */
+        }
+      }
+      if (newMatched.length === matchingItems.length) {
+        setTimeout(() => loadMatchingBatch(sid, true, pool), 600);
+      }
+    } else {
+      setWrongPairFlash({ w: wordUid, m: meaningUid });
+      setTimeout(() => {
+        setWrongPairFlash(null);
+        setSelectedWordUid(null);
+        setSelectedMeaningUid(null);
+      }, 600);
+    }
+  };
+
+  const handleMatchWordClick = (uid: string) => {
+    if (matchedUids.includes(uid) || wrongPairFlash || !sessionId) return;
+    setSelectedWordUid(uid);
+    if (selectedMeaningUid) {
+      attemptMatch(uid, selectedMeaningUid, sessionId, poolSource);
+    }
+  };
+
+  const handleMatchMeaningClick = (uid: string) => {
+    if (matchedUids.includes(uid) || wrongPairFlash || !sessionId) return;
+    setSelectedMeaningUid(uid);
+    if (selectedWordUid) {
+      attemptMatch(selectedWordUid, uid, sessionId, poolSource);
+    }
+  };
+
   const start = async (mode: GameMode, pool: PoolSource, dir: Direction) => {
     setGameMode(mode);
     setPoolSource(pool);
@@ -88,10 +224,23 @@ export default function GameScreen() {
     setQuestionNum(0);
     setLevelUp(null);
     setFinishResult(null);
+    if (mode === 'matching') {
+      setMatchingItems([]);
+      setMatchedUids([]);
+      setSelectedWordUid(null);
+      setSelectedMeaningUid(null);
+      setWrongPairFlash(null);
+      setMatchingWordSlots([]);
+      setMatchingMeaningSlots([]);
+    }
     try {
       const session = await gamesApi.createSession(mode, pool, dir);
       setSessionId(session.id);
-      await loadNext(session.id, false, pool);
+      if (mode === 'matching') {
+        await loadMatchingBatch(session.id, false, pool);
+      } else {
+        await loadNext(session.id, false, pool);
+      }
     } catch {
       setErrorMsg(gt.genericError);
       setStage('error');
@@ -187,6 +336,15 @@ export default function GameScreen() {
             setStage('setup');
           }}
         />
+        <OptionButton
+          title={gt.modeMatchingLabel}
+          desc={gt.modeMatchingDesc}
+          onPress={() => {
+            setGameMode('matching');
+            setDirection('meaning_to_word');
+            setStage('setup');
+          }}
+        />
       </CenterScreen>
     );
   }
@@ -258,6 +416,91 @@ export default function GameScreen() {
         <View style={{ height: spacing.sm }} />
         <Button title={gt.backToDashboardBtn} variant="ghost" onPress={() => router.push('/(app)/dashboard')} />
       </CenterScreen>
+    );
+  }
+
+  // ── Oynanış: eşleştirme (matching) — current tekil kelime state'ini
+  // kullanmıyor (matchingItems kullanıyor), bu yüzden ayrı, erken bir return
+  // olarak ele alınıyor (bkz. web/game/page.tsx'teki aynı desen). ──
+  if (gameMode === 'matching') {
+    if (matchingItems.length === 0) return null;
+    return (
+      <ScreenContainer>
+        <View style={styles.playHeader}>
+          <Text style={{ color: c.text, fontWeight: '600', fontSize: 13 }}>{gt.questionCounterTpl.replace('{n}', String(questionNum))}</Text>
+          <View style={{ flexDirection: 'row', gap: spacing.md }}>
+            <Text style={{ color: c.success, fontSize: 12, fontWeight: '600' }}>{gt.scoreLabel}: {score}</Text>
+            <Text style={{ color: c.accent, fontSize: 12, fontWeight: '600' }}>✨ {xpEarned} {gt.xpLabel}</Text>
+          </View>
+        </View>
+
+        {levelUp !== null && (
+          <Card style={{ backgroundColor: c.accentSoft, borderColor: c.accentSoft, marginBottom: spacing.md, alignItems: 'center' }}>
+            <Text style={{ color: c.accent, fontWeight: '700' }}>{gt.levelUpTpl.replace('{n}', String(levelUp))}</Text>
+          </Card>
+        )}
+
+        <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', textAlign: 'center', textTransform: 'uppercase', marginBottom: spacing.md }}>
+          {gt.matchingPromptLabel}
+        </Text>
+
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <View style={{ flex: 1, gap: spacing.sm }}>
+            {matchingWordSlots.map((uid) => {
+              const item = matchingItems.find((it) => it.uid === uid);
+              if (!item) return null;
+              const isMatched = matchedUids.includes(uid);
+              const isSelected = selectedWordUid === uid;
+              const isWrong = wrongPairFlash?.w === uid;
+              let borderColor = c.border;
+              let bg = c.surface;
+              let textColor = c.text;
+              if (isMatched) { borderColor = c.success; bg = c.successSoft; textColor = c.success; }
+              else if (isWrong) { borderColor = c.danger; bg = c.dangerSoft; textColor = c.danger; }
+              else if (isSelected) { borderColor = c.primary; bg = c.primarySoft; textColor = c.primary; }
+              return (
+                <Pressable
+                  key={uid}
+                  disabled={isMatched}
+                  onPress={() => handleMatchWordClick(uid)}
+                  style={[styles.matchTile, { borderColor, backgroundColor: bg, opacity: isMatched ? 0.6 : 1 }]}
+                >
+                  <Text style={{ color: textColor, fontSize: 13, fontWeight: '600', textAlign: 'center' }}>{item.word}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={{ flex: 1, gap: spacing.sm }}>
+            {matchingMeaningSlots.map((uid) => {
+              const item = matchingItems.find((it) => it.uid === uid);
+              if (!item) return null;
+              const isMatched = matchedUids.includes(uid);
+              const isSelected = selectedMeaningUid === uid;
+              const isWrong = wrongPairFlash?.m === uid;
+              let borderColor = c.border;
+              let bg = c.surface;
+              let textColor = c.text;
+              if (isMatched) { borderColor = c.success; bg = c.successSoft; textColor = c.success; }
+              else if (isWrong) { borderColor = c.danger; bg = c.dangerSoft; textColor = c.danger; }
+              else if (isSelected) { borderColor = c.primary; bg = c.primarySoft; textColor = c.primary; }
+              return (
+                <Pressable
+                  key={uid}
+                  disabled={isMatched}
+                  onPress={() => handleMatchMeaningClick(uid)}
+                  style={[styles.matchTile, { borderColor, backgroundColor: bg, opacity: isMatched ? 0.6 : 1 }]}
+                >
+                  <Text style={{ color: textColor, fontSize: 13, fontWeight: '600', textAlign: 'center' }}>{item.meaning}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <Pressable onPress={handleFinish} style={{ alignItems: 'center', marginTop: spacing.lg }}>
+          <Text style={{ color: c.textMuted, fontSize: 12, textDecorationLine: 'underline' }}>{gt.finishBtn}</Text>
+        </Pressable>
+      </ScreenContainer>
     );
   }
 
@@ -475,4 +718,5 @@ const styles = StyleSheet.create({
   revealRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginBottom: spacing.md },
   letterBox: { width: 32, height: 40, borderWidth: 2, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   key: { width: 28, height: 36, borderRadius: radius.sm, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  matchTile: { borderWidth: 2, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.sm, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
 });

@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LocaleProvider } from '@/i18n';
+import { ThemeProvider, useThemeMode } from '@/store/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -17,11 +18,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <LocaleProvider>
-          <AuthProvider>
-            <RootNavigator />
-          </AuthProvider>
-        </LocaleProvider>
+        <ThemeProvider>
+          <LocaleProvider>
+            <AuthProvider>
+              <RootNavigator />
+            </AuthProvider>
+          </LocaleProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );
@@ -29,6 +32,7 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const { isLoading, isAuthenticated } = useAuth();
+  const { scheme } = useThemeMode();
 
   useEffect(() => {
     if (!isLoading) {
@@ -40,7 +44,7 @@ function RootNavigator() {
 
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />

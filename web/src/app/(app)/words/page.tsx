@@ -21,7 +21,7 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; text: string; label: string; icon: React.ReactNode }> = {
     learned: { bg: 'bg-[#EAF3DE]', text: 'text-[#3B6D11]', label: t('statusLearned'), icon: <CheckCircle2 className="w-3 h-3" /> },
     learning: { bg: 'bg-[#FAEEDA]', text: 'text-[#854F0B]', label: t('statusLearning'), icon: <RefreshCw className="w-3 h-3" /> },
-    archived: { bg: 'bg-gray-100', text: 'text-gray-500', label: t('statusArchived'), icon: <Archive className="w-3 h-3" /> },
+    archived: { bg: 'bg-gray-100 dark:bg-slate-800', text: 'text-gray-500 dark:text-slate-400', label: t('statusArchived'), icon: <Archive className="w-3 h-3" /> },
   };
   const s = map[status] ?? map['archived'];
   return (
@@ -129,15 +129,15 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-900 z-10">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#E6F1FB] flex items-center justify-center">
               <BookOpen className="w-4 h-4 text-[#185FA5]" />
             </div>
-            <h2 className="text-base font-semibold text-gray-900">{title}</h2>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">{title}</h2>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:bg-gray-100 hover:dark:bg-slate-800 transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -145,7 +145,7 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
         <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
           {/* Kelime + sözlük ara */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">{t('wordRequiredLabel')}</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('wordRequiredLabel')}</label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -153,7 +153,7 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
                 onChange={(e) => set('word', e.target.value)}
                 onKeyDown={(e) => { if (allowLookup && e.key === 'Enter') { e.preventDefault(); handleLookup(); } }}
                 placeholder="örn. perseverance"
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
+                className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
               />
               {allowLookup && (
                 <button
@@ -169,7 +169,7 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
               )}
             </div>
             {allowLookup && (
-              <p className="text-xs text-gray-400 mt-1">{t('lookupHelper')}</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{t('lookupHelper')}</p>
             )}
           </div>
 
@@ -180,8 +180,8 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
             </p>
           )}
           {meanings.length > 0 && (
-            <div className="space-y-2 max-h-52 overflow-y-auto border border-gray-100 rounded-xl p-2 bg-slate-50">
-              <p className="text-xs font-semibold text-gray-500 px-1">
+            <div className="space-y-2 max-h-52 overflow-y-auto border border-gray-100 dark:border-slate-800 rounded-xl p-2 bg-slate-50 dark:bg-slate-800">
+              <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 px-1">
                 {t('meaningsFoundTpl').replace('{n}', String(meanings.length)).replace('{word}', searched)}
               </p>
               {meanings.map((m, i) => (
@@ -189,7 +189,7 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
                   key={i}
                   type="button"
                   onClick={() => applyMeaning(m)}
-                  className="w-full text-left bg-white border border-gray-100 hover:border-[#534AB7] rounded-xl p-3 transition-colors"
+                  className="w-full text-left bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 hover:border-[#534AB7] rounded-xl p-3 transition-colors"
                 >
                   {m.word_type && (
                     <span className="text-xs font-medium bg-[#EEEDFE] text-[#534AB7] px-2 py-0.5 rounded-full">
@@ -197,8 +197,8 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
                     </span>
                   )}
                   {m.meaning_native && <p className="text-sm font-medium text-[#185FA5] mt-1.5">{m.meaning_native}</p>}
-                  {m.meaning_target && <p className="text-xs text-gray-600 mt-0.5">{m.meaning_target}</p>}
-                  {m.examples?.[0] && <p className="text-xs text-gray-400 italic mt-1">{m.examples[0]}</p>}
+                  {m.meaning_target && <p className="text-xs text-gray-600 dark:text-slate-400 mt-0.5">{m.meaning_target}</p>}
+                  {m.examples?.[0] && <p className="text-xs text-gray-400 dark:text-slate-500 italic mt-1">{m.examples[0]}</p>}
                 </button>
               ))}
             </div>
@@ -207,34 +207,34 @@ function WordFormModal({ initial, onSave, onClose, title, allowLookup }: {
           {/* Diğer alanlar */}
           {textFields.map(({ field, label, ph }) => (
             <div key={field}>
-              <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+              <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{label}</label>
               <input
                 type="text"
                 value={(form as unknown as Record<string, string>)[field] ?? ''}
                 onChange={(e) => set(field, e.target.value)}
                 placeholder={ph}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
+                className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
               />
             </div>
           ))}
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">{t('listLabel')}</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('listLabel')}</label>
             <select
               value={form.list_type}
               onChange={(e) => set('list_type', e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
+              className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition"
             >
               <option value="active">{t('listActive')}</option>
               <option value="passive">{t('listPassive')}</option>
             </select>
           </div>
 
-          {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
+          {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
         </form>
 
         <div className="flex gap-3 px-6 pb-6">
-          <button type="button" onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">{t('cancelBtn')}</button>
+          <button type="button" onClick={onClose} className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800 transition-colors">{t('cancelBtn')}</button>
           <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
             {saving ? t('savingBtn') : t('saveBtn')}
           </button>
@@ -301,8 +301,8 @@ export default function WordsPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{t('words')}</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{t('totalWordsCountTpl').replace('{n}', String(total))}</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('words')}</h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">{t('totalWordsCountTpl').replace('{n}', String(total))}</p>
         </div>
         <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition-colors">
           <Plus className="w-4 h-4" />{t('addWordBtn')}
@@ -313,31 +313,31 @@ export default function WordsPage() {
         {[
           { label: t('learnedWordsLabel'), value: learned, bg: 'bg-[#EAF3DE]', text: 'text-[#3B6D11]', icon: <CheckCircle2 className="w-5 h-5" /> },
           { label: t('learningLabel'), value: learning, bg: 'bg-[#FAEEDA]', text: 'text-[#854F0B]', icon: <RefreshCw className="w-5 h-5" /> },
-          { label: t('archivedWordsLabel'), value: archived, bg: 'bg-gray-100', text: 'text-gray-500', icon: <Archive className="w-5 h-5" /> },
+          { label: t('archivedWordsLabel'), value: archived, bg: 'bg-gray-100 dark:bg-slate-800', text: 'text-gray-500 dark:text-slate-400', icon: <Archive className="w-5 h-5" /> },
         ].map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+          <div key={s.label} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl ${s.bg} ${s.text} flex items-center justify-center`}>{s.icon}</div>
-            <div><p className="text-xl font-bold text-gray-900">{s.value}</p><p className="text-xs text-gray-500">{s.label}</p></div>
+            <div><p className="text-xl font-bold text-gray-900 dark:text-slate-100">{s.value}</p><p className="text-xs text-gray-500 dark:text-slate-400">{s.label}</p></div>
           </div>
         ))}
       </div>
 
       <div className="flex flex-wrap gap-3">
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500" />
           <input type="text" placeholder={t('searchPlaceholder')} value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-9 pr-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent w-56 transition" />
+            className="pl-9 pr-3 py-2 border border-gray-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent w-56 transition" />
         </div>
         <select value={statusFilter} onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition">
+          className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-gray-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition">
           <option value="">{t('allStatuses')}</option>
           <option value="learning">{t('learningLabel')}</option>
           <option value="learned">{t('learnedLabel')}</option>
           <option value="archived">{t('statusArchivedOption')}</option>
         </select>
         <select value={listFilter} onChange={(e) => { setList(e.target.value); setPage(1); }}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition">
+          className="border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-gray-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#378ADD] focus:border-transparent transition">
           <option value="">{t('allLists')}</option>
           <option value="active">{t('listActive')}</option>
           <option value="passive">{t('listPassive')}</option>
@@ -345,41 +345,41 @@ export default function WordsPage() {
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3 text-gray-400"><RefreshCw className="w-6 h-6 animate-spin" /><span className="text-sm">{t('loading')}</span></div>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-12 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-slate-500"><RefreshCw className="w-6 h-6 animate-spin" /><span className="text-sm">{t('loading')}</span></div>
         </div>
       ) : words.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-gray-400">
-          <BookOpen className="w-10 h-10 text-gray-200" />
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-gray-400 dark:text-slate-500">
+          <BookOpen className="w-10 h-10 text-gray-200 dark:text-slate-700" />
           <p className="text-sm font-medium">{t('noWordsFound')}</p>
-          <p className="text-xs text-gray-400">{t('noWordsFoundSub')}</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500">{t('noWordsFoundSub')}</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100">
+              <tr className="border-b border-gray-100 dark:border-slate-800">
                 {[t('colWord'), t('colMeaning'), nativeLabel, t('colType'), t('colStatus'), t('colRepeat'), t('colNext'), ''].map((h, i) => (
-                  <th key={i} className={`px-4 py-3 ${h===t('colRepeat')?'text-center':'text-left'} text-xs font-semibold text-gray-400 uppercase tracking-wide`}>{h}</th>
+                  <th key={i} className={`px-4 py-3 ${h===t('colRepeat')?'text-center':'text-left'} text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide`}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {words.map((w) => (
-                <tr key={w.id} className="border-b border-gray-50 last:border-0 hover:bg-slate-50 transition-colors group">
-                  <td className="px-4 py-3"><span className="font-semibold text-gray-900">{w.word}</span></td>
-                  <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">{w.meaning}</td>
-                  <td className="px-4 py-3 text-gray-500">{w.meaning_native ?? '—'}</td>
+                <tr key={w.id} className="border-b border-gray-50 dark:border-slate-800 last:border-0 hover:bg-slate-50 hover:dark:bg-slate-800 transition-colors group">
+                  <td className="px-4 py-3"><span className="font-semibold text-gray-900 dark:text-slate-100">{w.word}</span></td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-slate-400 max-w-[200px] truncate">{w.meaning}</td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-slate-400">{w.meaning_native ?? '—'}</td>
                   <td className="px-4 py-3">
-                    {w.word_type ? <span className="text-xs font-medium bg-[#EEEDFE] text-[#534AB7] px-2 py-0.5 rounded-full">{w.word_type}</span> : <span className="text-gray-300">—</span>}
+                    {w.word_type ? <span className="text-xs font-medium bg-[#EEEDFE] text-[#534AB7] px-2 py-0.5 rounded-full">{w.word_type}</span> : <span className="text-gray-300 dark:text-slate-600">—</span>}
                   </td>
                   <td className="px-4 py-3"><StatusBadge status={w.status} /></td>
-                  <td className="px-4 py-3 text-center"><span className="text-xs font-semibold text-gray-700 bg-gray-100 rounded-full px-2 py-0.5">{w.repetition_count}</span></td>
-                  <td className="px-4 py-3 text-xs text-gray-400">{w.next_review_at ? new Date(w.next_review_at).toLocaleDateString(locale, { day:'numeric', month:'short' }) : '—'}</td>
+                  <td className="px-4 py-3 text-center"><span className="text-xs font-semibold text-gray-700 dark:text-slate-300 bg-gray-100 dark:bg-slate-800 rounded-full px-2 py-0.5">{w.repetition_count}</span></td>
+                  <td className="px-4 py-3 text-xs text-gray-400 dark:text-slate-500">{w.next_review_at ? new Date(w.next_review_at).toLocaleDateString(locale, { day:'numeric', month:'short' }) : '—'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => setEditWord(w)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-[#185FA5] hover:bg-[#E6F1FB] transition-colors" title={t('editWordModalTitle')}><Pencil className="w-3.5 h-3.5" /></button>
-                      <button onClick={() => handleDelete(w.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors" title={t('cancelBtn')}><Trash2 className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => setEditWord(w)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-[#185FA5] hover:bg-[#E6F1FB] transition-colors" title={t('editWordModalTitle')}><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => handleDelete(w.id)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-red-500 hover:dark:text-red-400 hover:bg-red-50 hover:dark:bg-red-500/10 transition-colors" title={t('cancelBtn')}><Trash2 className="w-3.5 h-3.5" /></button>
                     </div>
                   </td>
                 </tr>
@@ -391,10 +391,10 @@ export default function WordsPage() {
 
       {pages > 1 && (
         <div className="flex items-center justify-between">
-          <span className="text-sm text-gray-500">{t('paginationTpl').replace('{n}', String(total)).replace('{page}', String(page)).replace('{pages}', String(pages))}</span>
+          <span className="text-sm text-gray-500 dark:text-slate-400">{t('paginationTpl').replace('{n}', String(total)).replace('{page}', String(page)).replace('{pages}', String(pages))}</span>
           <div className="flex gap-2">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors">{t('prevPage')}</button>
-            <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page === pages} className="px-3 py-1.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors">{t('nextPage')}</button>
+            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800 disabled:opacity-40 transition-colors">{t('prevPage')}</button>
+            <button onClick={() => setPage((p) => Math.min(pages, p + 1))} disabled={page === pages} className="px-3 py-1.5 border border-gray-200 dark:border-slate-700 rounded-xl text-sm text-gray-600 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800 disabled:opacity-40 transition-colors">{t('nextPage')}</button>
           </div>
         </div>
       )}

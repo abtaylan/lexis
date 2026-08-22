@@ -47,6 +47,11 @@ export interface MobileStrings {
   registerStepAccount: string;
   registerStepLanguage: string;
   continueBtn: string;
+
+  themeSectionTitle: string;
+  themeLight: string;
+  themeDark: string;
+  themeSystem: string;
 }
 
 export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
@@ -85,6 +90,10 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     registerStepAccount: 'Hesap Bilgileri',
     registerStepLanguage: 'Dil Seçimi',
     continueBtn: 'Devam Et',
+    themeSectionTitle: 'Görünüm',
+    themeLight: 'Açık',
+    themeDark: 'Koyu',
+    themeSystem: 'Sistem',
   },
   en: {
     otpTitle: 'Verification Code',
@@ -121,6 +130,10 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     registerStepAccount: 'Account Info',
     registerStepLanguage: 'Language Selection',
     continueBtn: 'Continue',
+    themeSectionTitle: 'Appearance',
+    themeLight: 'Light',
+    themeDark: 'Dark',
+    themeSystem: 'System',
   },
   ar: {
     otpTitle: 'رمز التحقق',
@@ -157,6 +170,10 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     registerStepAccount: 'معلومات الحساب',
     registerStepLanguage: 'اختيار اللغة',
     continueBtn: 'متابعة',
+    themeSectionTitle: 'المظهر',
+    themeLight: 'فاتح',
+    themeDark: 'داكن',
+    themeSystem: 'النظام',
   },
   ru: {
     otpTitle: 'Код подтверждения',
@@ -193,6 +210,10 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     registerStepAccount: 'Данные аккаунта',
     registerStepLanguage: 'Выбор языка',
     continueBtn: 'Продолжить',
+    themeSectionTitle: 'Оформление',
+    themeLight: 'Светлая',
+    themeDark: 'Тёмная',
+    themeSystem: 'Системная',
   },
   de: {
     otpTitle: 'Bestätigungscode',
@@ -229,6 +250,10 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     registerStepAccount: 'Kontodaten',
     registerStepLanguage: 'Sprachauswahl',
     continueBtn: 'Weiter',
+    themeSectionTitle: 'Erscheinungsbild',
+    themeLight: 'Hell',
+    themeDark: 'Dunkel',
+    themeSystem: 'System',
   },
   fr: {
     otpTitle: 'Code de vérification',
@@ -265,6 +290,10 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     registerStepAccount: 'Infos du compte',
     registerStepLanguage: 'Choix de la langue',
     continueBtn: 'Continuer',
+    themeSectionTitle: 'Apparence',
+    themeLight: 'Clair',
+    themeDark: 'Sombre',
+    themeSystem: 'Système',
   },
   es: {
     otpTitle: 'Código de verificación',
@@ -301,6 +330,10 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     registerStepAccount: 'Datos de la cuenta',
     registerStepLanguage: 'Selección de idioma',
     continueBtn: 'Continuar',
+    themeSectionTitle: 'Apariencia',
+    themeLight: 'Claro',
+    themeDark: 'Oscuro',
+    themeSystem: 'Sistema',
   },
   it: {
     otpTitle: 'Codice di verifica',
@@ -337,6 +370,10 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     registerStepAccount: 'Dati account',
     registerStepLanguage: 'Selezione lingua',
     continueBtn: 'Continua',
+    themeSectionTitle: 'Aspetto',
+    themeLight: 'Chiaro',
+    themeDark: 'Scuro',
+    themeSystem: 'Sistema',
   },
   ja: {
     otpTitle: '確認コード',
@@ -373,5 +410,9 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     registerStepAccount: 'アカウント情報',
     registerStepLanguage: '言語選択',
     continueBtn: '続ける',
+    themeSectionTitle: '外観',
+    themeLight: 'ライト',
+    themeDark: 'ダーク',
+    themeSystem: 'システム',
   },
 };

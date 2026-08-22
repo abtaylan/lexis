@@ -182,10 +182,10 @@ export default function ForgotPasswordPage() {
         <div className="w-11 h-11 bg-sky-500 rounded-xl flex items-center justify-center shrink-0 mx-auto mb-4">
           <KeyRound size={20} className="text-white" strokeWidth={2.5} />
         </div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">{t.checkEmailTitle}</h1>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-2">{t.checkEmailTitle}</h1>
         <p className="text-slate-400 text-sm mb-6">
           {bodyBefore}
-          <span className="font-medium text-slate-600">{email}</span>
+          <span className="font-medium text-slate-600 dark:text-slate-300">{email}</span>
           {bodyAfter}
         </p>
         <Button
@@ -197,7 +197,7 @@ export default function ForgotPasswordPage() {
           {t.enterCodeBtn}
         </Button>
         <p className="text-center text-sm text-slate-400 mt-6">
-          <Link href="/login" className="text-sky-600 font-medium hover:underline">
+          <Link href="/login" className="text-sky-600 dark:text-sky-400 font-medium hover:underline">
             {t.backToLogin}
           </Link>
         </p>
@@ -212,7 +212,7 @@ export default function ForgotPasswordPage() {
           <KeyRound size={20} className="text-white" strokeWidth={2.5} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">{t.title}</h1>
+          <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t.title}</h1>
           <p className="text-slate-400 text-sm mt-0.5">{t.subtitle}</p>
         </div>
       </div>
@@ -230,7 +230,7 @@ export default function ForgotPasswordPage() {
         />
 
         {error && (
-          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+          <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
@@ -241,7 +241,7 @@ export default function ForgotPasswordPage() {
       </form>
 
       <p className="text-center text-sm text-slate-400 mt-6">
-        <Link href="/login" className="text-sky-600 font-medium hover:underline">
+        <Link href="/login" className="text-sky-600 dark:text-sky-400 font-medium hover:underline">
           {t.backToLogin}
         </Link>
       </p>

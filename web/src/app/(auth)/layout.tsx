@@ -27,7 +27,7 @@ function LanguageSwitcher() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         title={t('interfaceLanguageLabel')}
-        className="flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-slate-200 shadow-sm px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white hover:border-slate-300 transition-colors"
+        className="flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-slate-200 dark:border-slate-700 shadow-sm px-3 py-1.5 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-white hover:dark:bg-slate-900 hover:border-slate-300 transition-colors"
       >
         <Globe size={13} className="text-slate-400" />
         <span>{current.flag}</span>
@@ -35,14 +35,14 @@ function LanguageSwitcher() {
         <ChevronDown size={12} className={`text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-44 max-h-72 overflow-y-auto bg-white rounded-xl border border-slate-100 shadow-lg py-1.5 z-50">
+        <div className="absolute right-0 mt-2 w-44 max-h-72 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-100 dark:border-slate-800 shadow-lg py-1.5 z-50">
           {LOCALE_META.map((l) => (
             <button
               key={l.code}
               type="button"
               onClick={() => { setLocale(l.code); setOpen(false); }}
               className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors ${
-                l.code === locale ? 'bg-sky-50 text-sky-700 font-medium' : 'text-slate-600 hover:bg-slate-50'
+                l.code === locale ? 'bg-sky-50 dark:bg-sky-500/10 text-sky-700 dark:text-sky-400 font-medium' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 hover:dark:bg-slate-800'
               }`}
             >
               <span>{l.flag}</span>
@@ -72,8 +72,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-sky-500 to-sky-700 text-white flex-col justify-between p-12 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-white blur-3xl" />
-          <div className="absolute bottom-20 right-10 w-48 h-48 rounded-full bg-white blur-3xl" />
+          <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-white dark:bg-slate-900 blur-3xl" />
+          <div className="absolute bottom-20 right-10 w-48 h-48 rounded-full bg-white dark:bg-slate-900 blur-3xl" />
         </div>
         <div className="absolute inset-0 opacity-[0.07]" style={{
           backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)',

@@ -261,8 +261,8 @@ function VerifyOtpContent() {
   if (!email) {
     return (
       <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60 text-center">
-        <p className="text-slate-600">{t.invalidLink}</p>
-        <Link href="/login" className="text-sky-600 font-medium hover:underline mt-4 inline-block">
+        <p className="text-slate-600 dark:text-slate-300">{t.invalidLink}</p>
+        <Link href="/login" className="text-sky-600 dark:text-sky-400 font-medium hover:underline mt-4 inline-block">
           {t.backToLogin}
         </Link>
       </Card>
@@ -274,10 +274,10 @@ function VerifyOtpContent() {
   return (
     <Card padding="lg" className="border-0 shadow-xl shadow-slate-200/60">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-slate-800">{t.title}</h1>
+        <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t.title}</h1>
         <p className="text-slate-400 text-sm mt-2">
           {subtitleBefore}
-          <span className="font-medium text-slate-600">{email}</span>
+          <span className="font-medium text-slate-600 dark:text-slate-300">{email}</span>
           {subtitleAfter}
         </p>
       </div>
@@ -296,13 +296,13 @@ function VerifyOtpContent() {
               value={d}
               onChange={(e) => handleDigitChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
-              className="w-11 h-12 text-center text-lg font-semibold rounded-xl border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
+              className="w-11 h-12 text-center text-lg font-semibold rounded-xl border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500"
             />
           ))}
         </div>
 
         {error && (
-          <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 text-center">
+          <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 px-4 py-3 text-sm text-red-600 dark:text-red-400 text-center">
             {error}
           </div>
         )}
@@ -317,7 +317,7 @@ function VerifyOtpContent() {
           type="button"
           onClick={handleResend}
           disabled={resending || cooldown > 0}
-          className="text-sm text-sky-600 font-medium hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
+          className="text-sm text-sky-600 dark:text-sky-400 font-medium hover:underline disabled:text-slate-400 disabled:no-underline disabled:cursor-not-allowed"
         >
           {cooldown > 0
             ? t.resendCooldownTpl.replace('{s}', String(cooldown))
@@ -328,7 +328,7 @@ function VerifyOtpContent() {
       </div>
 
       <p className="text-center text-sm text-slate-400 mt-6">
-        <Link href="/login" className="text-sky-600 font-medium hover:underline">
+        <Link href="/login" className="text-sky-600 dark:text-sky-400 font-medium hover:underline">
           {t.backToLogin}
         </Link>
       </p>

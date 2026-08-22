@@ -4,13 +4,22 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, CheckCheck, MessageCircle,
+  BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, CheckCheck, MessageCircle, Sun, Moon,
 } from 'lucide-react';
 import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi, socialApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
 import { Leaderboard } from '@/components/layout/Leaderboard';
 import type { Stats, Word, DailyProgress, Language, UserLanguage, Notification, ConversationItem } from '@/types';
+
+// Çalışma dili seçicisi ile mesaj simgesi arasındaki hızlı erişim tema
+// butonunun etiketi — Sidebar.tsx'teki THEME_LABEL ile aynı çeviri deseni
+// (merkezi i18n.tsx sözlüğüne dokunmadan yerel çeviri).
+const THEME_LABEL: Record<Locale, string> = {
+  tr: 'Tema', en: 'Theme', ar: 'المظهر', ru: 'Тема', de: 'Thema',
+  fr: 'Thème', es: 'Tema', it: 'Tema', ja: 'テーマ',
+};
 
 // Madde 6, Faz 2 — Mesajlaşma: dashboard'daki gelen kutusu önizlemesi ve
 // çalışma dili seçicisinin yanındaki okunmamış mesaj rozeti/simgesi.
@@ -71,6 +80,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { t, locale } = useLocale();
   const msgT = MSG_LABELS[locale] ?? MSG_LABELS.en;
+  const { scheme, setMode } = useThemeMode();
   const [stats, setStats] = useState<Stats | null>(null);
   const [dueWords, setDueWords] = useState<Word[]>([]);
   const [history, setHistory] = useState<DailyProgress[]>([]);
@@ -201,14 +211,14 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64 text-sm text-gray-400">
+      <div className="flex items-center justify-center h-64 text-sm text-gray-400 dark:text-slate-500">
         {t('loading')}
       </div>
     );
   }
 
   if (error) {
-    return <div className="p-6 text-sm text-red-600 bg-red-50 rounded-xl">{error}</div>;
+    return <div className="p-6 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl">{error}</div>;
   }
 
   const goalPercent = stats
@@ -242,20 +252,20 @@ export default function DashboardPage() {
       {/* Başlık */}
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
-          <p className="text-lg font-medium text-gray-900">
+          <p className="text-lg font-medium text-gray-900 dark:text-slate-100">
             {t('greeting')}{username ? `, ${username}` : ''}
           </p>
-          <p className="text-sm text-gray-400">{t('dailySummarySubtitle')}</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500">{t('dailySummarySubtitle')}</p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {userLangs.length > 1 && (
             <div className="flex items-center gap-1.5">
-              <label className="text-xs text-gray-400">{t('activeLanguageSwitcherLabel')}</label>
+              <label className="text-xs text-gray-400 dark:text-slate-500">{t('activeLanguageSwitcherLabel')}</label>
               <select
                 value={activeLangCode}
                 onChange={(e) => handleSwitchLang(e.target.value)}
                 disabled={switchingLang}
-                className="text-sm border border-gray-200 rounded-xl px-2.5 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                className="text-sm border border-gray-200 dark:border-slate-700 rounded-xl px-2.5 py-1.5 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               >
                 {userLangs.map((ul) => {
                   const meta = languages.find((l) => l.code === ul.learning_lang);
@@ -269,13 +279,26 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* Çalışma dili seçicisi ile mesaj simgesi arasında hızlı erişim
+              tema butonu — tek tıkla açık/koyu tema geçişi (sistem tercihini
+              görmezden gelip doğrudan aktif şemanın tersine geçer). */}
+          <button
+            type="button"
+            onClick={() => setMode(scheme === 'dark' ? 'light' : 'dark')}
+            aria-label={THEME_LABEL[locale]}
+            title={THEME_LABEL[locale]}
+            className="relative w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 flex items-center justify-center text-gray-500 dark:text-slate-400 hover:text-blue-600 hover:dark:text-blue-400 hover:border-blue-200 transition-colors"
+          >
+            {scheme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          </button>
+
           {/* Madde 6, Faz 2 — mesajlaşma rozeti + simgesi (çalışma dili
               seçicisinin hemen yanında, kullanıcı isteğiyle burada). */}
           <Link
             href="/messages"
             aria-label={msgT.iconLabel}
             title={msgT.iconLabel}
-            className="relative w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-200 transition-colors"
+            className="relative w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 flex items-center justify-center text-gray-500 dark:text-slate-400 hover:text-blue-600 hover:dark:text-blue-400 hover:border-blue-200 transition-colors"
           >
             <MessageCircle className="w-4 h-4" />
             {unreadMsgCount > 0 && (
@@ -289,7 +312,7 @@ export default function DashboardPage() {
 
       {/* Bildirimler / hatırlatmalar (Madde 3a) */}
       {!notifLoading && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-[#FAEEDA] flex items-center justify-center">
@@ -299,7 +322,7 @@ export default function DashboardPage() {
                   <Bell className="w-3.5 h-3.5 text-[#854F0B]" />
                 )}
               </div>
-              <p className="text-sm font-medium text-gray-700">{t('notificationsTitle')}</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{t('notificationsTitle')}</p>
               {unreadCount > 0 && (
                 <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-[#FAEEDA] text-[#854F0B]">
                   {t('unreadCountTpl').replace('{n}', String(unreadCount))}
@@ -309,7 +332,7 @@ export default function DashboardPage() {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="flex items-center gap-1 text-xs text-gray-400 hover:text-[#185FA5] transition-colors"
+                className="flex items-center gap-1 text-xs text-gray-400 dark:text-slate-500 hover:text-[#185FA5] transition-colors"
               >
                 <CheckCheck className="w-3.5 h-3.5" />
                 {t('markAllReadBtn')}
@@ -319,8 +342,8 @@ export default function DashboardPage() {
 
           {notifications.length === 0 ? (
             <div className="text-center py-3">
-              <p className="text-xs text-gray-400">{t('noNotifications')}</p>
-              <p className="text-[11px] text-gray-300 mt-0.5">{t('noNotificationsSub')}</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">{t('noNotifications')}</p>
+              <p className="text-[11px] text-gray-300 dark:text-slate-600 mt-0.5">{t('noNotificationsSub')}</p>
             </div>
           ) : (
             <div className="space-y-1">
@@ -329,15 +352,15 @@ export default function DashboardPage() {
                   key={n.id}
                   onClick={() => !n.is_read && handleMarkRead(n.id)}
                   className={`w-full flex items-start gap-2 text-left rounded-xl px-2.5 py-2 transition-colors ${
-                    n.is_read ? 'opacity-60' : 'bg-slate-50 hover:bg-slate-100'
+                    n.is_read ? 'opacity-60' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 hover:dark:bg-slate-800'
                   }`}
                 >
                   <span
-                    className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.is_read ? 'bg-gray-200' : 'bg-[#378ADD]'}`}
+                    className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.is_read ? 'bg-gray-200 dark:bg-slate-700' : 'bg-[#378ADD]'}`}
                   />
                   <span className="min-w-0">
-                    <p className="text-xs font-medium text-gray-700 truncate">{n.title}</p>
-                    <p className="text-[11px] text-gray-400 truncate">{n.message}</p>
+                    <p className="text-xs font-medium text-gray-700 dark:text-slate-300 truncate">{n.title}</p>
+                    <p className="text-[11px] text-gray-400 dark:text-slate-500 truncate">{n.message}</p>
                   </span>
                 </button>
               ))}
@@ -348,13 +371,13 @@ export default function DashboardPage() {
 
       {/* Gelen kutusu önizlemesi — Madde 6, Faz 2 */}
       {!msgLoading && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-[#E6F1FB] flex items-center justify-center">
                 <MessageCircle className="w-3.5 h-3.5 text-[#185FA5]" />
               </div>
-              <p className="text-sm font-medium text-gray-700">{msgT.title}</p>
+              <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{msgT.title}</p>
               {unreadMsgCount > 0 && (
                 <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">
                   {unreadMsgCount}
@@ -362,7 +385,7 @@ export default function DashboardPage() {
               )}
             </div>
             {conversations.length > 0 && (
-              <Link href="/messages" className="text-xs text-gray-400 hover:text-[#185FA5] transition-colors">
+              <Link href="/messages" className="text-xs text-gray-400 dark:text-slate-500 hover:text-[#185FA5] transition-colors">
                 {msgT.viewAll}
               </Link>
             )}
@@ -370,8 +393,8 @@ export default function DashboardPage() {
 
           {conversations.length === 0 ? (
             <div className="text-center py-3">
-              <p className="text-xs text-gray-400">{msgT.empty}</p>
-              <p className="text-[11px] text-gray-300 mt-0.5">{msgT.emptySub}</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">{msgT.empty}</p>
+              <p className="text-[11px] text-gray-300 dark:text-slate-600 mt-0.5">{msgT.emptySub}</p>
             </div>
           ) : (
             <div className="space-y-1">
@@ -382,13 +405,13 @@ export default function DashboardPage() {
                     key={c.id}
                     href={c.other_user.username ? `/messages/${c.other_user.username}` : '/messages'}
                     className={`flex items-center gap-2 text-left rounded-xl px-2.5 py-2 transition-colors ${
-                      c.unread_count > 0 ? 'bg-slate-50 hover:bg-slate-100' : 'hover:bg-slate-50'
+                      c.unread_count > 0 ? 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 hover:dark:bg-slate-800' : 'hover:bg-slate-50 hover:dark:bg-slate-800'
                     }`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.unread_count > 0 ? 'bg-[#378ADD]' : 'bg-gray-200'}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.unread_count > 0 ? 'bg-[#378ADD]' : 'bg-gray-200 dark:bg-slate-700'}`} />
                     <span className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-gray-700 truncate">{name}</p>
-                      <p className="text-[11px] text-gray-400 truncate">
+                      <p className="text-xs font-medium text-gray-700 dark:text-slate-300 truncate">{name}</p>
+                      <p className="text-[11px] text-gray-400 dark:text-slate-500 truncate">
                         {c.last_message_sender_id && c.last_message_preview
                           ? `${c.last_message_sender_id !== c.other_user.id ? `${msgT.you}: ` : ''}${c.last_message_preview}`
                           : ''}
@@ -455,26 +478,26 @@ export default function DashboardPage() {
             iconBg: '#EEEDFE', iconColor: '#534AB7',
           },
         ].map(({ label, value, sub, icon, iconBg, iconColor }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <div key={label} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
               style={{ background: iconBg, color: iconColor }}
             >
               {icon}
             </div>
-            <p className="text-xs text-gray-400 mb-1">{label}</p>
-            <p className="text-2xl font-medium text-gray-900">{value}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mb-1">{label}</p>
+            <p className="text-2xl font-medium text-gray-900 dark:text-slate-100">{value}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
 
       {/* Günlük hedef */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm px-4 py-3">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <p className="text-sm font-medium text-gray-700">{t('dailyGoal')}</p>
-            <p className="text-xs text-gray-400">
+            <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{t('dailyGoal')}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">
               {stats?.today_added ?? 0} / {stats?.daily_goal ?? 5} {t('wordsUnit')}
             </p>
           </div>
@@ -485,7 +508,7 @@ export default function DashboardPage() {
             {Math.max(0, (stats?.daily_goal ?? 5) - (stats?.today_added ?? 0))} {t('remainingLabel')}
           </span>
         </div>
-        <div className="h-2 rounded-full overflow-hidden bg-gray-100">
+        <div className="h-2 rounded-full overflow-hidden bg-gray-100 dark:bg-slate-800">
           <div
             className="h-full rounded-full transition-all"
             style={{ width: `${goalPercent}%`, background: '#378ADD' }}
@@ -494,12 +517,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Haftalık ilerleme */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-        <p className="text-sm font-medium text-gray-700 mb-3">{t('weeklyProgress')}</p>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+        <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">{t('weeklyProgress')}</p>
         <div className="flex justify-between items-end pb-3">
           {weekDays.map((d, i) => (
             <div key={i} className="flex flex-col items-center gap-1">
-              <span className="text-xs text-gray-400">{d.label}</span>
+              <span className="text-xs text-gray-400 dark:text-slate-500">{d.label}</span>
               <div
                 className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium"
                 style={
@@ -524,10 +547,10 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
-        <div className="h-px bg-gray-100 mb-3" />
-        <div className="flex gap-4 text-xs text-gray-400">
-          <span>{t('thisWeekColon')}: <strong className="text-gray-700">{thisWeekTotal} {t('wordsUnit')}</strong></span>
-          <span>{t('lastWeekColon')}: <strong className="text-gray-700">{lastWeekTotal} {t('wordsUnit')}</strong></span>
+        <div className="h-px bg-gray-100 dark:bg-slate-800 mb-3" />
+        <div className="flex gap-4 text-xs text-gray-400 dark:text-slate-500">
+          <span>{t('thisWeekColon')}: <strong className="text-gray-700 dark:text-slate-300">{thisWeekTotal} {t('wordsUnit')}</strong></span>
+          <span>{t('lastWeekColon')}: <strong className="text-gray-700 dark:text-slate-300">{lastWeekTotal} {t('wordsUnit')}</strong></span>
         </div>
       </div>
 
@@ -559,7 +582,7 @@ export default function DashboardPage() {
           <button
             key={label}
             onClick={() => router.push(href)}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3 text-left hover:border-gray-200 hover:shadow-md transition-all"
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 flex items-center gap-3 text-left hover:border-gray-200 hover:dark:border-slate-700 hover:shadow-md transition-all"
           >
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -568,8 +591,8 @@ export default function DashboardPage() {
               {icon}
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-800">{label}</p>
-              <p className="text-xs text-gray-400">{sub}</p>
+              <p className="text-sm font-medium text-gray-800 dark:text-slate-200">{label}</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500">{sub}</p>
             </div>
           </button>
         ))}
@@ -578,27 +601,27 @@ export default function DashboardPage() {
       {/* Alt grid: Seviye dağılımı + Son eklenenler */}
       <div className="grid grid-cols-2 gap-3">
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <p className="text-sm font-medium text-gray-700 mb-3">{t('levelDistribution')}</p>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">{t('levelDistribution')}</p>
           {[
             { label: t('newLabel'), count: newCount, pct: newPct, color: '#B5D4F4' },
             { label: t('learningLabel'), count: stats?.learning ?? 0, pct: learningPct, color: '#9FE1CB' },
             { label: t('learnedLabel'), count: stats?.learned ?? 0, pct: learnedPct, color: '#C0DD97' },
           ].map(({ label, count, pct, color }) => (
             <div key={label} className="flex items-center gap-2 mb-2 text-xs">
-              <span className="w-20 text-gray-400 shrink-0">{label}</span>
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-gray-100">
+              <span className="w-20 text-gray-400 dark:text-slate-500 shrink-0">{label}</span>
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-gray-100 dark:bg-slate-800">
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
               </div>
-              <span className="w-6 text-right text-gray-500">{count}</span>
+              <span className="w-6 text-right text-gray-500 dark:text-slate-400">{count}</span>
             </div>
           ))}
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          <p className="text-sm font-medium text-gray-700 mb-3">{t('recentWordsTitle')}</p>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">{t('recentWordsTitle')}</p>
           {recentWords.length === 0 ? (
-            <p className="text-xs text-gray-400">{t('noWordsYet')}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500">{t('noWordsYet')}</p>
           ) : (
             recentWords.map((w, i) => (
               <div
@@ -607,7 +630,7 @@ export default function DashboardPage() {
                 style={{ borderBottom: i < recentWords.length - 1 ? '0.5px solid #F3F4F6' : 'none' }}
               >
                 <div className="flex items-center gap-1.5">
-                  <span className="font-medium text-gray-800">{w.word}</span>
+                  <span className="font-medium text-gray-800 dark:text-slate-200">{w.word}</span>
                   {i === 0 && (
                     <span
                       className="rounded px-1.5 py-0.5"
@@ -617,7 +640,7 @@ export default function DashboardPage() {
                     </span>
                   )}
                 </div>
-                <span className="text-xs text-gray-400">{w.meaning_native || w.meaning}</span>
+                <span className="text-xs text-gray-400 dark:text-slate-500">{w.meaning_native || w.meaning}</span>
               </div>
             ))
           )}

@@ -16,18 +16,18 @@ export default function MobileAppPage() {
   return (
     <div className="p-8 space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Mobil Uygulama</h1>
-        <p className="text-sm text-gray-500 mt-0.5">React Native (Expo) uygulaması — iOS ve Android</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Mobil Uygulama</h1>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">React Native (Expo) uygulaması — iOS ve Android</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 flex flex-col items-center text-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-gray-100 text-gray-400 flex items-center justify-center">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-8 flex flex-col items-center text-center gap-3">
+        <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 flex items-center justify-center">
           <Construction className="w-7 h-7" />
         </div>
-        <h2 className="text-base font-semibold text-gray-900">Henüz geliştirme aşamasında</h2>
-        <p className="text-sm text-gray-500 max-w-md">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Henüz geliştirme aşamasında</h2>
+        <p className="text-sm text-gray-500 dark:text-slate-400 max-w-md">
           Mobil uygulama, Büyük İşler listesindeki (Bölüm 5) henüz başlanmamış maddelerden biri.
-          Kod tabanında <code className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">mobile/</code>
+          Kod tabanında <code className="font-mono text-xs bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">mobile/</code>
           klasörü altında Expo iskeleti mevcut ancak backend&apos;e canlı analitik/crash/push verisi göndermiyor.
           Bu sayfa, uygulama üretime geçtiğinde doldurulacak alanların yer tutucusu.
         </p>
@@ -35,18 +35,18 @@ export default function MobileAppPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {plannedSections.map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 opacity-60">
-            <div className="w-10 h-10 rounded-xl bg-gray-100 text-gray-400 flex items-center justify-center mb-3">
+          <div key={title} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5 opacity-60">
+            <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 flex items-center justify-center mb-3">
               <Icon className="w-5 h-5" />
             </div>
-            <p className="text-sm font-semibold text-gray-700">{title}</p>
-            <p className="text-xs text-gray-400 mt-1">{desc}</p>
-            <span className="inline-block mt-3 text-[10px] font-medium uppercase tracking-wide text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Yakında</span>
+            <p className="text-sm font-semibold text-gray-700 dark:text-slate-300">{title}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{desc}</p>
+            <span className="inline-block mt-3 text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-slate-500 bg-gray-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">Yakında</span>
           </div>
         ))}
       </div>
 
-      <div className="flex items-center gap-2 text-xs text-gray-400">
+      <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-slate-500">
         <Smartphone className="w-3.5 h-3.5" />Genel sistem sağlığı özetinde de &quot;mobile_app: in_development&quot; olarak işaretli (bkz. Sistem Sağlığı sayfası).
       </div>
     </div>

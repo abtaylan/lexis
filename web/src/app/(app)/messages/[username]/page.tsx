@@ -148,14 +148,14 @@ export default function MessageThreadPage() {
   };
 
   if (loading) {
-    return <div className="p-6 text-sm text-gray-400">{t.loading}</div>;
+    return <div className="p-6 text-sm text-gray-400 dark:text-slate-500">{t.loading}</div>;
   }
 
   if (notFound) {
     return (
       <div className="p-6 max-w-lg">
-        <p className="text-sm text-gray-500 bg-gray-50 rounded-xl px-4 py-3">{t.notFound}</p>
-        <button onClick={() => router.push('/messages')} className="mt-3 flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700">
+        <p className="text-sm text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 rounded-xl px-4 py-3">{t.notFound}</p>
+        <button onClick={() => router.push('/messages')} className="mt-3 flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:dark:text-blue-400">
           <ArrowLeft className="w-4 h-4" />{t.back}
         </button>
       </div>
@@ -165,8 +165,8 @@ export default function MessageThreadPage() {
   if (blocked) {
     return (
       <div className="p-6 max-w-lg">
-        <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-3">{t.blockedError}</p>
-        <button onClick={() => router.push('/messages')} className="mt-3 flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700">
+        <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-4 py-3">{t.blockedError}</p>
+        <button onClick={() => router.push('/messages')} className="mt-3 flex items-center gap-1.5 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:dark:text-blue-400">
           <ArrowLeft className="w-4 h-4" />{t.back}
         </button>
       </div>
@@ -174,7 +174,7 @@ export default function MessageThreadPage() {
   }
 
   if (error || !thread) {
-    return <div className="p-6 text-sm text-red-600 bg-red-50 rounded-xl max-w-lg">{t.error}</div>;
+    return <div className="p-6 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl max-w-lg">{t.error}</div>;
   }
 
   const other = thread.other_user;
@@ -183,20 +183,20 @@ export default function MessageThreadPage() {
   return (
     <div className="p-6 max-w-2xl h-[calc(100vh-2rem)] flex flex-col">
       <div className="flex items-center gap-3 mb-4">
-        <Link href="/messages" className="text-gray-400 hover:text-gray-600 shrink-0">
+        <Link href="/messages" className="text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400 shrink-0">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <Link href={other.username ? `/u/${other.username}` : '#'} className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm font-semibold shrink-0">
             {initial(otherName)}
           </div>
-          <span className="text-base font-semibold text-gray-900 truncate">{otherName}</span>
+          <span className="text-base font-semibold text-gray-900 dark:text-slate-100 truncate">{otherName}</span>
         </Link>
       </div>
 
-      <div className="flex-1 overflow-y-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 space-y-2">
         {thread.messages.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-8">{t.emptyThread}</p>
+          <p className="text-sm text-gray-400 dark:text-slate-500 text-center py-8">{t.emptyThread}</p>
         )}
         {thread.messages.map((m) => {
           const mine = m.sender_id === user?.id;
@@ -204,11 +204,11 @@ export default function MessageThreadPage() {
             <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
               <div
                 className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm break-words ${
-                  mine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-slate-100 text-gray-800 rounded-bl-sm'
+                  mine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-slate-100 dark:bg-slate-800 text-gray-800 dark:text-slate-200 rounded-bl-sm'
                 }`}
               >
                 {m.body}
-                <div className={`text-[10px] mt-0.5 ${mine ? 'text-blue-100' : 'text-gray-400'}`}>
+                <div className={`text-[10px] mt-0.5 ${mine ? 'text-blue-100' : 'text-gray-400 dark:text-slate-500'}`}>
                   {new Date(m.created_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                 </div>
               </div>
@@ -225,7 +225,7 @@ export default function MessageThreadPage() {
           onChange={(e) => setDraft(e.target.value)}
           placeholder={t.placeholder}
           maxLength={2000}
-          className="flex-1 border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+          className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
         />
         <button
           type="submit"

@@ -8,6 +8,7 @@ import type { Language } from '@/api/types';
 import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/utils/errors';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { useThemeMode } from '@/store/theme';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Card } from '@/components/ui/Card';
@@ -18,6 +19,7 @@ import { ChipSelect } from '@/components/ui/ChipSelect';
 export default function ProfileScreen() {
   const { t, mt, locale, setLocale } = useLocale();
   const c = useThemeColors();
+  const { mode, setMode } = useThemeMode();
   const { user, logout, updateUser } = useAuth();
   const qc = useQueryClient();
 
@@ -133,6 +135,23 @@ export default function ProfileScreen() {
               style={[styles.localeChip, { borderColor: locale === l.code ? c.primary : c.border, backgroundColor: locale === l.code ? c.primarySoft : c.surface }]}
             >
               <Text>{l.flag} {l.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      </Card>
+
+      <Card style={{ marginBottom: spacing.md }}>
+        <Text style={{ color: c.text, fontWeight: '700', fontSize: 14, marginBottom: spacing.sm }}>{mt('themeSectionTitle')}</Text>
+        <View style={styles.localeGrid}>
+          {(['light', 'dark', 'system'] as const).map((opt) => (
+            <Pressable
+              key={opt}
+              onPress={() => setMode(opt)}
+              style={[styles.localeChip, { borderColor: mode === opt ? c.primary : c.border, backgroundColor: mode === opt ? c.primarySoft : c.surface }]}
+            >
+              <Text style={{ color: mode === opt ? c.primary : c.text, fontWeight: mode === opt ? '600' : '400' }}>
+                {opt === 'light' ? mt('themeLight') : opt === 'dark' ? mt('themeDark') : mt('themeSystem')}
+              </Text>
             </Pressable>
           ))}
         </View>

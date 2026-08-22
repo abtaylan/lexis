@@ -115,19 +115,19 @@ export default function MessagesInboxPage() {
   return (
     <div className="p-6 max-w-2xl space-y-4">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-          <MessageCircle className="w-5 h-5 text-blue-600" />
+        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center">
+          <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">{t.title}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t.title}</h1>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-        {loading && <p className="text-sm text-gray-400 py-4 text-center">{t.loading}</p>}
-        {!loading && error && <p className="text-sm text-red-400 py-4 text-center">{t.error}</p>}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+        {loading && <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">{t.loading}</p>}
+        {!loading && error && <p className="text-sm text-red-400 dark:text-red-300 py-4 text-center">{t.error}</p>}
         {!loading && !error && (items?.length ?? 0) === 0 && (
           <div className="text-center py-8">
-            <p className="text-sm text-gray-400">{t.empty}</p>
-            <p className="text-xs text-gray-300 mt-1">{t.emptySub}</p>
+            <p className="text-sm text-gray-400 dark:text-slate-500">{t.empty}</p>
+            <p className="text-xs text-gray-300 dark:text-slate-600 mt-1">{t.emptySub}</p>
           </div>
         )}
         {!loading && !error && items && items.length > 0 && (
@@ -139,10 +139,10 @@ export default function MessagesInboxPage() {
                 <Link
                   key={conv.id}
                   href={conv.other_user.username ? `/messages/${conv.other_user.username}` : '#'}
-                  className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-slate-50 transition-colors"
+                  className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-slate-50 hover:dark:bg-slate-800 transition-colors"
                 >
                   <div className="relative shrink-0">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-semibold text-gray-500">
+                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm font-semibold text-gray-500 dark:text-slate-400">
                       {initial(name)}
                     </div>
                     {conv.unread_count > 0 && (
@@ -152,16 +152,16 @@ export default function MessagesInboxPage() {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className={`text-sm truncate ${conv.unread_count > 0 ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'}`}>
+                    <p className={`text-sm truncate ${conv.unread_count > 0 ? 'font-semibold text-gray-900 dark:text-slate-100' : 'font-medium text-gray-700 dark:text-slate-300'}`}>
                       {name}
                     </p>
-                    <p className="text-xs text-gray-400 truncate">
+                    <p className="text-xs text-gray-400 dark:text-slate-500 truncate">
                       {conv.last_message_preview
                         ? `${isMine ? `${t.you}: ` : ''}${conv.last_message_preview}`
                         : ''}
                     </p>
                   </div>
-                  <span className="text-[11px] text-gray-400 shrink-0">
+                  <span className="text-[11px] text-gray-400 dark:text-slate-500 shrink-0">
                     {formatWhen(conv.last_message_at, locale)}
                   </span>
                 </Link>

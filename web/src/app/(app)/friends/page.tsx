@@ -253,19 +253,19 @@ function UserRow({
   const name = card.display_name || card.username || '?';
   const inner = (
     <div className="flex items-center gap-3 flex-1 min-w-0">
-      <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-sm font-semibold text-gray-500 shrink-0">
+      <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm font-semibold text-gray-500 dark:text-slate-400 shrink-0">
         {initialOf(card)}
       </div>
       <div className="min-w-0">
-        <p className="text-sm font-medium text-gray-800 truncate">{name}</p>
-        <p className="text-xs text-gray-400 truncate">
+        <p className="text-sm font-medium text-gray-800 dark:text-slate-200 truncate">{name}</p>
+        <p className="text-xs text-gray-400 dark:text-slate-500 truncate">
           {card.username ? `@${card.username}` : ''} {card.username ? '·' : ''} {labels.levelPrefix} {card.level}
         </p>
       </div>
     </div>
   );
   return (
-    <div className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50 transition-colors">
+    <div className="flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-slate-50 hover:dark:bg-slate-800 transition-colors">
       {card.username ? (
         <Link href={`/u/${card.username}`} className="flex-1 min-w-0">
           {inner}
@@ -487,20 +487,20 @@ export default function FriendsPage() {
   return (
     <div className="p-6 max-w-2xl space-y-4">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-          <Users className="w-5 h-5 text-blue-600" />
+        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center">
+          <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">{t.title}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t.title}</h1>
       </div>
 
-      <div className="flex gap-1 bg-slate-50 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-slate-50 dark:bg-slate-800 rounded-xl p-1 w-fit">
         {tabs.map((tb) => (
           <button
             key={tb.key}
             type="button"
             onClick={() => setTab(tb.key)}
             className={`relative text-sm font-medium px-4 py-1.5 rounded-lg transition-colors ${
-              tab === tb.key ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+              tab === tb.key ? 'bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-200 shadow-sm' : 'text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400'
             }`}
           >
             {tb.label}
@@ -513,16 +513,16 @@ export default function FriendsPage() {
         ))}
       </div>
 
-      {actionError && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{actionError}</p>}
+      {actionError && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{actionError}</p>}
 
       {tab === 'friends' && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-          {friendsLoading && <p className="text-sm text-gray-400 py-4 text-center">{t.loading}</p>}
-          {!friendsLoading && friendsError && <p className="text-sm text-red-400 py-4 text-center">{t.error}</p>}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          {friendsLoading && <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">{t.loading}</p>}
+          {!friendsLoading && friendsError && <p className="text-sm text-red-400 dark:text-red-300 py-4 text-center">{t.error}</p>}
           {!friendsLoading && !friendsError && friends.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-sm text-gray-400">{t.friendsEmpty}</p>
-              <p className="text-xs text-gray-300 mt-1">{t.friendsEmptySub}</p>
+              <p className="text-sm text-gray-400 dark:text-slate-500">{t.friendsEmpty}</p>
+              <p className="text-xs text-gray-300 dark:text-slate-600 mt-1">{t.friendsEmptySub}</p>
             </div>
           )}
           {!friendsLoading && !friendsError && friends.length > 0 && (
@@ -537,7 +537,7 @@ export default function FriendsPage() {
                       type="button"
                       disabled={busyId === f.user.id}
                       onClick={() => handleRemoveFriend(f.user.id)}
-                      className="text-xs font-medium text-red-500 hover:text-red-600 disabled:opacity-50 shrink-0"
+                      className="text-xs font-medium text-red-500 dark:text-red-400 hover:text-red-600 hover:dark:text-red-400 disabled:opacity-50 shrink-0"
                     >
                       {t.removeBtn}
                     </button>
@@ -551,12 +551,12 @@ export default function FriendsPage() {
 
       {tab === 'requests' && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">{t.incomingTitle}</h3>
-            {pendingLoading && <p className="text-sm text-gray-400 py-2">{t.loading}</p>}
-            {!pendingLoading && pendingError && <p className="text-sm text-red-400 py-2">{t.error}</p>}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">{t.incomingTitle}</h3>
+            {pendingLoading && <p className="text-sm text-gray-400 dark:text-slate-500 py-2">{t.loading}</p>}
+            {!pendingLoading && pendingError && <p className="text-sm text-red-400 dark:text-red-300 py-2">{t.error}</p>}
             {!pendingLoading && !pendingError && (pending?.incoming.length ?? 0) === 0 && (
-              <p className="text-xs text-gray-400 py-2">{t.incomingEmpty}</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 py-2">{t.incomingEmpty}</p>
             )}
             {!pendingLoading && !pendingError && (pending?.incoming.length ?? 0) > 0 && (
               <div className="space-y-1">
@@ -579,7 +579,7 @@ export default function FriendsPage() {
                           type="button"
                           disabled={busyId === f.id}
                           onClick={() => handleDecline(f.id)}
-                          className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 disabled:opacity-50 rounded-lg px-2.5 py-1.5"
+                          className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-gray-700 hover:dark:text-slate-300 disabled:opacity-50 rounded-lg px-2.5 py-1.5"
                         >
                           <X className="w-3.5 h-3.5" />{t.declineBtn}
                         </button>
@@ -591,10 +591,10 @@ export default function FriendsPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-2">{t.outgoingTitle}</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">{t.outgoingTitle}</h3>
             {!pendingLoading && !pendingError && (pending?.outgoing.length ?? 0) === 0 && (
-              <p className="text-xs text-gray-400 py-2">{t.outgoingEmpty}</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 py-2">{t.outgoingEmpty}</p>
             )}
             {!pendingLoading && !pendingError && (pending?.outgoing.length ?? 0) > 0 && (
               <div className="space-y-1">
@@ -604,7 +604,7 @@ export default function FriendsPage() {
                     card={f.user}
                     labels={t}
                     right={
-                      <span className="text-xs font-medium text-gray-400 bg-slate-50 rounded-full px-2.5 py-1 shrink-0">
+                      <span className="text-xs font-medium text-gray-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1 shrink-0">
                         {t.pendingLabel}
                       </span>
                     }
@@ -619,18 +619,18 @@ export default function FriendsPage() {
       {tab === 'challenges' && (
         <div className="space-y-4">
           {challengeActionError && (
-            <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{challengeActionError}</p>
+            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{challengeActionError}</p>
           )}
 
-          {challengesLoading && <p className="text-sm text-gray-400 py-4 text-center">{t.loading}</p>}
-          {!challengesLoading && challengesError && <p className="text-sm text-red-400 py-4 text-center">{t.error}</p>}
+          {challengesLoading && <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">{t.loading}</p>}
+          {!challengesLoading && challengesError && <p className="text-sm text-red-400 dark:text-red-300 py-4 text-center">{t.error}</p>}
 
           {!challengesLoading && !challengesError && challenges && (
             <>
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">{t.incomingChallengesTitle}</h3>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">{t.incomingChallengesTitle}</h3>
                 {challenges.incoming.length === 0 ? (
-                  <p className="text-xs text-gray-400 py-2">{t.incomingChallengesEmpty}</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 py-2">{t.incomingChallengesEmpty}</p>
                 ) : (
                   <div className="space-y-1">
                     {challenges.incoming.map((c) => (
@@ -640,7 +640,7 @@ export default function FriendsPage() {
                         labels={t}
                         right={
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs font-medium text-gray-400 bg-slate-50 rounded-full px-2.5 py-1">
+                            <span className="text-xs font-medium text-gray-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1">
                               {modeLabel(c.mode, t)}
                             </span>
                             <button
@@ -655,7 +655,7 @@ export default function FriendsPage() {
                               type="button"
                               disabled={challengeBusyId === c.id}
                               onClick={() => handleDeclineChallenge(c.id)}
-                              className="flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 disabled:opacity-50 rounded-lg px-2.5 py-1.5"
+                              className="flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-gray-700 hover:dark:text-slate-300 disabled:opacity-50 rounded-lg px-2.5 py-1.5"
                             >
                               <X className="w-3.5 h-3.5" />{t.declineBtn}
                             </button>
@@ -667,10 +667,10 @@ export default function FriendsPage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">{t.outgoingChallengesTitle}</h3>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">{t.outgoingChallengesTitle}</h3>
                 {challenges.outgoing.length === 0 ? (
-                  <p className="text-xs text-gray-400 py-2">{t.outgoingChallengesEmpty}</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 py-2">{t.outgoingChallengesEmpty}</p>
                 ) : (
                   <div className="space-y-1">
                     {challenges.outgoing.map((c) => (
@@ -680,14 +680,14 @@ export default function FriendsPage() {
                         labels={t}
                         right={
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs font-medium text-gray-400 bg-slate-50 rounded-full px-2.5 py-1">
+                            <span className="text-xs font-medium text-gray-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1">
                               {modeLabel(c.mode, t)}
                             </span>
                             <button
                               type="button"
                               disabled={challengeBusyId === c.id}
                               onClick={() => handleCancelChallenge(c.id)}
-                              className="flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-red-500 disabled:opacity-50 rounded-lg px-2.5 py-1.5"
+                              className="flex items-center gap-1 text-xs font-medium text-gray-400 dark:text-slate-500 hover:text-red-500 hover:dark:text-red-400 disabled:opacity-50 rounded-lg px-2.5 py-1.5"
                             >
                               <CancelIcon className="w-3.5 h-3.5" />{t.cancelChallengeBtn}
                             </button>
@@ -699,10 +699,10 @@ export default function FriendsPage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">{t.activeChallengesTitle}</h3>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">{t.activeChallengesTitle}</h3>
                 {challenges.active.length === 0 ? (
-                  <p className="text-xs text-gray-400 py-2">{t.activeChallengesEmpty}</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 py-2">{t.activeChallengesEmpty}</p>
                 ) : (
                   <div className="space-y-1">
                     {challenges.active.map((c) => (
@@ -712,11 +712,11 @@ export default function FriendsPage() {
                         labels={t}
                         right={
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs font-medium text-gray-400 bg-slate-50 rounded-full px-2.5 py-1">
+                            <span className="text-xs font-medium text-gray-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1">
                               {modeLabel(c.mode, t)}
                             </span>
                             {c.your_session_id ? (
-                              <span className="text-xs font-medium text-amber-600 bg-amber-50 rounded-full px-2.5 py-1">
+                              <span className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2.5 py-1">
                                 {t.waitingOpponentLabel}
                               </span>
                             ) : (
@@ -736,10 +736,10 @@ export default function FriendsPage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">{t.completedChallengesTitle}</h3>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">{t.completedChallengesTitle}</h3>
                 {challenges.completed.length === 0 ? (
-                  <p className="text-xs text-gray-400 py-2">{t.completedChallengesEmpty}</p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 py-2">{t.completedChallengesEmpty}</p>
                 ) : (
                   <div className="space-y-1">
                     {challenges.completed.map((c) => (
@@ -749,16 +749,16 @@ export default function FriendsPage() {
                         labels={t}
                         right={
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs font-medium text-gray-400 bg-slate-50 rounded-full px-2.5 py-1">
+                            <span className="text-xs font-medium text-gray-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1">
                               {modeLabel(c.mode, t)}
                             </span>
                             <span
                               className={`text-xs font-medium rounded-full px-2.5 py-1 ${
                                 c.you_won === true
-                                  ? 'text-green-700 bg-green-50'
+                                  ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/10'
                                   : c.you_won === false
-                                    ? 'text-red-500 bg-red-50'
-                                    : 'text-gray-400 bg-slate-50'
+                                    ? 'text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-500/10'
+                                    : 'text-gray-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800'
                               }`}
                             >
                               {c.you_won === true ? t.youWonLabel : c.you_won === false ? t.youLostLabel : t.drawLabel}
@@ -779,13 +779,13 @@ export default function FriendsPage() {
         <div className="space-y-4">
           <form onSubmit={handleSearch} className="flex gap-2">
             <div className="relative flex-1">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-gray-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t.searchPlaceholder}
-                className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full border border-gray-200 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
               />
             </div>
             <button
@@ -798,10 +798,10 @@ export default function FriendsPage() {
             </button>
           </form>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
-            {results === null && <p className="text-sm text-gray-400 py-4 text-center">{t.searchHint}</p>}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+            {results === null && <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">{t.searchHint}</p>}
             {results !== null && results.length === 0 && (
-              <p className="text-sm text-gray-400 py-4 text-center">{t.searchEmpty}</p>
+              <p className="text-sm text-gray-400 dark:text-slate-500 py-4 text-center">{t.searchEmpty}</p>
             )}
             {results !== null && results.length > 0 && (
               <div className="space-y-1">
@@ -818,25 +818,25 @@ export default function FriendsPage() {
                           onClick={() => handleToggleFollow(card, 'search')}
                           className={`text-xs font-medium rounded-lg px-2.5 py-1.5 disabled:opacity-50 transition-colors ${
                             card.is_following
-                              ? 'text-gray-500 bg-slate-50 hover:bg-slate-100'
-                              : 'text-blue-600 bg-blue-50 hover:bg-blue-100'
+                              ? 'text-gray-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 hover:dark:bg-slate-800'
+                              : 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 hover:dark:bg-blue-500/15'
                           }`}
                         >
                           {card.is_following ? t.unfollowBtn : t.followBtn}
                         </button>
 
                         {card.relationship_status === 'friends' && (
-                          <span className="text-xs font-medium text-green-700 bg-green-50 rounded-full px-2.5 py-1">
+                          <span className="text-xs font-medium text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/10 rounded-full px-2.5 py-1">
                             {t.alreadyFriendsLabel}
                           </span>
                         )}
                         {card.relationship_status === 'pending_sent' && (
-                          <span className="text-xs font-medium text-gray-400 bg-slate-50 rounded-full px-2.5 py-1">
+                          <span className="text-xs font-medium text-gray-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 rounded-full px-2.5 py-1">
                             {t.requestSentBtn}
                           </span>
                         )}
                         {card.relationship_status === 'pending_received' && (
-                          <span className="text-xs font-medium text-amber-600 bg-amber-50 rounded-full px-2.5 py-1">
+                          <span className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-full px-2.5 py-1">
                             {t.respondInRequestsHint}
                           </span>
                         )}

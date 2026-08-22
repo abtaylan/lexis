@@ -40,13 +40,13 @@ function DoneScreen({ score, total, onRestart }: { score: number; total: number;
 
   return (
     <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 flex flex-col items-center gap-5 w-full max-w-sm text-center">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-10 flex flex-col items-center gap-5 w-full max-w-sm text-center">
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: tier.bg }}>
           <Trophy className="w-8 h-8" style={{ color: tier.text }} />
         </div>
         <div>
-          <p className="text-2xl font-bold text-gray-900">{tier.label}</p>
-          <p className="text-sm text-gray-500 mt-1">{t('questionsCompletedTpl').replace('{n}', String(total))}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{tier.label}</p>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{t('questionsCompletedTpl').replace('{n}', String(total))}</p>
         </div>
 
         <div className="w-full grid grid-cols-2 gap-3">
@@ -54,18 +54,18 @@ function DoneScreen({ score, total, onRestart }: { score: number; total: number;
             <p className="text-2xl font-bold text-[#3B6D11]">{score}</p>
             <p className="text-xs text-[#3B6D11] font-medium mt-0.5">{t('correctLabel')}</p>
           </div>
-          <div className="rounded-xl p-3 bg-red-50">
-            <p className="text-2xl font-bold text-red-600">{total - score}</p>
-            <p className="text-xs text-red-600 font-medium mt-0.5">{t('wrongLabel')}</p>
+          <div className="rounded-xl p-3 bg-red-50 dark:bg-red-500/10">
+            <p className="text-2xl font-bold text-red-600 dark:text-red-400">{total - score}</p>
+            <p className="text-xs text-red-600 dark:text-red-400 font-medium mt-0.5">{t('wrongLabel')}</p>
           </div>
         </div>
 
         <div className="w-full">
-          <div className="flex justify-between text-xs text-gray-500 mb-1.5">
+          <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400 mb-1.5">
             <span>{t('successRate')}</span>
             <span className="font-semibold" style={{ color: tier.text }}>{pct}%</span>
           </div>
-          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-2 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
             <div
               className="h-2 rounded-full transition-all duration-700"
               style={{ width: `${pct}%`, backgroundColor: tier.bar }}
@@ -152,7 +152,7 @@ export default function QuizPage() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-3 text-gray-400">
+        <div className="flex flex-col items-center gap-3 text-gray-400 dark:text-slate-500">
           <Loader2 className="w-6 h-6 animate-spin" />
           <span className="text-sm">{t('loading')}</span>
         </div>
@@ -186,19 +186,19 @@ export default function QuizPage() {
           <div className="w-8 h-8 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
             <Brain className="w-4 h-4 text-[#534AB7]" />
           </div>
-          <span className="text-sm font-semibold text-gray-700">{t('quiz')}</span>
+          <span className="text-sm font-semibold text-gray-700 dark:text-slate-300">{t('quiz')}</span>
         </div>
         <div className="flex items-center gap-3 text-xs font-medium">
           <span className="flex items-center gap-1 text-[#3B6D11]">
             <span className="w-2 h-2 rounded-full bg-[#3B6D11] inline-block" />
             {t('correctCountTpl').replace('{n}', String(score))}
           </span>
-          <span className="text-gray-400">{t('questionCounterTpl').replace('{i}', String(index + 1)).replace('{n}', String(cards.length))}</span>
+          <span className="text-gray-400 dark:text-slate-500">{t('questionCounterTpl').replace('{i}', String(index + 1)).replace('{n}', String(cards.length))}</span>
         </div>
       </div>
 
       {/* Progress */}
-      <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
+      <div className="w-full h-1.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
         <div
           className="h-1.5 rounded-full bg-[#534AB7] transition-all duration-500"
           style={{ width: `${progress}%` }}
@@ -206,11 +206,11 @@ export default function QuizPage() {
       </div>
 
       {/* Soru kartı */}
-      <div className="w-full bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center">
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+      <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center">
+        <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">
           {t('quizQuestionPrompt')}
         </p>
-        <p className="text-4xl font-bold text-gray-900 tracking-tight">{current.word.word}</p>
+        <p className="text-4xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">{current.word.word}</p>
         {current.word.word_type && (
           <span className="inline-block mt-3 text-xs font-medium bg-[#EEEDFE] text-[#534AB7] px-2.5 py-1 rounded-full">
             {current.word.word_type}
@@ -225,7 +225,7 @@ export default function QuizPage() {
           const isSelected = i === selected;
           const answered = selected !== null;
 
-          let cls = 'border-gray-200 text-gray-700 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
+          let cls = 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
           let icon: React.ReactNode = null;
 
           if (answered) {
@@ -233,10 +233,10 @@ export default function QuizPage() {
               cls = 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]';
               icon = <CheckCircle2 className="w-4 h-4 shrink-0 text-[#3B6D11]" />;
             } else if (isSelected) {
-              cls = 'border-red-400 bg-red-50 text-red-600';
-              icon = <XCircle className="w-4 h-4 shrink-0 text-red-400" />;
+              cls = 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400';
+              icon = <XCircle className="w-4 h-4 shrink-0 text-red-400 dark:text-red-300" />;
             } else {
-              cls = 'border-gray-100 text-gray-300';
+              cls = 'border-gray-100 dark:border-slate-800 text-gray-300 dark:text-slate-600';
             }
           }
 
@@ -250,8 +250,8 @@ export default function QuizPage() {
               {/* Harf etiketi */}
               <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
                 answered
-                  ? isCorrect ? 'bg-[#3B6D11] text-white' : isSelected ? 'bg-red-400 text-white' : 'bg-gray-100 text-gray-300'
-                  : 'bg-gray-100 text-gray-500'
+                  ? isCorrect ? 'bg-[#3B6D11] text-white' : isSelected ? 'bg-red-400 text-white' : 'bg-gray-100 dark:bg-slate-800 text-gray-300 dark:text-slate-600'
+                  : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400'
               }`}>
                 {['A', 'B', 'C', 'D'][i]}
               </span>
