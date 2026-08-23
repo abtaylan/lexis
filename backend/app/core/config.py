@@ -94,6 +94,18 @@ class Settings(BaseSettings):
     TELEGRAM_CHANNEL_ID: str = ""  # örn. "@lexis_kelime" ya da "-1001234567890"
     SLACK_WEBHOOK_URL: str = ""
 
+    # ── Dış tetikleyicili cron endpoint'leri (app/api/routes/cron.py) ──
+    # Bu sandbox'ın (ve Claude scheduled task'larının) Supabase dışında
+    # gerçek internet erişimi yok — SMTP (send_schedule_reminders.py) ve
+    # Telegram/Slack (post_daily_content.py) gerektiren job'lar bu yüzden
+    # Claude tarafında zamanlanamıyor. Bunun yerine Railway'deki bu backend'e
+    # secret-korumalı HTTP endpoint'ler eklendi; Vercel Cron (post-daily-content,
+    # günde 1 kez — Hobby planıyla uyumlu) ve GitHub Actions (send-schedule-
+    # reminders, 5 dakikada bir — Vercel Hobby'nin günde-1 sınırını aştığı için)
+    # bu endpoint'leri dışarıdan tetikliyor. Boşken /internal/cron/* rotaları
+    # HER ZAMAN 401 döner — kazayla açık bırakılmış bir endpoint olmaz.
+    CRON_SECRET: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = True

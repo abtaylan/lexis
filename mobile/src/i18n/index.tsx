@@ -10,7 +10,7 @@ import { LOCALE_META, RTL_LOCALES, type Locale } from './locales';
 import translationsJson from './translations.json';
 import { MOBILE_STRINGS, type MobileStrings } from './mobileStrings';
 import { GAME_STRINGS, type GameStrings } from './gameStrings';
-import { XP_LABELS, LB_LABELS } from './dashboardStrings';
+import { XP_LABELS, LB_LABELS, BADGE_LABELS } from './dashboardStrings';
 
 export type { Locale };
 export { LOCALE_META };
@@ -42,6 +42,7 @@ interface LocaleContextType {
   gt: GameStrings;
   xpLabels: (typeof XP_LABELS)['tr'];
   lbLabels: (typeof LB_LABELS)['tr'];
+  badgeLabels: (typeof BADGE_LABELS)['tr'];
 }
 
 const LocaleContext = createContext<LocaleContextType | null>(null);
@@ -91,6 +92,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       gt: GAME_STRINGS[locale] ?? GAME_STRINGS[DEFAULT_LOCALE],
       xpLabels: XP_LABELS[locale] ?? XP_LABELS[DEFAULT_LOCALE],
       lbLabels: LB_LABELS[locale] ?? LB_LABELS[DEFAULT_LOCALE],
+      badgeLabels: BADGE_LABELS[locale] ?? BADGE_LABELS[DEFAULT_LOCALE],
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale, isRTL]);

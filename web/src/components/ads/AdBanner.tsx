@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@/store/auth';
+import { useAdConsent } from '@/lib/adConsent';
 
 declare global {
   interface Window {
@@ -38,17 +39,22 @@ interface AdBannerProps {
 
 /**
  * Premium olmayan kullanıcılara reklam gösterir.
- * ADSENSE_CLIENT_ID tanımlı değilse veya kullanıcı premium ise hiçbir şey render etmez.
+ * ADSENSE_CLIENT_ID tanımlı değilse, kullanıcı premium ise, ya da kullanıcı
+ * henüz reklam çerezlerine (KVKK/GDPR) onay vermemiş/reddetmişse hiçbir şey
+ * render etmez ve — önemlisi — AdSense script'ini HİÇ yüklemez (bkz.
+ * lib/adConsent.tsx, components/ads/AdConsentBanner.tsx).
  */
 export function AdBanner({ slot, format = 'auto', className = '' }: AdBannerProps) {
   const { user, isLoading } = useAuth();
+  const { consent, loaded: consentLoaded } = useAdConsent();
   const insRef = useRef<HTMLModElement>(null);
   const pushedRef = useRef(false);
 
   const isPremium = !!user?.is_premium;
+  const hasAdConsent = consentLoaded && consent === 'accepted';
 
   useEffect(() => {
-    if (isLoading || isPremium || !ADSENSE_CLIENT_ID) return;
+    if (isLoading || isPremium || !ADSENSE_CLIENT_ID || !hasAdConsent) return;
     ensureAdsenseScript();
     if (pushedRef.current) return;
     try {
@@ -57,9 +63,9 @@ export function AdBanner({ slot, format = 'auto', className = '' }: AdBannerProp
     } catch {
       // AdSense script henüz yüklenmemişse sessizce geç
     }
-  }, [isLoading, isPremium]);
+  }, [isLoading, isPremium, hasAdConsent]);
 
-  if (isLoading || isPremium || !ADSENSE_CLIENT_ID) return null;
+  if (isLoading || isPremium || !ADSENSE_CLIENT_ID || !hasAdConsent) return null;
 
   return (
     <div className={`w-full flex justify-center overflow-hidden ${className}`}>

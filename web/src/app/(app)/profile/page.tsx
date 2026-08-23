@@ -6,6 +6,7 @@ import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, Gradua
 import { authApi, languagesApi, userLanguagesApi, socialApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { useLocale, LOCALE_META, type Locale } from '@/lib/i18n';
+import { BadgeShowcase } from '@/components/layout/BadgeShowcase';
 import type { User as UserType, Language, UserLanguage, UserCard } from '@/types';
 
 // backend HTTPException'ların { detail: string } gövdesini `any` kullanmadan
@@ -243,49 +244,49 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) return <div className="p-6 text-sm text-gray-400 dark:text-slate-500">{t('loading')}</div>;
+  if (loading) return <div className="p-6 text-sm text-gray-400">{t('loading')}</div>;
 
-  const inputCls = "w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
-  const selectCls = "w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-gray-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-slate-900";
+  const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition";
+  const selectCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white";
 
   return (
     <div className="p-6 max-w-lg space-y-6">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center">
-          <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+          <User className="w-5 h-5 text-blue-600" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('profile')}</h1>
-          <p className="text-sm text-gray-400 dark:text-slate-500">{user?.email}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('profile')}</h1>
+          <p className="text-sm text-gray-400">{user?.email}</p>
         </div>
       </div>
 
-      <form onSubmit={handleSave} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 space-y-5">
+      <form onSubmit={handleSave} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
         {/* Görünen ad */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('displayNameLabel')}</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">{t('displayNameLabel')}</label>
           <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Ahmet Yılmaz" maxLength={60} className={inputCls} />
         </div>
 
         {/* Kullanıcı adı — düzenlenebilir */}
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-slate-400 mb-1"><AtSign className="w-3 h-3" />{t('usernameLabel')}</label>
+          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1"><AtSign className="w-3 h-3" />{t('usernameLabel')}</label>
           <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="kullaniciadi" maxLength={50} className={inputCls} />
         </div>
 
         {/* E-posta — düzenlenebilir */}
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-slate-400 mb-1"><Mail className="w-3 h-3" />{t('emailLabel')}</label>
+          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1"><Mail className="w-3 h-3" />{t('emailLabel')}</label>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ornek@email.com" className={inputCls} />
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{t('emailChangeHint')}</p>
+          <p className="text-xs text-gray-400 mt-1">{t('emailChangeHint')}</p>
         </div>
 
         {/* Şifre — yeni şifre */}
         <div>
-          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-slate-400 mb-1"><Lock className="w-3 h-3" />{t('newPasswordLabel')}</label>
+          <label className="flex items-center gap-1.5 text-xs font-medium text-gray-600 mb-1"><Lock className="w-3 h-3" />{t('newPasswordLabel')}</label>
           <div className="relative">
             <input type={showPw ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('newPasswordPlaceholder')} className={inputCls} />
-            <button type="button" onClick={() => setShowPw((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400">
+            <button type="button" onClick={() => setShowPw((v) => !v)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
               {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
@@ -293,10 +294,10 @@ export default function ProfilePage() {
 
         {/* Dil tercihleri — arayüz dili (native_lang) + öğrenme dili (learning_lang) */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-2">{t('interfaceLanguageLabel')}</label>
+          <label className="block text-xs font-medium text-gray-600 mb-2">{t('interfaceLanguageLabel')}</label>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
                 <Globe className="w-3 h-3" /> {t('nativeLangSelectLabel')}
               </label>
               <select value={nativeLang} onChange={(e) => setNativeLang(e.target.value)} className={selectCls}>
@@ -307,7 +308,7 @@ export default function ProfilePage() {
               </select>
             </div>
             <div>
-              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 dark:text-slate-400 mb-1">
+              <label className="flex items-center gap-1.5 text-xs font-medium text-gray-500 mb-1">
                 <GraduationCap className="w-3 h-3" /> {t('learningLangSelectLabel')}
               </label>
               <select value={learningLang} onChange={(e) => setLearningLang(e.target.value)} className={selectCls}>
@@ -317,19 +318,19 @@ export default function ProfilePage() {
               </select>
             </div>
           </div>
-          {langError && <p className="text-xs text-red-600 dark:text-red-400 mt-2">{langError}</p>}
+          {langError && <p className="text-xs text-red-600 mt-2">{langError}</p>}
         </div>
 
         {/* Günlük hedef */}
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('dailyGoalLabel')}</label>
+          <label className="block text-xs font-medium text-gray-600 mb-1">{t('dailyGoalLabel')}</label>
           <div className="flex items-center gap-3">
             <input type="range" min={1} max={50} value={dailyGoal} onChange={(e) => setDailyGoal(Number(e.target.value))} className="flex-1 accent-blue-600" />
-            <span className="w-12 text-center text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 rounded-lg py-1">{dailyGoal}</span>
+            <span className="w-12 text-center text-sm font-semibold text-blue-600 bg-blue-50 rounded-lg py-1">{dailyGoal}</span>
           </div>
         </div>
 
-        {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
+        {error && <p className="text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">{error}</p>}
 
         <button type="submit" disabled={saving} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
           {saved ? <><CheckCircle className="w-4 h-4" /> {t('savedLabel')}</> : <><Save className="w-4 h-4" />{saving ? t('savingBtn') : t('saveBtn')}</>}
@@ -337,33 +338,33 @@ export default function ProfilePage() {
       </form>
 
       {/* Dillerim — birden fazla öğrenme dili yönetimi (Kullanıcı Madde 2) */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300 flex items-center gap-1.5">
+          <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
             <GraduationCap className="w-4 h-4" /> {t('myLanguagesTitle')}
           </h2>
           <button
             type="button"
             onClick={() => { setAddLangCode(''); setLangActionError(''); setShowAddLangModal(true); }}
-            className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:dark:text-blue-400 flex items-center gap-1"
+            className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1"
           >
             <Plus className="w-3.5 h-3.5" /> {t('addLanguageBtn')}
           </button>
         </div>
 
         {langsLoading ? (
-          <p className="text-sm text-gray-400 dark:text-slate-500">{t('loading')}</p>
+          <p className="text-sm text-gray-400">{t('loading')}</p>
         ) : (
           <ul className="space-y-2">
             {userLangs.map((lang) => {
               const meta = languages.find((l) => l.code === lang.learning_lang);
               return (
-                <li key={lang.id} className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-slate-800 px-3 py-2">
-                  <div className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+                <li key={lang.id} className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2">
+                  <div className="flex items-center gap-2 text-sm text-gray-700">
                     <span>{meta?.flag_emoji}</span>
                     <span>{meta?.name_native ?? lang.learning_lang}</span>
                     {lang.is_active && (
-                      <span className="text-[10px] font-semibold text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/10 rounded-full px-2 py-0.5">
+                      <span className="text-[10px] font-semibold text-green-700 bg-green-50 rounded-full px-2 py-0.5">
                         {t('activeBadgeLabel')}
                       </span>
                     )}
@@ -374,7 +375,7 @@ export default function ProfilePage() {
                         type="button"
                         disabled={langActionLoading}
                         onClick={() => handleSetActiveLang(lang.learning_lang)}
-                        className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:dark:text-blue-400 disabled:opacity-50"
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
                       >
                         {t('setActiveBtn')}
                       </button>
@@ -383,7 +384,7 @@ export default function ProfilePage() {
                       type="button"
                       disabled={langActionLoading}
                       onClick={() => handleRemoveLang(lang)}
-                      className="text-xs font-medium text-red-500 dark:text-red-400 hover:text-red-600 hover:dark:text-red-400 disabled:opacity-50"
+                      className="text-xs font-medium text-red-500 hover:text-red-600 disabled:opacity-50"
                     >
                       {t('removeLanguageBtn')}
                     </button>
@@ -394,15 +395,15 @@ export default function ProfilePage() {
           </ul>
         )}
 
-        {langActionError && <p className="text-xs text-red-600 dark:text-red-400">{langActionError}</p>}
+        {langActionError && <p className="text-xs text-red-600">{langActionError}</p>}
       </div>
 
       {showAddLangModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAddLangModal(false)}>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t('addLanguageModalTitle')}</h3>
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-semibold text-gray-800">{t('addLanguageModalTitle')}</h3>
             <div>
-              <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">{t('selectLanguageLabel')}</label>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{t('selectLanguageLabel')}</label>
               <select value={addLangCode} onChange={(e) => setAddLangCode(e.target.value)} className={selectCls}>
                 <option value="">—</option>
                 {languages
@@ -412,9 +413,9 @@ export default function ProfilePage() {
                   ))}
               </select>
             </div>
-            {langActionError && <p className="text-xs text-red-600 dark:text-red-400">{langActionError}</p>}
+            {langActionError && <p className="text-xs text-red-600">{langActionError}</p>}
             <div className="flex gap-2 justify-end">
-              <button type="button" onClick={() => setShowAddLangModal(false)} className="text-xs font-medium text-gray-500 dark:text-slate-400 hover:text-gray-700 hover:dark:text-slate-300 px-3 py-2">
+              <button type="button" onClick={() => setShowAddLangModal(false)} className="text-xs font-medium text-gray-500 hover:text-gray-700 px-3 py-2">
                 {t('cancelBtn')}
               </button>
               <button
@@ -431,38 +432,38 @@ export default function ProfilePage() {
       )}
 
       {/* Engellenenler — Madde 6, Faz 2 */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 space-y-4">
-        <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300 flex items-center gap-1.5">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
           <Ban className="w-4 h-4" /> {bt.title}
         </h2>
 
         {blockedLoading ? (
-          <p className="text-sm text-gray-400 dark:text-slate-500">{bt.loading}</p>
+          <p className="text-sm text-gray-400">{bt.loading}</p>
         ) : blockedUsers.length === 0 ? (
           <div className="text-center py-3">
-            <p className="text-sm text-gray-400 dark:text-slate-500">{bt.empty}</p>
-            <p className="text-xs text-gray-300 dark:text-slate-600 mt-1">{bt.emptySub}</p>
+            <p className="text-sm text-gray-400">{bt.empty}</p>
+            <p className="text-xs text-gray-300 mt-1">{bt.emptySub}</p>
           </div>
         ) : (
           <ul className="space-y-2">
             {blockedUsers.map((card) => {
               const name = card.display_name || card.username || '?';
               return (
-                <li key={card.id} className="flex items-center justify-between rounded-xl border border-gray-100 dark:border-slate-800 px-3 py-2">
+                <li key={card.id} className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-semibold text-gray-500 dark:text-slate-400 shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-gray-500 shrink-0">
                       {name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-700 dark:text-slate-300 truncate">{name}</p>
-                      {card.username && <p className="text-xs text-gray-400 dark:text-slate-500 truncate">@{card.username}</p>}
+                      <p className="text-sm font-medium text-gray-700 truncate">{name}</p>
+                      {card.username && <p className="text-xs text-gray-400 truncate">@{card.username}</p>}
                     </div>
                   </div>
                   <button
                     type="button"
                     disabled={unblockBusyId === card.id}
                     onClick={() => handleUnblock(card)}
-                    className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:dark:text-blue-400 disabled:opacity-50 shrink-0"
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 shrink-0"
                   >
                     {bt.unblockBtn}
                   </button>
@@ -472,14 +473,16 @@ export default function ProfilePage() {
           </ul>
         )}
 
-        {blockedActionError && <p className="text-xs text-red-600 dark:text-red-400">{blockedActionError}</p>}
+        {blockedActionError && <p className="text-xs text-red-600">{blockedActionError}</p>}
       </div>
 
-      <div className="bg-gray-50 dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-800 p-5 space-y-3">
-        <h2 className="text-xs font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide">{t('accountInfoTitle')}</h2>
+      <BadgeShowcase />
+
+      <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5 space-y-3">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('accountInfoTitle')}</h2>
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <div><p className="text-gray-400 dark:text-slate-500 text-xs">{t('roleLabel')}</p><p className="font-medium text-gray-700 dark:text-slate-300 capitalize">{user?.role ?? '—'}</p></div>
-          <div><p className="text-gray-400 dark:text-slate-500 text-xs">{t('memberSinceLabel')}</p><p className="font-medium text-gray-700 dark:text-slate-300">{user?.created_at ? new Date(user.created_at).toLocaleDateString(locale) : '—'}</p></div>
+          <div><p className="text-gray-400 text-xs">{t('roleLabel')}</p><p className="font-medium text-gray-700 capitalize">{user?.role ?? '—'}</p></div>
+          <div><p className="text-gray-400 text-xs">{t('memberSinceLabel')}</p><p className="font-medium text-gray-700">{user?.created_at ? new Date(user.created_at).toLocaleDateString(locale) : '—'}</p></div>
         </div>
       </div>
     </div>

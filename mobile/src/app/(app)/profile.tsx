@@ -11,6 +11,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { useThemeMode } from '@/store/theme';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { BadgeShowcase } from '@/components/BadgeShowcase';
 import { Card } from '@/components/ui/Card';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
@@ -82,6 +83,8 @@ export default function ProfileScreen() {
         <InfoRow label="Email" value={user?.email ?? ''} c={c} />
         <InfoRow label={t('roleLabel')} value={user?.role ?? 'user'} c={c} />
       </Card>
+
+      <BadgeShowcase />
 
       <Card style={{ marginBottom: spacing.md }}>
         <View style={styles.rowBetween}>

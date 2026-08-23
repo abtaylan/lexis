@@ -28,3 +28,16 @@ export const LB_LABELS: Record<
   ru: { title: 'Рейтинг', tabAll: 'Общий', tabWeekly: 'Неделя', tabMonthly: 'Месяц', you: 'Вы', points: 'очк.', empty: 'В этом периоде пока никто не набрал очков.', loading: 'Загрузка…', error: 'Не удалось загрузить рейтинг.' },
   ja: { title: 'ランキング', tabAll: '総合', tabWeekly: '週間', tabMonthly: '月間', you: 'あなた', points: 'pt', empty: 'この期間はまだ誰もポイントを獲得していません。', loading: '読み込み中…', error: 'ランキングを読み込めませんでした。' },
 };
+
+// web'deki components/layout/BadgeShowcase.tsx BADGE_LABELS ile birebir aynı.
+export const BADGE_LABELS: Record<Locale, { title: string; empty: string; loading: string }> = {
+  tr: { title: 'Rozetlerim', empty: 'Henüz rozet kazanmadın — çalışmaya devam!', loading: 'Yükleniyor…' },
+  en: { title: 'My Badges', empty: "You haven't earned a badge yet — keep going!", loading: 'Loading…' },
+  de: { title: 'Meine Abzeichen', empty: 'Du hast noch kein Abzeichen verdient — mach weiter!', loading: 'Lädt…' },
+  fr: { title: 'Mes badges', empty: "Tu n'as pas encore gagné de badge — continue !", loading: 'Chargement…' },
+  es: { title: 'Mis insignias', empty: 'Aún no has ganado ninguna insignia — ¡sigue así!', loading: 'Cargando…' },
+  it: { title: 'I miei badge', empty: 'Non hai ancora guadagnato un badge — continua così!', loading: 'Caricamento…' },
+  ar: { title: 'أوسمتي', empty: 'لم تحصل على وسام بعد — واصل التقدم!', loading: 'جارٍ التحميل…' },
+  ru: { title: 'Мои значки', empty: 'Вы ещё не заработали значок — продолжайте!', loading: 'Загрузка…' },
+  ja: { title: 'マイバッジ', empty: 'まだバッジを獲得していません — がんばって!', loading: '読み込み中…' },
+};

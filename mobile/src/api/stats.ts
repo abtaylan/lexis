@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { AnalyticsData, DailyProgress, LeaderboardPeriod, LeaderboardResponse, Stats, XpSummary } from './types';
+import type { AnalyticsData, DailyProgress, LeaderboardPeriod, LeaderboardResponse, Stats, UserBadge, XpSummary } from './types';
 
 export const statsApi = {
   getSummary: async (): Promise<Stats> => {
@@ -20,6 +20,10 @@ export const statsApi = {
   },
   getLeaderboard: async (period: LeaderboardPeriod = 'all', limit = 5): Promise<LeaderboardResponse> => {
     const res = await api.get<LeaderboardResponse>('/stats/leaderboard', { params: { period, limit } });
+    return res.data;
+  },
+  getBadges: async (): Promise<UserBadge[]> => {
+    const res = await api.get<UserBadge[]>('/stats/badges');
     return res.data;
   },
 };

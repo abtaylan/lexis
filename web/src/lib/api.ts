@@ -292,6 +292,24 @@ export interface LeaderboardResponse {
   me: LeaderboardEntry & { in_top: boolean };
 }
 
+// Rozetler (badges) — bkz. backend/app/services/badge_service.py::get_user_badges.
+// "badges" alanı Supabase'in join sözdizimindeki tablo adı (badge_code'a
+// karşılık gelen katalog satırı) — period_key doluysa dönem bazlı (haftalık/
+// aylık liderlik) rozettir, null ise tek seferlik (streak) rozettir.
+export interface UserBadge {
+  badge_code: string;
+  period_key: string | null;
+  earned_at: string;
+  meta: Record<string, unknown>;
+  badges: {
+    name_tr: string;
+    name_en: string;
+    description_tr: string;
+    description_en: string;
+    icon_emoji: string;
+  } | null;
+}
+
 export const statsApi = {
   getSummary: async (): Promise<Stats> => {
     const res = await api.get<Stats>('/stats/summary');
@@ -307,6 +325,10 @@ export const statsApi = {
   },
   getXp: async (): Promise<XpSummary> => {
     const res = await api.get<XpSummary>('/stats/xp');
+    return res.data;
+  },
+  getBadges: async (): Promise<UserBadge[]> => {
+    const res = await api.get<UserBadge[]>('/stats/badges');
     return res.data;
   },
   getLeaderboard: async (

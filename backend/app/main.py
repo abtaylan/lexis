@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.api.routes import auth, words, dictionary, stats, admin, admin_platform, schedule, languages, games, subscription, user_languages, notifications, social, push_tokens
+from app.api.routes import auth, words, dictionary, stats, admin, admin_platform, schedule, languages, games, subscription, user_languages, notifications, social, push_tokens, cron
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -45,6 +45,8 @@ app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["
 app.include_router(social.router, prefix="/api/v1/social", tags=["Social"])
 # Mobil uygulama Faz 1 — push bildirim token kaydı (bkz. migration 017_push_tokens.sql)
 app.include_router(push_tokens.router, prefix="/api/v1/me", tags=["Push Tokens"])
+# Vercel Cron / GitHub Actions'tan secret-korumalı tetikleme — bkz. app/api/routes/cron.py
+app.include_router(cron.router, prefix="/internal/cron", tags=["Internal Cron"])
 
 @app.get("/health")
 async def health():

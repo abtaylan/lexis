@@ -397,6 +397,22 @@ export interface LeaderboardResponse {
   me: LeaderboardEntry & { in_top: boolean };
 }
 
+// Rozetler — bkz. backend/app/services/badge_service.py::get_user_badges /
+// web'deki lib/api.ts::UserBadge ile birebir aynı şekil.
+export interface UserBadge {
+  badge_code: string;
+  period_key: string | null;
+  earned_at: string;
+  meta: Record<string, unknown>;
+  badges: {
+    name_tr: string;
+    name_en: string;
+    description_tr: string;
+    description_en: string;
+    icon_emoji: string;
+  } | null;
+}
+
 // ── Games ────────────────────────────────────────────────────
 export type GameMode = 'wordle' | 'multiple_choice' | 'typing' | 'matching' | 'listening' | 'sprint';
 export type PoolSource = 'own' | 'general';
