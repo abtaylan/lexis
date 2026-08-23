@@ -7,6 +7,15 @@ import { Providers } from './providers';
 export const metadata: Metadata = {
   title: 'Lexis — Kelime Öğrenme Platformu',
   description: 'İngilizce-Türkçe kelime öğrenme, spaced repetition ve quiz ile.',
+  // AdSense site sahipliği doğrulaması (Meta Etiket yöntemi) — bilerek
+  // AdBanner.tsx'teki tüketici onayı (KVKK/GDPR consent) mantığından
+  // BAĞIMSIZ: bu statik <meta> etiketi her sayfada, JS çalışmasa/onay
+  // verilmese bile hep mevcut olmalı ki Google'ın doğrulama crawler'ı
+  // görebilsin. Gerçek reklam script'i (adsbygoogle.js) hâlâ sadece kullanıcı
+  // reklam çerezlerine onay verince yükleniyor — bu ondan tamamen ayrı.
+  other: {
+    'google-adsense-account': 'ca-pub-7117270113356521',
+  },
 };
 
 // İlk boyamadan (paint) önce çalışan, engelleyici (blocking) küçük script:
