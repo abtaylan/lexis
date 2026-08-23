@@ -14,9 +14,9 @@
       "supportsTablet": false,
       "infoPlist": {
         "UIBackgroundModes": [
-          "remote-notification",
           "remote-notification"
-        ]
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -31,8 +31,6 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "NOTIFICATIONS",
-        "POST_NOTIFICATIONS",
-        "NOTIFICATIONS",
         "POST_NOTIFICATIONS"
       ]
     },
@@ -42,6 +40,14 @@
     },
     "plugins": [
       "expo-router",
+      "expo-iap",
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -67,7 +73,11 @@
       "eas": {
         "projectId": "06c954fe-baae-4671-a38f-8d053d954fad"
       },
-      "router": {}
+      "router": {},
+      "admob": {
+        "androidBannerUnitId": "",
+        "iosBannerUnitId": ""
+      }
     },
     "runtimeVersion": {
       "policy": "appVersion"

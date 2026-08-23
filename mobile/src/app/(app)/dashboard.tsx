@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
+import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
+import { MESSAGES_STRINGS } from '@/i18n/messagesStrings';
 import { statsApi } from '@/api/stats';
 import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -11,14 +13,17 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Card } from '@/components/ui/Card';
 import { XPBar } from '@/components/XPBar';
 import { LeaderboardCard } from '@/components/LeaderboardCard';
+import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
 
 const ASKED_KEY = 'lexis_notif_permission_asked';
 
 export default function DashboardScreen() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const c = useThemeColors();
   const { user } = useAuth();
+  const fs = FRIENDS_STRINGS[locale] ?? FRIENDS_STRINGS.tr;
+  const ms = MESSAGES_STRINGS[locale] ?? MESSAGES_STRINGS.tr;
 
   const { data: stats, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['stats-summary'],
@@ -67,6 +72,22 @@ export default function DashboardScreen() {
         <ActionButton emoji="➕" label={t('addWordBtn')} onPress={() => router.push('/(app)/words')} color={c} />
         <ActionButton emoji="🎮" label={t('startBtn')} onPress={() => router.push('/(app)/game')} color={c} />
       </View>
+      <View style={styles.actionsRow}>
+        <ActionButton emoji="🧠" label={t('quiz')} onPress={() => router.push('/(app)/quiz')} color={c} />
+        <ActionButton emoji="🗂️" label={t('flashcards')} onPress={() => router.push('/(app)/flashcards')} color={c} />
+      </View>
+      <View style={styles.actionsRow}>
+        <ActionButton emoji="📊" label={t('stats')} onPress={() => router.push('/(app)/stats')} color={c} />
+      </View>
+      <View style={styles.actionsRow}>
+        <ActionButton emoji="🤝" label={fs.title} onPress={() => router.push('/(app)/friends')} color={c} />
+        <ActionButton emoji="💬" label={ms.inboxTitle} onPress={() => router.push('/(app)/messages')} color={c} />
+      </View>
+      <View style={styles.actionsRow}>
+        <ActionButton emoji="👑" label="Premium" onPress={() => router.push('/(app)/premium')} color={c} />
+      </View>
+
+      <AdBanner style={{ marginTop: spacing.sm }} />
     </ScreenContainer>
   );
 }

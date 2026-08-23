@@ -167,3 +167,72 @@ async def _get_period_leaderboard(
         me = {**_to_entry(my_profile, my_xp, my_rank, current_user_id), "in_top": False}
 
     return {"period": period, "top": top, "me": me}
+
+
+# ── Ödül dağıtımı (distribute_leaderboard_rewards.py) ──────────────────────
+# Yukarıdaki _get_period_leaderboard, /stats/leaderboard endpoint'i için
+# ŞU AN devam eden (açık) dönemi gösterir. Ödül dağıtımı ise bir ÖNCEKİ
+# TAMAMLANMIŞ dönemi (geçen hafta / geçen ay) ödüllendirmeli — bu yüzden
+# ayrı, kapalı bir [start, end) aralığı hesaplayan fonksiyonlar burada.
+
+
+def _previous_period_range(period: Literal["weekly", "monthly"]) -> tuple[str, str]:
+    """'weekly'/'monthly' için bir ÖNCEKİ TAMAMLANMIŞ dönemin [start, end)
+    aralığını (Europe/Istanbul yerel gece yarısı, ISO timestamp) döndürür."""
+    today_local = datetime.now(_TZ).date()
+    if period == "weekly":
+        this_period_start = today_local - timedelta(days=today_local.weekday())  # bu haftanın Pazartesi'si
+        prev_start = this_period_start - timedelta(days=7)
+        prev_end = this_period_start
+    else:  # monthly
+        this_period_start = today_local.replace(day=1)
+        prev_end = this_period_start
+        if this_period_start.month == 1:
+            prev_start = this_period_start.replace(year=this_period_start.year - 1, month=12)
+        else:
+            prev_start = this_period_start.replace(month=this_period_start.month - 1)
+
+    start_iso = datetime.combine(prev_start, time.min, tzinfo=_TZ).isoformat()
+    end_iso = datetime.combine(prev_end, time.min, tzinfo=_TZ).isoformat()
+    return start_iso, end_iso
+
+
+def _period_key(period: Literal["weekly", "monthly"], range_start_iso: str) -> str:
+    """user_badges.period_key için insan-okunur, dönem-benzersiz bir anahtar
+    üretir — örn. '2026-W34' / '2026-08'. Aynı dönem için dağıtım script'i
+    kaç kez çalışırsa çalışsın aynı key üretilir (idempotency'nin temeli,
+    bkz. badge_service.award_badge)."""
+    d = datetime.fromisoformat(range_start_iso).date()
+    if period == "weekly":
+        iso_year, iso_week, _ = d.isocalendar()
+        return f"{iso_year}-W{iso_week:02d}"
+    return d.strftime("%Y-%m")
+
+
+async def get_top_n_for_reward(period: Literal["weekly", "monthly"], limit: int = 10) -> dict[str, Any]:
+    """Ödül dağıtımı için: bir ÖNCEKİ tamamlanmış dönemin en yüksek XP'li
+    kullanıcılarını döndürür. Canlı /stats/leaderboard endpoint'inin
+    kullandığı _get_period_leaderboard ile KARIŞTIRILMAMALI — o şu anki
+    (açık) dönemi gösterir, bu ise kapanmış geçmiş dönemi."""
+    start, end = _previous_period_range(period)
+
+    events_res = (
+        supabase_admin.table("xp_events")
+        .select("user_id, amount")
+        .gte("created_at", start)
+        .lt("created_at", end)
+        .execute()
+    )
+    sums: dict[str, int] = defaultdict(int)
+    for e in events_res.data or []:
+        sums[e["user_id"]] += e["amount"]
+
+    ranked = sorted(sums.items(), key=lambda kv: kv[1], reverse=True)[:limit]
+    profiles = _profiles_by_id([uid for uid, _ in ranked])
+
+    top = [
+        _to_entry(profiles.get(uid, {}), xp, i + 1, uid)
+        for i, (uid, xp) in enumerate(ranked)
+        if uid in profiles and xp > 0
+    ]
+    return {"period": period, "period_key": _period_key(period, start), "top": top}

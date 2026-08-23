@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -8,11 +9,18 @@ from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.core.config import settings
 from app.services.iyzico_client import iyzico_client
+from app.services import apple_appstore, google_play
 from app.schemas.subscription import (
     PricingPlan, CheckoutRequest, CheckoutResponse, SubscriptionStatus,
+    VerifyPurchaseRequest, VerifyPurchaseResponse,
 )
 
 router = APIRouter()
+
+# NOT — mobil ödeme mimarisi kararı: /checkout ve /cancel (aşağıda) web'e
+# (iyzico'ya) özgüdür; mobil premium ekranı bunları KULLANMIYOR, bunun
+# yerine /verify-purchase'ı çağırıyor (bkz. dosyanın altı). Store kuralları
+# mobilde native Apple/Google IAP'ı zorunlu kılıyor, iyzico web'de kalıyor.
 
 # Her para birimi kendi fiyatına VE kendi iyzico pricing-plan referansına
 # sahip (iyzico'da bir "pricing plan" tek bir para birimine bağlı olduğu
@@ -287,3 +295,84 @@ async def cancel_subscription(current_user=Depends(get_current_user)):
     # Dönem sonuna kadar premium erişimi korunur; premium_until geçince
     # ayrı bir cron/scheduled job is_premium'u false'a çekmeli (bkz. HANDOFF notu).
     return {"message": "Abonelik iptal edildi, dönem sonuna kadar premium erişiminiz devam eder."}
+
+
+# ── Mobil Apple/Google IAP ────────────────────────────────────────────
+# Mobil premium.tsx, expo-iap ile satın alma tamamlandığında (StoreKit2/Play
+# Billing purchase objesini) bu endpoint'e gönderir. Doğrulama Apple/Google
+# sunucularına SORULARAK yapılır (bkz. apple_appstore.py / google_play.py) —
+# istemciden gelen bilgi asla doğrudan güvenilmez. Store kimlik bilgileri
+# (.env) henüz girilmediyse 501 döner, ASLA sessizce premium vermez.
+@router.post("/verify-purchase", response_model=VerifyPurchaseResponse)
+async def verify_purchase(req: VerifyPurchaseRequest, current_user=Depends(get_current_user)):
+    if req.platform not in ("ios", "android"):
+        raise HTTPException(status_code=400, detail="Geçersiz platform.")
+
+    plan_code = "yearly" if req.product_id == settings.IAP_PRODUCT_YEARLY else "monthly"
+
+    try:
+        if req.platform == "ios":
+            info = await apple_appstore.verify_transaction(req.transaction_id)
+            product_id = info.get("productId")
+            expires_ms = info.get("expiresDate")  # unix ms
+            is_active = bool(expires_ms and expires_ms > int(time.time() * 1000))
+            period_end = (
+                datetime.fromtimestamp(expires_ms / 1000, tz=timezone.utc) if expires_ms else None
+            )
+        else:
+            info = await google_play.verify_subscription(req.product_id, req.purchase_token)
+            product_id = req.product_id
+            # subscriptionsv2 yanıtı: subscriptionState (SUBSCRIPTION_STATE_ACTIVE/...) +
+            # lineItems[].expiryTime (ISO8601). Tam alan adları, gerçek bir Play Console
+            # aboneliğiyle canlı test edilene kadar kesinleşmemiş olabilir — bkz. dosya notu.
+            is_active = info.get("subscriptionState") == "SUBSCRIPTION_STATE_ACTIVE"
+            line_items = info.get("lineItems") or []
+            expiry_iso = line_items[0].get("expiryTime") if line_items else None
+            period_end = datetime.fromisoformat(expiry_iso.replace("Z", "+00:00")) if expiry_iso else None
+    except (apple_appstore.NotConfiguredError, google_play.NotConfiguredError) as e:
+        raise HTTPException(status_code=501, detail=str(e))
+    except (apple_appstore.AppleVerificationError, google_play.GoogleVerificationError) as e:
+        print(f"IAP VERIFY ERROR ({req.platform}): {e}")
+        raise HTTPException(status_code=502, detail="Satın alma doğrulanamadı, lütfen tekrar deneyin.")
+
+    if not is_active:
+        raise HTTPException(status_code=400, detail="Abonelik aktif değil.")
+
+    if product_id and product_id != req.product_id:
+        print(f"IAP UYARI: gönderilen product_id ({req.product_id}) doğrulanan ({product_id}) ile uyuşmuyor.")
+
+    # Aynı transaction_id daha önce işlendiyse (ör. purchaseUpdatedListener'ın
+    # tekrar tetiklenmesi) tekrar satır oluşturmak yerine güncelle.
+    existing = (
+        supabase_admin.table("subscriptions")
+        .select("id")
+        .eq("iap_transaction_id", req.transaction_id)
+        .limit(1)
+        .execute()
+    )
+    row_data = {
+        "user_id": current_user.id,
+        "plan_code": plan_code,
+        "status": "active",
+        "store": req.platform,
+        "iap_product_id": req.product_id,
+        "iap_transaction_id": req.transaction_id,
+        "iap_purchase_token": req.purchase_token,
+        "current_period_end": period_end.isoformat() if period_end else None,
+    }
+    if existing.data:
+        supabase_admin.table("subscriptions").update(row_data).eq("id", existing.data[0]["id"]).execute()
+    else:
+        supabase_admin.table("subscriptions").insert(row_data).execute()
+
+    supabase_admin.table("profiles").update({
+        "is_premium": True,
+        "premium_until": period_end.isoformat() if period_end else None,
+    }).eq("id", current_user.id).execute()
+
+    return VerifyPurchaseResponse(
+        is_premium=True,
+        premium_until=period_end.isoformat() if period_end else None,
+        plan_code=plan_code,
+        status="active",
+    )

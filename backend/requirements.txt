@@ -9,3 +9,8 @@ beautifulsoup4==4.12.3
 python-dotenv==1.0.1
 python-multipart==0.0.12
 Pillow==11.0.0
+
+# Mobil Apple/Google IAP doğrulaması (bkz. app/services/apple_appstore.py, google_play.py)
+PyJWT[crypto]==2.9.0
+google-auth==2.34.0
+requests==2.32.3

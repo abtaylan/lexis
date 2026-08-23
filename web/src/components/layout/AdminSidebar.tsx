@@ -61,7 +61,7 @@ export function AdminSidebar() {
           return (
             <Link key={href} href={href}
               className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active ? 'bg-[#534AB7] text-white' : 'text-gray-400 dark:text-slate-500 hover:bg-white/5 hover:text-white'
+                active ? 'bg-[#534AB7] text-white' : 'text-gray-400 dark:text-slate-500 hover:bg-white hover:dark:bg-slate-900/5 hover:text-white'
               }`}>
               <Icon className="w-4 h-4 shrink-0" />{label}
             </Link>
@@ -72,7 +72,7 @@ export function AdminSidebar() {
       {/* Alt — uygulamaya dön + kullanıcı + çıkış */}
       <div className="mt-6 border-t border-white/10 pt-4 space-y-1">
         <Link href="/dashboard"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 dark:text-slate-500 hover:bg-white/5 hover:text-white transition-colors">
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-gray-400 dark:text-slate-500 hover:bg-white hover:dark:bg-slate-900/5 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4 shrink-0" />Uygulamaya Dön
         </Link>
 
@@ -87,7 +87,7 @@ export function AdminSidebar() {
         </div>
 
         <button onClick={handleLogout}
-          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-400 dark:text-slate-500 hover:bg-white/5 hover:text-white transition-colors">
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-400 dark:text-slate-500 hover:bg-white hover:dark:bg-slate-900/5 hover:text-white transition-colors">
           <LogOut className="w-4 h-4 shrink-0" />Çıkış Yap
         </button>
       </div>

@@ -170,6 +170,197 @@ export interface ScheduleTemplateCreate {
   items: ScheduleTemplateItem[];
 }
 
+export interface TypeBreakdown {
+  word_type: string;
+  total: number;
+  learned: number;
+  avg_repetition: number;
+  learn_rate: number;
+}
+
+export interface DailyAdded {
+  date: string;
+  added: number;
+}
+
+export interface DailyProgressRow {
+  date: string;
+  words_added: number;
+  words_reviewed: number;
+  streak_day: number;
+  goal: number;
+}
+
+export interface AnalyticsData {
+  totals: {
+    total: number;
+    learned: number;
+    learning: number;
+    archived: number;
+    active: number;
+    passive: number;
+  };
+  type_breakdown: TypeBreakdown[];
+  daily_added: DailyAdded[];
+  daily_progress: DailyProgressRow[];
+}
+
+// ── Sosyal (arkadaşlar/takip/mesajlaşma/herkese açık profil) — web'in
+// types/index.ts'inden birebir. Meydan okuma (challenge) tipleri de
+// forward-compat için eklendi ama Faz 3 mobil ekranları henüz kullanmıyor
+// (bkz. backlog — Challenges sekmesi bilinçli olarak sonraki bir faza
+// bırakıldı, web'deki friends sayfasının ~%40'ını oluşturan ayrı bir
+// oyun-entegrasyonu alt özelliği). ──
+export type RelationshipStatus = 'self' | 'none' | 'pending_sent' | 'pending_received' | 'friends';
+
+export interface UserCard {
+  id: string;
+  username?: string;
+  display_name?: string;
+  avatar_url?: string;
+  level: number;
+  relationship_status?: RelationshipStatus;
+  is_following?: boolean;
+}
+
+export interface FriendshipItem {
+  id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  responded_at?: string | null;
+  user: UserCard;
+}
+
+export interface PendingRequests {
+  incoming: FriendshipItem[];
+  outgoing: FriendshipItem[];
+}
+
+export interface PublicProfileStats {
+  learning_lang: string;
+  total_words: number;
+  learned: number;
+  learning: number;
+  current_streak: number;
+}
+
+export interface PublicScheduleItem {
+  day_of_week: number;
+  time_slot: string;
+  activity: string;
+  duration_min: number;
+}
+
+export interface PublicProfile {
+  id: string;
+  username?: string;
+  display_name?: string;
+  avatar_url?: string;
+  level: number;
+  total_xp: number;
+  created_at: string;
+  friend_count: number;
+  follower_count: number;
+  following_count: number;
+  relationship_status: RelationshipStatus;
+  friendship_id?: string | null;
+  is_following: boolean;
+  stats: PublicProfileStats;
+  schedule: PublicScheduleItem[];
+}
+
+export interface MessageItem {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+  read_at?: string | null;
+}
+
+export interface ConversationItem {
+  id: string;
+  other_user: UserCard;
+  last_message_preview?: string | null;
+  last_message_sender_id?: string | null;
+  last_message_at: string;
+  unread_count: number;
+}
+
+export interface ConversationThread {
+  conversation_id: string;
+  other_user: UserCard;
+  messages: MessageItem[];
+}
+
+export type ChallengeStatus = 'pending' | 'accepted' | 'declined' | 'completed' | 'cancelled';
+
+export interface ChallengeItem {
+  id: string;
+  mode: string;
+  status: ChallengeStatus;
+  is_challenger: boolean;
+  other_user?: UserCard | null;
+  your_session_id?: string | null;
+  opponent_session_id?: string | null;
+  winner_id?: string | null;
+  you_won?: boolean | null;
+  created_at: string;
+  responded_at?: string | null;
+  completed_at?: string | null;
+}
+
+export interface ChallengesList {
+  incoming: ChallengeItem[];
+  outgoing: ChallengeItem[];
+  active: ChallengeItem[];
+  completed: ChallengeItem[];
+}
+
+// ── Abonelik (Premium) ──────────────────────────────────────
+export interface PricingPlan {
+  id: string;
+  code: 'monthly' | 'yearly';
+  name: string;
+  price: number;
+  currency: string;
+  interval_label: string;
+  iyzico_pricing_plan_ref: string;
+}
+
+export interface CheckoutResponse {
+  checkout_form_content?: string;
+  payment_page_url?: string;
+  token?: string;
+}
+
+export interface SubscriptionStatus {
+  is_premium: boolean;
+  premium_until?: string;
+  plan_code?: string;
+  status?: string;
+}
+
+// ── Mobil Apple/Google IAP — kullanıcı kararı: web'de iyzico kalıyor,
+// mobilde store kuralları gereği native IAP kullanılıyor (bkz.
+// mobile/src/app/(app)/premium.tsx ve backend app/api/routes/subscription.py
+// içindeki aynı gerekçe notu). PricingPlan/CheckoutResponse yukarıda hâlâ
+// mobil types.ts'te duruyor (forward-compat / web ile tip paylaşımı için)
+// ama premium.tsx artık bunları KULLANMIYOR.
+export interface VerifyPurchaseRequest {
+  platform: 'ios' | 'android';
+  product_id: string;
+  transaction_id: string;
+  purchase_token: string;
+}
+
+export interface VerifyPurchaseResponse {
+  is_premium: boolean;
+  premium_until?: string;
+  plan_code?: string;
+  status?: string;
+}
+
 export interface Notification {
   id: string;
   type: string;

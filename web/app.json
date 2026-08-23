@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "58021727-5352-4e8f-aa5f-87df941916f8"
+      }
+    },
+    "android": {
+      "package": "com.ahmetbehcettaylan.lexisweb"
+    }
+  }
+}

@@ -28,6 +28,11 @@ XPSourceType = Literal[
     "game_matching",
     "game_listening",
     "game_sprint",
+    # Ödül sistemi (bkz. badge_service.py / distribute_leaderboard_rewards.py) —
+    # streak.py içinde seri kilometre taşına (7/30/100/365 gün) ulaşınca,
+    # ya da haftalık/aylık liderlik tablosu ödülleri dağıtılırken kullanılır.
+    "streak_milestone",
+    "leaderboard_reward",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -56,6 +61,12 @@ XP_AMOUNTS: dict[str, int] = {
     "game_matching": 6,
     "game_listening": 8,
     "game_sprint": 4,
+    # Bu ikisi için çağıran kod (streak.py / distribute_leaderboard_rewards.py)
+    # her zaman kendi `amount`ını açıkça geçer (kilometre taşı / sıralamaya göre
+    # değişken miktar) — buradaki değerler sadece olası bir eksik-amount çağrısına
+    # karşı güvenli bir varsayılan.
+    "streak_milestone": 20,
+    "leaderboard_reward": 20,
 }
 
 LEVEL_BASE = 50

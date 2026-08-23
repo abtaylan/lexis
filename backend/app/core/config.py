@@ -49,6 +49,25 @@ class Settings(BaseSettings):
     PREMIUM_MONTHLY_PRICE_EUR: float = 0.0
     PREMIUM_YEARLY_PRICE_EUR: float = 0.0
 
+    # ── Mobil Apple/Google IAP — kullanıcı kararı: web'de iyzico kalıyor,
+    # mobilde store kuralları nedeniyle native IAP kullanılıyor. Aşağıdaki
+    # değerler Apple Developer Program (26 Ağustos'ta aktive edilecek) ve
+    # Google Play Console'da ürün/kimlik oluşturulduktan SONRA doldurulur —
+    # boş bırakıldığı sürece app/services/apple_appstore.py ve
+    # google_play.py "yapılandırılmadı" hatası döner, ASLA sessizce premium
+    # vermez (bkz. o dosyalardaki NotConfiguredError).
+    APPLE_BUNDLE_ID: str = "app.lexis.mobile"
+    APPLE_ISSUER_ID: str = ""          # App Store Connect > Users and Access > Integrations
+    APPLE_KEY_ID: str = ""
+    APPLE_PRIVATE_KEY_P8: str = ""     # .p8 dosyasının TAM içeriği (PEM), .env'de \n kaçışlı tek satır
+    APPLE_USE_SANDBOX: bool = False    # TestFlight/Xcode test ortamı için True
+
+    GOOGLE_PLAY_PACKAGE_NAME: str = "app.lexis.mobile"
+    GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: str = ""  # Play Console service account key JSON'ın TAM içeriği (tek satır)
+
+    IAP_PRODUCT_MONTHLY: str = "app.lexis.mobile.premium.monthly"
+    IAP_PRODUCT_YEARLY: str = "app.lexis.mobile.premium.yearly"
+
     # ── OTP doğrulama (giriş + kayıt sonrası) ──────────────────────
     # "fixed"  → test/geliştirme: kod her zaman OTP_FIXED_CODE, mail atılmaz, sadece log'a yazılır.
     # "real"   → production: rastgele 6 haneli kod üretilir ve SMTP ile e-postaya gönderilir.

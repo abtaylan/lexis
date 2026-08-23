@@ -1,6 +1,48 @@
 from datetime import datetime, timezone, timedelta, date
 from typing import Optional
 from app.core.database import supabase_admin
+from app.services import badge_service, xp_service
+
+# Ödül sistemi — seri kilometre taşları (bkz. backlog "Ödül sistemi:
+# ödülleri sen belirle, sana bırakıyorum"). Rozet kodları (streak_7 vb.)
+# migration create_badges_and_user_badges'teki badges katalogla eşleşiyor.
+# Bonus XP miktarları kilometre taşı büyüdükçe artıyor — xp_service'teki
+# diğer ödüllerle (game_wordle=15, daily_goal_bonus=20 vb.) kıyaslanınca
+# "gerçekten özel bir an" hissi versin diye kasıtlı olarak yüksek tutuldu.
+STREAK_MILESTONES: dict[int, int] = {
+    7: 30,
+    30: 150,
+    100: 500,
+    365: 2000,
+}
+
+
+async def _maybe_award_streak_milestone(user_id: str, streak_days: int) -> None:
+    bonus_xp = STREAK_MILESTONES.get(streak_days)
+    if bonus_xp is None:
+        return
+    badge_code = f"streak_{streak_days}"
+    newly_awarded = await badge_service.award_badge(user_id, badge_code, meta={"streak_days": streak_days})
+    if not newly_awarded:
+        return  # zaten kazanılmış (örn. iki farklı dilde aynı gün ilerleme kaydı) — tekrar XP verme
+    await xp_service.award_xp(
+        user_id,
+        "streak_milestone",
+        amount=bonus_xp,
+        metadata={"streak_days": streak_days, "badge_code": badge_code},
+    )
+    try:
+        supabase_admin.table("notifications").insert(
+            {
+                "user_id": user_id,
+                "type": "reward",
+                "title": f"🔥 {streak_days} günlük seri!",
+                "message": f"Tebrikler, {streak_days} gün üst üste çalıştın! +{bonus_xp} XP ve yeni bir rozet kazandın.",
+            }
+        ).execute()
+    except Exception as e:
+        print(f"STREAK MILESTONE NOTIFICATION WARNING (user={user_id}): {e}")
+
 
 async def update_streak(user_id: str, action: str = "word_added", learning_lang: Optional[str] = None):
     """
@@ -72,6 +114,8 @@ async def update_streak(user_id: str, action: str = "word_added", learning_lang:
         )
         prev_streak = yesterday_row.data[0]["streak_day"] if yesterday_row.data else 0
         new_streak = prev_streak + 1 if prev_streak > 0 else 1
+
+        await _maybe_award_streak_milestone(user_id, new_streak)
 
         insert_data = {
             "user_id": user_id,

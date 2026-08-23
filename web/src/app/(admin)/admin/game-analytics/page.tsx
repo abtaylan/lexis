@@ -5,6 +5,7 @@ import { Gamepad2, Loader2, Target } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { adminApi } from '@/lib/api';
 import type { GameAnalytics } from '@/types';
+import { useThemeMode } from '@/store/theme';
 
 const MODE_LABELS: Record<string, string> = {
   wordle: 'Adam Asmaca', multiple_choice: 'Çoktan Seçmeli',
@@ -15,6 +16,11 @@ const MODE_LABELS: Record<string, string> = {
 export default function GameAnalyticsPage() {
   const [data, setData] = useState<GameAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
+  const { scheme } = useThemeMode();
+  // bkz. admin/stats/page.tsx'teki aynı not — Recharts inline stil kullanıyor.
+  const chartTheme = scheme === 'dark'
+    ? { grid: '#334155', axis: '#64748b', tooltipBg: '#0f172a', tooltipBorder: '#334155', tooltipText: '#e2e8f0' }
+    : { grid: '#f1f5f9', axis: '#94a3b8', tooltipBg: '#ffffff', tooltipBorder: '#e2e8f0', tooltipText: '#1e293b' };
 
   useEffect(() => {
     adminApi.getGameAnalytics().then(setData).finally(() => setLoading(false));
@@ -54,10 +60,10 @@ export default function GameAnalyticsPage() {
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="mode" tick={{ fontSize: 10, fill: '#94a3b8' }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e2e8f0' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+              <XAxis dataKey="mode" tick={{ fontSize: 10, fill: chartTheme.axis }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: chartTheme.axis }} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: `1px solid ${chartTheme.tooltipBorder}`, backgroundColor: chartTheme.tooltipBg, color: chartTheme.tooltipText }} labelStyle={{ color: chartTheme.tooltipText }} />
               <Bar dataKey="sessions" fill="#534AB7" radius={[6, 6, 0, 0]} name="Oturum" />
             </BarChart>
           </ResponsiveContainer>

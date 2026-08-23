@@ -8,6 +8,7 @@ import {
 } from 'recharts';
 import { adminApi } from '@/lib/api';
 import type { AdminStats, DetailedStats } from '@/types';
+import { useThemeMode } from '@/store/theme';
 
 // NOT: Bu sayfa önceden artık var olmayan bir i18n API'sine (useT/t) bağlıydı
 // — bkz. app/(admin)/layout.tsx'teki not. Admin panel iç kullanım için
@@ -17,6 +18,13 @@ export default function AdminStatsPage() {
   const [detailed, setDetailed] = useState<DetailedStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
+  const { scheme } = useThemeMode();
+  // Recharts inline stil kabul ediyor, Tailwind `dark:` class'ı değil —
+  // bu yüzden ızgara/eksen/tooltip renkleri burada elle tema'ya bağlanıyor.
+  // Marka/vurgu renkleri (mor #534AB7 vb.) kasıtlı olarak sabit kalıyor.
+  const chartTheme = scheme === 'dark'
+    ? { grid: '#334155', axis: '#64748b', axisAlt: '#94a3b8', tooltipBg: '#0f172a', tooltipBorder: '#334155', tooltipText: '#e2e8f0' }
+    : { grid: '#f1f5f9', axis: '#94a3b8', axisAlt: '#475569', tooltipBg: '#ffffff', tooltipBorder: '#e2e8f0', tooltipText: '#1e293b' };
 
   useEffect(() => {
     Promise.all([adminApi.getStats(), adminApi.getDetailedStats(30)])
@@ -87,10 +95,10 @@ export default function AdminStatsPage() {
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={detailed?.growth || []} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} tickFormatter={(d) => d.slice(5)} />
-              <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} allowDecimals={false} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e2e8f0' }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.axis }} tickFormatter={(d) => d.slice(5)} />
+              <YAxis tick={{ fontSize: 10, fill: chartTheme.axis }} allowDecimals={false} />
+              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: `1px solid ${chartTheme.tooltipBorder}`, backgroundColor: chartTheme.tooltipBg, color: chartTheme.tooltipText }} labelStyle={{ color: chartTheme.tooltipText }} />
               <Line type="monotone" dataKey="new_users" stroke="#534AB7" strokeWidth={2} dot={false} name="Yeni kullanıcı" />
             </LineChart>
           </ResponsiveContainer>
@@ -106,10 +114,10 @@ export default function AdminStatsPage() {
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={learningLangData} layout="vertical" margin={{ left: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                  <YAxis type="category" dataKey="lang" tick={{ fontSize: 11, fill: '#475569' }} width={36} />
-                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: '1px solid #e2e8f0' }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: chartTheme.axis }} />
+                  <YAxis type="category" dataKey="lang" tick={{ fontSize: 11, fill: chartTheme.axisAlt }} width={36} />
+                  <Tooltip contentStyle={{ fontSize: 12, borderRadius: 12, border: `1px solid ${chartTheme.tooltipBorder}`, backgroundColor: chartTheme.tooltipBg, color: chartTheme.tooltipText }} labelStyle={{ color: chartTheme.tooltipText }} />
                   <Bar dataKey="count" fill="#534AB7" radius={[0, 6, 6, 0]} name="Kullanıcı" />
                 </BarChart>
               </ResponsiveContainer>

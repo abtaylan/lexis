@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { DailyProgress, LeaderboardPeriod, LeaderboardResponse, Stats, XpSummary } from './types';
+import type { AnalyticsData, DailyProgress, LeaderboardPeriod, LeaderboardResponse, Stats, XpSummary } from './types';
 
 export const statsApi = {
   getSummary: async (): Promise<Stats> => {
@@ -8,6 +8,10 @@ export const statsApi = {
   },
   getHistory: async (days = 14): Promise<DailyProgress[]> => {
     const res = await api.get<DailyProgress[]>('/stats/history', { params: { days } });
+    return res.data;
+  },
+  getAnalytics: async (): Promise<AnalyticsData> => {
+    const res = await api.get<AnalyticsData>('/stats/analytics');
     return res.data;
   },
   getXp: async (): Promise<XpSummary> => {

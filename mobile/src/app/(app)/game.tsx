@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router } from 'expo-router';
+import * as Speech from 'expo-speech';
+import { Volume2 } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { gamesApi } from '@/api/games';
 import type { Direction, GameFinishResult, GameMode, NextWordResult, PoolSource } from '@/api/types';
@@ -58,6 +60,18 @@ export default function GameScreen() {
   const [revealedWord, setRevealedWord] = useState<string | null>(null);
   const [letterBusy, setLetterBusy] = useState(false);
 
+  // ── yazma (typing) state — web'deki gibi dinleme/sprint modları da bunu
+  // paylaşacak (bkz. handleTypingSubmit): doğruluk kontrolü current.word ile
+  // karşılaştırma. ──
+  const [typedAnswer, setTypedAnswer] = useState('');
+  const [typingResult, setTypingResult] = useState<'correct' | 'wrong' | null>(null);
+
+  // ── sprint state — tüm oturum için tek bir geri sayım (bkz. web/game/page.tsx
+  // içindeki aynı isimli useEffect) ──
+  const [sprintSecondsLeft, setSprintSecondsLeft] = useState(60);
+  const sprintTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const SPRINT_DURATION_SECS = 60;
+
   const [matchingItems, setMatchingItems] = useState<MatchingItem[]>([]);
   const [matchingWordSlots, setMatchingWordSlots] = useState<string[]>([]);
   const [matchingMeaningSlots, setMatchingMeaningSlots] = useState<string[]>([]);
@@ -100,6 +114,8 @@ export default function GameScreen() {
       setMaxWrongGuesses(nw.max_wrong_guesses ?? 6);
       setRoundResult(null);
       setRevealedWord(null);
+      setTypedAnswer('');
+      setTypingResult(null);
       setQuestionNum((n) => n + 1);
       setStage('playing');
     } catch {
@@ -224,6 +240,7 @@ export default function GameScreen() {
     setQuestionNum(0);
     setLevelUp(null);
     setFinishResult(null);
+    if (mode === 'sprint') setSprintSecondsLeft(SPRINT_DURATION_SECS);
     if (mode === 'matching') {
       setMatchingItems([]);
       setMatchedUids([]);
@@ -270,6 +287,41 @@ export default function GameScreen() {
     setTimeout(() => loadNext(sessionId, true, poolSource), 900);
   };
 
+  // ── yazma (typing) cevap gönderimi — current.word ile büyük/küçük harf ve
+  // baş/son boşluk yok sayılarak karşılaştırılır (bkz. web/game/page.tsx). ──
+  const handleTypingSubmit = async () => {
+    if (typingResult || !current || !sessionId || !typedAnswer.trim()) return;
+    const correctWord = (current.word ?? '').trim().toLocaleLowerCase();
+    const isCorrect = typedAnswer.trim().toLocaleLowerCase() === correctWord;
+    setTypingResult(isCorrect ? 'correct' : 'wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        word_id: current.word_id ?? undefined,
+        general_word_id: current.general_word_id ?? undefined,
+        is_correct: isCorrect,
+      });
+      setScore(res.session_score);
+      setXpEarned((x) => x + res.xp_awarded);
+      if (res.leveled_up) setLevelUp(res.new_level);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(() => loadNext(sessionId, true, poolSource), isCorrect ? 900 : 1600);
+  };
+
+  // ── dinleme (listening) — kelimeyi expo-speech ile sesli okur (bkz.
+  // web/game/page.tsx'teki SpeechSynthesis kullanımıyla aynı mantık). Dil
+  // kodu şimdilik verilmiyor, cihazın varsayılan sesi kullanılıyor. ──
+  const speakWord = (text: string) => {
+    if (!text) return;
+    try {
+      Speech.stop();
+      Speech.speak(text);
+    } catch {
+      /* sessiz — cihaz TTS desteklemiyor olabilir */
+    }
+  };
+
   const handleGuessLetter = async (letter: string) => {
     if (letterBusy || roundResult || !sessionId || guessedLetters.includes(letter)) return;
     setLetterBusy(true);
@@ -301,6 +353,10 @@ export default function GameScreen() {
 
   const handleFinish = async () => {
     if (!sessionId) return;
+    if (sprintTimerRef.current) {
+      clearInterval(sprintTimerRef.current);
+      sprintTimerRef.current = null;
+    }
     setStage('loading');
     try {
       const res = await gamesApi.finishSession(sessionId);
@@ -310,6 +366,41 @@ export default function GameScreen() {
     }
     setStage('done');
   };
+
+  // ── sprint geri sayımı — 'playing' aşamasına girince başlar, süre 0'a
+  // inince oturumu otomatik bitirir (bkz. web/game/page.tsx'teki aynı desen). ──
+  useEffect(() => {
+    if (gameMode !== 'sprint' || stage !== 'playing') return;
+    if (sprintTimerRef.current) return;
+    sprintTimerRef.current = setInterval(() => {
+      setSprintSecondsLeft((s) => {
+        if (s <= 1) {
+          if (sprintTimerRef.current) {
+            clearInterval(sprintTimerRef.current);
+            sprintTimerRef.current = null;
+          }
+          handleFinish();
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+    return () => {
+      if (sprintTimerRef.current) {
+        clearInterval(sprintTimerRef.current);
+        sprintTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameMode, stage]);
+
+  // ── dinleme (listening) — her yeni kelimede otomatik bir kez seslendir ──
+  useEffect(() => {
+    if (gameMode === 'listening' && stage === 'playing' && current?.word) {
+      speakWord(current.word);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameMode, stage, current?.word]);
 
   // ── Mod seçimi ──
   if (stage === 'mode') {
@@ -333,6 +424,34 @@ export default function GameScreen() {
           onPress={() => {
             setGameMode('wordle');
             setDirection('meaning_to_word');
+            setStage('setup');
+          }}
+        />
+        <OptionButton
+          title={gt.modeTypingLabel}
+          desc={gt.modeTypingDesc}
+          onPress={() => {
+            setGameMode('typing');
+            setDirection('meaning_to_word');
+            setStage('setup');
+          }}
+        />
+        <OptionButton
+          title={gt.modeListeningLabel}
+          desc={gt.modeListeningDesc}
+          onPress={() => {
+            setGameMode('listening');
+            setDirection('meaning_to_word');
+            setStage('setup');
+          }}
+        />
+        <OptionButton
+          title={gt.modeSprintLabel}
+          desc={gt.modeSprintDesc}
+          onPress={() => {
+            setGameMode('sprint');
+            setDirection('meaning_to_word');
+            setSprintSecondsLeft(SPRINT_DURATION_SECS);
             setStage('setup');
           }}
         />
@@ -507,6 +626,10 @@ export default function GameScreen() {
   // ── Oynanış ──
   if (!current) return null;
   const isWordle = gameMode === 'wordle';
+  const isTyping = gameMode === 'typing';
+  const isListening = gameMode === 'listening';
+  const isSprint = gameMode === 'sprint';
+  const isMultipleChoice = gameMode === 'multiple_choice';
   const activeDirection = current.direction ?? direction;
   const isDefinition = activeDirection === 'definition_to_word';
   const isReverse = !isWordle && (activeDirection === 'meaning_to_word' || isDefinition);
@@ -518,6 +641,11 @@ export default function GameScreen() {
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
           <Text style={{ color: c.success, fontSize: 12, fontWeight: '600' }}>{gt.scoreLabel}: {score}</Text>
           <Text style={{ color: c.accent, fontSize: 12, fontWeight: '600' }}>✨ {xpEarned} {gt.xpLabel}</Text>
+          {isSprint && (
+            <Text style={{ color: c.warning, fontSize: 12, fontWeight: '600' }}>
+              ⚡ {gt.sprintTimeLeftTpl.replace('{s}', String(sprintSecondsLeft))}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -527,7 +655,7 @@ export default function GameScreen() {
         </Card>
       )}
 
-      {!isWordle && (
+      {isMultipleChoice && (
         <>
           <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
             <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.sm, textTransform: 'uppercase' }}>
@@ -664,6 +792,129 @@ export default function GameScreen() {
         </>
       )}
 
+      {(isTyping || isSprint) && (
+        <>
+          <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.sm, textTransform: 'uppercase' }}>
+              {gt.typingPromptLabel}
+            </Text>
+            <Text style={{ color: c.text, fontSize: 24, fontWeight: '700', textAlign: 'center' }}>{current.meaning}</Text>
+          </Card>
+
+          <TextInput
+            value={typedAnswer}
+            onChangeText={setTypedAnswer}
+            onSubmitEditing={handleTypingSubmit}
+            editable={typingResult === null}
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            placeholder={gt.typingInputPlaceholder}
+            placeholderTextColor={c.textMuted}
+            style={[
+              styles.typingInput,
+              {
+                borderColor: typingResult === 'correct' ? c.success : typingResult === 'wrong' ? c.danger : c.border,
+                backgroundColor: typingResult === 'correct' ? c.successSoft : typingResult === 'wrong' ? c.dangerSoft : c.surface,
+                color: typingResult === 'correct' ? c.success : typingResult === 'wrong' ? c.danger : c.text,
+              },
+            ]}
+          />
+
+          {typingResult === null && (
+            <View style={{ marginTop: spacing.sm }}>
+              <Button title={gt.typingCheckBtn} onPress={handleTypingSubmit} disabled={!typedAnswer.trim()} />
+            </View>
+          )}
+
+          {typingResult !== null && (
+            <Text
+              style={{
+                color: typingResult === 'correct' ? c.success : c.danger,
+                fontWeight: '700',
+                textAlign: 'center',
+                marginTop: spacing.md,
+              }}
+            >
+              {typingResult === 'correct'
+                ? gt.correctLabel
+                : `${gt.wrongLabel} — ${gt.correctWordTpl.replace('{word}', current.word ?? '')}`}
+            </Text>
+          )}
+        </>
+      )}
+
+      {isListening && (
+        <>
+          <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.md, textTransform: 'uppercase' }}>
+              {gt.listeningPromptLabel}
+            </Text>
+            <Pressable
+              onPress={() => current.word && speakWord(current.word)}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: c.primarySoft,
+              }}
+            >
+              <Volume2 color={c.primary} size={28} />
+            </Pressable>
+            {current.meaning ? (
+              <Text style={{ color: c.textMuted, fontSize: 12, fontStyle: 'italic', marginTop: spacing.md, textAlign: 'center' }}>
+                {current.meaning}
+              </Text>
+            ) : null}
+          </Card>
+
+          <TextInput
+            value={typedAnswer}
+            onChangeText={setTypedAnswer}
+            onSubmitEditing={handleTypingSubmit}
+            editable={typingResult === null}
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            placeholder={gt.typingInputPlaceholder}
+            placeholderTextColor={c.textMuted}
+            style={[
+              styles.typingInput,
+              {
+                borderColor: typingResult === 'correct' ? c.success : typingResult === 'wrong' ? c.danger : c.border,
+                backgroundColor: typingResult === 'correct' ? c.successSoft : typingResult === 'wrong' ? c.dangerSoft : c.surface,
+                color: typingResult === 'correct' ? c.success : typingResult === 'wrong' ? c.danger : c.text,
+              },
+            ]}
+          />
+
+          {typingResult === null && (
+            <View style={{ marginTop: spacing.sm }}>
+              <Button title={gt.typingCheckBtn} onPress={handleTypingSubmit} disabled={!typedAnswer.trim()} />
+            </View>
+          )}
+
+          {typingResult !== null && (
+            <Text
+              style={{
+                color: typingResult === 'correct' ? c.success : c.danger,
+                fontWeight: '700',
+                textAlign: 'center',
+                marginTop: spacing.md,
+              }}
+            >
+              {typingResult === 'correct'
+                ? gt.correctLabel
+                : `${gt.wrongLabel} — ${gt.correctWordTpl.replace('{word}', current.word ?? '')}`}
+            </Text>
+          )}
+        </>
+      )}
+
       <Pressable onPress={handleFinish} style={{ alignItems: 'center', marginTop: spacing.lg }}>
         <Text style={{ color: c.textMuted, fontSize: 12, textDecorationLine: 'underline' }}>{gt.finishBtn}</Text>
       </Pressable>
@@ -719,4 +970,13 @@ const styles = StyleSheet.create({
   letterBox: { width: 32, height: 40, borderWidth: 2, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   key: { width: 28, height: 36, borderRadius: radius.sm, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   matchTile: { borderWidth: 2, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.sm, minHeight: 52, alignItems: 'center', justifyContent: 'center' },
+  typingInput: {
+    borderWidth: 2,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });

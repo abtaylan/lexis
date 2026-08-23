@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import './globals.css';
 import { Providers } from './providers';
 
@@ -35,6 +37,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <Providers>{children}</Providers>
+        {/* Vercel projeye bağlıysa otomatik veri toplamaya başlar, ek config
+            gerekmez — bkz. backlog Bölüm 6. Build/lokal ortamda no-op'tur. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

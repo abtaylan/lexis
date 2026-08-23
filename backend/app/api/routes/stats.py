@@ -3,6 +3,7 @@ from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.services.xp_service import get_xp_summary
 from app.services.leaderboard_service import get_leaderboard
+from app.services.badge_service import get_user_badges
 from datetime import date, timedelta
 from collections import defaultdict
 
@@ -109,6 +110,13 @@ async def get_leaderboard_route(
         )
     limit = max(1, min(limit, 100))
     return await get_leaderboard(current_user.id, period, limit)  # type: ignore[arg-type]
+
+# ── Rozetler (ödül sistemi) — kazanılan tüm rozetler, en yeni önce ──
+# Rozetler streak.py (seri kilometre taşı) ve distribute_leaderboard_rewards.py
+# (haftalık/aylık liderlik ödülü) tarafından otomatik veriliyor, bkz. badge_service.py.
+@router.get("/badges")
+async def get_badges_route(current_user=Depends(get_current_user)):
+    return await get_user_badges(current_user.id)
 
 # ── Detaylı analiz — grafik sayfası için ──────────────────────
 @router.get("/analytics")
