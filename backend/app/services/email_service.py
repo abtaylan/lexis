@@ -13,12 +13,12 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
     OTP_MODE=fixed (test/geliştirme) iken hiçbir mail atılmaz, kod sadece
     backend log'una yazılır — böylece gerçek bir e-posta kutusu olmayan test
     hesapları da rahatça giriş/kayıt olabilir (kod her zaman "123456").
-
     OTP_MODE=real (production) iken SMTP üzerinden gerçek e-posta gönderilir.
 
     purpose: "login" | "register" | "reset_password"
     """
-    if settings.OTP_MODE != "real":
+    is_test = bool(settings.OTP_TEST_EMAIL_SUFFIX) and to_email.lower().endswith(settings.OTP_TEST_EMAIL_SUFFIX.lower())
+    if settings.OTP_MODE != "real" or is_test:
         print(f"[OTP-DEV] {to_email} ({purpose}) → kod: {code}")
         log_notification("email", "otp", to_email, "skipped", {"purpose": purpose, "reason": "OTP_MODE=fixed"})
         return
