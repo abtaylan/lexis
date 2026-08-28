@@ -10,8 +10,9 @@ from app.core.database import supabase_admin
 from app.services.email_service import send_otp_email
 
 
-def _generate_code() -> str:
-    if settings.OTP_MODE != "real":
+def _generate_code(email: str) -> str:
+    is_test = bool(settings.OTP_TEST_EMAIL_SUFFIX) and email.lower().endswith(settings.OTP_TEST_EMAIL_SUFFIX.lower())
+    if settings.OTP_MODE != "real" or is_test:
         return settings.OTP_FIXED_CODE
     return "".join(random.choices(string.digits, k=6))
 
@@ -58,7 +59,7 @@ def create_otp(
     except Exception as e:
         print(f"OTP invalidate warning: {e}")
 
-    code = _generate_code()
+    code = _generate_code(email)
     expires_at = now + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
 
     supabase_admin.table("otp_codes").insert(
