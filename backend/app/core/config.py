@@ -76,6 +76,10 @@ class Settings(BaseSettings):
     OTP_EXPIRE_MINUTES: int = 10
     OTP_MAX_ATTEMPTS: int = 5
     OTP_RESEND_COOLDOWN_SECONDS: int = 60
+    # OTP_MODE=real olsa bile bu uzantıyla biten e-postalar HER ZAMAN sabit
+    # kod alır ve gerçek mail atılmaz (test hesapları prod SMTP'ye bağımlı
+    # kalmasın diye). Boş bırakılırsa (varsayılan) bu istisna hiç uygulanmaz.
+    OTP_TEST_EMAIL_SUFFIX: str = ""
 
     # SMTP — production'da OTP e-postası göndermek için (Gmail App Password önerilir,
     # uzlaş.io'daki io.uzlasinfo@gmail.com deseniyle aynı — ücretsiz)
