@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Crown, Check, X } from 'lucide-react';
+import Image from 'next/image';
+import { Crown, Check, X, Lock } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button, Card, Spinner, Badge } from '@/components/ui';
 import { useAuth } from '@/store/auth';
@@ -17,6 +18,13 @@ const DATE_LOCALE: Record<Locale, string> = {
   de: 'de-DE', fr: 'fr-FR', es: 'es-ES', it: 'it-IT', ja: 'ja-JP',
 };
 
+// lexiswords.com (landing) üzerindeki yasal sayfalar — 28 Ağustos 2026 oturumunda
+// eklendi. app.lexiswords.com ayrı bir Vercel projesi olduğundan mutlak URL kullanılıyor.
+const LEGAL_SITE_URL = process.env.NEXT_PUBLIC_LEGAL_SITE_URL || 'https://lexiswords.com';
+const DISTANCE_SALES_URL = `${LEGAL_SITE_URL}/mesafeli-satis-sozlesmesi`;
+const PRIVACY_URL = `${LEGAL_SITE_URL}/gizlilik-politikasi`;
+const REFUND_URL = `${LEGAL_SITE_URL}/teslimat-iade-sartlari`;
+
 function injectAndRunScripts(container: HTMLDivElement) {
   const scripts = Array.from(container.querySelectorAll('script'));
   scripts.forEach((oldScript) => {
@@ -25,6 +33,26 @@ function injectAndRunScripts(container: HTMLDivElement) {
     newScript.text = oldScript.textContent || '';
     oldScript.replaceWith(newScript);
   });
+}
+
+// iyzico "Logo Paketi" + kart ağı logoları — güvenlik/marka rozetleri.
+// Dosyaları https://docs.iyzico.com/ek-bilgiler/iyzico-logo-paketi adresinden indirip
+// web/public/payment/ altına bu isimlerle koyun: iyzico.svg, visa.svg, mastercard.svg
+// (bkz. README notu). Dosya yoksa Next/Image kırık görünmez, sadece alt metni gösterir.
+function PaymentTrustBadges() {
+  return (
+    <div className="flex flex-col items-center gap-3 py-4">
+      <div className="flex items-center gap-4 flex-wrap justify-center">
+        <Image src="/payment/iyzico.svg" alt="iyzico ile Öde" width={120} height={42} className="h-8 w-auto" />
+        <Image src="/payment/visa.svg" alt="Visa" width={52} height={32} className="h-6 w-auto" />
+        <Image src="/payment/mastercard.svg" alt="Mastercard" width={52} height={32} className="h-6 w-auto" />
+      </div>
+      <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <Lock className="w-3.5 h-3.5" />
+        <span>256-bit SSL ile güvenli ödeme — kart bilgileriniz tarafımızca saklanmaz.</span>
+      </div>
+    </div>
+  );
 }
 
 export default function PremiumPage() {
@@ -44,6 +72,9 @@ export default function PremiumPage() {
   // para birimlerini döner. Bugün için (TRY dışında hiçbir şey yapılandırılmadıysa)
   // bu her zaman tek elemanlı ['TRY'] olur ve seçici hiç görünmez.
   const [selectedCurrency, setSelectedCurrency] = useState<string>('TRY');
+  // iyzico üye iş yeri gerekliliği: satın alma öncesi Mesafeli Satış Sözleşmesi
+  // onayı zorunlu (bkz. lexis_kalan_isler — "iyzico'da özel yeni API key'leri" maddesi).
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const checkoutContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,6 +101,10 @@ export default function PremiumPage() {
   }, [updateUser]);
 
   const handleCheckout = async (planId: string) => {
+    if (!agreedToTerms) {
+      setError('Devam etmek için Mesafeli Satış Sözleşmesi\'ni onaylamanız gerekiyor.');
+      return;
+    }
     setError('');
     setCheckingOut(planId);
     try {
@@ -165,7 +200,7 @@ export default function PremiumPage() {
               ))}
             </div>
           )}
-          <div className="grid sm:grid-cols-2 gap-4 mb-8">
+          <div className="grid sm:grid-cols-2 gap-4 mb-6">
             {visiblePlans.map((plan) => (
               <Card key={plan.id} className="p-6 flex flex-col">
                 <div className="flex items-center gap-2 mb-1">
@@ -180,6 +215,7 @@ export default function PremiumPage() {
                   variant="primary"
                   className="mt-auto"
                   loading={checkingOut === plan.id}
+                  disabled={!agreedToTerms}
                   onClick={() => handleCheckout(plan.id)}
                 >
                   {t('premiumSubscribeBtnTpl').replace('{interval}', plan.interval_label)}
@@ -188,7 +224,28 @@ export default function PremiumPage() {
             ))}
           </div>
 
-          <Card className="p-6 mb-8">
+          {/* iyzico üye iş yeri gerekliliği: satın almadan önce Mesafeli Satış
+              Sözleşmesi onayı zorunlu tutuluyor. */}
+          <label className="flex items-start gap-2.5 mb-6 text-sm text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(e) => setAgreedToTerms(e.target.checked)}
+              className="mt-0.5 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span>
+              <a href={DISTANCE_SALES_URL} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 underline underline-offset-2">
+                Mesafeli Satış Sözleşmesi
+              </a>
+              {'’ni ve '}
+              <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 underline underline-offset-2">
+                Gizlilik Politikası
+              </a>
+              {'’nı okudum, dijital hizmetin onayımla anında ifasına başlanacağını ve bu nedenle cayma hakkımı kaybedeceğimi kabul ediyorum.'}
+            </span>
+          </label>
+
+          <Card className="p-6 mb-6">
             <p className="font-semibold text-slate-800 dark:text-slate-100 mb-3">{t('premiumFeaturesTitle')}</p>
             <ul className="space-y-2">
               {FEATURES.map((f) => (
@@ -201,6 +258,12 @@ export default function PremiumPage() {
               </li>
             </ul>
           </Card>
+
+          <PaymentTrustBadges />
+
+          <p className="text-center text-xs text-slate-400 mb-2">
+            Sorularınız için <a href={REFUND_URL} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">iade koşullarına</a> göz atabilirsiniz.
+          </p>
         </>
       )}
 

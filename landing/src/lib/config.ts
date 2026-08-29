@@ -23,3 +23,32 @@ export const SOCIAL_LINKS: SocialLink[] = [
   { key: 'x', label: 'X', href: process.env.NEXT_PUBLIC_X_URL || 'https://x.com/lexis_words' },
   { key: 'linkedin', label: 'LinkedIn', href: process.env.NEXT_PUBLIC_LINKEDIN_URL || 'https://www.linkedin.com/in/lexis-words-7a605b430/' },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────
+// İşletme / yasal bilgiler (KVKK, Mesafeli Sözleşmeler Yönetmeliği ve iyzico
+// üye iş yeri başvurusu için zorunlu). 29 Ağustos 2026 oturumunda kullanıcı
+// onayıyla, C:\...\PROJELER\iyzico klasöründeki e-Vergi Levhası'ndan alındı
+// (aynı şahıs işletmesinin hem uzlaş.io hem Lexis'i kapsadığı doğrulandı).
+// NOT: Levhadaki TC Kimlik No kasıtlı olarak BURAYA YAZILMADI — yalnızca
+// işletmenin Vergi Kimlik No'su (iyzico/e-ticaret bildirimlerinde kullanılan
+// alan) kullanıldı. Telefon numarası belgede yoktu, kullanıcı ayrıca dolduracak.
+// ─────────────────────────────────────────────────────────────────────────
+export const COMPANY_INFO = {
+  // Vergi levhasında "Ticaret Ünvanı" alanı boş — şahıs mükellefinde ad-soyad unvan yerine geçer.
+  legalName: 'Arif Emre Taylan',
+  ownerName: 'Arif Emre Taylan', // İşletme sahibi / vergi mükellefi
+  taxOffice: 'Karamürsel Vergi Dairesi',
+  taxNumber: '8320646446', // Vergi Kimlik No (TC Kimlik No değil)
+  mersisNo: '', // Şahıs işletmeleri için MERSİS zorunlu değildir, tüzel kişiliğe geçilirse doldurulur.
+  address: '4 Temmuz Mah. 111. Cad. No: 28 İç Kapı No: 7, Karamürsel / Kocaeli',
+  phone: '[TELEFON NUMARASI — örn. +90 5XX XXX XX XX]',
+  kepAddress: '', // Opsiyonel — Kayıtlı Elektronik Posta adresiniz varsa buraya girin.
+  email: CONTACT_EMAIL,
+};
+
+export const LEGAL_URLS = {
+  privacy: '/gizlilik-politikasi',
+  distanceSales: '/mesafeli-satis-sozlesmesi',
+  deliveryRefund: '/teslimat-iade-sartlari',
+  about: '/hakkimizda',
+};

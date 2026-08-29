@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Mail, Send } from 'lucide-react';
 import { useLocale } from '@/lib/i18n';
-import { LOGIN_URL, REGISTER_URL, CONTACT_EMAIL, SOCIAL_LINKS } from '@/lib/config';
+import { LOGIN_URL, REGISTER_URL, CONTACT_EMAIL, SOCIAL_LINKS, COMPANY_INFO, LEGAL_URLS } from '@/lib/config';
 import { XLogoIcon, SlackLogoIcon, YoutubeLogoIcon, InstagramLogoIcon, LinkedinLogoIcon } from './icons';
 
 const ICONS = {
@@ -21,7 +21,7 @@ export function Footer() {
   return (
     <footer id="contact" className="border-t border-gray-100 bg-white">
       <div className="mx-auto max-w-6xl px-5 py-14">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2">
               <Image src="/logo-icon.png" alt="Lexis" width={28} height={28} className="rounded-lg" />
@@ -78,13 +78,36 @@ export function Footer() {
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">{t('footerCompanyHeading')}</div>
             <ul className="space-y-2.5 text-sm">
+              <li><a href={LEGAL_URLS.about} className="text-gray-600 hover:text-gray-900 transition-colors">Hakkımızda</a></li>
               <li><a href="#faq" className="text-gray-600 hover:text-gray-900 transition-colors">{t('footerLinkFaq')}</a></li>
               <li><a href={`mailto:${CONTACT_EMAIL}`} className="text-gray-600 hover:text-gray-900 transition-colors">{t('footerLinkContact')}</a></li>
             </ul>
           </div>
+
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Yasal</div>
+            <ul className="space-y-2.5 text-sm">
+              <li><a href={LEGAL_URLS.privacy} className="text-gray-600 hover:text-gray-900 transition-colors">Gizlilik Politikası</a></li>
+              <li><a href={LEGAL_URLS.distanceSales} className="text-gray-600 hover:text-gray-900 transition-colors">Mesafeli Satış Sözleşmesi</a></li>
+              <li><a href={LEGAL_URLS.deliveryRefund} className="text-gray-600 hover:text-gray-900 transition-colors">Teslimat ve İade Şartları</a></li>
+            </ul>
+          </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-gray-100 text-xs text-gray-400 flex flex-col sm:flex-row items-center justify-between gap-2">
+        {/* iyzico başvurusu ve KVKK için zorunlu işletme kimlik bilgileri.
+            [KÖŞELİ PARANTEZLİ] alanlar src/lib/config.ts içindeki COMPANY_INFO
+            objesinden geliyor — yayına almadan önce gerçek bilgilerle doldurun. */}
+        <div className="mt-10 pt-6 border-t border-gray-100 text-xs text-gray-400 leading-relaxed">
+          <p>
+            {COMPANY_INFO.legalName} · Vergi Dairesi: {COMPANY_INFO.taxOffice} · Vergi No: {COMPANY_INFO.taxNumber}
+          </p>
+          <p className="mt-1">
+            {COMPANY_INFO.address} · {COMPANY_INFO.phone} · {COMPANY_INFO.email}
+            {COMPANY_INFO.kepAddress ? ` · KEP: ${COMPANY_INFO.kepAddress}` : ''}
+          </p>
+        </div>
+
+        <div className="mt-6 pt-6 border-t border-gray-100 text-xs text-gray-400 flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>© {new Date().getFullYear()} Lexis. {t('footerRights')}</span>
         </div>
       </div>
