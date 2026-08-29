@@ -14,9 +14,8 @@ export default function PrivacyPolicyPage() {
         <h2>1. Veri Sorumlusu</h2>
         <p>
           6698 sayılı Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) uyarınca, Lexis uygulaması
-          (&quot;Lexis&quot;, &quot;biz&quot;) kapsamında işlenen kişisel verileriniz bakımından veri sorumlusu,{' '}
-          <strong>{COMPANY_INFO.legalName}</strong> (&quot;İşletme&quot;) sıfatıyla{' '}
-          {COMPANY_INFO.ownerName}&apos;dır.
+          (&quot;Lexis&quot;, &quot;biz&quot;) kapsamında işlenen kişisel verileriniz bakımından veri sorumlusu{' '}
+          <strong>{COMPANY_INFO.legalName}</strong>&apos;dır (&quot;İşletme&quot;).
         </p>
         <p>
           Adres: {COMPANY_INFO.address}

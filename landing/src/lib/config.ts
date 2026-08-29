@@ -31,7 +31,7 @@ export const SOCIAL_LINKS: SocialLink[] = [
 // (aynı şahıs işletmesinin hem uzlaş.io hem Lexis'i kapsadığı doğrulandı).
 // NOT: Levhadaki TC Kimlik No kasıtlı olarak BURAYA YAZILMADI — yalnızca
 // işletmenin Vergi Kimlik No'su (iyzico/e-ticaret bildirimlerinde kullanılan
-// alan) kullanıldı. Telefon numarası belgede yoktu, kullanıcı ayrıca dolduracak.
+// alan) kullanıldı. Telefon numarası kullanıcı tarafından ayrıca sağlandı.
 // ─────────────────────────────────────────────────────────────────────────
 export const COMPANY_INFO = {
   // Vergi levhasında "Ticaret Ünvanı" alanı boş — şahıs mükellefinde ad-soyad unvan yerine geçer.
@@ -41,7 +41,7 @@ export const COMPANY_INFO = {
   taxNumber: '8320646446', // Vergi Kimlik No (TC Kimlik No değil)
   mersisNo: '', // Şahıs işletmeleri için MERSİS zorunlu değildir, tüzel kişiliğe geçilirse doldurulur.
   address: '4 Temmuz Mah. 111. Cad. No: 28 İç Kapı No: 7, Karamürsel / Kocaeli',
-  phone: '[TELEFON NUMARASI — örn. +90 5XX XXX XX XX]',
+  phone: '+90 505 240 03 85',
   kepAddress: '', // Opsiyonel — Kayıtlı Elektronik Posta adresiniz varsa buraya girin.
   email: CONTACT_EMAIL,
 };
