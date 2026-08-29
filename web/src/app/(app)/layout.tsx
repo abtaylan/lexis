@@ -43,11 +43,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           dolu mu kontrolü yapıyor (bkz. components/ads/AdBanner.tsx) — client ID
           boşken hiçbir şey render etmiyor, o yüzden burada ayrıca kontrol gerekmiyor.
           "slot" AdSense panelinde Reklamlar > Reklam birimi oluştur'dan alınan
-          gerçek birim ID'sidir — hesap açılana kadar bu bir placeholder'dır ve
-          gerçek bir birim oluşturulunca değiştirilmelidir.
+          gerçek birim ID'sidir. "Lexis Web - Alt Banner (Genel)" adıyla
+          29 Ağustos 2026'da oluşturuldu (ca-pub-7117270113356521 / slot
+          1199541727, esnek/duyarlı boyut).
         */}
         <div className="px-6 pb-6">
-          <AdBanner slot="0000000000" format="horizontal" className="mt-6" />
+          <AdBanner slot="1199541727" format="auto" className="mt-6" />
         </div>
       </main>
     </div>
