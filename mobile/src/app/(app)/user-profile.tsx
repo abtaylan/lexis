@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
-  ArrowLeft, Trophy, Users, MessageCircle, UserPlus, Check, X, Ban, BookOpen, CalendarDays, Flame,
+  ArrowLeft, Trophy, Users, MessageCircle, UserPlus, Check, X, Ban, Flag, BookOpen, CalendarDays, Flame,
 } from 'lucide-react-native';
 import { socialApi } from '@/api/social';
 import type { PublicProfile } from '@/api/types';
@@ -155,6 +155,29 @@ export default function UserProfileScreen() {
     ]);
   };
 
+  const handleReport = () => {
+    if (!profile) return;
+    Alert.alert(ps.reportConfirm, '', [
+      { text: t('cancelBtn'), style: 'cancel' },
+      {
+        text: ps.reportBtn,
+        style: 'destructive',
+        onPress: async () => {
+          setBusy(true);
+          setActionError('');
+          try {
+            await socialApi.reportUser(profile.id, 'inappropriate_behavior');
+            Alert.alert(ps.reportSuccess);
+          } catch (err) {
+            setActionError(errorDetail(err) || ps.reportError);
+          } finally {
+            setBusy(false);
+          }
+        },
+      },
+    ]);
+  };
+
   const goBack = () => router.push('/(app)/friends');
 
   if (loading) {
@@ -296,7 +319,11 @@ export default function UserProfileScreen() {
               </>
             )}
 
-            <Pressable onPress={handleBlock} disabled={busy} style={[styles.pillBtnOutline, { borderColor: c.border, marginLeft: 'auto', opacity: busy ? 0.5 : 1 }]}>
+            <Pressable onPress={handleReport} disabled={busy} style={[styles.pillBtnOutline, { borderColor: c.border, marginLeft: 'auto', opacity: busy ? 0.5 : 1 }]}>
+              <Flag color={c.textMuted} size={14} />
+              <Text style={{ color: c.textMuted, fontWeight: '700', fontSize: 12 }}>{ps.reportBtn}</Text>
+            </Pressable>
+            <Pressable onPress={handleBlock} disabled={busy} style={[styles.pillBtnOutline, { borderColor: c.border, opacity: busy ? 0.5 : 1 }]}>
               <Ban color={c.textMuted} size={14} />
               <Text style={{ color: c.textMuted, fontWeight: '700', fontSize: 12 }}>{ps.blockBtn}</Text>
             </Pressable>

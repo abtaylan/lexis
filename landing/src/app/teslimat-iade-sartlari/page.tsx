@@ -37,7 +37,7 @@ export default function DeliveryRefundPage() {
           <li>Ödemenin mükerrer (aynı dönem için birden fazla) tahsil edilmesi,</li>
           <li>Teknik bir arıza nedeniyle satın aldığınız Premium hizmete hiç erişememeniz,</li>
           <li>
-            Satın alma tarihinden itibaren <strong>[İADE SÜRESİ — örn. 14 gün]</strong> içinde,
+            Satın alma tarihinden itibaren <strong>14 gün</strong> içinde,
             Premium&apos;a ait hiçbir ek özelliği (reklamsız kullanım, premium içerik vb.)
             kullanmamış olmanız.
           </li>

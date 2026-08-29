@@ -1,8 +1,9 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, BookOpen, Gamepad2, CalendarDays, User } from 'lucide-react-native';
+import { CalendarDays, User } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { WordsTabIcon, GameTabIcon, DashboardTabIcon } from '@/components/icons/TabIcons';
 
 // Alt sekme çubuğu — telefon ekranlarında 5 sekmenin metin etiketiyle sığmaması
 // (tablet için tasarlanmış "Dashboard" gibi uzun etiketler dar ekranlarda
@@ -25,15 +26,15 @@ export default function AppTabsLayout() {
     >
       <Tabs.Screen
         name="dashboard"
-        options={{ title: t('dashboard'), tabBarIcon: ({ color, size }) => <LayoutDashboard color={color} size={size ?? 24} /> }}
+        options={{ title: t('dashboard'), tabBarIcon: ({ color, size }) => <DashboardTabIcon color={color} size={size ?? 22} /> }}
       />
       <Tabs.Screen
         name="words"
-        options={{ title: t('words'), tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size ?? 24} /> }}
+        options={{ title: t('words'), tabBarIcon: ({ color, size }) => <WordsTabIcon color={color} size={size ?? 21} /> }}
       />
       <Tabs.Screen
         name="game"
-        options={{ title: mt('gameTabLabel'), tabBarIcon: ({ color, size }) => <Gamepad2 color={color} size={size ?? 24} /> }}
+        options={{ title: mt('gameTabLabel'), tabBarIcon: ({ color, size }) => <GameTabIcon color={color} size={size ?? 23} /> }}
       />
       <Tabs.Screen
         name="schedule"
@@ -43,6 +44,7 @@ export default function AppTabsLayout() {
         name="profile"
         options={{ title: t('profile'), tabBarIcon: ({ color, size }) => <User color={color} size={size ?? 24} /> }}
       />
+      <Tabs.Screen name="notifications" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="quiz" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="flashcards" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="stats" options={{ href: null, headerShown: false }} />

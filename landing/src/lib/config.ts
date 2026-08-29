@@ -48,6 +48,8 @@ export const COMPANY_INFO = {
 
 export const LEGAL_URLS = {
   privacy: '/gizlilik-politikasi',
+  kvkk: '/kvkk',
+  termsOfUse: '/kullanim-sartlari',
   distanceSales: '/mesafeli-satis-sozlesmesi',
   deliveryRefund: '/teslimat-iade-sartlari',
   about: '/hakkimizda',

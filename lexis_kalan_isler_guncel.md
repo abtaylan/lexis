@@ -2,6 +2,8 @@
 
 *Bu dosya bu tarihte baştan düzenlendi: önceki sürümdeki dağınık/eksik "kalan işler" listesi yerine, projenin GERÇEK güncel durumunu (tamamlanan her şey dahil) tek yerde toplayan bir versiyon. Eski tarihli ara güncellemeler (21 Ağustos vb.) kaldırıldı, hepsi aşağıya konsolide edildi.*
 
+*29 Ağustos 2026 güncellemesi — bkz. ilgili bölümlerdeki yeni maddeler: Apple Developer / Google Play Console / AdMob onaylandı; iyzico ön koşulları (yasal sayfalar + Premium ödeme ekranı) tamamlandı; canlıda bulunan bir CORS bug'ı (`ALLOWED_ORIGINS`) düzeltildi; iyzico inceleme ekibi için test hesabı oluşturuldu.*
+
 ---
 
 ## ✅ Tamamlanan — kod ve altyapı tarafı
@@ -44,6 +46,16 @@
 - [x] `merge-preview.txt` temizlendi, `email-validator` eklendi.
 - [x] `tsc --noEmit` — kullanıcı gerçek makinesinde çalıştırdı, **hiç hata yok**, temiz derleme (21 Ağustos'taki eski hata listesi geçersizmiş).
 - [x] Kurumsal logo — kullanıcı kararı: mevcut logo kullanılacak, ek seçim/entegrasyon işi yok.
+- [x] **Canlı CORS bug'ı düzeltildi (29 Ağustos 2026):** Railway'deki `ALLOWED_ORIGINS` hâlâ eski `lexis-web.vercel.app`/`lexis-blush.vercel.app` adreslerini içeriyordu, yeni custom domain'ler (`app.lexiswords.com`, `www.lexiswords.com`, `lexiswords.com`) eksikti — bu, canlı frontend'den gelen kimlik doğrulamalı API isteklerini sessizce kırıyor olabilirdi. Kullanıcı onayıyla düzeltildi ve redeploy edildi; yeni test hesabı kaydı/OTP/dashboard akışının `app.lexiswords.com` üzerinden uçtan uca çalıştığı doğrulandı.
+
+**iyzico ön koşulları (29 Ağustos 2026)**
+- [x] Yasal sayfalar (`landing/`) — Gizlilik Politikası, Mesafeli Satış Sözleşmesi, Teslimat/İade Şartları, Hakkımızda; ortak `LegalLayout` + `COMPANY_INFO` (Arif Emre Taylan, Karamürsel Vergi Dairesi, Vergi Kimlik No — TC Kimlik No kasıtlı olarak hiçbir yerde kullanılmadı) `iyzico` klasöründeki e-Vergi Levhası'ndan, kullanıcı onayıyla dolduruldu. Footer'a "Yasal" kolonu + işletme bilgi şeridi eklendi.
+- [x] Premium ödeme ekranı (`web/(app)/premium/page.tsx`) iyzico marka uyumluluğuna getirildi: "iyzico ile Öde" (gerçek logo paketinden), Visa/Mastercard rozetleri (yer tutucu — aşağıya bkz.), SSL notu, ödeme öncesi zorunlu "şartları kabul ediyorum" onay kutusu.
+- [x] Yerelde `npm run dev` ile test edildi, `git push` ile deploy edildi (commit geçmişi: içerik → merge → telefon numarası düzeltmesi).
+- [ ] **Visa/Mastercard resmi logoları** — `web/public/payment/visa.svg` ve `mastercard.svg` hâlâ yer tutucu (kutu + yazı). `iyzico-logo-pack` klasörü 29 Ağustos'ta tekrar (üçüncü kez) tam olarak tarandı — pakette sadece iyzico'nun kendi "ile öde" rozetleri var, Visa/Mastercard dosyası hiç yok. Bunları resmi Visa/Mastercard marka merkezlerinden indirip aynı isimlerle değiştirmen gerekiyor.
+- [ ] Teslimat/İade sayfasındaki `[İADE SÜRESİ]` yer tutucusu — kaç gün olacağına karar verilmesi gerekiyor (örn. 14 gün, dijital ürün istisnası ile).
+- [ ] iyzico "yeni üye iş yeri" başvurusunun kendisi — kullanıcı ayrı süreç başlattı, sonucu bekleniyor.
+- [x] iyzico inceleme ekibi için test hesabı oluşturuldu — bkz. "🔴 kritik" bölümünde iyzico maddesi.
 
 ---
 
@@ -52,10 +64,10 @@
 Bunların hemen hepsi **senin** yapman gereken (hesap açma, ödeme, kimlik bilgisi girme) işlemler — ben adımları anlatabilirim, gerçek işlemi sen yapman gerekiyor.
 
 - [ ] **Domain satın alma.** Henüz alınmadı — site şu an `lexis-web.vercel.app` üzerinde. İstersen registrar/isim önerisinde yardımcı olurum, satın alma işlemini (ödeme gerektirdiği için) senin yapman gerekiyor.
-- [ ] **Apple Developer Program üyeliği.** Süreç başlatılmış, config.py'deki nota göre **26 Ağustos'ta aktive edilecek** — henüz aktif değil. Aktif olunca `APPLE_ISSUER_ID` / `APPLE_KEY_ID` / `APPLE_PRIVATE_KEY_P8` girilmesi gerekiyor.
-- [ ] **Google Play Console hesabı/uygulama kaydı.** `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` hâlâ boş — mobil IAP'nin Android tarafı için ayrı bir kurulum gerekiyor, henüz başlanmadı.
-- [ ] **AdMob hesabı.** Hiç açılmadı — mobilde hâlâ Google'ın herkese açık test reklam ID'leri kullanılıyor. AdSense süreci bittiğinde aynı adım adım yöntemle devam edebiliriz.
-- [ ] **iyzico 401 hatası.** `setup_iyzico_plans.py` "Authentication failed" veriyor — `.env`'deki düzeltilmiş `IYZICO_SECRET_KEY`'in gerçek dosyaya geçtiğini kontrol et, olmuyorsa iyzico'da Abonelik (Subscription API v2) modülünün aktif olup olmadığını destekten sor.
+- [x] **Apple Developer Program üyeliği — onaylandı** (Sipariş No: W1686823420). `APPLE_ISSUER_ID` / `APPLE_KEY_ID` / `APPLE_PRIVATE_KEY_P8`'in Railway'e girilmesi hâlâ bekliyor.
+- [x] **Google Play Console hesabı — onaylandı** (Hesap Kimliği: 9216436788787157740). `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON` hâlâ boş, mobil IAP'nin Android tarafı için ayrı kurulum gerekiyor.
+- [x] **AdMob hesabı — onaylandı.** Mobilde gerçek AdMob birim ID'lerinin (test ID'leri yerine) `app.json`/koda girilmesi gerekiyor.
+- [ ] **iyzico 401 hatası.** `setup_iyzico_plans.py` "Authentication failed" veriyor — `.env`'deki düzeltilmiş `IYZICO_SECRET_KEY`'in gerçek dosyaya geçtiğini kontrol et, olmuyorsa iyzico'da Abonelik (Subscription API v2) modülünün aktif olup olmadığını destekten sor. **iyzico üye iş yeri başvurusu için ön koşullar (yasal sayfalar + Premium ödeme ekranı) tamamlandı** (bkz. yukarıda) — inceleme ekibi için test hesabı da hazır: `iyzico.inceleme@test.com` / `Iyzico2026Review!`, OTP her zaman `123456` (üretimdeki `OTP_TEST_EMAIL_SUFFIX=@test.com` sayesinde).
 - [ ] **Vercel Cron / GitHub Actions secret'larını devreye alma.** `CRON_SECRET` üretip backend `.env` + Railway env vars + Vercel env vars + GitHub Actions secrets'a (4 yer) girilmesi ve `git push` yapılması gerekiyor.
 - [ ] **Mobil `eas build`'i yeniden dene.** AdMob 16.0.2 sabitlemesinin Gradle/Kotlin hatasını gerçekten çözdüğü henüz doğrulanmadı.
 
@@ -77,10 +89,10 @@ Bunların hemen hepsi **senin** yapman gereken (hesap açma, ödeme, kimlik bilg
 
 ## 🟡 Orta vadeli
 
-- [ ] Döviz bazlı Premium — iyzico panelinde TRY+USD+EUR için toplam 6 plan (aylık/yıllık) oluşturup ref kodlarının `.env`'e girilmesi.
-- [ ] Google'ın CMP'si ile kendi KVKK banner'ımızın üst üste binmesi — işlevsel sorun değil, ileride sadeleştirilebilir (coğrafi tespitle ya da tek akışa indirerek).
+- [ ] Döviz bazlı Premium — iyzico panelinde TRY+USD+EUR için toplam 6 plan (aylık/yıllık) oluşturup ref kodlarının `.env`'e girilmesi. **Bloke:** yeni Lexis'e özel iyzico üye iş yeri hesabı henüz onaylanmadı (başvuru sürüyor); ayrıca kesin USD/EUR fiyatlarının onaylanması gerekiyor (önceden konuşulan taslak: USD 8.99$/ay, 59.99$/yıl; EUR 9.99€/ay, 64.99€/yıl — kesinleşmedi).
+- [x] **İncelendi (29 Ağustos 2026):** Google'ın CMP'si ile kendi KVKK banner'ımızın üst üste binme nedeni netleşti — AdSense hesabında Google'ın sertifikalı CMP'si ayrıca etkin, ama `adsbygoogle.js` script'i kendi banner'ımızdan onay alınana kadar hiç yüklenmiyor; AB/İngiltere ziyaretçisi için script yüklenince Google'ın mesajı ikinci kez sorabiliyor (işlevsel hata değil, sadece UX çakışması). `adConsent.tsx`'e açıklayıcı not eklendi. **Önerilen kalıcı çözüm bir kod değişikliği değil, AdSense hesap ayarı:** Gizlilik ve mesaj gösterme bölümünden Google'ın sertifikalı CMP'sini kapatmak — çünkü bizim banner'ımız zaten script'in yüklenmesini tamamen engelliyor (Google'ınkinden daha güçlü bir duruş). Bu bir hesap ayarı değişikliği olduğu için kullanıcı onayı bekliyor.
 - [ ] Kurumsal tanıtım/landing sayfası (Madde 5) — herkese açık, sosyal medya linkli, çok dilli tanıtım sayfası. Hiç başlanmadı.
-- [ ] Production OTP modu: `OTP_MODE=real` + Gmail App Password ile gerçek e-posta gönderimi (şu an `fixed` modda, kod her zaman 123456).
+- [ ] Production OTP modu: `OTP_MODE=real` + Gmail App Password ile gerçek e-posta gönderimi (şu an `fixed` modda, kod her zaman 123456). Gmail App Password, kullanıcının Google Hesabı güvenlik ayarlarından kendisinin oluşturması gereken 16 haneli bir kod — istersen adım adım eşlik ederim.
 
 ---
 

@@ -36,16 +36,18 @@ function injectAndRunScripts(container: HTMLDivElement) {
 }
 
 // iyzico "Logo Paketi" + kart ağı logoları — güvenlik/marka rozetleri.
-// Dosyaları https://docs.iyzico.com/ek-bilgiler/iyzico-logo-paketi adresinden indirip
-// web/public/payment/ altına bu isimlerle koyun: iyzico.svg, visa.svg, mastercard.svg
-// (bkz. README notu). Dosya yoksa Next/Image kırık görünmez, sadece alt metni gösterir.
+// visa.svg/mastercard.svg/amex.png resmi marka merkezlerinden (Wikimedia Commons
+// üzerinden doğrulanmış güncel logolar) 29 Ağustos 2026'da alındı. Troy logosu için
+// resmi bir kaynak bulunamadı (bkz. lexis_kalan_isler — Troy marka kullanım izni
+// başvurusu gerekiyor), o yüzden şimdilik listede yok.
 function PaymentTrustBadges() {
   return (
     <div className="flex flex-col items-center gap-3 py-4">
       <div className="flex items-center gap-4 flex-wrap justify-center">
         <Image src="/payment/iyzico.svg" alt="iyzico ile Öde" width={120} height={42} className="h-8 w-auto" />
-        <Image src="/payment/visa.svg" alt="Visa" width={52} height={32} className="h-6 w-auto" />
-        <Image src="/payment/mastercard.svg" alt="Mastercard" width={52} height={32} className="h-6 w-auto" />
+        <Image src="/payment/visa.svg" alt="Visa" width={52} height={17} className="h-5 w-auto" />
+        <Image src="/payment/mastercard.svg" alt="Mastercard" width={52} height={32} className="h-7 w-auto" />
+        <Image src="/payment/amex.png" alt="American Express" width={52} height={52} className="h-7 w-auto rounded" />
       </div>
       <div className="flex items-center gap-1.5 text-xs text-slate-400">
         <Lock className="w-3.5 h-3.5" />

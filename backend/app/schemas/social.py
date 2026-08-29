@@ -98,6 +98,13 @@ class BlockedListResponse(BaseModel):
     items: List[UserCard]
 
 
+# ── Şikayet/Rapor — bkz. app/services/report_service.py ─────────────
+class ReportCreate(BaseModel):
+    reason: str = Field(min_length=1, max_length=50)
+    details: Optional[str] = Field(default=None, max_length=2000)
+    message_id: Optional[str] = None
+
+
 # ── Faz 2: Mesajlaşma ───────────────────────────────────────────────
 class MessageCreate(BaseModel):
     body: str = Field(min_length=1, max_length=2000)

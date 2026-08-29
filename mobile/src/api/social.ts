@@ -80,6 +80,12 @@ export const socialApi = {
     return res.data.items;
   },
 
+  // ── Şikayet/Rapor — Guideline 1.2 (Safety - UGC) için engellemeye ek
+  // moderasyon yolu. Kullanıcı ve/veya belirli bir mesajı raporlar.
+  reportUser: async (userId: string, reason: string, messageId?: string): Promise<void> => {
+    await api.post(`/social/report/${userId}`, { reason, message_id: messageId });
+  },
+
   // ── Mesajlaşma — polling tabanlı, gerçek zamanlı değil (web ile aynı) ──
   getConversations: async (): Promise<ConversationItem[]> => {
     const res = await api.get('/social/conversations');

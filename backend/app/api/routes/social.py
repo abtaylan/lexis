@@ -26,6 +26,7 @@ from app.schemas.social import (
     PendingRequestsResponse,
     FollowListResponse,
     PublicProfileResponse,
+    ReportCreate,
     UnreadCountResponse,
     UserSearchResponse,
 )
@@ -36,6 +37,7 @@ from app.services import (
     friends_service,
     messaging_service,
     public_profile_service,
+    report_service,
 )
 
 router = APIRouter()
@@ -127,6 +129,13 @@ async def unblock_user(user_id: str, current_user=Depends(get_current_user)):
 @router.get("/blocked", response_model=BlockedListResponse)
 async def get_blocked_users(current_user=Depends(get_current_user)):
     return {"items": block_service.list_blocked(current_user.id)}
+
+
+# ── Şikayet/Rapor — engellemeye ek moderasyon yolu, bkz. Guideline 1.2 ─
+@router.post("/report/{user_id}")
+async def report_user(user_id: str, data: ReportCreate, current_user=Depends(get_current_user)):
+    report_service.create_report(current_user.id, user_id, data.reason, data.details, data.message_id)
+    return {"message": "ok"}
 
 
 # ── Mesajlaşma (Faz 2) — polling tabanlı, bkz. messaging_service.py ──

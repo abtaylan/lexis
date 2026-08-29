@@ -14,6 +14,18 @@
 // (User Messaging Platform) SDK entegrasyonu var — mobil tarafta AdMob için
 // ayrı bir consent akışı gerekiyor, bu kapsam dışı bırakıldı (bkz. backlog —
 // ayrı bir native SDK entegrasyonu ve yeni bir eas build gerektirir).
+//
+// NOT (29 Ağustos 2026 — Google CMP çakışması, bkz. kalan işler "Orta
+// vadeli"): AdSense hesabında Google'ın sertifikalı CMP'si de ayrıca
+// etkinleştirilmiş durumda. adsbygoogle.js YALNIZCA bu banner'dan "accepted"
+// alındıktan SONRA yükleniyor (ensureAdsenseScript, AdBanner.tsx) — yani
+// AB/İngiltere ziyaretçisi için Google'ın kendi CMP mesajı da script
+// yüklendiğinde ikinci kez sorabilir (üst üste binme, işlevsel bir hata
+// değil). Kalıcı çözüm KOD DEĞİL, AdSense hesap ayarı: Gizlilik ve mesaj
+// gösterme > Google'ın sertifikalı CMP'sini kapatmak — çünkü bu banner zaten
+// script'in YÜKLENMESİNİ tamamen engelliyor (Google'ın mesaj-sonrası
+// yaklaşımından daha güçlü bir KVKK/GDPR duruşu), tek gerçek onay akışı bu
+// olmalı. Bu ayar değişikliği kullanıcının açık onayını gerektirir.
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 
 export type AdConsentValue = 'accepted' | 'rejected' | null; // null = henüz karar verilmedi

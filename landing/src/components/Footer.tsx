@@ -87,11 +87,24 @@ export function Footer() {
           <div>
             <div className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-3">Yasal</div>
             <ul className="space-y-2.5 text-sm">
+              <li><a href={LEGAL_URLS.kvkk} className="text-gray-600 hover:text-gray-900 transition-colors">KVKK</a></li>
+              <li><a href={LEGAL_URLS.termsOfUse} className="text-gray-600 hover:text-gray-900 transition-colors">Kullanım Şartları</a></li>
               <li><a href={LEGAL_URLS.privacy} className="text-gray-600 hover:text-gray-900 transition-colors">Gizlilik Politikası</a></li>
               <li><a href={LEGAL_URLS.distanceSales} className="text-gray-600 hover:text-gray-900 transition-colors">Mesafeli Satış Sözleşmesi</a></li>
               <li><a href={LEGAL_URLS.deliveryRefund} className="text-gray-600 hover:text-gray-900 transition-colors">Teslimat ve İade Şartları</a></li>
             </ul>
           </div>
+        </div>
+
+        {/* Ödeme yöntemi rozetleri — iyzico incelemesi ve genel güven işareti için.
+            Kaynaklar: iyzico'nun kendi logo paketi + Wikimedia Commons üzerinden
+            doğrulanmış resmi Visa/Mastercard/Amex logoları (29 Ağustos 2026).
+            Troy için resmi bir kaynak bulunamadı, marka izni başvurusu bekliyor. */}
+        <div className="mt-10 pt-6 border-t border-gray-100 flex items-center gap-4 flex-wrap justify-center sm:justify-start">
+          <Image src="/payment/iyzico.svg" alt="iyzico ile Öde" width={120} height={42} className="h-7 w-auto" />
+          <Image src="/payment/visa.svg" alt="Visa" width={52} height={17} className="h-4 w-auto" />
+          <Image src="/payment/mastercard.svg" alt="Mastercard" width={52} height={32} className="h-6 w-auto" />
+          <Image src="/payment/amex.png" alt="American Express" width={52} height={52} className="h-6 w-auto rounded" />
         </div>
 
         {/* iyzico başvurusu ve KVKK için zorunlu işletme kimlik bilgileri.

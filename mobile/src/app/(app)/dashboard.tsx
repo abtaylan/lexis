@@ -2,28 +2,39 @@ import React, { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
-import { MESSAGES_STRINGS } from '@/i18n/messagesStrings';
 import { statsApi } from '@/api/stats';
 import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Card } from '@/components/ui/Card';
-import { XPBar } from '@/components/XPBar';
 import { LeaderboardCard } from '@/components/LeaderboardCard';
+import { DashboardHeader } from '@/components/DashboardHeader';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
 
 const ASKED_KEY = 'lexis_notif_permission_asked';
+
+type ThemeColors = ReturnType<typeof useThemeColors>;
+type ColorKey = keyof ThemeColors;
+
+interface QuickAction {
+  key: string;
+  icon: React.ComponentType<{ color?: string; size?: number }>;
+  label: string;
+  route: Parameters<typeof router.push>[0];
+  bg: ColorKey;
+  fg: ColorKey;
+}
 
 export default function DashboardScreen() {
   const { t, locale } = useLocale();
   const c = useThemeColors();
   const { user } = useAuth();
   const fs = FRIENDS_STRINGS[locale] ?? FRIENDS_STRINGS.tr;
-  const ms = MESSAGES_STRINGS[locale] ?? MESSAGES_STRINGS.tr;
 
   const { data: stats, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['stats-summary'],
@@ -40,82 +51,127 @@ export default function DashboardScreen() {
     })();
   }, []);
 
+  // Hızlı işlemler grid'i — onaylanan tasarım canvas'ındaki (Main.dc.html) 3
+  // sütunlu, ikon-üstte/etiket-altta düzeniyle birebir aynı 6 kısayol.
+  // Mesajlar ve Premium artık ayrı kart kısayolu değil — Mesajlar başlıktaki
+  // (DashboardHeader) simgeden, Premium ise profil sekmesinden erişiliyor.
+  const quickActions: QuickAction[] = [
+    { key: 'addWord', icon: Plus, label: t('addWordBtn'), route: '/(app)/words', bg: 'primarySoft', fg: 'primary' },
+    { key: 'game', icon: Play, label: t('startBtn'), route: '/(app)/game', bg: 'accentSoft', fg: 'accent' },
+    { key: 'quiz', icon: Zap, label: t('quiz'), route: '/(app)/quiz', bg: 'warningSoft', fg: 'warning' },
+    { key: 'flashcards', icon: Layers, label: t('flashcards'), route: '/(app)/flashcards', bg: 'successSoft', fg: 'success' },
+    { key: 'stats', icon: BarChart3, label: t('stats'), route: '/(app)/stats', bg: 'primarySoft', fg: 'primary' },
+    { key: 'friends', icon: Users, label: fs.title, route: '/(app)/friends', bg: 'accentSoft', fg: 'accent' },
+  ];
+
   return (
-    <ScreenContainer refreshing={isRefetching} onRefresh={refetch}>
-      <Text style={[styles.greeting, { color: c.text }]}>
-        {t('greeting')}{user?.display_name ? `, ${user.display_name}` : ''} 👋
-      </Text>
-      <Text style={[styles.subtitle, { color: c.textSecondary }]}>{t('dailySummarySubtitle')}</Text>
+    <ScreenContainer refreshing={isRefetching} onRefresh={refetch} padded={false}>
+      <DashboardHeader
+        greeting={`${t('greeting')}${user?.display_name ? `, ${user.display_name}` : ''} 👋`}
+        subtitle={t('dailySummarySubtitle')}
+      />
 
-      <XPBar />
+      <View style={styles.content}>
+        {!isLoading && stats && (
+          <View style={styles.grid}>
+            <StatTile icon={BookOpen} label={t('totalWords')} value={String(stats.total_words)} bg="primarySoft" fg="primary" color={c} />
+            <StatTile icon={Plus} label={t('addedToday')} value={String(stats.today_added)} bg="successSoft" fg="success" color={c} />
+            <StatTile icon={Clock} label={t('dueReview')} value={String(stats.learning)} bg="accentSoft" fg="accent" color={c} />
+          </View>
+        )}
 
-      {stats && stats.current_streak > 0 && (
-        <Card style={[styles.streakCard, { backgroundColor: c.warningSoft, borderColor: c.warningSoft }]}>
-          <Text style={{ fontSize: 20 }}>🔥</Text>
-          <Text style={{ color: c.warning, fontWeight: '600', fontSize: 13, flex: 1 }}>
-            {stats.current_streak} {t('streakActive')}
-          </Text>
-        </Card>
-      )}
-
-      {!isLoading && stats && (
-        <View style={styles.grid}>
-          <StatTile label={t('totalWords')} value={String(stats.total_words)} color={c} />
-          <StatTile label={t('addedToday')} value={String(stats.today_added)} color={c} />
-          <StatTile label={t('dueReview')} value={String(stats.learning)} color={c} />
+        <View>
+          <Text style={[styles.sectionLabel, { color: c.textMuted }]}>{t('quickActions')}</Text>
+          <View style={styles.actionsGrid}>
+            {quickActions.map((a) => (
+              <ActionTile
+                key={a.key}
+                icon={a.icon}
+                label={a.label}
+                onPress={() => router.push(a.route)}
+                bg={c[a.bg]}
+                fg={c[a.fg]}
+              />
+            ))}
+          </View>
         </View>
-      )}
 
-      <LeaderboardCard />
+        <LeaderboardCard />
 
-      <View style={styles.actionsRow}>
-        <ActionButton emoji="➕" label={t('addWordBtn')} onPress={() => router.push('/(app)/words')} color={c} />
-        <ActionButton emoji="🎮" label={t('startBtn')} onPress={() => router.push('/(app)/game')} color={c} />
+        <AdBanner style={{ marginTop: spacing.sm }} />
       </View>
-      <View style={styles.actionsRow}>
-        <ActionButton emoji="🧠" label={t('quiz')} onPress={() => router.push('/(app)/quiz')} color={c} />
-        <ActionButton emoji="🗂️" label={t('flashcards')} onPress={() => router.push('/(app)/flashcards')} color={c} />
-      </View>
-      <View style={styles.actionsRow}>
-        <ActionButton emoji="📊" label={t('stats')} onPress={() => router.push('/(app)/stats')} color={c} />
-      </View>
-      <View style={styles.actionsRow}>
-        <ActionButton emoji="🤝" label={fs.title} onPress={() => router.push('/(app)/friends')} color={c} />
-        <ActionButton emoji="💬" label={ms.inboxTitle} onPress={() => router.push('/(app)/messages')} color={c} />
-      </View>
-      <View style={styles.actionsRow}>
-        <ActionButton emoji="👑" label="Premium" onPress={() => router.push('/(app)/premium')} color={c} />
-      </View>
-
-      <AdBanner style={{ marginTop: spacing.sm }} />
     </ScreenContainer>
   );
 }
 
-function StatTile({ label, value, color: c }: { label: string; value: string; color: ReturnType<typeof useThemeColors> }) {
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+  bg,
+  fg,
+  color: c,
+}: {
+  icon: React.ComponentType<{ color?: string; size?: number }>;
+  label: string;
+  value: string;
+  bg: ColorKey;
+  fg: ColorKey;
+  color: ThemeColors;
+}) {
   return (
     <Card style={styles.tile}>
-      <Text style={{ fontSize: 20, fontWeight: '700', color: c.primary }}>{value}</Text>
+      <View style={[styles.tileIcon, { backgroundColor: c[bg] }]}>
+        <Icon color={c[fg]} size={16} />
+      </View>
+      <Text style={{ fontSize: 17, fontWeight: '700', color: c.text }}>{value}</Text>
       <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 2, textAlign: 'center' }}>{label}</Text>
     </Card>
   );
 }
 
-function ActionButton({ emoji, label, onPress, color: c }: { emoji: string; label: string; onPress: () => void; color: ReturnType<typeof useThemeColors> }) {
+function ActionTile({
+  icon: Icon,
+  label,
+  onPress,
+  bg,
+  fg,
+}: {
+  icon: React.ComponentType<{ color?: string; size?: number }>;
+  label: string;
+  onPress: () => void;
+  bg: string;
+  fg: string;
+}) {
   return (
-    <Pressable onPress={onPress} style={[styles.actionBtn, { backgroundColor: c.primary }]}>
-      <Text style={{ fontSize: 18 }}>{emoji}</Text>
-      <Text style={{ color: '#fff', fontWeight: '600', fontSize: 13 }}>{label}</Text>
+    <Pressable onPress={onPress} style={styles.actionTile}>
+      <View style={[styles.tileIcon, { backgroundColor: bg }]}>
+        <Icon color={fg} size={17} />
+      </View>
+      <Text style={styles.actionLabel} numberOfLines={1}>
+        {label}
+      </Text>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  greeting: { fontSize: 20, fontWeight: '700' },
-  subtitle: { fontSize: 13, marginTop: 2, marginBottom: spacing.md },
-  streakCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md, paddingVertical: spacing.sm },
-  grid: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
-  tile: { flex: 1, alignItems: 'center', paddingVertical: spacing.md },
-  actionsRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm, marginBottom: spacing.xl },
-  actionBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: spacing.md, borderRadius: radius.md },
+  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
+  grid: { flexDirection: 'row', gap: spacing.sm },
+  tile: { flex: 1, alignItems: 'center', paddingVertical: spacing.md, gap: spacing.xs },
+  tileIcon: { width: 38, height: 38, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: spacing.sm },
+  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  actionTile: {
+    width: '31%',
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F1F1F4',
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: 4,
+  },
+  actionLabel: { fontSize: 11.5, fontWeight: '600', color: '#374151', textAlign: 'center' },
 });

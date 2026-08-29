@@ -41,6 +41,10 @@ export type ProfileStrings = {
   blockBtn: string;
   blockConfirm: string;
   blockError: string;
+  reportBtn: string;
+  reportConfirm: string;
+  reportSuccess: string;
+  reportError: string;
 };
 
 export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
@@ -57,6 +61,8 @@ export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
     messageBtn: 'Mesaj gönder', blockBtn: 'Engelle',
     blockConfirm: 'Bu kişiyi engellemek istediğine emin misin? Artık birbirinizin mesajlarını, profilini ve arkadaşlık/takip isteklerini göremezsiniz.',
     blockError: 'Engelleme işlemi başarısız oldu.',
+    reportBtn: 'Şikayet et', reportConfirm: 'Bu kullanıcıyı uygunsuz davranış nedeniyle şikayet etmek istediğine emin misin? Ekibimiz inceleyecek.',
+    reportSuccess: 'Şikayetin alındı, teşekkürler.', reportError: 'Şikayet gönderilemedi.',
   },
   en: {
     back: 'Friends', notFound: 'This user could not be found.', error: 'Could not load the profile.',
@@ -71,6 +77,8 @@ export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
     messageBtn: 'Message', blockBtn: 'Block',
     blockConfirm: "Are you sure you want to block this person? You won't be able to see each other's messages, profile, or friend/follow requests anymore.",
     blockError: 'Could not block this user.',
+    reportBtn: 'Report', reportConfirm: 'Are you sure you want to report this user for inappropriate behavior? Our team will review it.',
+    reportSuccess: 'Your report has been received, thank you.', reportError: 'Could not submit the report.',
   },
   de: {
     back: 'Freunde', notFound: 'Dieser Nutzer wurde nicht gefunden.', error: 'Profil konnte nicht geladen werden.',
@@ -85,6 +93,8 @@ export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
     messageBtn: 'Nachricht', blockBtn: 'Blockieren',
     blockConfirm: 'Möchtest du diese Person wirklich blockieren? Ihr könnt dann gegenseitig keine Nachrichten, Profile oder Freundschafts-/Folge-Anfragen mehr sehen.',
     blockError: 'Blockieren fehlgeschlagen.',
+    reportBtn: 'Melden', reportConfirm: 'Möchtest du diesen Nutzer wegen unangemessenen Verhaltens melden? Unser Team wird das prüfen.',
+    reportSuccess: 'Deine Meldung wurde übermittelt, danke.', reportError: 'Meldung konnte nicht gesendet werden.',
   },
   fr: {
     back: 'Amis', notFound: "Cet utilisateur est introuvable.", error: "Le profil n'a pas pu être chargé.",
@@ -99,6 +109,8 @@ export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
     messageBtn: 'Envoyer un message', blockBtn: 'Bloquer',
     blockConfirm: "Es-tu sûr(e) de vouloir bloquer cette personne ? Vous ne pourrez plus voir vos messages, profils ni demandes d'ami/abonnement respectifs.",
     blockError: "Le blocage a échoué.",
+    reportBtn: 'Signaler', reportConfirm: "Veux-tu vraiment signaler cet utilisateur pour comportement inapproprié ? Notre équipe examinera le signalement.",
+    reportSuccess: 'Ton signalement a bien été reçu, merci.', reportError: "Le signalement n'a pas pu être envoyé.",
   },
   es: {
     back: 'Amigos', notFound: 'No se encontró este usuario.', error: 'No se pudo cargar el perfil.',
@@ -113,6 +125,8 @@ export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
     messageBtn: 'Enviar mensaje', blockBtn: 'Bloquear',
     blockConfirm: '¿Seguro que quieres bloquear a esta persona? Ya no podrán ver sus mensajes, perfil ni solicitudes de amistad/seguimiento.',
     blockError: 'No se pudo bloquear a este usuario.',
+    reportBtn: 'Denunciar', reportConfirm: '¿Seguro que quieres denunciar a este usuario por comportamiento inapropiado? Nuestro equipo lo revisará.',
+    reportSuccess: 'Tu denuncia ha sido recibida, gracias.', reportError: 'No se pudo enviar la denuncia.',
   },
   it: {
     back: 'Amici', notFound: 'Utente non trovato.', error: 'Impossibile caricare il profilo.',
@@ -127,6 +141,8 @@ export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
     messageBtn: 'Invia messaggio', blockBtn: 'Blocca',
     blockConfirm: 'Sei sicuro di voler bloccare questa persona? Non potrete più vedere i rispettivi messaggi, profilo o richieste di amicizia/follow.',
     blockError: 'Impossibile bloccare questo utente.',
+    reportBtn: 'Segnala', reportConfirm: 'Sei sicuro di voler segnalare questo utente per comportamento inappropriato? Il nostro team esaminerà la segnalazione.',
+    reportSuccess: 'La tua segnalazione è stata ricevuta, grazie.', reportError: 'Impossibile inviare la segnalazione.',
   },
   ar: {
     back: 'الأصدقاء', notFound: 'لم يتم العثور على هذا المستخدم.', error: 'تعذّر تحميل الملف الشخصي.',
@@ -141,6 +157,8 @@ export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
     messageBtn: 'إرسال رسالة', blockBtn: 'حظر',
     blockConfirm: 'هل أنت متأكد أنك تريد حظر هذا الشخص؟ لن تتمكنا بعد ذلك من رؤية رسائل بعضكما أو الملف الشخصي أو طلبات الصداقة/المتابعة.',
     blockError: 'تعذّر حظر هذا المستخدم.',
+    reportBtn: 'إبلاغ', reportConfirm: 'هل أنت متأكد أنك تريد الإبلاغ عن هذا المستخدم بسبب سلوك غير لائق؟ سيقوم فريقنا بمراجعة البلاغ.',
+    reportSuccess: 'تم استلام بلاغك، شكرًا لك.', reportError: 'تعذّر إرسال البلاغ.',
   },
   ru: {
     back: 'Друзья', notFound: 'Этот пользователь не найден.', error: 'Не удалось загрузить профиль.',
@@ -155,6 +173,8 @@ export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
     messageBtn: 'Написать сообщение', blockBtn: 'Заблокировать',
     blockConfirm: 'Вы уверены, что хотите заблокировать этого человека? Вы больше не сможете видеть сообщения, профиль и заявки в друзья/подписку друг друга.',
     blockError: 'Не удалось заблокировать пользователя.',
+    reportBtn: 'Пожаловаться', reportConfirm: 'Вы уверены, что хотите пожаловаться на этого пользователя за неподобающее поведение? Наша команда рассмотрит жалобу.',
+    reportSuccess: 'Ваша жалоба получена, спасибо.', reportError: 'Не удалось отправить жалобу.',
   },
   ja: {
     back: '友達', notFound: 'このユーザーは見つかりませんでした。', error: 'プロフィールを読み込めませんでした。',
@@ -169,5 +189,7 @@ export const PROFILE_STRINGS: Record<Locale, ProfileStrings> = {
     messageBtn: 'メッセージを送る', blockBtn: 'ブロック',
     blockConfirm: 'このユーザーをブロックしますか?ブロックすると、お互いのメッセージ、プロフィール、フレンド/フォローリクエストが見られなくなります。',
     blockError: 'このユーザーをブロックできませんでした。',
+    reportBtn: '報告', reportConfirm: 'このユーザーを不適切な行動として報告しますか?チームが内容を確認します。',
+    reportSuccess: '報告を受け付けました。ありがとうございます。', reportError: '報告を送信できませんでした。',
   },
 };
