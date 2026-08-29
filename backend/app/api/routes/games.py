@@ -12,7 +12,7 @@ daha önce sorulmamış kelimeler arasından canlı sorgu ile seçilir. "own" i�
 kullanıcı kelime ekledikçe havuz büyür; "general" için seed script tekrar
 çalıştırılarak istenildiği kadar kelime eklenebilir.
 
-İki oyun modu desteklenir:
+Altı oyun modu desteklenir:
 - "multiple_choice" -> kelime gösterilir, doğru anlamı 4 seçenekten seçilir.
   Bu modda ayrıca `direction` (yön) seçilebilir:
     - "word_to_meaning" (varsayılan): kelime gösterilir, anlamı bulunur.
@@ -30,6 +30,13 @@ kullanıcı kelime ekledikçe havuz büyür; "general" için seed script tekrar
   harf-harf tahmin modeline uygun değildir). Aktif turun durumu (hangi kelime
   seçildi, hangi harfler tahmin edildi, kaç yanlış hak kaldı)
   game_sessions.state (jsonb) alanında tutulur.
+- "typing", "matching", "listening", "sprint" (Faz 3) -> dördü de next-word/attempt
+  akışını kullanır (word_to_meaning yönünde); ek uç nokta/şema gerekmez.
+  Doğruluk kontrolü (is_correct) istemci tarafında hesaplanıp /attempt'e
+  gönderilir (multiple_choice'taki gibi). "listening" kelimeyi istemci
+  üzerinde (expo-speech) seslendirir; "sprint" ise "typing" ile aynı akışı
+  süre sınırlı (60 sn) kullanır. XP değerleri xp_service.XP_AMOUNTS içinde
+  ayrıca tanımlıdır (game_typing, game_matching, game_listening, game_sprint).
 """
 
 import random
