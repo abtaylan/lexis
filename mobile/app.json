@@ -44,8 +44,8 @@
       [
         "react-native-google-mobile-ads",
         {
-          "androidAppId": "ca-app-pub-3940256099942544~3347511713",
-          "iosAppId": "ca-app-pub-3940256099942544~1458002511"
+          "androidAppId": "ca-app-pub-7117270113356521~9256221644",
+          "iosAppId": "ca-app-pub-7117270113356521~1335273095"
         }
       ],
       [
@@ -75,8 +75,8 @@
       },
       "router": {},
       "admob": {
-        "androidBannerUnitId": "",
-        "iosBannerUnitId": ""
+        "androidBannerUnitId": "ca-app-pub-7117270113356521/6587599774",
+        "iosBannerUnitId": "ca-app-pub-7117270113356521/8058312745"
       }
     },
     "runtimeVersion": {
