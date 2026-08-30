@@ -18,7 +18,7 @@ username + display_name için ayrı ayrı sorgulanıp Python'da birleştirildi.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException
@@ -213,7 +213,7 @@ def respond_to_request(current_user_id: str, friendship_id: str, accept: bool) -
     new_status = "accepted" if accept else "declined"
     updated = (
         supabase_admin.table("friendships")
-        .update({"status": new_status, "responded_at": datetime.now(timezone.utc).isoformat()})
+        .update({"status": new_status, "responded_at": datetime.now(UTC).isoformat()})
         .eq("id", friendship_id)
         .execute()
     ).data[0]

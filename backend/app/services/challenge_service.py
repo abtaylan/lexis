@@ -26,7 +26,7 @@ ayrıca bir engelleme kontrolüne gerek yok.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException
@@ -164,7 +164,7 @@ def respond_to_challenge(current_user_id: str, challenge_id: str, accept: bool) 
     new_status = "accepted" if accept else "declined"
     updated = (
         supabase_admin.table("challenges")
-        .update({"status": new_status, "responded_at": datetime.now(timezone.utc).isoformat()})
+        .update({"status": new_status, "responded_at": datetime.now(UTC).isoformat()})
         .eq("id", challenge_id)
         .execute()
     ).data[0]
@@ -250,7 +250,7 @@ def submit_score(current_user_id: str, challenge_id: str, session_id: str) -> di
             supabase_admin.table("challenges")
             .update({
                 "status": "completed",
-                "completed_at": datetime.now(timezone.utc).isoformat(),
+                "completed_at": datetime.now(UTC).isoformat(),
                 "winner_id": winner_id,
             })
             .eq("id", challenge_id)

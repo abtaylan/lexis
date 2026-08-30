@@ -19,7 +19,7 @@ mesaj gönderemez ve geçmişi göremez.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import HTTPException
@@ -179,7 +179,7 @@ def get_thread(current_user_id: str, other_username: str, limit: int = 100) -> d
 
     # Karşı taraftan gelen okunmamış mesajları okundu işaretle.
     supabase_admin.table("messages").update(
-        {"read_at": datetime.now(timezone.utc).isoformat()}
+        {"read_at": datetime.now(UTC).isoformat()}
     ).eq("conversation_id", conv["id"]).eq("sender_id", other["id"]).is_(
         "read_at", "null"
     ).execute()
@@ -207,7 +207,7 @@ def send_message(current_user_id: str, other_username: str, body: str) -> dict[s
         raise HTTPException(status_code=403, detail="Bu kullanıcıya mesaj gönderemezsin.")
 
     conv = _get_or_create_conversation(current_user_id, other["id"])
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
 
     msg = (
         supabase_admin.table("messages")
