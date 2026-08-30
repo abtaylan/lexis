@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import io
 import random
-from typing import Optional
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -71,7 +70,7 @@ def _wrap_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFon
     return lines
 
 
-def generate_word_card(word: str, meaning: str, example: Optional[str]) -> bytes:
+def generate_word_card(word: str, meaning: str, example: str | None) -> bytes:
     """'Günün kelimesi' için 1080x1080 PNG kart üretir (Telegram sendPhoto ile
     uyumlu). Bellekte üretir, diske yazmaz — çağıran taraf bytes'ı kullanır."""
     img = Image.new("RGB", CARD_SIZE, BRAND_PURPLE)
@@ -140,7 +139,7 @@ def _recently_posted_word_ids(days: int) -> set[str]:
     return {r["general_word_id"] for r in rows if r.get("general_word_id")}
 
 
-def pick_word() -> Optional[dict]:
+def pick_word() -> dict | None:
     """Daha önce yakın zamanda paylaşılmamış rastgele bir kelime seçer."""
     avoid_ids = _recently_posted_word_ids(RECENT_AVOID_DAYS)
     query = (
@@ -159,7 +158,7 @@ def pick_word() -> Optional[dict]:
     return random.choice(pool)
 
 
-def pick_quiz() -> Optional[dict]:
+def pick_quiz() -> dict | None:
     """'Kelime -> anlam' çoktan seçmeli quiz sorusu üretir (4 seçenek)."""
     chosen = pick_word()
     if not chosen:

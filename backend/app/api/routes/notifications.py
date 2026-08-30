@@ -7,9 +7,9 @@ script) tarafından yazılır; bu route'lar sadece kullanıcının kendi
 bildirimlerini okuması/okundu işaretlemesi için var.
 """
 
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from typing import Optional
 
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
@@ -22,7 +22,7 @@ class NotificationResponse(BaseModel):
     type: str
     title: str
     message: str
-    schedule_item_id: Optional[str] = None
+    schedule_item_id: str | None = None
     is_read: bool
     created_at: str
 

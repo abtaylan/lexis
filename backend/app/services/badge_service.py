@@ -20,7 +20,7 @@ script'inin (distribute_leaderboard_rewards.py) yanlışlıkla iki kez
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from app.core.database import supabase_admin
 
@@ -28,8 +28,8 @@ from app.core.database import supabase_admin
 async def award_badge(
     user_id: str,
     badge_code: str,
-    period_key: Optional[str] = None,
-    meta: Optional[dict[str, Any]] = None,
+    period_key: str | None = None,
+    meta: dict[str, Any] | None = None,
 ) -> bool:
     """Rozeti verir, zaten varsa dokunmaz. True dönerse YENİ verildi,
     False dönerse kullanıcı zaten sahipti (no-op)."""

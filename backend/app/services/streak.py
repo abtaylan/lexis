@@ -1,5 +1,5 @@
-from datetime import datetime, timezone, timedelta, date
-from typing import Optional
+from datetime import date, timedelta
+
 from app.core.database import supabase_admin
 from app.services import badge_service, xp_service
 
@@ -44,7 +44,7 @@ async def _maybe_award_streak_milestone(user_id: str, streak_days: int) -> None:
         print(f"STREAK MILESTONE NOTIFICATION WARNING (user={user_id}): {e}")
 
 
-async def update_streak(user_id: str, action: str = "word_added", learning_lang: Optional[str] = None):
+async def update_streak(user_id: str, action: str = "word_added", learning_lang: str | None = None):
     """
     Günlük ilerleme ve streak'i güncelle.
     action: 'word_added' | 'word_reviewed'

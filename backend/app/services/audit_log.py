@@ -9,18 +9,18 @@ social_publisher.py): loglama başarısız olursa asıl işlemi
 sadece backend log'una yazılır.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from app.core.database import supabase_admin
 
 
 def log_admin_action(
-    actor_id: Optional[str],
-    actor_email: Optional[str],
+    actor_id: str | None,
+    actor_email: str | None,
     action: str,
-    target_type: Optional[str] = None,
-    target_id: Optional[str] = None,
-    detail: Optional[dict[str, Any]] = None,
+    target_type: str | None = None,
+    target_id: str | None = None,
+    detail: dict[str, Any] | None = None,
 ) -> None:
     """
     Bir admin işlemini admin_audit_log tablosuna kaydeder.

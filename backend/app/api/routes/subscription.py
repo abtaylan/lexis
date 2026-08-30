@@ -1,19 +1,23 @@
-from datetime import datetime, timedelta, timezone
 import time
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from app.core.auth import get_current_user
-from app.core.database import supabase_admin
 from app.core.config import settings
-from app.services.iyzico_client import iyzico_client
-from app.services import apple_appstore, google_play
+from app.core.database import supabase_admin
 from app.schemas.subscription import (
-    PricingPlan, CheckoutRequest, CheckoutResponse, SubscriptionStatus,
-    VerifyPurchaseRequest, VerifyPurchaseResponse,
+    CheckoutRequest,
+    CheckoutResponse,
+    PricingPlan,
+    SubscriptionStatus,
+    VerifyPurchaseRequest,
+    VerifyPurchaseResponse,
 )
+from app.services import apple_appstore, google_play
+from app.services.iyzico_client import iyzico_client
 
 router = APIRouter()
 
@@ -206,7 +210,7 @@ async def checkout_callback(request: Request, sub_id: str):
     if result.get("status") == "success" and payment_status in ("ACTIVE", "SUCCESS"):
         plan_code = sub_row["plan_code"]
         period_days = 365 if plan_code == "yearly" else 30
-        period_end = datetime.now(timezone.utc) + timedelta(days=period_days)
+        period_end = datetime.now(UTC) + timedelta(days=period_days)
 
         supabase_admin.table("subscriptions").update({
             "status": "active",
@@ -255,7 +259,7 @@ async def iyzico_webhook(request: Request):
     elif "SUCCESS" in event_status or event_status == "ACTIVE":
         plan_code = sub_row["plan_code"]
         period_days = 365 if plan_code == "yearly" else 30
-        period_end = datetime.now(timezone.utc) + timedelta(days=period_days)
+        period_end = datetime.now(UTC) + timedelta(days=period_days)
         supabase_admin.table("subscriptions").update({
             "status": "active", "current_period_end": period_end.isoformat(),
         }).eq("id", sub_row["id"]).execute()
@@ -289,7 +293,7 @@ async def cancel_subscription(current_user=Depends(get_current_user)):
 
     supabase_admin.table("subscriptions").update({
         "status": "cancelled",
-        "cancelled_at": datetime.now(timezone.utc).isoformat(),
+        "cancelled_at": datetime.now(UTC).isoformat(),
     }).eq("id", row["id"]).execute()
 
     # Dönem sonuna kadar premium erişimi korunur; premium_until geçince
@@ -317,7 +321,7 @@ async def verify_purchase(req: VerifyPurchaseRequest, current_user=Depends(get_c
             expires_ms = info.get("expiresDate")  # unix ms
             is_active = bool(expires_ms and expires_ms > int(time.time() * 1000))
             period_end = (
-                datetime.fromtimestamp(expires_ms / 1000, tz=timezone.utc) if expires_ms else None
+                datetime.fromtimestamp(expires_ms / 1000, tz=UTC) if expires_ms else None
             )
         else:
             info = await google_play.verify_subscription(req.product_id, req.purchase_token)
@@ -328,7 +332,7 @@ async def verify_purchase(req: VerifyPurchaseRequest, current_user=Depends(get_c
             is_active = info.get("subscriptionState") == "SUBSCRIPTION_STATE_ACTIVE"
             line_items = info.get("lineItems") or []
             expiry_iso = line_items[0].get("expiryTime") if line_items else None
-            period_end = datetime.fromisoformat(expiry_iso.replace("Z", "+00:00")) if expiry_iso else None
+            period_end = datetime.fromisoformat(expiry_iso) if expiry_iso else None
     except (apple_appstore.NotConfiguredError, google_play.NotConfiguredError) as e:
         raise HTTPException(status_code=501, detail=str(e))
     except (apple_appstore.AppleVerificationError, google_play.GoogleVerificationError) as e:

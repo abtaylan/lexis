@@ -1,8 +1,10 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
-from pydantic import BaseModel
-from typing import Literal, Optional, List
 
 router = APIRouter()
 
@@ -24,29 +26,29 @@ class ScheduleItem(BaseModel):
     time_slot: str
     activity: str
     duration_min: int = 30
-    link_url: Optional[str] = None
-    activity_key: Optional[str] = None
-    reminder_lead: Optional[ReminderLead] = None
+    link_url: str | None = None
+    activity_key: str | None = None
+    reminder_lead: ReminderLead | None = None
 
 class ScheduleUpdate(BaseModel):
-    day_of_week: Optional[int] = None
-    time_slot: Optional[str] = None
-    activity: Optional[str] = None
-    duration_min: Optional[int] = None
-    link_url: Optional[str] = None
-    activity_key: Optional[str] = None
-    is_active: Optional[bool] = None
-    reminder_lead: Optional[ReminderLead] = None
+    day_of_week: int | None = None
+    time_slot: str | None = None
+    activity: str | None = None
+    duration_min: int | None = None
+    link_url: str | None = None
+    activity_key: str | None = None
+    is_active: bool | None = None
+    reminder_lead: ReminderLead | None = None
     # reminder_lead'i "kapalı"ya (NULL) döndürmek için ayrı bir bayrak gerekiyor —
     # model_dump(exclude_none=True) normal update akışında None alanları zaten
     # atlıyor, bu yüzden reminder_lead=None göndermek "değiştirme" anlamına gelir.
-    clear_reminder: Optional[bool] = None
+    clear_reminder: bool | None = None
 
 # ── Aşama 4: Kişiye özel şablonlar ───────────────────────────
 
 class ScheduleTemplateCreate(BaseModel):
     name: str
-    items: List[ScheduleItem]
+    items: list[ScheduleItem]
 
 @router.get("/templates")
 async def get_templates(current_user=Depends(get_current_user)):
@@ -115,7 +117,7 @@ def _get_learning_lang(user_id: str) -> str:
         return "en"
 
 @router.get("/resources")
-async def get_resources(category: Optional[str] = None, current_user=Depends(get_current_user)):
+async def get_resources(category: str | None = None, current_user=Depends(get_current_user)):
     """
     Kullanıcının öğrendiği dile (learning_lang) göre kaynak listesini döner.
     category verilirse sadece o kategoriyle filtrelenir; verilmezse tüm
@@ -133,7 +135,7 @@ async def get_resources(category: Optional[str] = None, current_user=Depends(get
     result = query.order("category").execute()
     return {"resources": result.data, "categories": ACTIVITY_CATEGORIES}
 
-def _resolve_resource(activity_key: Optional[str], learning_lang: str) -> Optional[dict]:
+def _resolve_resource(activity_key: str | None, learning_lang: str) -> dict | None:
     """
     Bir program maddesinin activity_key'ine ve kullanıcının learning_lang'ine
     göre uygun bir kaynağı çözer. Eşleşme yoksa None döner (frontend, kayıtlı

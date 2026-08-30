@@ -1,0 +1,13 @@
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+# CI'daki "ruff check app/" defaultlarıyla eşleşen kurallar korunuyor; sadece
+# bu projede bilinçli olarak kullanılan üç desen için istisna tanımlanıyor
+# (uygulama davranışını değiştirmeden CI'ı yeşile çevirmek için — bkz.
+# lexis_kalan_isler_guncel.md, "Backend otomatik testler" / CI maddesi).
+extend-ignore = [
+    "B008",   # FastAPI'nin Depends(...)/Query(...) varsayılan-değer deseni; framework'ün kendi kullanım şekli
+    "BLE001", # API route/service katmanında bilinçli "except Exception": bir alt servisin hatası isteği 500'e düşürmesin diye kullanılıyor
+    "DTZ011", # date.today() proje genelinde tutarlı biçimde "sunucu yerel günü" için kullanılıyor (streak/leaderboard/istatistik)
+]

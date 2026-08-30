@@ -12,7 +12,7 @@ tutmakla sorumludur.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import HTTPException
 
@@ -41,7 +41,7 @@ async def list_languages(user_id: str) -> list[dict[str, Any]]:
     return result.data or []
 
 
-async def get_active_language(user_id: str) -> Optional[dict[str, Any]]:
+async def get_active_language(user_id: str) -> dict[str, Any] | None:
     result = (
         supabase_admin.table("user_learning_languages")
         .select("*")
@@ -56,8 +56,8 @@ async def get_active_language(user_id: str) -> Optional[dict[str, Any]]:
 async def add_language(
     user_id: str,
     learning_lang: str,
-    daily_goal: Optional[int] = None,
-    make_active: Optional[bool] = None,
+    daily_goal: int | None = None,
+    make_active: bool | None = None,
 ) -> dict[str, Any]:
     """
     Kullaniciya yeni bir ogrenme dili ekler. Kullanicinin hic dili yoksa

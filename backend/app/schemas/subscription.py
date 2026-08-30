@@ -1,5 +1,5 @@
+
 from pydantic import BaseModel
-from typing import Optional
 
 
 class PricingPlan(BaseModel):
@@ -17,16 +17,16 @@ class CheckoutRequest(BaseModel):
 
 
 class CheckoutResponse(BaseModel):
-    checkout_form_content: Optional[str] = None
-    payment_page_url: Optional[str] = None
-    token: Optional[str] = None
+    checkout_form_content: str | None = None
+    payment_page_url: str | None = None
+    token: str | None = None
 
 
 class SubscriptionStatus(BaseModel):
     is_premium: bool
-    premium_until: Optional[str] = None
-    plan_code: Optional[str] = None
-    status: Optional[str] = None
+    premium_until: str | None = None
+    plan_code: str | None = None
+    status: str | None = None
 
 
 # ── Mobil Apple/Google IAP (App Store / Play Store native abonelik) ──────
@@ -42,6 +42,6 @@ class VerifyPurchaseRequest(BaseModel):
 
 class VerifyPurchaseResponse(BaseModel):
     is_premium: bool
-    premium_until: Optional[str] = None
-    plan_code: Optional[str] = None
-    status: Optional[str] = None
+    premium_until: str | None = None
+    plan_code: str | None = None
+    status: str | None = None

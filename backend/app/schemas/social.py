@@ -4,28 +4,28 @@ backend/app/schemas/social.py
 Madde 6, Faz 1 — Arkadaşlık + Takip + Profil görüntüleme.
 """
 
-from pydantic import BaseModel, Field
-from typing import List, Optional
 from datetime import datetime
+
+from pydantic import BaseModel, Field
 
 
 # ── Ortak: hafif kullanıcı kartı (arama sonucu, arkadaş listesi, takipçi/
 #    takip edilen listesi vb. hep bu şekli kullanır) ──────────────────
 class UserCard(BaseModel):
     id: str
-    username: Optional[str] = None
-    display_name: Optional[str] = None
-    avatar_url: Optional[str] = None
+    username: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
     level: int = 1
     # Bu kartı gören kullanıcı ile aradaki ilişki — frontend'in doğru
     # butonu (İstek gönder / Bekliyor / Arkadaş / Takip et / Takipten çık)
     # göstermesi için. relationship_status sadece arama sonuçlarında dolu.
-    relationship_status: Optional[str] = None  # 'none' | 'pending_sent' | 'pending_received' | 'friends'
-    is_following: Optional[bool] = None
+    relationship_status: str | None = None  # 'none' | 'pending_sent' | 'pending_received' | 'friends'
+    is_following: bool | None = None
 
 
 class UserSearchResponse(BaseModel):
-    items: List[UserCard]
+    items: list[UserCard]
 
 
 # ── Arkadaşlık ───────────────────────────────────────────────────────
@@ -37,22 +37,22 @@ class FriendshipItem(BaseModel):
     id: str
     status: str
     created_at: datetime
-    responded_at: Optional[datetime] = None
+    responded_at: datetime | None = None
     user: UserCard  # karşı taraf
 
 
 class FriendsListResponse(BaseModel):
-    items: List[FriendshipItem]
+    items: list[FriendshipItem]
 
 
 class PendingRequestsResponse(BaseModel):
-    incoming: List[FriendshipItem]
-    outgoing: List[FriendshipItem]
+    incoming: list[FriendshipItem]
+    outgoing: list[FriendshipItem]
 
 
 # ── Takip ────────────────────────────────────────────────────────────
 class FollowListResponse(BaseModel):
-    items: List[UserCard]
+    items: list[UserCard]
     total: int
 
 
@@ -74,9 +74,9 @@ class PublicScheduleItem(BaseModel):
 
 class PublicProfileResponse(BaseModel):
     id: str
-    username: Optional[str] = None
-    display_name: Optional[str] = None
-    avatar_url: Optional[str] = None
+    username: str | None = None
+    display_name: str | None = None
+    avatar_url: str | None = None
     level: int = 1
     total_xp: int = 0
     created_at: datetime
@@ -87,22 +87,22 @@ class PublicProfileResponse(BaseModel):
     # relationship_status 'pending_sent'/'pending_received' ise dolu — frontend'in
     # accept/decline çağrısını doğrudan yapabilmesi için (bkz. routes/social.py
     # POST /friends/{friendship_id}/accept).
-    friendship_id: Optional[str] = None
+    friendship_id: str | None = None
     is_following: bool
     stats: PublicProfileStats
-    schedule: List[PublicScheduleItem]
+    schedule: list[PublicScheduleItem]
 
 
 # ── Faz 2: Engelleme ────────────────────────────────────────────────
 class BlockedListResponse(BaseModel):
-    items: List[UserCard]
+    items: list[UserCard]
 
 
 # ── Şikayet/Rapor — bkz. app/services/report_service.py ─────────────
 class ReportCreate(BaseModel):
     reason: str = Field(min_length=1, max_length=50)
-    details: Optional[str] = Field(default=None, max_length=2000)
-    message_id: Optional[str] = None
+    details: str | None = Field(default=None, max_length=2000)
+    message_id: str | None = None
 
 
 # ── Faz 2: Mesajlaşma ───────────────────────────────────────────────
@@ -116,26 +116,26 @@ class MessageItem(BaseModel):
     sender_id: str
     body: str
     created_at: datetime
-    read_at: Optional[datetime] = None
+    read_at: datetime | None = None
 
 
 class ConversationItem(BaseModel):
     id: str
     other_user: UserCard
-    last_message_preview: Optional[str] = None
-    last_message_sender_id: Optional[str] = None
+    last_message_preview: str | None = None
+    last_message_sender_id: str | None = None
     last_message_at: datetime
     unread_count: int = 0
 
 
 class ConversationsListResponse(BaseModel):
-    items: List[ConversationItem]
+    items: list[ConversationItem]
 
 
 class ConversationThreadResponse(BaseModel):
     conversation_id: str
     other_user: UserCard
-    messages: List[MessageItem]
+    messages: list[MessageItem]
 
 
 class UnreadCountResponse(BaseModel):
@@ -157,18 +157,18 @@ class ChallengeItem(BaseModel):
     mode: str
     status: str  # 'pending' | 'accepted' | 'declined' | 'completed' | 'cancelled'
     is_challenger: bool
-    other_user: Optional[UserCard] = None
-    your_session_id: Optional[str] = None
-    opponent_session_id: Optional[str] = None
-    winner_id: Optional[str] = None
-    you_won: Optional[bool] = None  # sadece status='completed' iken dolu
+    other_user: UserCard | None = None
+    your_session_id: str | None = None
+    opponent_session_id: str | None = None
+    winner_id: str | None = None
+    you_won: bool | None = None  # sadece status='completed' iken dolu
     created_at: datetime
-    responded_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    responded_at: datetime | None = None
+    completed_at: datetime | None = None
 
 
 class ChallengesListResponse(BaseModel):
-    incoming: List[ChallengeItem]
-    outgoing: List[ChallengeItem]
-    active: List[ChallengeItem]
-    completed: List[ChallengeItem]
+    incoming: list[ChallengeItem]
+    outgoing: list[ChallengeItem]
+    active: list[ChallengeItem]
+    completed: list[ChallengeItem]

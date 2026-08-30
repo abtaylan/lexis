@@ -1,11 +1,13 @@
+from collections import defaultdict
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
+
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
-from app.services.xp_service import get_xp_summary
-from app.services.leaderboard_service import get_leaderboard
 from app.services.badge_service import get_user_badges
-from datetime import date, timedelta
-from collections import defaultdict
+from app.services.leaderboard_service import get_leaderboard
+from app.services.xp_service import get_xp_summary
 
 router = APIRouter()
 

@@ -1,14 +1,15 @@
 import base64
 import json
+from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
-from typing import List, Optional, Literal
 from supabase import create_client
+
+from app.core.auth import get_current_user
 from app.core.config import settings
 from app.core.database import supabase_admin
-from app.core.auth import get_current_user
-from app.services import otp_service, learning_languages
+from app.services import learning_languages, otp_service
 
 router = APIRouter()
 
@@ -16,13 +17,13 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     display_name: str
-    username: Optional[str] = None
-    native_lang: Optional[str] = "tr"
-    learning_lang: Optional[str] = "en"
+    username: str | None = None
+    native_lang: str | None = "tr"
+    learning_lang: str | None = "en"
     # Coklu dil kaydi (Kullanici Madde 2): verilirse learning_lang yerine
     # bu liste kullanilir, ilk eleman aktif dil olur. Verilmezse eski
     # tek-dil davranisiyla geriye donuk uyumlu kalinir.
-    learning_langs: Optional[List[str]] = None
+    learning_langs: list[str] | None = None
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -46,13 +47,13 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 class ProfileUpdate(BaseModel):
-    display_name: Optional[str] = None
-    daily_goal: Optional[int] = None
-    native_lang: Optional[str] = None
-    learning_lang: Optional[str] = None
-    username: Optional[str] = None
-    email: Optional[EmailStr] = None
-    password: Optional[str] = None
+    display_name: str | None = None
+    daily_goal: int | None = None
+    native_lang: str | None = None
+    learning_lang: str | None = None
+    username: str | None = None
+    email: EmailStr | None = None
+    password: str | None = None
 
 def _friendly_auth_error(msg: str) -> str:
     low = msg.lower()

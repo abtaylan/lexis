@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+
+from pydantic import BaseModel, Field
 
 
 class GameMode(str, Enum):
@@ -43,7 +43,7 @@ class GameSessionResponse(BaseModel):
     score: int
     xp_earned: int
     started_at: datetime
-    ended_at: Optional[datetime] = None
+    ended_at: datetime | None = None
 
 
 class GameWordOption(BaseModel):
@@ -54,25 +54,25 @@ class GameWordOption(BaseModel):
 class NextWordResponse(BaseModel):
     finished: bool = False
     # pool_source='own' ise word_id, 'general' ise general_word_id dolu olur
-    word_id: Optional[str] = None
-    general_word_id: Optional[str] = None
-    word: Optional[str] = None
-    meaning: Optional[str] = None
-    example: Optional[str] = None
-    options: Optional[List[GameWordOption]] = None  # multiple_choice modunda dolu
-    direction: Optional[str] = None  # multiple_choice modunda dolu
+    word_id: str | None = None
+    general_word_id: str | None = None
+    word: str | None = None
+    meaning: str | None = None
+    example: str | None = None
+    options: list[GameWordOption] | None = None  # multiple_choice modunda dolu
+    direction: str | None = None  # multiple_choice modunda dolu
     # ── wordle (adam asmaca) moduna özel alanlar ──
-    word_length: Optional[int] = None
-    revealed: Optional[str] = None  # örn. "_ e _ _ e" (harf aralarında boşluk)
-    max_wrong_guesses: Optional[int] = None
+    word_length: int | None = None
+    revealed: str | None = None  # örn. "_ e _ _ e" (harf aralarında boşluk)
+    max_wrong_guesses: int | None = None
 
 
 class AttemptCreate(BaseModel):
-    word_id: Optional[str] = None
-    general_word_id: Optional[str] = None
+    word_id: str | None = None
+    general_word_id: str | None = None
     is_correct: bool
     attempts_count: int = Field(default=1, ge=1)
-    time_taken_ms: Optional[int] = None
+    time_taken_ms: int | None = None
 
 
 class AttemptResponse(BaseModel):
@@ -81,7 +81,7 @@ class AttemptResponse(BaseModel):
     xp_awarded: int
     session_score: int
     leveled_up: bool
-    new_level: Optional[int] = None
+    new_level: int | None = None
 
 
 class FinishSessionResponse(BaseModel):
@@ -105,12 +105,12 @@ class GuessLetterResponse(BaseModel):
     letter: str
     correct: bool
     revealed: str  # örn. "_ e _ _ e"
-    guessed_letters: List[str]
+    guessed_letters: list[str]
     wrong_guesses: int
     max_wrong_guesses: int
     is_complete: bool  # kelime tamamen bulundu
     is_game_over: bool  # yanlış hakkı bitti, kelime bulunamadı
-    word: Optional[str] = None  # sadece tur bittiğinde (is_complete/is_game_over) dolu
+    word: str | None = None  # sadece tur bittiğinde (is_complete/is_game_over) dolu
     xp_awarded: int = 0
     leveled_up: bool = False
-    new_level: Optional[int] = None
+    new_level: int | None = None

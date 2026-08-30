@@ -37,9 +37,10 @@ function injectAndRunScripts(container: HTMLDivElement) {
 
 // iyzico "Logo Paketi" + kart ağı logoları — güvenlik/marka rozetleri.
 // visa.svg/mastercard.svg/amex.png resmi marka merkezlerinden (Wikimedia Commons
-// üzerinden doğrulanmış güncel logolar) 29 Ağustos 2026'da alındı. Troy logosu için
-// resmi bir kaynak bulunamadı (bkz. lexis_kalan_isler — Troy marka kullanım izni
-// başvurusu gerekiyor), o yüzden şimdilik listede yok.
+// üzerinden doğrulanmış güncel logolar) 29 Ağustos 2026'da alındı. troy.svg TROY'un
+// resmi medya merkezinden (troyodeme.com/tr/troy-hakkinda/medya-merkezi) 30 Ağustos
+// 2026'da alındı — iyzico'nun kendi entegrasyonunda da aynı şekilde marka izni
+// alınmadan kullanıldığı için burada da doğrudan eklendi.
 function PaymentTrustBadges() {
   return (
     <div className="flex flex-col items-center gap-3 py-4">
@@ -48,6 +49,7 @@ function PaymentTrustBadges() {
         <Image src="/payment/visa.svg" alt="Visa" width={52} height={17} className="h-5 w-auto" />
         <Image src="/payment/mastercard.svg" alt="Mastercard" width={52} height={32} className="h-7 w-auto" />
         <Image src="/payment/amex.png" alt="American Express" width={52} height={52} className="h-7 w-auto rounded" />
+        <Image src="/payment/troy.svg" alt="Troy" width={71} height={33} className="h-7 w-auto" />
       </div>
       <div className="flex items-center gap-1.5 text-xs text-slate-400">
         <Lock className="w-3.5 h-3.5" />

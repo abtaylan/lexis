@@ -1,11 +1,14 @@
+import logging
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, EmailStr
-from typing import Optional
-from datetime import date
-from app.core.auth import get_current_admin, get_current_admin_full, ADMIN_ROLES
+
+from app.core.auth import ADMIN_ROLES, get_current_admin, get_current_admin_full
 from app.core.database import supabase_admin
 from app.services.audit_log import log_admin_action
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # 'admin' ve 'admin_readonly' dışında bir rol atanamaz (bkz. Madde 1d — RBAC).
@@ -16,10 +19,10 @@ class CreateUserRequest(BaseModel):
     email: EmailStr
     password: str
     display_name: str
-    role: Optional[str] = "user"
-    daily_goal: Optional[int] = 5
-    native_lang: Optional[str] = "tr"
-    learning_lang: Optional[str] = "en"
+    role: str | None = "user"
+    daily_goal: int | None = 5
+    native_lang: str | None = "tr"
+    learning_lang: str | None = "en"
 
 
 # ── Kullanıcı listesi ─────────────────────────────────────────
@@ -73,7 +76,7 @@ async def get_user_detail(user_id: str, admin=Depends(get_current_admin)):
         if au and au.user:
             email = au.user.email
     except Exception:
-        pass
+        logger.warning("Auth admin get_user_by_id failed for user_id=%s", user_id, exc_info=True)
 
     words = (
         supabase_admin.table("words")

@@ -1,7 +1,7 @@
-from pydantic import BaseModel, Field
-from typing import Optional, List
 from datetime import datetime
 from enum import Enum
+
+from pydantic import BaseModel, Field
 
 
 class WordStatus(str, Enum):
@@ -18,44 +18,44 @@ class ListType(str, Enum):
 class WordCreate(BaseModel):
     word: str = Field(..., min_length=1, max_length=200)
     meaning: str = Field(..., min_length=1)
-    meaning_native: Optional[str] = None
-    meaning_target: Optional[str] = None
-    example: Optional[str] = None
-    word_type: Optional[str] = None
-    word_type_native: Optional[str] = None
+    meaning_native: str | None = None
+    meaning_target: str | None = None
+    example: str | None = None
+    word_type: str | None = None
+    word_type_native: str | None = None
     list_type: ListType = ListType.active
 
 
 class WordUpdate(BaseModel):
-    meaning: Optional[str] = None
-    meaning_native: Optional[str] = None
-    meaning_target: Optional[str] = None
-    example: Optional[str] = None
-    word_type: Optional[str] = None
-    word_type_native: Optional[str] = None
-    list_type: Optional[ListType] = None
-    status: Optional[WordStatus] = None
+    meaning: str | None = None
+    meaning_native: str | None = None
+    meaning_target: str | None = None
+    example: str | None = None
+    word_type: str | None = None
+    word_type_native: str | None = None
+    list_type: ListType | None = None
+    status: WordStatus | None = None
 
 
 class WordResponse(BaseModel):
     id: str
     word: str
     meaning: str
-    meaning_native: Optional[str] = None
-    meaning_target: Optional[str] = None
-    example: Optional[str] = None
-    word_type: Optional[str] = None
-    word_type_native: Optional[str] = None
+    meaning_native: str | None = None
+    meaning_target: str | None = None
+    example: str | None = None
+    word_type: str | None = None
+    word_type_native: str | None = None
     list_type: str
     status: str
     repetition_count: int = 0
-    last_reviewed_at: Optional[datetime] = None
-    next_review_at: Optional[datetime] = None
+    last_reviewed_at: datetime | None = None
+    next_review_at: datetime | None = None
     created_at: datetime
 
 
 class WordListResponse(BaseModel):
-    items: List[WordResponse]
+    items: list[WordResponse]
     total: int
     page: int
     page_size: int

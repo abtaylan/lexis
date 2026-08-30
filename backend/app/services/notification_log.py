@@ -8,7 +8,7 @@ social_publisher.py (Telegram + Slack günlük içerik paylaşımı)
 tarafından, her gönderim denemesinden sonra çağrılır.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 from app.core.database import supabase_admin
 
@@ -16,9 +16,9 @@ from app.core.database import supabase_admin
 def log_notification(
     channel: str,
     category: str,
-    recipient: Optional[str],
+    recipient: str | None,
     status: str,
-    detail: Optional[dict[str, Any]] = None,
+    detail: dict[str, Any] | None = None,
 ) -> None:
     """
     channel:  'email' | 'telegram' | 'slack'

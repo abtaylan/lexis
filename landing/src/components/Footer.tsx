@@ -98,13 +98,17 @@ export function Footer() {
 
         {/* Ödeme yöntemi rozetleri — iyzico incelemesi ve genel güven işareti için.
             Kaynaklar: iyzico'nun kendi logo paketi + Wikimedia Commons üzerinden
-            doğrulanmış resmi Visa/Mastercard/Amex logoları (29 Ağustos 2026).
-            Troy için resmi bir kaynak bulunamadı, marka izni başvurusu bekliyor. */}
+            doğrulanmış resmi Visa/Mastercard/Amex logoları (29 Ağustos 2026) +
+            TROY'un resmi medya merkezinden (troyodeme.com/tr/troy-hakkinda/medya-merkezi)
+            indirilen resmi logo paketi (30 Ağustos 2026) — iyzico'nun kendi
+            entegrasyonunda da aynı şekilde marka izni alınmadan kullanıldığı
+            için burada da doğrudan eklendi. */}
         <div className="mt-10 pt-6 border-t border-gray-100 flex items-center gap-4 flex-wrap justify-center sm:justify-start">
           <Image src="/payment/iyzico.svg" alt="iyzico ile Öde" width={120} height={42} className="h-7 w-auto" />
           <Image src="/payment/visa.svg" alt="Visa" width={52} height={17} className="h-4 w-auto" />
           <Image src="/payment/mastercard.svg" alt="Mastercard" width={52} height={32} className="h-6 w-auto" />
           <Image src="/payment/amex.png" alt="American Express" width={52} height={52} className="h-6 w-auto rounded" />
+          <Image src="/payment/troy.svg" alt="Troy" width={71} height={33} className="h-6 w-auto" />
         </div>
 
         {/* iyzico başvurusu ve KVKK için zorunlu işletme kimlik bilgileri.

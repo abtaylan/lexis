@@ -27,8 +27,8 @@ işi engellenmez — hata sadece stdout'a yazılır (diğer servislerle aynı
 from __future__ import annotations
 
 from contextlib import contextmanager
-from datetime import datetime, timezone
-from typing import Any, Optional
+from datetime import UTC, datetime
+from typing import Any
 
 from app.core.database import supabase_admin
 
@@ -36,8 +36,8 @@ from app.core.database import supabase_admin
 class _JobRun:
     def __init__(self, job_name: str):
         self.job_name = job_name
-        self.id: Optional[str] = None
-        self.detail: Optional[dict[str, Any]] = None
+        self.id: str | None = None
+        self.detail: dict[str, Any] | None = None
 
 
 @contextmanager
@@ -72,7 +72,7 @@ def job_run(job_name: str):
                 supabase_admin.table("cron_job_runs").update(
                     {
                         "status": "failed" if error_text else "success",
-                        "finished_at": datetime.now(timezone.utc).isoformat(),
+                        "finished_at": datetime.now(UTC).isoformat(),
                         "detail": run.detail,
                         "error": error_text,
                     }

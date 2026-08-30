@@ -12,8 +12,6 @@ kanal atlanır, diğeri yine de dener).
 
 from __future__ import annotations
 
-from typing import Optional
-
 import httpx
 
 from app.core.config import settings
@@ -28,7 +26,7 @@ def _dry_run() -> bool:
 
 # ── Telegram ─────────────────────────────────────────────────────
 
-def post_word_to_telegram(word: str, meaning: str, example: Optional[str], image_bytes: bytes) -> bool:
+def post_word_to_telegram(word: str, meaning: str, example: str | None, image_bytes: bytes) -> bool:
     caption = f"📖 Günün Kelimesi\n\n{word} — {meaning}"
     if example:
         caption += f"\n\n\"{example}\""
@@ -104,7 +102,7 @@ def post_quiz_to_telegram(question_text: str, options: list[str], correct_answer
 # Basit bir "Incoming Webhook" kullanıldığı için (kullanıcının seçtiği en
 # kolay entegrasyon yolu) dosya/görsel yüklemesi yok — sadece metin/Block Kit.
 
-def post_word_to_slack(word: str, meaning: str, example: Optional[str]) -> bool:
+def post_word_to_slack(word: str, meaning: str, example: str | None) -> bool:
     text = f"📖 *Günün Kelimesi*\n\n*{word}* — {meaning}"
     if example:
         text += f"\n_\"{example}\"_"

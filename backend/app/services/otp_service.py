@@ -1,7 +1,6 @@
 import random
 import string
-from datetime import datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
 
@@ -18,10 +17,10 @@ def _generate_code(email: str) -> str:
 
 
 def _parse_dt(value: str) -> datetime:
-    return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return datetime.fromisoformat(value)
 
 
-def _latest_pending(email: str, purpose: str) -> Optional[dict]:
+def _latest_pending(email: str, purpose: str) -> dict | None:
     res = (
         supabase_admin.table("otp_codes")
         .select("*")
@@ -38,8 +37,8 @@ def _latest_pending(email: str, purpose: str) -> Optional[dict]:
 def create_otp(
     email: str,
     purpose: str,
-    access_token: Optional[str] = None,
-    refresh_token: Optional[str] = None,
+    access_token: str | None = None,
+    refresh_token: str | None = None,
 ) -> str:
     """
     Yeni bir OTP kodu üretir, DB'ye yazar ve e-posta ile gönderir (OTP_MODE=real ise).
@@ -50,7 +49,7 @@ def create_otp(
     her zaman en fazla bir geçerli kod olur.
     """
     email = email.strip().lower()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     try:
         supabase_admin.table("otp_codes").update({"expires_at": now.isoformat()}).eq(
@@ -86,7 +85,7 @@ def verify_otp(email: str, purpose: str, code: str) -> dict:
             detail="Doğrulama kodu bulunamadı. Lütfen tekrar giriş/kayıt yapın.",
         )
 
-    if datetime.now(timezone.utc) > _parse_dt(row["expires_at"]):
+    if datetime.now(UTC) > _parse_dt(row["expires_at"]):
         raise HTTPException(status_code=400, detail="Kodun süresi doldu. Yeni kod isteyin.")
 
     if row["attempts"] >= settings.OTP_MAX_ATTEMPTS:
@@ -112,7 +111,7 @@ def resend_otp(email: str, purpose: str) -> None:
             status_code=400, detail="Bekleyen bir doğrulama isteği bulunamadı."
         )
 
-    elapsed = datetime.now(timezone.utc) - _parse_dt(row["created_at"])
+    elapsed = datetime.now(UTC) - _parse_dt(row["created_at"])
     if elapsed < timedelta(seconds=settings.OTP_RESEND_COOLDOWN_SECONDS):
         wait = settings.OTP_RESEND_COOLDOWN_SECONDS - int(elapsed.total_seconds())
         raise HTTPException(

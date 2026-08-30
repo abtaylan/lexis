@@ -1,12 +1,19 @@
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
-from typing import Optional
+
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
-from app.schemas.words import WordCreate, WordUpdate, WordResponse, WordListResponse, ReviewResult
+from app.schemas.words import (
+    ReviewResult,
+    WordCreate,
+    WordListResponse,
+    WordResponse,
+    WordUpdate,
+)
 from app.services.spaced_repetition import calculate_next_review
 from app.services.streak import update_streak
 from app.services.xp_service import award_xp
-from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -14,9 +21,9 @@ router = APIRouter()
 async def get_words(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    status: Optional[str] = None,
-    list_type: Optional[str] = None,
-    search: Optional[str] = None,
+    status: str | None = None,
+    list_type: str | None = None,
+    search: str | None = None,
     current_user=Depends(get_current_user)
 ):
     # Kullanıcının aktif öğrenme diline göre filtrele (Kullanıcı Madde 2 —
@@ -71,7 +78,7 @@ async def create_word(
 
     data = word_in.model_dump()
     data["user_id"] = current_user.id
-    data["next_review_at"] = (datetime.now(timezone.utc).isoformat())
+    data["next_review_at"] = (datetime.now(UTC).isoformat())
 
     # Kelimenin dil çiftini kullanıcının profilinden al (source=öğrenilen dil, target=ana dil)
     profile = (
@@ -175,7 +182,7 @@ async def get_due_words(current_user=Depends(get_current_user)):
     )
     active_lang = (profile.data or {}).get("learning_lang", "en")
 
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     result = (
         supabase_admin.table("words")
         .select("*")

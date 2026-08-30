@@ -40,7 +40,7 @@ Altı oyun modu desteklenir:
 """
 
 import random
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -516,7 +516,7 @@ async def finish_session(
     if session.get("ended_at"):
         raise HTTPException(status_code=400, detail="Oturum zaten bitmiş.")
 
-    ended_at = datetime.now(timezone.utc).isoformat()
+    ended_at = datetime.now(UTC).isoformat()
     update_result = (
         supabase_admin.table("game_sessions")
         .update({"ended_at": ended_at})

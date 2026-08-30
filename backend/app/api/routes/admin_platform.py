@@ -22,8 +22,7 @@ Okuma (GET) endpoint'leri get_current_admin (hem 'admin' hem
 get_current_admin_full (sadece 'admin') ile.
 """
 
-from datetime import date, datetime, timedelta, timezone
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -46,11 +45,11 @@ CRON_JOB_NAMES = ["expire_premium", "send_schedule_reminders", "post_daily_conte
 async def system_health(admin=Depends(get_current_admin)):
     # DB erişilebilirliği + kabaca gecikme ölçümü
     db_status = "ok"
-    db_latency_ms: Optional[float] = None
-    t0 = datetime.now(timezone.utc)
+    db_latency_ms: float | None = None
+    t0 = datetime.now(UTC)
     try:
         supabase_admin.table("profiles").select("id").limit(1).execute()
-        db_latency_ms = (datetime.now(timezone.utc) - t0).total_seconds() * 1000
+        db_latency_ms = (datetime.now(UTC) - t0).total_seconds() * 1000
     except Exception as e:
         db_status = "error"
         print(f"SYSTEM_HEALTH db ping error: {e}")
@@ -72,7 +71,7 @@ async def system_health(admin=Depends(get_current_admin)):
             "scheduled": False,  # Madde 4 (kalan): henüz VPS cron'una bağlanmadı
         })
 
-    uptime_seconds = int((datetime.now(timezone.utc).timestamp()) - START_TIME)
+    uptime_seconds = int((datetime.now(UTC).timestamp()) - START_TIME)
 
     return {
         "backend": {
@@ -106,7 +105,7 @@ async def system_health(admin=Depends(get_current_admin)):
 @router.get("/stats/detailed")
 async def stats_detailed(days: int = 30, admin=Depends(get_current_admin)):
     days = max(7, min(days, 180))
-    since = (datetime.now(timezone.utc) - timedelta(days=days)).date().isoformat()
+    since = (datetime.now(UTC) - timedelta(days=days)).date().isoformat()
 
     # ── Dil dağılımı ────────────────────────────────────────────
     active_langs = (
@@ -148,7 +147,7 @@ async def stats_detailed(days: int = 30, admin=Depends(get_current_admin)):
     # kullanım oranı. Kohort bazlı, tarih-hassas bir retention hesabı
     # (D1/D7/D30) için daha zengin bir olay/aktivite tablosu gerekir; bu,
     # mevcut şemadan çıkarılabilecek makul bir ilk yaklaşım.
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    cutoff = (datetime.now(UTC) - timedelta(days=7)).isoformat()
     eligible_ids = {
         row["id"] for row in (
             supabase_admin.table("profiles").select("id").lt("created_at", cutoff).execute()
@@ -159,7 +158,7 @@ async def stats_detailed(days: int = 30, admin=Depends(get_current_admin)):
     recent_progress = (
         supabase_admin.table("daily_progress")
         .select("user_id")
-        .gte("date", (datetime.now(timezone.utc) - timedelta(days=7)).date().isoformat())
+        .gte("date", (datetime.now(UTC) - timedelta(days=7)).date().isoformat())
         .execute()
     ).data or []
     active_recent_ids = {row["user_id"] for row in recent_progress}
@@ -183,7 +182,7 @@ async def stats_detailed(days: int = 30, admin=Depends(get_current_admin)):
 
 
 def _date_range(days: int) -> list[str]:
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(UTC).date()
     return [(today - timedelta(days=i)).isoformat() for i in range(days - 1, -1, -1)]
 
 
@@ -192,8 +191,8 @@ def _date_range(days: int) -> list[str]:
 # ================================================================
 @router.get("/payments")
 async def list_payments(
-    status_filter: Optional[str] = None,
-    plan_code: Optional[str] = None,
+    status_filter: str | None = None,
+    plan_code: str | None = None,
     admin=Depends(get_current_admin),
 ):
     query = supabase_admin.table("subscriptions").select("*").order("created_at", desc=True)
@@ -269,23 +268,23 @@ class WordPoolCreate(BaseModel):
     target_lang: str
     word: str
     meaning: str
-    example: Optional[str] = None
-    difficulty_level: Optional[str] = None
+    example: str | None = None
+    difficulty_level: str | None = None
 
 
 class WordPoolUpdate(BaseModel):
-    word: Optional[str] = None
-    meaning: Optional[str] = None
-    example: Optional[str] = None
-    difficulty_level: Optional[str] = None
-    is_active: Optional[bool] = None
+    word: str | None = None
+    meaning: str | None = None
+    example: str | None = None
+    difficulty_level: str | None = None
+    is_active: bool | None = None
 
 
 @router.get("/word-pool")
 async def list_word_pool(
-    source_lang: Optional[str] = None,
-    target_lang: Optional[str] = None,
-    search: Optional[str] = None,
+    source_lang: str | None = None,
+    target_lang: str | None = None,
+    search: str | None = None,
     include_inactive: bool = False,
     page: int = 1,
     page_size: int = 50,
@@ -397,9 +396,9 @@ async def list_social_posts(limit: int = 30, admin=Depends(get_current_admin)):
 # ================================================================
 @router.get("/notifications-log")
 async def list_notifications_log(
-    channel: Optional[str] = None,
-    category: Optional[str] = None,
-    status_filter: Optional[str] = None,
+    channel: str | None = None,
+    category: str | None = None,
+    status_filter: str | None = None,
     limit: int = 50,
     admin=Depends(get_current_admin),
 ):
@@ -475,8 +474,8 @@ async def game_analytics(admin=Depends(get_current_admin)):
 # ================================================================
 @router.get("/audit-log")
 async def list_audit_log(
-    action: Optional[str] = None,
-    target_type: Optional[str] = None,
+    action: str | None = None,
+    target_type: str | None = None,
     limit: int = 50,
     admin=Depends(get_current_admin),
 ):

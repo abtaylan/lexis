@@ -1,9 +1,27 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.routes import (
+    admin,
+    admin_platform,
+    auth,
+    cron,
+    dictionary,
+    games,
+    languages,
+    notifications,
+    push_tokens,
+    schedule,
+    social,
+    stats,
+    subscription,
+    user_languages,
+    words,
+)
 from app.core.config import settings
-from app.api.routes import auth, words, dictionary, stats, admin, admin_platform, schedule, languages, games, subscription, user_languages, notifications, social, push_tokens, cron
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

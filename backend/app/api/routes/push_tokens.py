@@ -12,7 +12,7 @@ Bir kullanıcının birden fazla cihazı olabilir, bu yüzden upsert token
 token'ın sahibi güncellenir).
 """
 
-from typing import Literal, Optional
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -26,7 +26,7 @@ router = APIRouter()
 class PushTokenRegister(BaseModel):
     token: str
     platform: Literal["ios", "android"]
-    device_name: Optional[str] = None
+    device_name: str | None = None
 
 
 class PushTokenUnregister(BaseModel):

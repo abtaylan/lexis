@@ -1,11 +1,12 @@
+
 from pydantic_settings import BaseSettings
-from typing import List
+
 
 class Settings(BaseSettings):
     # App
     DEBUG: bool = False
     SECRET_KEY: str
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
+    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000"]
 
     # Supabase
     SUPABASE_URL: str

@@ -11,12 +11,14 @@ kullanılmıyor — bunlar generic.py (dictionaryapi.dev + MyMemory)
 olmayan sözlük kapsamı güvenilir biçimde doğrulanamıyor.
 """
 import hashlib
-from functools import lru_cache
+import logging
 
 import httpx
 from bs4 import BeautifulSoup
 
 from app.services.dictionary_providers.pos_labels import localize_pos
+
+logger = logging.getLogger(__name__)
 
 # Bizim dil kodlarımız -> Cambridge URL slug'ı
 CAMBRIDGE_NATIVE_SLUG = {
@@ -69,6 +71,7 @@ async def lookup(word: str, native_lang: str) -> list[dict]:
                     soup = BeautifulSoup(r.text, "html.parser")
                     break
             except Exception:
+                logger.debug("Cambridge lookup failed for url=%s", url, exc_info=True)
                 continue
 
     if soup is None:

@@ -12,7 +12,7 @@ ayni stil).
 from __future__ import annotations
 
 import math
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from app.core.database import supabase_admin
 
@@ -115,9 +115,9 @@ class XPResult:
 async def award_xp(
     user_id: str,
     source_type: XPSourceType,
-    amount: Optional[int] = None,
-    source_id: Optional[str] = None,
-    metadata: Optional[dict[str, Any]] = None,
+    amount: int | None = None,
+    source_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
 ) -> XPResult:
     """
     Kullaniciya XP kazandirir: xp_events'e kayit atar, profiles.total_xp'yi

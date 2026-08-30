@@ -8,7 +8,6 @@ Kullanicinin ayni anda birden fazla dil ogrenebilmesini saglayan endpoint'ler
   PATCH  "/active"  -> aktif ogrenme dilini degistir
 """
 
-from typing import Optional
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
@@ -21,7 +20,7 @@ router = APIRouter()
 
 class AddLanguageRequest(BaseModel):
     learning_lang: str
-    daily_goal: Optional[int] = None
+    daily_goal: int | None = None
 
 
 class SetActiveLanguageRequest(BaseModel):

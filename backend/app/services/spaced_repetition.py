@@ -1,8 +1,8 @@
-from datetime import datetime, timezone, timedelta
-from typing import Dict, Any
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 
-def calculate_next_review(word: Dict[str, Any], success: bool) -> Dict[str, Any]:
+def calculate_next_review(word: dict[str, Any], success: bool) -> dict[str, Any]:
     """
     SM-2 algoritması ile bir sonraki tekrar tarihini hesapla.
     
@@ -33,13 +33,13 @@ def calculate_next_review(word: Dict[str, Any], success: bool) -> Dict[str, Any]
         ef = max(1.3, ef - 0.2)
         status = "learning"
 
-    next_review = datetime.now(timezone.utc) + timedelta(days=interval)
+    next_review = datetime.now(UTC) + timedelta(days=interval)
 
     return {
         "repetition_count": rep,
         "ease_factor": round(ef, 2),
         "interval_days": interval,
-        "last_reviewed_at": datetime.now(timezone.utc).isoformat(),
+        "last_reviewed_at": datetime.now(UTC).isoformat(),
         "next_review_at": next_review.isoformat(),
         "status": status,
     }

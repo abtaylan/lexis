@@ -22,7 +22,7 @@ from fastapi import HTTPException
 
 from app.core.database import supabase_admin
 from app.services.block_service import is_blocked_either_way
-from app.services.friends_service import friendship_status_map, following_set
+from app.services.friends_service import following_set, friendship_status_map
 
 _PROFILE_COLS = "id, username, display_name, avatar_url, level, total_xp, created_at, learning_lang"
 
