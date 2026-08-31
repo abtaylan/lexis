@@ -3,8 +3,30 @@ import socket
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import httpx
+
 from app.core.config import settings
 from app.services.notification_log import log_notification
+
+
+def _send_via_resend(to_email: str, subject: str, html_body: str) -> None:
+    """
+    Resend HTTPS API'si ile mail gönderir (port 443) — RESEND_API_KEY doluysa
+    tercih edilen yol, çünkü Railway'den ham SMTP (587) bağlantıları
+    engelleniyor. Başarısızlıkta exception fırlatır, çağıran yakalar.
+    """
+    resp = httpx.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+        json={
+            "from": settings.RESEND_FROM_EMAIL or f"{settings.SMTP_FROM_NAME} <onboarding@resend.dev>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_body,
+        },
+        timeout=15,
+    )
+    resp.raise_for_status()
 
 
 class _IPv4SMTP(smtplib.SMTP):
@@ -56,9 +78,9 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
         log_notification("email", "otp", to_email, "skipped", {"purpose": purpose, "reason": "OTP_MODE=fixed"})
         return
 
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        print(f"[OTP] SMTP ayarlanmamış (SMTP_USER/SMTP_PASSWORD boş), kod gönderilemedi: {to_email} → {code}")
-        log_notification("email", "otp", to_email, "failed", {"purpose": purpose, "reason": "SMTP not configured"})
+    if not settings.RESEND_API_KEY and (not settings.SMTP_USER or not settings.SMTP_PASSWORD):
+        print(f"[OTP] Mail sağlayıcısı ayarlanmamış (RESEND_API_KEY/SMTP boş), kod gönderilemedi: {to_email} → {code}")
+        log_notification("email", "otp", to_email, "failed", {"purpose": purpose, "reason": "no email provider configured"})
         return
 
     if purpose == "login":
@@ -87,6 +109,15 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
     </div>
     """
 
+    if settings.RESEND_API_KEY:
+        try:
+            _send_via_resend(to_email, subject, html_body)
+            log_notification("email", "otp", to_email, "sent", {"purpose": purpose, "via": "resend"})
+        except Exception as e:
+            print(f"OTP EMAIL SEND ERROR via Resend ({to_email}): {e}")
+            log_notification("email", "otp", to_email, "failed", {"purpose": purpose, "error": str(e), "via": "resend"})
+        return
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
@@ -98,10 +129,10 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
-        log_notification("email", "otp", to_email, "sent", {"purpose": purpose})
+        log_notification("email", "otp", to_email, "sent", {"purpose": purpose, "via": "smtp"})
     except Exception as e:
-        print(f"OTP EMAIL SEND ERROR ({to_email}): {e}")
-        log_notification("email", "otp", to_email, "failed", {"purpose": purpose, "error": str(e)})
+        print(f"OTP EMAIL SEND ERROR via SMTP ({to_email}): {e}")
+        log_notification("email", "otp", to_email, "failed", {"purpose": purpose, "error": str(e), "via": "smtp"})
 
 
 def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, lead_label: str) -> None:
@@ -122,9 +153,9 @@ def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, l
         log_notification("email", "schedule_reminder", to_email, "skipped", {"activity": activity, "reason": "OTP_MODE=fixed"})
         return
 
-    if not settings.SMTP_USER or not settings.SMTP_PASSWORD:
-        print(f"[REMINDER] SMTP ayarlanmamış, hatırlatma gönderilemedi: {to_email} → {activity}")
-        log_notification("email", "schedule_reminder", to_email, "failed", {"activity": activity, "reason": "SMTP not configured"})
+    if not settings.RESEND_API_KEY and (not settings.SMTP_USER or not settings.SMTP_PASSWORD):
+        print(f"[REMINDER] Mail sağlayıcısı ayarlanmamış, hatırlatma gönderilemedi: {to_email} → {activity}")
+        log_notification("email", "schedule_reminder", to_email, "failed", {"activity": activity, "reason": "no email provider configured"})
         return
 
     subject = f"Lexis Hatırlatma: {activity}"
@@ -147,6 +178,15 @@ def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, l
     </div>
     """
 
+    if settings.RESEND_API_KEY:
+        try:
+            _send_via_resend(to_email, subject, html_body)
+            log_notification("email", "schedule_reminder", to_email, "sent", {"activity": activity, "via": "resend"})
+        except Exception as e:
+            print(f"REMINDER EMAIL SEND ERROR via Resend ({to_email}): {e}")
+            log_notification("email", "schedule_reminder", to_email, "failed", {"activity": activity, "error": str(e), "via": "resend"})
+        return
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
@@ -158,7 +198,7 @@ def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, l
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
-        log_notification("email", "schedule_reminder", to_email, "sent", {"activity": activity})
+        log_notification("email", "schedule_reminder", to_email, "sent", {"activity": activity, "via": "smtp"})
     except Exception as e:
-        print(f"REMINDER EMAIL SEND ERROR ({to_email}): {e}")
-        log_notification("email", "schedule_reminder", to_email, "failed", {"activity": activity, "error": str(e)})
+        print(f"REMINDER EMAIL SEND ERROR via SMTP ({to_email}): {e}")
+        log_notification("email", "schedule_reminder", to_email, "failed", {"activity": activity, "error": str(e), "via": "smtp"})

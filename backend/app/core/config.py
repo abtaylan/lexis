@@ -90,6 +90,17 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: str = ""
     SMTP_FROM_NAME: str = "Lexis"
 
+    # Resend (HTTPS tabanlı e-posta API'si) — 31 Ağustos 2026: Railway'den
+    # smtp.gmail.com:587'ye giden ham SMTP bağlantıları "Network is
+    # unreachable" / "timed out" ile başarısız oluyor (port 587 muhtemelen
+    # Railway/Gmail tarafında filtreleniyor — bulut platformlarında yaygın
+    # bir kısıtlama). RESEND_API_KEY doluysa email_service.py SMTP yerine
+    # HTTPS (443) üzerinden Resend API'sini kullanır — bu port neredeyse
+    # hiçbir yerde engellenmiyor. Boş bırakılırsa eski SMTP yoluna düşer,
+    # hiçbir şey kırılmaz.
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = ""  # örn. "Lexis <bildirim@lexiswords.com>" — Resend'de doğrulanmış alan adı gerekir
+
     # ── Sosyal medya günlük içerik paylaşımı (Madde 3b, revize) ────
     # "fixed" → test/geliştirme: gerçek paylaşım yapılmaz, üretilen içerik ve
     #           hedef sadece log'a yazılır (OTP_MODE ile aynı desen).
