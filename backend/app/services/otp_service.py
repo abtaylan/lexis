@@ -103,6 +103,27 @@ def verify_otp(email: str, purpose: str, code: str) -> dict:
     return row
 
 
+def has_ever_verified(email: str, purpose: str) -> bool:
+    """
+    Bu email+purpose için daha önce BAŞARIYLA doğrulanmış (verified=True) bir
+    OTP kaydı var mı? register() akışında "yarıda kalmış" kayıtları (auth.users'ta
+    oluşturulmuş ama kullanıcı ağ kopması/uygulama kapanması vb. yüzünden OTP
+    ekranını hiç tamamlayamamış) gerçek/tamamlanmış kayıtlardan ayırt etmek için
+    kullanılır — bkz. auth.py register(), 31 Ağustos 2026 gerçek kullanıcı raporu.
+    """
+    email = email.strip().lower()
+    res = (
+        supabase_admin.table("otp_codes")
+        .select("id")
+        .eq("email", email)
+        .eq("purpose", purpose)
+        .eq("verified", True)
+        .limit(1)
+        .execute()
+    )
+    return bool(res.data)
+
+
 def resend_otp(email: str, purpose: str) -> None:
     email = email.strip().lower()
     row = _latest_pending(email, purpose)

@@ -116,21 +116,54 @@ async def register(req: RegisterRequest):
         # (anon key'li) temp client ile yapılıyor, supabase_admin sadece
         # .table() işlemleri için service_role olarak temiz kalıyor.
         temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
-        result = temp_client.auth.sign_up({
-            "email": req.email,
-            "password": req.password,
-            "options": {"data": {
-                "display_name": req.display_name,
-                "username": req.username or req.email.split("@")[0],
-            }}
-        })
-        if result.user is None:
-            raise HTTPException(status_code=400, detail="Bu e-posta zaten kayıtlı.")
+
+        user_id: str
+        access_token: str | None = None
+        refresh_token: str | None = None
+
+        try:
+            result = temp_client.auth.sign_up({
+                "email": req.email,
+                "password": req.password,
+                "options": {"data": {
+                    "display_name": req.display_name,
+                    "username": req.username or req.email.split("@")[0],
+                }}
+            })
+            if result.user is None:
+                raise HTTPException(status_code=400, detail="Bu e-posta zaten kayıtlı.")
+            user_id = result.user.id
+            if result.session:
+                access_token = result.session.access_token
+                refresh_token = result.session.refresh_token
+        except HTTPException:
+            raise
+        except Exception as e:
+            # ÖNEMLİ (31 Ağustos 2026 — gerçek kullanıcı raporu): Supabase, "bu
+            # e-posta zaten kayıtlı" hatasını hem GERÇEKTEN tamamlanmış bir kayıt
+            # için, hem de YARIDA KALMIŞ bir kayıt için (auth.users'ta oluşturuldu
+            # ama kullanıcı ağ kopması/uygulama kapanması yüzünden OTP ekranını
+            # hiç göremedi) aynı şekilde fırlatıyor. İkinci durumda kullanıcı
+            # için bu GERÇEKTEN ilk denemesidir — bir daha "zaten kayıtlı" deyip
+            # engellemek yerine, hiç doğrulanmamış bu hesabı devam ettiriyoruz:
+            # parolayı (yeniden) ayarlayıp yeni bir OTP gönderiyoruz. Sadece bu
+            # email+purpose için daha önce GERÇEKTEN doğrulanmış (verified=True)
+            # bir OTP kaydı varsa gerçek bir çakışma olduğunu kabul ediyoruz.
+            msg = str(e).lower()
+            if not ("already" in msg or "registered" in msg or "exists" in msg):
+                raise HTTPException(status_code=400, detail=_friendly_auth_error(str(e)))
+
+            existing = _find_auth_user_by_email(req.email)
+            if not existing or otp_service.has_ever_verified(req.email, "register"):
+                raise HTTPException(status_code=400, detail="Bu e-posta zaten kayıtlı.")
+
+            supabase_admin.auth.admin.update_user_by_id(existing.id, {"password": req.password})
+            user_id = existing.id
 
         # Dil tercihlerini profiles'a yaz (trigger sadece id/display_name/username ekliyor)
         try:
             supabase_admin.table("profiles").upsert({
-                "id": result.user.id,
+                "id": user_id,
                 "display_name": req.display_name,
                 "native_lang": req.native_lang or "tr",
                 "learning_lang": req.learning_lang or "en",
@@ -147,16 +180,14 @@ async def register(req: RegisterRequest):
             langs = req.learning_langs or [req.learning_lang or "en"]
             langs = list(dict.fromkeys([l for l in langs if l]))  # sıralı de-dupe
             for i, lang in enumerate(langs):
-                await learning_languages.add_language(result.user.id, lang, make_active=(i == 0))
+                await learning_languages.add_language(user_id, lang, make_active=(i == 0))
         except Exception as e:
             print(f"REGISTER learning_languages warning: {e}")
 
         # sign_up autoconfirm açıkken zaten bir session döndürüyor — genelde
         # ayrıca sign_in yapmaya gerek yok, ama garanti olsun diye session yoksa
-        # (ör. autoconfirm kapalıysa) ayrı bir temp client ile fallback deneniyor.
-        access_token = result.session.access_token if result.session else None
-        refresh_token = result.session.refresh_token if result.session else None
-
+        # (ör. autoconfirm kapalıysa, ya da yarıda-kalmış-kayıt devam ettirme
+        # yolundaysak) ayrı bir temp client ile fallback deneniyor.
         if not access_token:
             try:
                 access_token, refresh_token = _bootstrap_session(req.email, req.password)

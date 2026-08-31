@@ -50,7 +50,7 @@ export default function LoginScreen() {
         label={t('passwordLabel')}
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
+        secureToggle
         textContentType="password"
       />
 

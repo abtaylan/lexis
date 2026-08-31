@@ -11,7 +11,6 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Card } from '@/components/ui/Card';
-import { LeaderboardCard } from '@/components/LeaderboardCard';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
@@ -96,7 +95,9 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <LeaderboardCard />
+        {/* Sıralama (leaderboard) artık burada değil, kendi alt-sekmesinde
+            (bkz. (app)/leaderboard.tsx, (app)/_layout.tsx) — 31 Ağustos 2026
+            kullanıcı talebi. Burada açılan boşluk başka eklentilere ayrılabilir. */}
 
         <AdBanner style={{ marginTop: spacing.sm }} />
       </View>

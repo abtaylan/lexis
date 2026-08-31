@@ -47,7 +47,7 @@ export default function ResetPasswordScreen() {
         <>
           <TextField label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
           <TextField label={mt('resetCodeLabel')} value={code} onChangeText={setCode} keyboardType="number-pad" />
-          <TextField label={mt('resetNewPasswordLabel')} value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+          <TextField label={mt('resetNewPasswordLabel')} value={newPassword} onChangeText={setNewPassword} secureToggle />
           {error ? <Text style={[styles.error, { color: c.danger }]}>{error}</Text> : null}
           <Button title={mt('resetSubmitBtn')} onPress={handleSubmit} loading={loading} />
         </>

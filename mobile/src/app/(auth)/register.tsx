@@ -101,7 +101,7 @@ export default function RegisterScreen() {
           <TextField label={t('fullNameLabel')} value={displayName} onChangeText={setDisplayName} />
           <TextField label={`${t('usernameLabel')} (opsiyonel)`} value={username} onChangeText={setUsername} autoCapitalize="none" />
           <TextField label={t('emailLabel')} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
-          <TextField label={t('passwordLabel')} value={password} onChangeText={setPassword} secureTextEntry />
+          <TextField label={t('passwordLabel')} value={password} onChangeText={setPassword} secureToggle />
           <Text style={[styles.hint, { color: c.textMuted }]}>{t('passwordHintText')}</Text>
 
           {error ? <Text style={[styles.error, { color: c.danger }]}>{error}</Text> : null}

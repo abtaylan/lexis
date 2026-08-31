@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { CalendarDays, User } from 'lucide-react-native';
+import { CalendarDays, Trophy, User } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { WordsTabIcon, GameTabIcon, DashboardTabIcon } from '@/components/icons/TabIcons';
@@ -11,7 +11,7 @@ import { WordsTabIcon, GameTabIcon, DashboardTabIcon } from '@/components/icons/
 // Emoji yerine web'deki Sidebar.tsx ile birebir aynı lucide ikon seti
 // kullanılıyor (lucide-react-native) — iki platform arasında görsel tutarlılık.
 export default function AppTabsLayout() {
-  const { t, mt } = useLocale();
+  const { t, mt, lbLabels } = useLocale();
   const c = useThemeColors();
 
   return (
@@ -35,6 +35,12 @@ export default function AppTabsLayout() {
       <Tabs.Screen
         name="game"
         options={{ title: mt('gameTabLabel'), tabBarIcon: ({ color, size }) => <GameTabIcon color={color} size={size ?? 23} /> }}
+      />
+      {/* Sıralama (leaderboard) — önceden dashboard'un içinde gömülüydü, artık
+          kendi sekmesi (6 ikon toplamı). 31 Ağustos 2026 kullanıcı talebi. */}
+      <Tabs.Screen
+        name="leaderboard"
+        options={{ title: lbLabels.title, tabBarIcon: ({ color, size }) => <Trophy color={color} size={size ?? 22} /> }}
       />
       <Tabs.Screen
         name="schedule"
