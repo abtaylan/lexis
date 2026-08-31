@@ -174,6 +174,22 @@ const L: Record<Locale, Record<string, string>> = {
     challengeBtn: 'チャレンジする', challengePickModeTitle: 'どのゲームでチャレンジしますか?',
     modeMultipleChoice: '四択', modeWordle: 'ハングマン', challengeCreateError: 'チャレンジを送信できませんでした。',
   },
+  pt: {
+    back: 'Amigos', notFound: 'Este utilizador não foi encontrado.', loading: 'A carregar…', error: 'Não foi possível carregar o perfil.',
+    memberSince: 'Membro desde', friendsCountLabel: 'Amigos', followersCountLabel: 'Seguidores', followingCountLabel: 'A Seguir',
+    sendRequestBtn: 'Adicionar Amigo', requestSentBtn: 'Pedido Enviado', acceptBtn: 'Aceitar', declineBtn: 'Recusar',
+    removeFriendBtn: 'Remover Amigo', removeConfirm: 'Tens a certeza de que queres remover esta pessoa da tua lista de amigos?',
+    friendsLabel: 'Amigos', followBtn: 'Seguir', unfollowBtn: 'Deixar de Seguir', selfHint: 'Este é o teu perfil.',
+    statsTitle: 'Estatísticas', totalWordsLabel: 'Total de Palavras', learnedLabel: 'Aprendidas', learningLabel: 'A Aprender',
+    streakLabel: 'Sequência Atual', streakUnit: 'dias', scheduleTitle: 'Horário de Estudo', scheduleEmpty: 'Não há um horário de estudo ativo.',
+    actionError: 'Ocorreu um problema.', levelPrefix: 'Nív.', minLabel: 'min',
+    days: 'Dom,Seg,Ter,Qua,Qui,Sex,Sáb',
+    messageBtn: 'Enviar Mensagem', blockBtn: 'Bloquear',
+    blockConfirm: 'Queres bloquear este utilizador? Ao bloquear, deixam de ver as mensagens, o perfil e os pedidos de amizade/seguimento um do outro.',
+    blockError: 'Não foi possível bloquear este utilizador.',
+    challengeBtn: 'Desafiar', challengePickModeTitle: 'Em que jogo queres desafiar?',
+    modeMultipleChoice: 'Escolha Múltipla', modeWordle: 'Forca', challengeCreateError: 'Não foi possível enviar o desafio.',
+  },
 };
 
 function initial(name: string): string {

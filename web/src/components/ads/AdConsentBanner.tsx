@@ -57,6 +57,11 @@ const CONSENT_LABELS: Record<Locale, { text: string; accept: string; reject: str
     accept: '同意する',
     reject: '拒否する',
   },
+  pt: {
+    text: 'Mostramos anúncios personalizados para manter o Lexis gratuito. Aceitas os cookies de publicidade? Recusar não afeta a tua conta nem os teus dados de aprendizagem.',
+    accept: 'Aceitar',
+    reject: 'Recusar',
+  },
 };
 
 export function AdConsentBanner() {

@@ -26,6 +26,7 @@ const GAME_LABEL: Record<Locale, string> = {
   es: 'Juego de palabras',
   it: 'Gioco di parole',
   ja: '単語ゲーム',
+  pt: 'Jogo de Palavras',
 };
 
 // Madde 6, Faz 1 — Arkadaşlık + Takip + Profil görüntüleme
@@ -39,6 +40,7 @@ const FRIENDS_LABEL: Record<Locale, string> = {
   es: 'Amigos',
   it: 'Amici',
   ja: '友達',
+  pt: 'Amigos',
 };
 
 // Açık/koyu tema seçici etiketi — aynı yerel çeviri deseni (bkz. yukarısı).
@@ -52,6 +54,7 @@ const THEME_LABEL: Record<Locale, string> = {
   es: 'Tema',
   it: 'Tema',
   ja: 'テーマ',
+  pt: 'Tema',
 };
 
 export function Sidebar() {

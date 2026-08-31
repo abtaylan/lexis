@@ -18,7 +18,7 @@ import type { Stats, Word, DailyProgress, Language, UserLanguage, Notification, 
 // (merkezi i18n.tsx sözlüğüne dokunmadan yerel çeviri).
 const THEME_LABEL: Record<Locale, string> = {
   tr: 'Tema', en: 'Theme', ar: 'المظهر', ru: 'Тема', de: 'Thema',
-  fr: 'Thème', es: 'Tema', it: 'Tema', ja: 'テーマ',
+  fr: 'Thème', es: 'Tema', it: 'Tema', ja: 'テーマ', pt: 'Tema',
 };
 
 // Madde 6, Faz 2 — Mesajlaşma: dashboard'daki gelen kutusu önizlemesi ve

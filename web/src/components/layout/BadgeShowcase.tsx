@@ -78,7 +78,7 @@ export function BadgeShowcase({ className }: BadgeShowcaseProps) {
                 title={desc}
                 className="flex flex-col items-center gap-1 rounded-xl border border-amber-100 bg-amber-50 p-3 text-center"
               >
-                <span className="text-2xl leading-none">{badge?.icon_emoji ?? '🏅'}</span>
+                <span className="text-2xl leading-none">{(badge?.icon_emoji as string | undefined) ?? '🏅'}</span>
                 <span className="text-[11px] font-medium text-gray-700 leading-tight line-clamp-2">{name}</span>
                 {b.period_key && <span className="text-[10px] text-gray-400">{b.period_key}</span>}
               </div>

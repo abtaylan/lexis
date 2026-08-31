@@ -1,9 +1,42 @@
 import smtplib
+import socket
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 from app.core.config import settings
 from app.services.notification_log import log_notification
+
+
+class _IPv4SMTP(smtplib.SMTP):
+    """
+    smtplib.SMTP, ama bağlantıyı HER ZAMAN IPv4 üzerinden açar.
+
+    31 Ağustos 2026 — production'da TÜM OTP e-postaları "[Errno 101] Network
+    is unreachable" ile başarısız oluyordu (bkz. notification_log tablosu).
+    Bu hata, standart socket.create_connection'ın smtp.gmail.com için önce
+    IPv6 adresini denemesi ama Railway container'ının IPv6 rotası olmaması
+    yüzünden anında oluşuyor — Railway'de bilinen bir davranış. IPv4'e
+    zorlamak bu class'ın tek amacı; TLS/HELO hostname'i (settings.SMTP_HOST)
+    değişmediği için sertifika doğrulaması etkilenmiyor.
+    """
+
+    def _get_socket(self, host, port, timeout):
+        err = None
+        for family, socktype, proto, _canonname, sockaddr in socket.getaddrinfo(
+            host, port, socket.AF_INET, socket.SOCK_STREAM
+        ):
+            sock = None
+            try:
+                sock = socket.socket(family, socktype, proto)
+                if timeout is not None:
+                    sock.settimeout(timeout)
+                sock.connect(sockaddr)
+                return sock
+            except OSError as e:
+                err = e
+                if sock is not None:
+                    sock.close()
+        raise err or OSError(f"{host} için IPv4 adresi bulunamadı")
 
 
 def send_otp_email(to_email: str, code: str, purpose: str) -> None:
@@ -61,7 +94,7 @@ def send_otp_email(to_email: str, code: str, purpose: str) -> None:
     msg.attach(MIMEText(html_body, "html"))
 
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        with _IPv4SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
@@ -121,7 +154,7 @@ def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, l
     msg.attach(MIMEText(html_body, "html"))
 
     try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+        with _IPv4SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())

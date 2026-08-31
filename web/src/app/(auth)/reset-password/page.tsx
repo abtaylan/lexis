@@ -211,6 +211,26 @@ const STRINGS: Record<Locale, RPStrings> = {
     updateBtn: 'パスワードを更新',
     backToLogin: 'ログインに戻る',
   },
+  pt: {
+    invalidLink: 'Link inválido.',
+    backToForgot: 'Voltar à página de password esquecida',
+    codeIncomplete: 'Introduz o código de 6 dígitos completo.',
+    tooShort: 'A password deve ter pelo menos 6 caracteres.',
+    mismatch: 'As passwords não coincidem.',
+    genericError: 'O código está incorreto ou expirou.',
+    doneTitle: 'Password Atualizada',
+    doneBody: 'Já podes iniciar sessão com a tua nova password.',
+    goToLoginBtn: 'Ir para o Login',
+    title: 'Redefinir Password',
+    subtitleTpl: 'Introduz o código de 6 dígitos enviado para {email} e a tua nova password.',
+    codeLabel: 'Código de Confirmação',
+    newPasswordLabel: 'Nova Password',
+    newPasswordPlaceholder: '6 ou mais caracteres',
+    confirmLabel: 'Nova Password (confirmar)',
+    confirmPlaceholder: 'Introduz a password novamente',
+    updateBtn: 'Atualizar Password',
+    backToLogin: 'Voltar ao Login',
+  },
 };
 
 function ResetPasswordContent() {

@@ -141,6 +141,19 @@ const STRINGS: Record<Locale, FPStrings> = {
     enterCodeBtn: 'コードを入力',
     backToLogin: 'ログインに戻る',
   },
+  pt: {
+    title: 'Esqueceste-te da password?',
+    subtitle: 'Introduz o teu e-mail e enviamos-te um código de redefinição.',
+    emailLabel: 'E-mail',
+    emailPlaceholder: 'you@example.com',
+    emailInvalid: 'Introduz um endereço de e-mail válido.',
+    genericError: 'Ocorreu um problema. Tenta novamente.',
+    sendBtn: 'Enviar Código de Redefinição',
+    checkEmailTitle: 'Verifica o teu e-mail',
+    checkEmailBodyTpl: 'Se {email} estiver registado, enviámos um código de 6 dígitos para redefinir a password.',
+    enterCodeBtn: 'Introduzir Código',
+    backToLogin: 'Voltar ao Login',
+  },
 };
 
 export default function ForgotPasswordPage() {

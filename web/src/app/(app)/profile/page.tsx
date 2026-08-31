@@ -44,6 +44,7 @@ const BLOCK_LABELS: Record<
   ar: { title: 'المستخدمون المحظورون', loading: 'جارٍ التحميل…', empty: 'لم تحظر أي شخص.', emptySub: 'سيتم إدراج المستخدمين الذين تحظرهم هنا.', unblockBtn: 'إلغاء الحظر', unblockConfirm: 'هل أنت متأكد أنك تريد إلغاء حظر هذا الشخص؟', error: 'فشل الإجراء.', levelPrefix: 'مستوى' },
   ru: { title: 'Заблокированные', loading: 'Загрузка…', empty: 'Вы никого не заблокировали.', emptySub: 'Заблокированные вами пользователи появятся здесь.', unblockBtn: 'Разблокировать', unblockConfirm: 'Вы уверены, что хотите разблокировать этого человека?', error: 'Действие не выполнено.', levelPrefix: 'Ур.' },
   ja: { title: 'ブロック中のユーザー', loading: '読み込み中…', empty: '誰もブロックしていません。', emptySub: 'ブロックしたユーザーがここに表示されます。', unblockBtn: 'ブロック解除', unblockConfirm: 'このユーザーのブロックを解除してもよろしいですか?', error: '操作に失敗しました。', levelPrefix: 'Lv.' },
+  pt: { title: 'Utilizadores bloqueados', loading: 'A carregar…', empty: 'Não bloqueaste ninguém.', emptySub: 'Os utilizadores que bloqueares aparecerão aqui.', unblockBtn: 'Desbloquear', unblockConfirm: 'Tens a certeza de que queres desbloquear esta pessoa?', error: 'A ação falhou.', levelPrefix: 'Nív.' },
 };
 
 // Arayüz (UI) çevirisi olmayan diller ana dil seçeneği olarak sunulmamalı —
@@ -65,6 +66,7 @@ const DELETE_ACCOUNT_LABELS: Record<
   ar: { title: 'منطقة الخطر', desc: 'احذف حسابك وجميع بياناتك (الكلمات، التقدم، الرسائل) نهائيًا. لا يمكن التراجع عن هذا الإجراء.', button: 'حذف حسابي', confirm: 'هل أنت متأكد أنك تريد حذف حسابك نهائيًا؟ لا يمكن التراجع عن هذا.', error: 'تعذر حذف الحساب، حاول مرة أخرى.' },
   ru: { title: 'Опасная зона', desc: 'Безвозвратно удалите свой аккаунт и все данные (слова, прогресс, сообщения). Это действие нельзя отменить.', button: 'Удалить аккаунт', confirm: 'Вы уверены, что хотите безвозвратно удалить аккаунт? Это действие НЕЛЬЗЯ отменить.', error: 'Не удалось удалить аккаунт, попробуйте снова.' },
   ja: { title: '危険ゾーン', desc: 'アカウントとすべてのデータ(単語、進捗、メッセージ)を完全に削除します。この操作は取り消せません。', button: 'アカウントを削除', confirm: '本当にアカウントを完全に削除しますか?この操作は取り消せません。', error: 'アカウントを削除できませんでした。もう一度お試しください。' },
+  pt: { title: 'Zona de Perigo', desc: 'Elimina permanentemente a tua conta e todos os teus dados (palavras, progresso, mensagens). Esta ação não pode ser desfeita.', button: 'Eliminar a Minha Conta', confirm: 'Tens a certeza de que queres eliminar permanentemente a tua conta? Esta ação NÃO PODE ser desfeita.', error: 'Não foi possível eliminar a conta, tenta novamente.' },
 };
 
 export default function ProfilePage() {

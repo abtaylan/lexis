@@ -72,6 +72,11 @@ const L: Record<Locale, Record<string, string>> = {
     placeholder: 'メッセージを入力…', sendBtn: '送信', emptyThread: 'まだメッセージはありません — 最初のメッセージを送りましょう!',
     blockedError: 'このユーザーにメッセージを送ることはできません。',
   },
+  pt: {
+    back: 'Mensagens', loading: 'A carregar…', error: 'Não foi possível carregar a conversa.', notFound: 'Este utilizador não foi encontrado.',
+    placeholder: 'Escreve uma mensagem…', sendBtn: 'Enviar', emptyThread: 'Ainda não há mensagens — envia a primeira!',
+    blockedError: 'Não podes enviar mensagens a este utilizador.',
+  },
 };
 
 function initial(name: string): string {

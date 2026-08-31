@@ -15,7 +15,7 @@ import { useLocale, type Locale } from '@/lib/i18n';
 // vb. gibi ayrı bir sözlük anahtarı gerektirmiyor, sadece Intl için doğru kodu seçiyor.
 const DATE_LOCALE: Record<Locale, string> = {
   tr: 'tr-TR', en: 'en-US', ar: 'ar-SA', ru: 'ru-RU',
-  de: 'de-DE', fr: 'fr-FR', es: 'es-ES', it: 'it-IT', ja: 'ja-JP',
+  de: 'de-DE', fr: 'fr-FR', es: 'es-ES', it: 'it-IT', ja: 'ja-JP', pt: 'pt-PT',
 };
 
 // lexiswords.com (landing) üzerindeki yasal sayfalar — 28 Ağustos 2026 oturumunda

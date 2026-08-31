@@ -973,7 +973,7 @@ premiumFailedMsg: 'Não foi possível concluir o pagamento. Podes tentar novamen
 premiumCancelBtn: 'Cancelar Subscrição', premiumBestValueBadge: 'Melhor oferta', premiumSubscribeBtnTpl: 'Subscrever ({interval})',
 premiumFeaturesTitle: 'O que muda com o Premium?', premiumFeature1: 'Sem anúncios enquanto aprendes palavras', premiumFeature2: 'XP extra no jogo de adivinhar palavras',
 premiumFeature3: 'Prioridade nas recompensas da tabela classificativa semanal/mensal', premiumFeature4: 'Acesso ilimitado a todos os módulos de atividade diária',
-premiumNoAdsNegative: 'São mostrados anúncios laterais nas contas não premium', quickActions: 'Ações Rápidas',
+premiumNoAdsNegative: 'São mostrados anúncios laterais nas contas não premium',
 },
 };
 

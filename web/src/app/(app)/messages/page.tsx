@@ -64,6 +64,11 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'まだ会話がありません。', emptySub: 'ユーザーのプロフィールの「メッセージを送る」から始められます。',
     you: 'あなた',
   },
+  pt: {
+    title: 'Mensagens', loading: 'A carregar…', error: 'Não foi possível carregar as mensagens.',
+    empty: 'Ainda não tens conversas.', emptySub: 'Começa uma a partir do perfil de um utilizador com "Mensagem".',
+    you: 'Tu',
+  },
 };
 
 function initial(name: string): string {

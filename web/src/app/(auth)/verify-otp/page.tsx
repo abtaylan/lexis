@@ -142,6 +142,19 @@ const STRINGS: Record<Locale, VOStrings> = {
     resendingLabel: '送信中…',
     resendLabel: 'コードを再送信',
   },
+  pt: {
+    invalidLink: 'Link de confirmação inválido.',
+    backToLogin: 'Voltar ao Login',
+    title: 'Introduz o Código de Confirmação',
+    subtitleTpl: 'Introduz o código de 6 dígitos enviado para {email}.',
+    codeIncomplete: 'Introduz o código de 6 dígitos completo.',
+    genericVerifyError: 'O código está incorreto ou expirou.',
+    resendGenericError: 'Não foi possível reenviar o código.',
+    verifyBtn: 'Confirmar',
+    resendCooldownTpl: 'Novo código ({s}s)',
+    resendingLabel: 'A enviar…',
+    resendLabel: 'Reenviar Código',
+  },
 };
 
 function VerifyOtpContent() {

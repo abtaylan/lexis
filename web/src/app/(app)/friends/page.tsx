@@ -227,6 +227,28 @@ const L: Record<Locale, Record<string, string>> = {
     youWonLabel: '勝ちました 🎉', youLostLabel: '負けました', drawLabel: '引き分け',
     modeMultipleChoice: '四択', modeWordle: 'ハングマン', challengeError: '操作に失敗しました。',
   },
+  pt: {
+    title: 'Amigos', tabFriends: 'Meus Amigos', tabRequests: 'Pedidos', tabSearch: 'Procurar Utilizador',
+    loading: 'A carregar…', error: 'Ocorreu um problema.',
+    friendsEmpty: 'Ainda não tens amigos.', friendsEmptySub: 'Podes adicionar amigos no separador "Procurar Utilizador".',
+    incomingTitle: 'Pedidos Recebidos', incomingEmpty: 'Não há pedidos recebidos.',
+    outgoingTitle: 'Pedidos Enviados', outgoingEmpty: 'Não há pedidos enviados pendentes.',
+    pendingLabel: 'Pendente', acceptBtn: 'Aceitar', declineBtn: 'Recusar', removeBtn: 'Remover',
+    removeConfirm: 'Tens a certeza de que queres remover esta pessoa da tua lista de amigos?',
+    searchPlaceholder: 'Procura por nome de utilizador ou nome…', searchBtn: 'Procurar',
+    searchEmpty: 'Nenhum resultado encontrado.', searchHint: 'Escreve um nome de utilizador para começar a procurar.',
+    sendRequestBtn: 'Adicionar Amigo', requestSentBtn: 'Pedido Enviado', alreadyFriendsLabel: 'Amigos',
+    respondInRequestsHint: 'Responde no separador "Pedidos"', followBtn: 'Seguir', unfollowBtn: 'Deixar de Seguir',
+    levelPrefix: 'Nív.', sendError: 'Não foi possível enviar o pedido.', actionError: 'Ocorreu um problema.',
+    tabChallenges: 'Desafios',
+    incomingChallengesTitle: 'Desafios Recebidos', incomingChallengesEmpty: 'Não há desafios pendentes.',
+    outgoingChallengesTitle: 'Enviados', outgoingChallengesEmpty: 'Não há desafios enviados pendentes.',
+    activeChallengesTitle: 'Em Curso', activeChallengesEmpty: 'Não há desafios em curso.',
+    completedChallengesTitle: 'Concluídos', completedChallengesEmpty: 'Ainda não há desafios concluídos.',
+    playBtn: 'Jogar', cancelChallengeBtn: 'Cancelar', waitingOpponentLabel: 'A aguardar o adversário',
+    youWonLabel: 'Ganhaste 🎉', youLostLabel: 'Perdeste', drawLabel: 'Empate',
+    modeMultipleChoice: 'Escolha Múltipla', modeWordle: 'Forca', challengeError: 'Ocorreu um problema.',
+  },
 };
 
 type Tab = 'friends' | 'requests' | 'search' | 'challenges';
