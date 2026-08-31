@@ -45,6 +45,7 @@ const MSG_LABELS: Record<
   ar: { iconLabel: 'الرسائل', title: 'الرسائل', empty: 'ليس لديك أي محادثات بعد.', emptySub: 'يمكنك مراسلة صديق من ملفه الشخصي.', viewAll: 'عرض الكل', you: 'أنت' },
   ru: { iconLabel: 'Сообщения', title: 'Сообщения', empty: 'У вас пока нет переписок.', emptySub: 'Напишите другу из его профиля.', viewAll: 'Смотреть все', you: 'Вы' },
   ja: { iconLabel: 'メッセージ', title: 'メッセージ', empty: 'まだ会話がありません。', emptySub: '友達のプロフィールからメッセージを送れます。', viewAll: 'すべて見る', you: 'あなた' },
+  pt: { iconLabel: 'Mensagens', title: 'Mensagens', empty: 'Ainda não tens conversas.', emptySub: 'Envia uma mensagem a um amigo a partir do perfil dele.', viewAll: 'Ver tudo', you: 'Tu' },
 };
 
 const MSG_POLL_MS = 15000;
