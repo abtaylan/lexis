@@ -70,7 +70,9 @@ async def get_user_badges(user_id: str) -> list[dict[str, Any]]:
         supabase_admin.table("user_badges")
         .select(
             "badge_code, period_key, earned_at, meta, "
-            "badges(name_tr, name_en, description_tr, description_en, icon_emoji)"
+            "badges(name_tr, name_en, name_de, name_fr, name_es, name_it, name_ar, name_ru, name_ja, name_pt, "
+            "description_tr, description_en, description_de, description_fr, description_es, description_it, "
+            "description_ar, description_ru, description_ja, description_pt, icon_emoji)"
         )
         .eq("user_id", user_id)
         .order("earned_at", desc=True)

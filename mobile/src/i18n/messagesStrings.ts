@@ -96,4 +96,12 @@ export const MESSAGES_STRINGS: Record<Locale, MessagesStrings> = {
     placeholder: 'メッセージを入力…', sendBtn: '送信', emptyThread: 'まだメッセージはありません — 最初のメッセージを送りましょう!',
     blockedError: 'このユーザーにメッセージを送ることはできません。',
   },
+  pt: {
+    inboxTitle: 'Mensagens', inboxError: 'Não foi possível carregar as mensagens.',
+    empty: 'Ainda não tens conversas.', emptySub: 'Inicia uma a partir do perfil de um utilizador com "Enviar mensagem".',
+    you: 'Tu',
+    threadBack: 'Mensagens', threadError: 'Não foi possível carregar a conversa.', notFound: 'Este utilizador não foi encontrado.',
+    placeholder: 'Escreve uma mensagem…', sendBtn: 'Enviar', emptyThread: 'Ainda não há mensagens — envia a primeira!',
+    blockedError: 'Não podes enviar mensagens a este utilizador.',
+  },
 };

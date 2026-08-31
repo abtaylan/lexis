@@ -12,6 +12,7 @@ export const XP_LABELS: Record<Locale, { level: string; toNextLevel: string }> =
   ar: { level: 'المستوى', toNextLevel: 'للمستوى التالي' },
   ru: { level: 'Уровень', toNextLevel: 'до следующего уровня' },
   ja: { level: 'レベル', toNextLevel: '次のレベルまで' },
+  pt: { level: 'Nível', toNextLevel: 'para o próximo nível' },
 };
 
 export const LB_LABELS: Record<
@@ -27,6 +28,7 @@ export const LB_LABELS: Record<
   ar: { title: 'لوحة المتصدرين', tabAll: 'عام', tabWeekly: 'أسبوعي', tabMonthly: 'شهري', you: 'أنت', points: 'نقطة', empty: 'لم يسجّل أحد نقاطًا بعد في هذه الفترة.', loading: 'جارٍ التحميل…', error: 'تعذّر تحميل لوحة المتصدرين.' },
   ru: { title: 'Рейтинг', tabAll: 'Общий', tabWeekly: 'Неделя', tabMonthly: 'Месяц', you: 'Вы', points: 'очк.', empty: 'В этом периоде пока никто не набрал очков.', loading: 'Загрузка…', error: 'Не удалось загрузить рейтинг.' },
   ja: { title: 'ランキング', tabAll: '総合', tabWeekly: '週間', tabMonthly: '月間', you: 'あなた', points: 'pt', empty: 'この期間はまだ誰もポイントを獲得していません。', loading: '読み込み中…', error: 'ランキングを読み込めませんでした。' },
+  pt: { title: 'Classificação', tabAll: 'Geral', tabWeekly: 'Semanal', tabMonthly: 'Mensal', you: 'Tu', points: 'pts', empty: 'Ainda ninguém pontuou neste período.', loading: 'A carregar…', error: 'Não foi possível carregar a classificação.' },
 };
 
 // web'deki components/layout/BadgeShowcase.tsx BADGE_LABELS ile birebir aynı.
@@ -40,4 +42,5 @@ export const BADGE_LABELS: Record<Locale, { title: string; empty: string; loadin
   ar: { title: 'أوسمتي', empty: 'لم تحصل على وسام بعد — واصل التقدم!', loading: 'جارٍ التحميل…' },
   ru: { title: 'Мои значки', empty: 'Вы ещё не заработали значок — продолжайте!', loading: 'Загрузка…' },
   ja: { title: 'マイバッジ', empty: 'まだバッジを獲得していません — がんばって!', loading: '読み込み中…' },
+  pt: { title: 'As Minhas Insígnias', empty: 'Ainda não ganhaste nenhuma insígnia — continua!', loading: 'A carregar…' },
 };

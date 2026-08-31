@@ -26,6 +26,7 @@ const XP_LABELS: Record<Locale, { level: string; toNextLevel: string }> = {
   ar: { level: 'المستوى', toNextLevel: 'للمستوى التالي' },
   ru: { level: 'Уровень', toNextLevel: 'до следующего уровня' },
   ja: { level: 'レベル', toNextLevel: '次のレベルまで' },
+  pt: { level: 'Nível', toNextLevel: 'para o próximo nível' },
 };
 
 interface XPBarProps {

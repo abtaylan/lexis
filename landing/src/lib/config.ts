@@ -53,4 +53,7 @@ export const LEGAL_URLS = {
   distanceSales: '/mesafeli-satis-sozlesmesi',
   deliveryRefund: '/teslimat-iade-sartlari',
   about: '/hakkimizda',
+  // Google Play "Veri güvenliği" beyanının zorunlu kıldığı hesap silme
+  // talimatları sayfası (bkz. app-content/data-privacy-security).
+  deleteAccount: '/hesap-silme',
 };

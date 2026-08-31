@@ -165,4 +165,18 @@ export const FRIENDS_STRINGS: Record<Locale, FriendsStrings> = {
     respondInRequestsHint: '「リクエスト」タブから返信してください', followBtn: 'フォロー', unfollowBtn: 'フォロー解除',
     levelPrefix: 'Lv.', sendError: 'リクエストを送信できませんでした。', actionError: '操作に失敗しました。',
   },
+  pt: {
+    title: 'Amigos', tabFriends: 'Os Meus Amigos', tabRequests: 'Pedidos', tabSearch: 'Procurar Utilizadores',
+    error: 'Algo correu mal.',
+    friendsEmpty: 'Ainda não tens amigos.', friendsEmptySub: 'Adiciona amigos a partir do separador Procurar Utilizadores.',
+    incomingTitle: 'Pedidos recebidos', incomingEmpty: 'Não há pedidos recebidos.',
+    outgoingTitle: 'Pedidos enviados', outgoingEmpty: 'Não há pedidos enviados pendentes.',
+    pendingLabel: 'Pendente', acceptBtn: 'Aceitar', declineBtn: 'Recusar', removeBtn: 'Remover',
+    removeConfirm: 'Tens a certeza de que queres remover esta pessoa dos teus amigos?',
+    searchPlaceholder: 'Pesquisar por nome de utilizador ou nome…', searchBtn: 'Pesquisar',
+    searchEmpty: 'Nenhum resultado encontrado.', searchHint: 'Escreve um nome de utilizador para começar a pesquisar.',
+    sendRequestBtn: 'Adicionar amigo', requestSentBtn: 'Pedido enviado', alreadyFriendsLabel: 'Amigos',
+    respondInRequestsHint: 'Responde a partir do separador Pedidos', followBtn: 'Seguir', unfollowBtn: 'Deixar de seguir',
+    levelPrefix: 'Nív.', sendError: 'Não foi possível enviar o pedido.', actionError: 'A ação falhou.',
+  },
 };

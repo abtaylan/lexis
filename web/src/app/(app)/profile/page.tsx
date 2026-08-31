@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
-import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus, Ban } from 'lucide-react';
+import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus, Ban, Trash2 } from 'lucide-react';
 import { authApi, languagesApi, userLanguagesApi, socialApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { useLocale, LOCALE_META, type Locale } from '@/lib/i18n';
@@ -49,10 +50,31 @@ const BLOCK_LABELS: Record<
 // aksi halde LocaleProvider sessizce Türkçe'ye düşüyor (bkz. Bug 2, Ağustos 2026).
 const UI_SUPPORTED_CODES = new Set<string>(LOCALE_META.map((l) => l.code));
 
+// Hesap silme (Google Play Data Safety / Apple hesap silme politikası) —
+// BLOCK_LABELS'teki aynı yerel-i18n deseni (merkezi i18n.tsx'e dokunmadan).
+const DELETE_ACCOUNT_LABELS: Record<
+  Locale,
+  { title: string; desc: string; button: string; confirm: string; error: string }
+> = {
+  tr: { title: 'Tehlikeli Bölge', desc: 'Hesabını ve tüm verilerini (kelimeler, ilerleme, mesajlar) kalıcı olarak sil. Bu işlem geri alınamaz.', button: 'Hesabımı Sil', confirm: 'Hesabını kalıcı olarak silmek istediğine emin misin? Bu işlem GERİ ALINAMAZ.', error: 'Hesap silinemedi, lütfen tekrar dene.' },
+  en: { title: 'Danger Zone', desc: 'Permanently delete your account and all your data (words, progress, messages). This cannot be undone.', button: 'Delete My Account', confirm: 'Are you sure you want to permanently delete your account? This CANNOT be undone.', error: 'Could not delete your account, please try again.' },
+  de: { title: 'Gefahrenzone', desc: 'Lösche dein Konto und alle deine Daten (Wörter, Fortschritt, Nachrichten) dauerhaft. Dies kann nicht rückgängig gemacht werden.', button: 'Konto löschen', confirm: 'Möchtest du dein Konto wirklich dauerhaft löschen? Dies kann NICHT rückgängig gemacht werden.', error: 'Konto konnte nicht gelöscht werden, bitte versuche es erneut.' },
+  fr: { title: 'Zone de danger', desc: 'Supprime définitivement ton compte et toutes tes données (mots, progression, messages). Cette action est irréversible.', button: 'Supprimer mon compte', confirm: 'Es-tu sûr de vouloir supprimer définitivement ton compte ? Cette action est IRRÉVERSIBLE.', error: "Impossible de supprimer le compte, réessaie." },
+  es: { title: 'Zona de peligro', desc: 'Elimina permanentemente tu cuenta y todos tus datos (palabras, progreso, mensajes). Esta acción no se puede deshacer.', button: 'Eliminar mi cuenta', confirm: '¿Seguro que quieres eliminar tu cuenta permanentemente? Esto NO se puede deshacer.', error: 'No se pudo eliminar la cuenta, inténtalo de nuevo.' },
+  it: { title: 'Zona pericolosa', desc: 'Elimina definitivamente il tuo account e tutti i tuoi dati (parole, progressi, messaggi). Questa azione è irreversibile.', button: 'Elimina il mio account', confirm: 'Sei sicuro di voler eliminare definitivamente il tuo account? Questa azione NON può essere annullata.', error: "Impossibile eliminare l'account, riprova." },
+  ar: { title: 'منطقة الخطر', desc: 'احذف حسابك وجميع بياناتك (الكلمات، التقدم، الرسائل) نهائيًا. لا يمكن التراجع عن هذا الإجراء.', button: 'حذف حسابي', confirm: 'هل أنت متأكد أنك تريد حذف حسابك نهائيًا؟ لا يمكن التراجع عن هذا.', error: 'تعذر حذف الحساب، حاول مرة أخرى.' },
+  ru: { title: 'Опасная зона', desc: 'Безвозвратно удалите свой аккаунт и все данные (слова, прогресс, сообщения). Это действие нельзя отменить.', button: 'Удалить аккаунт', confirm: 'Вы уверены, что хотите безвозвратно удалить аккаунт? Это действие НЕЛЬЗЯ отменить.', error: 'Не удалось удалить аккаунт, попробуйте снова.' },
+  ja: { title: '危険ゾーン', desc: 'アカウントとすべてのデータ(単語、進捗、メッセージ)を完全に削除します。この操作は取り消せません。', button: 'アカウントを削除', confirm: '本当にアカウントを完全に削除しますか?この操作は取り消せません。', error: 'アカウントを削除できませんでした。もう一度お試しください。' },
+};
+
 export default function ProfilePage() {
   const { t, locale } = useLocale();
   const bt = BLOCK_LABELS[locale] ?? BLOCK_LABELS.en;
-  const { updateUser } = useAuth();
+  const dt = DELETE_ACCOUNT_LABELS[locale] ?? DELETE_ACCOUNT_LABELS.en;
+  const router = useRouter();
+  const { updateUser, logout } = useAuth();
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState('');
   const [user, setUser] = useState<UserType | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -146,6 +168,25 @@ export default function ProfilePage() {
       setBlockedActionError(errorDetail(err) || bt.error);
     } finally {
       setUnblockBusyId(null);
+    }
+  };
+
+  // Hesap silme — geri alınamaz olduğu için sayfadaki diğer yıkıcı işlemlerle
+  // (handleUnblock) aynı window.confirm deseni kullanılıyor. Backend zaten
+  // Supabase auth kullanıcısını silip tüm ilişkili verileri temizliyor
+  // (bkz. backend/app/api/routes/auth.py delete_account); burada sadece
+  // yerel oturumu temizleyip login'e yönlendirmek yeterli.
+  const handleDeleteAccount = async () => {
+    if (!window.confirm(dt.confirm)) return;
+    setDeletingAccount(true);
+    setDeleteAccountError('');
+    try {
+      await authApi.deleteAccount();
+      logout();
+      router.replace('/login');
+    } catch (err) {
+      setDeleteAccountError(errorDetail(err) || dt.error);
+      setDeletingAccount(false);
     }
   };
 
@@ -484,6 +525,21 @@ export default function ProfilePage() {
           <div><p className="text-gray-400 text-xs">{t('roleLabel')}</p><p className="font-medium text-gray-700 capitalize">{user?.role ?? '—'}</p></div>
           <div><p className="text-gray-400 text-xs">{t('memberSinceLabel')}</p><p className="font-medium text-gray-700">{user?.created_at ? new Date(user.created_at).toLocaleDateString(locale) : '—'}</p></div>
         </div>
+      </div>
+
+      <div className="bg-red-50 rounded-2xl border border-red-100 p-5 space-y-3">
+        <h2 className="text-xs font-semibold text-red-500 uppercase tracking-wide">{dt.title}</h2>
+        <p className="text-sm text-red-700">{dt.desc}</p>
+        {deleteAccountError && <p className="text-xs text-red-600">{deleteAccountError}</p>}
+        <button
+          type="button"
+          disabled={deletingAccount}
+          onClick={handleDeleteAccount}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 rounded-xl px-4 py-2"
+        >
+          <Trash2 className="w-4 h-4" />
+          {dt.button}
+        </button>
       </div>
     </div>
   );

@@ -337,6 +337,66 @@ async def get_me(current_user=Depends(get_current_user)):
         print(f"GET_ME ERROR: {e}")
         raise HTTPException(status_code=500, detail="Profil alınamadı.")
 
+@router.delete("/account", status_code=204)
+async def delete_account(current_user=Depends(get_current_user)):
+    """
+    Hesabı ve tüm ilişkili verileri kalıcı olarak siler — geri alınamaz.
+    Google Play (Veri güvenliği beyanı) ve Apple hesap silme politikaları bunu
+    zorunlu kılıyor; mobil/web istemciler kendi onay ekranını göstermeli
+    (bkz. mobile/src/app/(app)/profile.tsx handleDeleteAccount).
+
+    Silme SIRASI kritik: profiles.id -> auth.users.id dahil çoğu tablo
+    ON DELETE CASCADE ile bağlı (bkz. supabase/migrations), bu yüzden
+    supabase_admin.auth.admin.delete_user() çağrısı onları otomatik temizler.
+    Ama game_sessions.user_id, user_badges.user_id ve xp_events.user_id
+    kasıtlı olarak ON DELETE NO ACTION (silme SIRASINDA/sonrasında bu
+    tablolara elle dokunulmadan auth kullanıcısı silinirse "foreign key
+    violation" ile YARIDA KESİLİR) — bu yüzden bunlar ve onlara bağlı
+    game_attempts satırları burada elle, auth kullanıcısı silinmeden ÖNCE
+    temizleniyor. Detaylı FK haritası için: Supabase MCP ile
+    `pg_constraint` sorgusu (bu endpoint yazılırken bizzat çalıştırıldı).
+    """
+    uid = current_user.id
+    try:
+        session_ids = [
+            row["id"]
+            for row in (
+                supabase_admin.table("game_sessions").select("id").eq("user_id", uid).execute().data or []
+            )
+        ]
+        word_ids = [
+            row["id"]
+            for row in (
+                supabase_admin.table("words").select("id").eq("user_id", uid).execute().data or []
+            )
+        ]
+        # game_attempts.session_id / word_id de NO ACTION — game_sessions/words
+        # silinmeden önce bunlar temizlenmeli.
+        if session_ids:
+            supabase_admin.table("game_attempts").delete().in_("session_id", session_ids).execute()
+        if word_ids:
+            supabase_admin.table("game_attempts").delete().in_("word_id", word_ids).execute()
+
+        supabase_admin.table("game_sessions").delete().eq("user_id", uid).execute()
+        supabase_admin.table("user_badges").delete().eq("user_id", uid).execute()
+        supabase_admin.table("xp_events").delete().eq("user_id", uid).execute()
+
+        # Geri kalan her şey (profiles ve ondan cascade olan blocks, follows,
+        # friendships, conversations+messages, daily_progress, notifications,
+        # study_schedule, study_sessions+quiz_results, subscriptions,
+        # user_learning_languages, words, reports) + doğrudan auth.users'a
+        # bağlı schedule_templates/push_tokens burada otomatik silinir.
+        supabase_admin.auth.admin.delete_user(uid)
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"DELETE_ACCOUNT ERROR (user={uid}): {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Hesap silinemedi, lütfen tekrar deneyin ya da destek ile iletişime geçin.",
+        )
+
+
 @router.patch("/profile")
 async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_user)):
     payload = data.model_dump(exclude_none=True)

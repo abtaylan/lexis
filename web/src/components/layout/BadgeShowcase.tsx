@@ -22,6 +22,7 @@ const BADGE_LABELS: Record<Locale, { title: string; empty: string; loading: stri
   ar: { title: 'أوسمتي', empty: 'لم تحصل على وسام بعد — واصل التقدم!', loading: 'جارٍ التحميل…' },
   ru: { title: 'Мои значки', empty: 'Вы ещё не заработали значок — продолжайте!', loading: 'Загрузка…' },
   ja: { title: 'マイバッジ', empty: 'まだバッジを獲得していません — がんばって!', loading: '読み込み中…' },
+  pt: { title: 'As Minhas Insígnias', empty: 'Ainda não ganhaste nenhuma insígnia — continua!', loading: 'A carregar…' },
 };
 
 interface BadgeShowcaseProps {
@@ -52,8 +53,11 @@ export function BadgeShowcase({ className }: BadgeShowcaseProps) {
     };
   }, []);
 
-  const nameKey = locale === 'tr' ? 'name_tr' : 'name_en';
-  const descKey = locale === 'tr' ? 'description_tr' : 'description_en';
+  // Rozet adı/açıklaması artık badges tablosunda 10 dilin tamamında var
+  // (bkz. backend/app/services/badge_service.py) — sadece tr/en özel durumu
+  // yerine doğrudan aktif arayüz diline göre seçiyoruz, İngilizce'ye düşerek.
+  const nameKey = `name_${locale}`;
+  const descKey = `description_${locale}`;
 
   return (
     <div className={clsx('bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4', className)}>
@@ -65,7 +69,7 @@ export function BadgeShowcase({ className }: BadgeShowcaseProps) {
       ) : (
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
           {badges.map((b, i) => {
-            const badge = b.badges;
+            const badge = b.badges as Record<string, unknown> | undefined;
             const name = (badge?.[nameKey] || badge?.name_en || b.badge_code) as string;
             const desc = (badge?.[descKey] || badge?.description_en || '') as string;
             return (

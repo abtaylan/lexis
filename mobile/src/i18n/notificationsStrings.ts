@@ -76,4 +76,11 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     emptySub: '新着メッセージ、フレンド申請、報酬がここに表示されます。',
     error: '通知を読み込めませんでした。',
   },
+  pt: {
+    title: 'Notificações',
+    markAllRead: 'Marcar tudo como lido',
+    empty: 'Ainda não tens notificações',
+    emptySub: 'As novas mensagens, pedidos de amizade e recompensas vão aparecer aqui.',
+    error: 'Não foi possível carregar as notificações.',
+  },
 };

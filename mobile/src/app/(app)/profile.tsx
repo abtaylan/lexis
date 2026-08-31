@@ -58,10 +58,35 @@ export default function ProfileScreen() {
     onError: (e) => Alert.alert('', getErrorMessage(e, mt('genericErrorMsg'))),
   });
 
+  // Hesap silme (Google Play Data Safety / Apple hesap silme politikası
+  // gereği): geri alınamaz olduğu için tek bir Alert.alert ile ama net bir
+  // uyarı metniyle onay alınıyor (aynı destructive-confirm deseni,
+  // handleLogout ile aynı). Başarılı olursa backend zaten Supabase auth
+  // kullanıcısını sildiği için token artık geçersiz — sadece yerel oturumu
+  // temizlemek (logout()) yeterli.
+  const deleteAccountMutation = useMutation({
+    mutationFn: () => authApi.deleteAccount(),
+    onSuccess: () => {
+      logout();
+    },
+    onError: (e) => Alert.alert('', getErrorMessage(e, mt('genericErrorMsg'))),
+  });
+
   const handleLogout = () => {
     Alert.alert(mt('logoutConfirmMsg'), '', [
       { text: t('cancelBtn'), style: 'cancel' },
       { text: mt('logoutConfirmYes'), style: 'destructive', onPress: () => logout() },
+    ]);
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(mt('deleteAccountBtn'), mt('deleteAccountConfirmMsg'), [
+      { text: t('cancelBtn'), style: 'cancel' },
+      {
+        text: mt('confirmYesDestructive'),
+        style: 'destructive',
+        onPress: () => deleteAccountMutation.mutate(),
+      },
     ]);
   };
 
@@ -161,6 +186,15 @@ export default function ProfileScreen() {
       </Card>
 
       <Button title={t('logout')} variant="danger" onPress={handleLogout} />
+
+      <View style={{ marginTop: spacing.sm }}>
+        <Button
+          title={mt('deleteAccountBtn')}
+          variant="danger"
+          loading={deleteAccountMutation.isPending}
+          onPress={handleDeleteAccount}
+        />
+      </View>
 
       <AddLanguageModal
         visible={addLangOpen}

@@ -62,4 +62,11 @@ export const authApi = {
     const res = await api.patch<User>('/auth/profile', data);
     return res.data;
   },
+
+  // Hesabı ve tüm ilişkili verileri kalıcı olarak siler (Google Play / Apple
+  // hesap silme politikası — bkz. backend/app/api/routes/auth.py delete_account,
+  // ve mobile/src/app/(app)/profile.tsx handleDeleteAccount).
+  deleteAccount: async (): Promise<void> => {
+    await api.delete('/auth/account');
+  },
 };

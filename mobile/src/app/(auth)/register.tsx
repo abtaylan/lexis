@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
-import { useLocale } from '@/i18n';
+import { useLocale, LOCALE_META } from '@/i18n';
 import { authApi } from '@/api/auth';
 import { languagesApi } from '@/api/languages';
 import type { Language } from '@/api/types';
@@ -78,6 +78,12 @@ export default function RegisterScreen() {
   };
 
   const langOptions = languages.map((l) => ({ value: l.code, label: `${l.flag_emoji ?? ''} ${l.name_native}`.trim() }));
+  // Ana dil (arayüz dili) seçici, LOCALE_META'da arayüz çevirisi olan dillerle sınırlı olmalı —
+  // aksi halde LocaleProvider sessizce varsayılana (tr) düşer (bkz. web/src/lib/i18n.tsx resolveLocale,
+  // "Bug 2, Ağustos 2026"). Öğrenme dili seçicisi kasıtlı olarak filtresiz kalır (web ile tutarlı):
+  // öğrenme dili arayüz dilini değil, kelime havuzu hedefini belirliyor.
+  const UI_SUPPORTED_CODES = new Set(LOCALE_META.map((l) => l.code as string));
+  const nativeLangOptions = langOptions.filter((o) => UI_SUPPORTED_CODES.has(o.value));
 
   return (
     <ScreenContainer>
@@ -105,7 +111,7 @@ export default function RegisterScreen() {
       ) : (
         <>
           <Text style={[styles.label, { color: c.textSecondary }]}>{t('nativeLangSelectLabel')}</Text>
-          <ChipSelect options={langOptions} value={nativeLang} onChange={setNativeLang} />
+          <ChipSelect options={nativeLangOptions} value={nativeLang} onChange={setNativeLang} />
 
           <Text style={[styles.label, { color: c.textSecondary, marginTop: spacing.lg }]}>{t('learningLangSelectLabel')}</Text>
           <ChipSelect options={langOptions} value={learningLang} onChange={setLearningLang} />

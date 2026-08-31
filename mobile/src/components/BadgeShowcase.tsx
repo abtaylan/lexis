@@ -20,8 +20,11 @@ export function BadgeShowcase() {
     queryFn: statsApi.getBadges,
   });
 
-  const nameKey = locale === 'tr' ? 'name_tr' : 'name_en';
-  const descKey = locale === 'tr' ? 'description_tr' : 'description_en';
+  // Rozet adı/açıklaması artık badges tablosunda 10 dilin tamamında var
+  // (bkz. backend/app/services/badge_service.py) — sadece tr/en özel durumu
+  // yerine doğrudan aktif arayüz diline göre seçiyoruz, İngilizce'ye düşerek.
+  const nameKey = `name_${locale}`;
+  const descKey = `description_${locale}`;
 
   return (
     <Card style={{ marginBottom: spacing.md }}>
@@ -33,7 +36,7 @@ export function BadgeShowcase() {
       ) : (
         <View style={styles.grid}>
           {badges.map((b, i) => {
-            const badge = b.badges;
+            const badge = b.badges as Record<string, unknown> | undefined;
             const name = (badge?.[nameKey] || badge?.name_en || b.badge_code) as string;
             void ((badge?.[descKey] || badge?.description_en || '') as string); // erişilebilirlik için ileride kullanılabilir
             return (

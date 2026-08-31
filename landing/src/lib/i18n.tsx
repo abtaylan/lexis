@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
-export type Locale = 'tr' | 'en' | 'ar' | 'ru' | 'de' | 'fr' | 'es' | 'it' | 'ja';
+export type Locale = 'tr' | 'en' | 'ar' | 'ru' | 'de' | 'fr' | 'es' | 'it' | 'ja' | 'pt';
 
 export const RTL_LOCALES: Locale[] = ['ar'];
 const STORAGE_KEY = 'lexis_landing_locale';
@@ -17,12 +17,13 @@ export const LOCALE_META: { code: Locale; label: string; flag: string }[] = [
   { code: 'es', label: 'Español', flag: '🇪🇸' },
   { code: 'it', label: 'Italiano', flag: '🇮🇹' },
   { code: 'ja', label: '日本語', flag: '🇯🇵' },
+  { code: 'pt', label: 'Português', flag: '🇵🇹' },
 ];
 
 export type TranslationKey = keyof typeof dictionaries.tr;
 
 function resolveLocale(code?: string | null): Locale {
-  const supported: Locale[] = ['tr', 'en', 'ar', 'ru', 'de', 'fr', 'es', 'it', 'ja'];
+  const supported: Locale[] = ['tr', 'en', 'ar', 'ru', 'de', 'fr', 'es', 'it', 'ja', 'pt'];
   if (code && supported.includes(code as Locale)) return code as Locale;
   return 'en';
 }
@@ -85,12 +86,12 @@ export const dictionaries = {
     navFeatures: 'Özellikler', navHow: 'Nasıl Çalışır', navFaq: 'SSS', navContact: 'İletişim',
     navLogin: 'Giriş Yap', navRegister: 'Ücretsiz Başla',
 
-    heroBadge: '9 dilde arayüz · Ücretsiz başlangıç',
+    heroBadge: '10 dilde arayüz · Ücretsiz başlangıç',
     heroTitle: 'Kelimeleri ezberleme, oyunla öğren.',
     heroSubtitle: 'Lexis; kişisel kelime listeni, günlük çalışma programını ve arkadaşlarınla yarışabildiğin oyunları tek bir yerde birleştiren bir dil öğrenme uygulaması.',
     heroCtaPrimary: 'Ücretsiz Başla',
     heroCtaSecondary: 'Giriş Yap',
-    heroStat1Value: '9', heroStat1Label: 'dilde arayüz',
+    heroStat1Value: '10', heroStat1Label: 'dilde arayüz',
     heroStat2Value: '6', heroStat2Label: 'oyun modu',
     heroStat3Value: '7/24', heroStat3Label: 'kendi hızında öğren',
 
@@ -106,8 +107,8 @@ export const dictionaries = {
     f4Desc: 'Her aktivite XP kazandırır, seviye atladıkça motivasyonun artar; günlük seri (streak) ile alışkanlık oluştur.',
     f5Title: 'Arkadaşlarınla öğren',
     f5Desc: 'Arkadaş ekle, birbirinizin profilini görüntüleyin, liderlik tablosunda yarışın, mesajlaşın ve meydan okuyun.',
-    f6Title: '9 dilde arayüz',
-    f6Desc: 'Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, İtalyanca, Arapça, Rusça ve Japonca arayüz desteği.',
+    f6Title: '10 dilde arayüz',
+    f6Desc: 'Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, İtalyanca, Portekizce, Arapça, Rusça ve Japonca arayüz desteği.',
 
     showcaseTitle: 'Uygulamadan bir bakış',
     showcaseSubtitle: 'Günlük özet, kelime listesi ve oyun ekranlarından gerçek görüntüler.',
@@ -129,7 +130,7 @@ export const dictionaries = {
     faqTitle: 'Sıkça sorulan sorular',
     faqSubtitle: 'Merak ettiklerin burada değilse bize yazabilirsin.',
     faqQ1: 'Lexis ücretsiz mi?', faqA1: 'Evet, Lexis ücretsiz bir hesapla kullanılmaya başlanabilir. Ek özellikler sunan bir Premium plan da mevcuttur.',
-    faqQ2: 'Hangi dilleri destekliyor?', faqA2: 'Uygulama arayüzü 9 dilde (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, İtalyanca, Arapça, Rusça, Japonca) kullanılabilir; öğrenebileceğin diller de aynı dil havuzuna dayanır.',
+    faqQ2: 'Hangi dilleri destekliyor?', faqA2: 'Uygulama arayüzü 10 dilde (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, İtalyanca, Portekizce, Arapça, Rusça, Japonca) kullanılabilir; öğrenebileceğin diller de aynı dil havuzuna dayanır.',
     faqQ3: 'Premium ne sağlıyor?', faqA3: 'Premium plan, uygulama içindeki bazı ek özellikleri ve reklamsız deneyimi açar. Güncel plan ve fiyat bilgisi için uygulama içindeki Premium sayfasına bakabilirsin.',
     faqQ4: 'Verilerim güvende mi?', faqA4: 'Hesap verilerin ve öğrenme geçmişin sana özeldir; başka kullanıcılar yalnızca sen paylaşmayı tercih ettiğin (profil, istatistik özeti gibi) bilgileri görebilir.',
     faqQ5: 'Mobil uygulama var mı?', faqA5: 'Mobil uygulama şu anda geliştirme aşamasında. Bu sırada web sürümünü telefon tarayıcından da rahatlıkla kullanabilirsin.',
@@ -156,12 +157,12 @@ export const dictionaries = {
     navFeatures: 'Features', navHow: 'How It Works', navFaq: 'FAQ', navContact: 'Contact',
     navLogin: 'Log In', navRegister: 'Get Started Free',
 
-    heroBadge: 'Interface in 9 languages · Free to start',
+    heroBadge: 'Interface in 10 languages · Free to start',
     heroTitle: "Don't memorize words, learn them through play.",
     heroSubtitle: 'Lexis brings your personal vocabulary list, daily study schedule, and competitive games together in one place.',
     heroCtaPrimary: 'Get Started Free',
     heroCtaSecondary: 'Log In',
-    heroStat1Value: '9', heroStat1Label: 'interface languages',
+    heroStat1Value: '10', heroStat1Label: 'interface languages',
     heroStat2Value: '6', heroStat2Label: 'game modes',
     heroStat3Value: '24/7', heroStat3Label: 'learn at your own pace',
 
@@ -177,8 +178,8 @@ export const dictionaries = {
     f4Desc: 'Every activity earns XP and keeps you motivated as you level up; build a habit with daily streaks.',
     f5Title: 'Learn with friends',
     f5Desc: 'Add friends, view each other’s profiles, compete on the leaderboard, chat, and send challenges.',
-    f6Title: 'Interface in 9 languages',
-    f6Desc: 'Use the interface in Turkish, English, German, French, Spanish, Italian, Arabic, Russian, and Japanese.',
+    f6Title: 'Interface in 10 languages',
+    f6Desc: 'Use the interface in Turkish, English, German, French, Spanish, Italian, Portuguese, Arabic, Russian, and Japanese.',
 
     showcaseTitle: 'A look inside the app',
     showcaseSubtitle: 'Real screens from the daily summary, word list, and game modes.',
@@ -200,7 +201,7 @@ export const dictionaries = {
     faqTitle: 'Frequently asked questions',
     faqSubtitle: "Can't find what you're looking for? Feel free to reach out.",
     faqQ1: 'Is Lexis free?', faqA1: 'Yes, you can start using Lexis with a free account. A Premium plan with additional features is also available.',
-    faqQ2: 'Which languages are supported?', faqA2: 'The app interface is available in 9 languages (Turkish, English, German, French, Spanish, Italian, Arabic, Russian, Japanese); the languages you can learn draw on the same language pool.',
+    faqQ2: 'Which languages are supported?', faqA2: 'The app interface is available in 10 languages (Turkish, English, German, French, Spanish, Italian, Portuguese, Arabic, Russian, Japanese); the languages you can learn draw on the same language pool.',
     faqQ3: 'What does Premium include?', faqA3: 'The Premium plan unlocks additional in-app features and an ad-free experience. See the Premium page inside the app for current plans and pricing.',
     faqQ4: 'Is my data safe?', faqA4: 'Your account data and learning history are private to you; other users can only see information you choose to share, such as your profile or stats summary.',
     faqQ5: 'Is there a mobile app?', faqA5: 'A mobile app is currently in development. In the meantime, you can comfortably use the web version from your phone’s browser.',
@@ -227,12 +228,12 @@ export const dictionaries = {
     navFeatures: 'Funktionen', navHow: 'So funktioniert’s', navFaq: 'FAQ', navContact: 'Kontakt',
     navLogin: 'Anmelden', navRegister: 'Kostenlos starten',
 
-    heroBadge: 'Oberfläche in 9 Sprachen · Kostenloser Einstieg',
+    heroBadge: 'Oberfläche in 10 Sprachen · Kostenloser Einstieg',
     heroTitle: 'Wörter nicht auswendig lernen, sondern spielerisch erlernen.',
     heroSubtitle: 'Lexis vereint deine persönliche Vokabelliste, deinen täglichen Lernplan und Spiele, bei denen du gegen Freunde antrittst, an einem Ort.',
     heroCtaPrimary: 'Kostenlos starten',
     heroCtaSecondary: 'Anmelden',
-    heroStat1Value: '9', heroStat1Label: 'Oberflächensprachen',
+    heroStat1Value: '10', heroStat1Label: 'Oberflächensprachen',
     heroStat2Value: '6', heroStat2Label: 'Spielmodi',
     heroStat3Value: '24/7', heroStat3Label: 'Lernen im eigenen Tempo',
 
@@ -248,8 +249,8 @@ export const dictionaries = {
     f4Desc: 'Jede Aktivität bringt XP und hält dich beim Aufsteigen motiviert; baue mit täglichen Serien eine Gewohnheit auf.',
     f5Title: 'Gemeinsam mit Freunden lernen',
     f5Desc: 'Füge Freunde hinzu, seht euch gegenseitig eure Profile an, tretet in der Bestenliste gegeneinander an, chattet und fordert euch heraus.',
-    f6Title: 'Oberfläche in 9 Sprachen',
-    f6Desc: 'Nutze die Oberfläche auf Türkisch, Englisch, Deutsch, Französisch, Spanisch, Italienisch, Arabisch, Russisch und Japanisch.',
+    f6Title: 'Oberfläche in 10 Sprachen',
+    f6Desc: 'Nutze die Oberfläche auf Türkisch, Englisch, Deutsch, Französisch, Spanisch, Italienisch, Portugiesisch, Arabisch, Russisch und Japanisch.',
 
     showcaseTitle: 'Ein Blick in die App',
     showcaseSubtitle: 'Echte Ansichten aus der Tageszusammenfassung, der Wortliste und den Spielmodi.',
@@ -271,7 +272,7 @@ export const dictionaries = {
     faqTitle: 'Häufig gestellte Fragen',
     faqSubtitle: 'Findest du deine Frage nicht? Schreib uns gerne.',
     faqQ1: 'Ist Lexis kostenlos?', faqA1: 'Ja, du kannst Lexis mit einem kostenlosen Konto nutzen. Es gibt außerdem einen Premium-Plan mit zusätzlichen Funktionen.',
-    faqQ2: 'Welche Sprachen werden unterstützt?', faqA2: 'Die App-Oberfläche ist in 9 Sprachen verfügbar (Türkisch, Englisch, Deutsch, Französisch, Spanisch, Italienisch, Arabisch, Russisch, Japanisch); die lernbaren Sprachen basieren auf demselben Sprachpool.',
+    faqQ2: 'Welche Sprachen werden unterstützt?', faqA2: 'Die App-Oberfläche ist in 10 Sprachen verfügbar (Türkisch, Englisch, Deutsch, Französisch, Spanisch, Italienisch, Portugiesisch, Arabisch, Russisch, Japanisch); die lernbaren Sprachen basieren auf demselben Sprachpool.',
     faqQ3: 'Was bietet Premium?', faqA3: 'Der Premium-Plan schaltet zusätzliche Funktionen in der App sowie ein werbefreies Erlebnis frei. Aktuelle Pläne und Preise findest du auf der Premium-Seite in der App.',
     faqQ4: 'Sind meine Daten sicher?', faqA4: 'Deine Kontodaten und dein Lernverlauf sind privat; andere Nutzer sehen nur Informationen, die du bewusst teilst, etwa dein Profil oder deine Statistikübersicht.',
     faqQ5: 'Gibt es eine mobile App?', faqA5: 'Eine mobile App befindet sich derzeit in Entwicklung. Bis dahin kannst du die Web-Version bequem über den Browser deines Telefons nutzen.',
@@ -298,12 +299,12 @@ export const dictionaries = {
     navFeatures: 'Fonctionnalités', navHow: 'Comment ça marche', navFaq: 'FAQ', navContact: 'Contact',
     navLogin: 'Connexion', navRegister: 'Commencer gratuitement',
 
-    heroBadge: 'Interface en 9 langues · Gratuit pour commencer',
+    heroBadge: 'Interface en 10 langues · Gratuit pour commencer',
     heroTitle: "N'apprenez pas les mots par cœur, apprenez-les en jouant.",
     heroSubtitle: 'Lexis réunit votre liste de vocabulaire personnelle, votre programme d’apprentissage quotidien et des jeux pour défier vos amis, le tout au même endroit.',
     heroCtaPrimary: 'Commencer gratuitement',
     heroCtaSecondary: 'Connexion',
-    heroStat1Value: '9', heroStat1Label: 'langues d’interface',
+    heroStat1Value: '10', heroStat1Label: 'langues d’interface',
     heroStat2Value: '6', heroStat2Label: 'modes de jeu',
     heroStat3Value: '24/7', heroStat3Label: 'apprenez à votre rythme',
 
@@ -319,8 +320,8 @@ export const dictionaries = {
     f4Desc: 'Chaque activité rapporte de l’XP et vous motive à monter de niveau ; construisez une habitude grâce aux séries quotidiennes.',
     f5Title: 'Apprenez avec vos amis',
     f5Desc: 'Ajoutez des amis, consultez vos profils respectifs, affrontez-vous au classement, discutez et lancez-vous des défis.',
-    f6Title: 'Interface en 9 langues',
-    f6Desc: 'Utilisez l’interface en turc, anglais, allemand, français, espagnol, italien, arabe, russe et japonais.',
+    f6Title: 'Interface en 10 langues',
+    f6Desc: 'Utilisez l’interface en turc, anglais, allemand, français, espagnol, italien, portugais, arabe, russe et japonais.',
 
     showcaseTitle: 'Un aperçu de l’application',
     showcaseSubtitle: 'Captures réelles du résumé quotidien, de la liste de mots et des modes de jeu.',
@@ -342,7 +343,7 @@ export const dictionaries = {
     faqTitle: 'Questions fréquentes',
     faqSubtitle: 'Vous ne trouvez pas votre réponse ? N’hésitez pas à nous écrire.',
     faqQ1: 'Lexis est-il gratuit ?', faqA1: 'Oui, vous pouvez commencer à utiliser Lexis avec un compte gratuit. Un plan Premium offrant des fonctionnalités supplémentaires est également disponible.',
-    faqQ2: 'Quelles langues sont prises en charge ?', faqA2: 'L’interface de l’application est disponible en 9 langues (turc, anglais, allemand, français, espagnol, italien, arabe, russe, japonais) ; les langues que vous pouvez apprendre reposent sur la même banque de langues.',
+    faqQ2: 'Quelles langues sont prises en charge ?', faqA2: 'L’interface de l’application est disponible en 10 langues (turc, anglais, allemand, français, espagnol, italien, portugais, arabe, russe, japonais) ; les langues que vous pouvez apprendre reposent sur la même banque de langues.',
     faqQ3: 'Que comprend Premium ?', faqA3: 'Le plan Premium débloque des fonctionnalités supplémentaires dans l’application ainsi qu’une expérience sans publicité. Consultez la page Premium de l’application pour les offres et tarifs actuels.',
     faqQ4: 'Mes données sont-elles en sécurité ?', faqA4: 'Vos données de compte et votre historique d’apprentissage vous sont propres ; les autres utilisateurs ne voient que les informations que vous choisissez de partager, comme votre profil ou votre résumé de statistiques.',
     faqQ5: 'Existe-t-il une application mobile ?', faqA5: 'Une application mobile est actuellement en développement. En attendant, vous pouvez utiliser confortablement la version web depuis le navigateur de votre téléphone.',
@@ -369,12 +370,12 @@ export const dictionaries = {
     navFeatures: 'Funciones', navHow: 'Cómo funciona', navFaq: 'Preguntas frecuentes', navContact: 'Contacto',
     navLogin: 'Iniciar sesión', navRegister: 'Empezar gratis',
 
-    heroBadge: 'Interfaz en 9 idiomas · Gratis para empezar',
+    heroBadge: 'Interfaz en 10 idiomas · Gratis para empezar',
     heroTitle: 'No memorices palabras, apréndelas jugando.',
     heroSubtitle: 'Lexis reúne tu lista de vocabulario personal, tu programa de estudio diario y juegos para competir con tus amigos, todo en un solo lugar.',
     heroCtaPrimary: 'Empezar gratis',
     heroCtaSecondary: 'Iniciar sesión',
-    heroStat1Value: '9', heroStat1Label: 'idiomas de interfaz',
+    heroStat1Value: '10', heroStat1Label: 'idiomas de interfaz',
     heroStat2Value: '6', heroStat2Label: 'modos de juego',
     heroStat3Value: '24/7', heroStat3Label: 'aprende a tu ritmo',
 
@@ -390,8 +391,8 @@ export const dictionaries = {
     f4Desc: 'Cada actividad te da XP y te mantiene motivado al subir de nivel; crea el hábito con rachas diarias.',
     f5Title: 'Aprende con tus amigos',
     f5Desc: 'Añade amigos, mirad vuestros perfiles, competid en la clasificación, chatead y lanzaos retos.',
-    f6Title: 'Interfaz en 9 idiomas',
-    f6Desc: 'Usa la interfaz en turco, inglés, alemán, francés, español, italiano, árabe, ruso y japonés.',
+    f6Title: 'Interfaz en 10 idiomas',
+    f6Desc: 'Usa la interfaz en turco, inglés, alemán, francés, español, italiano, portugués, árabe, ruso y japonés.',
 
     showcaseTitle: 'Un vistazo a la aplicación',
     showcaseSubtitle: 'Capturas reales del resumen diario, la lista de palabras y los modos de juego.',
@@ -413,7 +414,7 @@ export const dictionaries = {
     faqTitle: 'Preguntas frecuentes',
     faqSubtitle: '¿No encuentras lo que buscas? Escríbenos sin problema.',
     faqQ1: '¿Lexis es gratis?', faqA1: 'Sí, puedes empezar a usar Lexis con una cuenta gratuita. También existe un plan Premium con funciones adicionales.',
-    faqQ2: '¿Qué idiomas admite?', faqA2: 'La interfaz de la aplicación está disponible en 9 idiomas (turco, inglés, alemán, francés, español, italiano, árabe, ruso, japonés); los idiomas que puedes aprender se basan en el mismo banco de idiomas.',
+    faqQ2: '¿Qué idiomas admite?', faqA2: 'La interfaz de la aplicación está disponible en 10 idiomas (turco, inglés, alemán, francés, español, italiano, portugués, árabe, ruso, japonés); los idiomas que puedes aprender se basan en el mismo banco de idiomas.',
     faqQ3: '¿Qué incluye Premium?', faqA3: 'El plan Premium desbloquea funciones adicionales dentro de la aplicación y una experiencia sin anuncios. Consulta la página de Premium en la app para ver planes y precios actuales.',
     faqQ4: '¿Mis datos están seguros?', faqA4: 'Los datos de tu cuenta y tu historial de aprendizaje son privados; otros usuarios solo ven la información que decidas compartir, como tu perfil o tu resumen de estadísticas.',
     faqQ5: '¿Hay una aplicación móvil?', faqA5: 'Actualmente hay una aplicación móvil en desarrollo. Mientras tanto, puedes usar cómodamente la versión web desde el navegador de tu teléfono.',
@@ -440,12 +441,12 @@ export const dictionaries = {
     navFeatures: 'Funzionalità', navHow: 'Come funziona', navFaq: 'FAQ', navContact: 'Contatti',
     navLogin: 'Accedi', navRegister: 'Inizia gratis',
 
-    heroBadge: 'Interfaccia in 9 lingue · Gratis per iniziare',
+    heroBadge: 'Interfaccia in 10 lingue · Gratis per iniziare',
     heroTitle: 'Non memorizzare le parole, imparale giocando.',
     heroSubtitle: 'Lexis riunisce la tua lista di vocaboli personale, il tuo programma di studio quotidiano e giochi per sfidare i tuoi amici, tutto in un unico posto.',
     heroCtaPrimary: 'Inizia gratis',
     heroCtaSecondary: 'Accedi',
-    heroStat1Value: '9', heroStat1Label: 'lingue dell’interfaccia',
+    heroStat1Value: '10', heroStat1Label: 'lingue dell’interfaccia',
     heroStat2Value: '6', heroStat2Label: 'modalità di gioco',
     heroStat3Value: '24/7', heroStat3Label: 'impara al tuo ritmo',
 
@@ -461,8 +462,8 @@ export const dictionaries = {
     f4Desc: 'Ogni attività fa guadagnare XP e ti tiene motivato mentre sali di livello; crea un’abitudine con le serie giornaliere.',
     f5Title: 'Impara con i tuoi amici',
     f5Desc: 'Aggiungi amici, guardate i vostri profili, sfidatevi in classifica, chattate e lanciatevi sfide.',
-    f6Title: 'Interfaccia in 9 lingue',
-    f6Desc: 'Usa l’interfaccia in turco, inglese, tedesco, francese, spagnolo, italiano, arabo, russo e giapponese.',
+    f6Title: 'Interfaccia in 10 lingue',
+    f6Desc: 'Usa l’interfaccia in turco, inglese, tedesco, francese, spagnolo, italiano, portoghese, arabo, russo e giapponese.',
 
     showcaseTitle: 'Uno sguardo all’app',
     showcaseSubtitle: 'Schermate reali del riepilogo giornaliero, della lista parole e delle modalità di gioco.',
@@ -484,7 +485,7 @@ export const dictionaries = {
     faqTitle: 'Domande frequenti',
     faqSubtitle: 'Non trovi quello che cerchi? Scrivici pure.',
     faqQ1: 'Lexis è gratis?', faqA1: 'Sì, puoi iniziare a usare Lexis con un account gratuito. È disponibile anche un piano Premium con funzionalità aggiuntive.',
-    faqQ2: 'Quali lingue sono supportate?', faqA2: 'L’interfaccia dell’app è disponibile in 9 lingue (turco, inglese, tedesco, francese, spagnolo, italiano, arabo, russo, giapponese); le lingue che puoi imparare si basano sullo stesso pool linguistico.',
+    faqQ2: 'Quali lingue sono supportate?', faqA2: 'L’interfaccia dell’app è disponibile in 10 lingue (turco, inglese, tedesco, francese, spagnolo, italiano, portoghese, arabo, russo, giapponese); le lingue che puoi imparare si basano sullo stesso pool linguistico.',
     faqQ3: 'Cosa include Premium?', faqA3: 'Il piano Premium sblocca funzionalità aggiuntive nell’app e un’esperienza senza pubblicità. Consulta la pagina Premium nell’app per i piani e i prezzi attuali.',
     faqQ4: 'I miei dati sono al sicuro?', faqA4: 'I dati del tuo account e la tua cronologia di apprendimento sono privati; gli altri utenti vedono solo le informazioni che scegli di condividere, come il tuo profilo o il riepilogo statistiche.',
     faqQ5: 'Esiste un’app mobile?', faqA5: 'Un’app mobile è attualmente in sviluppo. Nel frattempo puoi usare comodamente la versione web dal browser del tuo telefono.',
@@ -511,12 +512,12 @@ export const dictionaries = {
     navFeatures: 'Возможности', navHow: 'Как это работает', navFaq: 'Вопросы', navContact: 'Контакты',
     navLogin: 'Войти', navRegister: 'Начать бесплатно',
 
-    heroBadge: 'Интерфейс на 9 языках · Бесплатный старт',
+    heroBadge: 'Интерфейс на 10 языках · Бесплатный старт',
     heroTitle: 'Не зубрите слова — учите их через игру.',
     heroSubtitle: 'Lexis объединяет ваш личный список слов, ежедневный план занятий и игры, в которых можно соревноваться с друзьями, в одном месте.',
     heroCtaPrimary: 'Начать бесплатно',
     heroCtaSecondary: 'Войти',
-    heroStat1Value: '9', heroStat1Label: 'языков интерфейса',
+    heroStat1Value: '10', heroStat1Label: 'языков интерфейса',
     heroStat2Value: '6', heroStat2Label: 'игровых режимов',
     heroStat3Value: '24/7', heroStat3Label: 'учитесь в своём темпе',
 
@@ -532,8 +533,8 @@ export const dictionaries = {
     f4Desc: 'Каждая активность приносит опыт и мотивирует повышать уровень; ежедневные серии помогают выработать привычку.',
     f5Title: 'Учитесь вместе с друзьями',
     f5Desc: 'Добавляйте друзей, смотрите профили друг друга, соревнуйтесь в рейтинге, переписывайтесь и бросайте друг другу вызовы.',
-    f6Title: 'Интерфейс на 9 языках',
-    f6Desc: 'Используйте интерфейс на турецком, английском, немецком, французском, испанском, итальянском, арабском, русском и японском.',
+    f6Title: 'Интерфейс на 10 языках',
+    f6Desc: 'Используйте интерфейс на турецком, английском, немецком, французском, испанском, итальянском, португальском, арабском, русском и японском.',
 
     showcaseTitle: 'Взгляд изнутри приложения',
     showcaseSubtitle: 'Реальные экраны из ежедневной сводки, списка слов и игровых режимов.',
@@ -555,7 +556,7 @@ export const dictionaries = {
     faqTitle: 'Часто задаваемые вопросы',
     faqSubtitle: 'Не нашли ответ на свой вопрос? Напишите нам.',
     faqQ1: 'Lexis бесплатный?', faqA1: 'Да, начать пользоваться Lexis можно с бесплатным аккаунтом. Также доступен план Premium с дополнительными возможностями.',
-    faqQ2: 'Какие языки поддерживаются?', faqA2: 'Интерфейс приложения доступен на 9 языках (турецкий, английский, немецкий, французский, испанский, итальянский, арабский, русский, японский); изучаемые языки основаны на том же языковом пуле.',
+    faqQ2: 'Какие языки поддерживаются?', faqA2: 'Интерфейс приложения доступен на 10 языках (турецкий, английский, немецкий, французский, испанский, итальянский, португальский, арабский, русский, японский); изучаемые языки основаны на том же языковом пуле.',
     faqQ3: 'Что даёт Premium?', faqA3: 'План Premium открывает дополнительные функции в приложении и опыт без рекламы. Актуальные планы и цены смотрите на странице Premium в приложении.',
     faqQ4: 'В безопасности ли мои данные?', faqA4: 'Данные вашего аккаунта и история обучения принадлежат только вам; другие пользователи видят лишь ту информацию, которой вы решили поделиться, например профиль или сводку статистики.',
     faqQ5: 'Есть ли мобильное приложение?', faqA5: 'Мобильное приложение сейчас находится в разработке. А пока вы можете удобно пользоваться веб-версией через браузер телефона.',
@@ -582,12 +583,12 @@ export const dictionaries = {
     navFeatures: 'المزايا', navHow: 'كيف يعمل', navFaq: 'الأسئلة الشائعة', navContact: 'تواصل معنا',
     navLogin: 'تسجيل الدخول', navRegister: 'ابدأ مجانًا',
 
-    heroBadge: 'واجهة بـ 9 لغات · مجاني للبدء',
+    heroBadge: 'واجهة بـ 10 لغات · مجاني للبدء',
     heroTitle: 'لا تحفظ الكلمات، تعلّمها عبر اللعب.',
     heroSubtitle: 'يجمع Lexis بين قائمة مفرداتك الشخصية وبرنامج دراستك اليومي وألعاب تنافس فيها أصدقاءك، كل ذلك في مكان واحد.',
     heroCtaPrimary: 'ابدأ مجانًا',
     heroCtaSecondary: 'تسجيل الدخول',
-    heroStat1Value: '9', heroStat1Label: 'لغات للواجهة',
+    heroStat1Value: '10', heroStat1Label: 'لغات للواجهة',
     heroStat2Value: '6', heroStat2Label: 'أوضاع لعب',
     heroStat3Value: '24/7', heroStat3Label: 'تعلّم بالسرعة التي تناسبك',
 
@@ -603,8 +604,8 @@ export const dictionaries = {
     f4Desc: 'كل نشاط يمنحك نقاط خبرة ويحافظ على حماسك مع ارتفاع مستواك؛ ابنِ عادة يومية عبر سلاسل الإنجاز.',
     f5Title: 'تعلّم مع أصدقائك',
     f5Desc: 'أضف أصدقاء، اطّلعوا على ملفات بعضكم البعض، تنافسوا في لوحة الصدارة، تراسلوا، وتحدّوا بعضكم البعض.',
-    f6Title: 'واجهة بـ 9 لغات',
-    f6Desc: 'استخدم الواجهة بالتركية والإنجليزية والألمانية والفرنسية والإسبانية والإيطالية والعربية والروسية واليابانية.',
+    f6Title: 'واجهة بـ 10 لغات',
+    f6Desc: 'استخدم الواجهة بالتركية والإنجليزية والألمانية والفرنسية والإسبانية والإيطالية والبرتغالية والعربية والروسية واليابانية.',
 
     showcaseTitle: 'لمحة من داخل التطبيق',
     showcaseSubtitle: 'لقطات حقيقية من الملخّص اليومي وقائمة الكلمات وأوضاع اللعب.',
@@ -626,7 +627,7 @@ export const dictionaries = {
     faqTitle: 'الأسئلة الشائعة',
     faqSubtitle: 'لم تجد إجابة لسؤالك؟ يمكنك مراسلتنا.',
     faqQ1: 'هل Lexis مجاني؟', faqA1: 'نعم، يمكنك البدء باستخدام Lexis بحساب مجاني. كما تتوفّر خطة Premium بمزايا إضافية.',
-    faqQ2: 'ما اللغات المدعومة؟', faqA2: 'واجهة التطبيق متاحة بـ 9 لغات (التركية والإنجليزية والألمانية والفرنسية والإسبانية والإيطالية والعربية والروسية واليابانية)؛ واللغات التي يمكنك تعلّمها تعتمد على نفس مخزون اللغات.',
+    faqQ2: 'ما اللغات المدعومة؟', faqA2: 'واجهة التطبيق متاحة بـ 10 لغات (التركية والإنجليزية والألمانية والفرنسية والإسبانية والإيطالية والبرتغالية والعربية والروسية واليابانية)؛ واللغات التي يمكنك تعلّمها تعتمد على نفس مخزون اللغات.',
     faqQ3: 'ماذا توفّر خطة Premium؟', faqA3: 'تفتح خطة Premium مزايا إضافية داخل التطبيق وتجربة خالية من الإعلانات. راجع صفحة Premium داخل التطبيق للاطّلاع على الخطط والأسعار الحالية.',
     faqQ4: 'هل بياناتي آمنة؟', faqA4: 'بيانات حسابك وسجل تعلّمك خاصة بك؛ ولا يرى المستخدمون الآخرون سوى المعلومات التي تختار مشاركتها، مثل ملفك الشخصي أو ملخّص إحصائياتك.',
     faqQ5: 'هل يوجد تطبيق للهاتف المحمول؟', faqA5: 'يوجد حاليًا تطبيق للهاتف المحمول قيد التطوير. في هذه الأثناء يمكنك استخدام نسخة الويب براحة من متصفّح هاتفك.',
@@ -653,12 +654,12 @@ export const dictionaries = {
     navFeatures: '機能', navHow: '使い方', navFaq: 'よくある質問', navContact: 'お問い合わせ',
     navLogin: 'ログイン', navRegister: '無料で始める',
 
-    heroBadge: '9言語対応インターフェース · 無料で開始',
+    heroBadge: '10言語対応インターフェース · 無料で開始',
     heroTitle: '単語は暗記せず、遊びながら覚えよう。',
     heroSubtitle: 'Lexisは、あなた専用の単語リスト、毎日の学習プラン、友達と競い合えるゲームを一つにまとめたアプリです。',
     heroCtaPrimary: '無料で始める',
     heroCtaSecondary: 'ログイン',
-    heroStat1Value: '9', heroStat1Label: '言語のインターフェース',
+    heroStat1Value: '10', heroStat1Label: '言語のインターフェース',
     heroStat2Value: '6', heroStat2Label: '種類のゲームモード',
     heroStat3Value: '24時間', heroStat3Label: '自分のペースで学習',
 
@@ -674,8 +675,8 @@ export const dictionaries = {
     f4Desc: 'すべてのアクティビティでXPを獲得し、レベルアップでモチベーションを維持。連続記録(ストリーク)で習慣化できます。',
     f5Title: '友達と一緒に学ぶ',
     f5Desc: '友達を追加してお互いのプロフィールを見たり、リーダーボードで競ったり、チャットや対戦の招待もできます。',
-    f6Title: '9言語対応インターフェース',
-    f6Desc: 'トルコ語・英語・ドイツ語・フランス語・スペイン語・イタリア語・アラビア語・ロシア語・日本語でインターフェースを利用できます。',
+    f6Title: '10言語対応インターフェース',
+    f6Desc: 'トルコ語・英語・ドイツ語・フランス語・スペイン語・イタリア語・ポルトガル語・アラビア語・ロシア語・日本語でインターフェースを利用できます。',
 
     showcaseTitle: 'アプリの中身をのぞいてみよう',
     showcaseSubtitle: '毎日のサマリー、単語リスト、ゲーム画面の実際のスクリーンショットです。',
@@ -697,7 +698,7 @@ export const dictionaries = {
     faqTitle: 'よくある質問',
     faqSubtitle: '知りたいことが見つからない場合は、お気軽にご連絡ください。',
     faqQ1: 'Lexisは無料ですか?', faqA1: 'はい、無料アカウントでLexisの利用を始められます。追加機能を備えたPremiumプランもあります。',
-    faqQ2: '対応言語は?', faqA2: 'アプリのインターフェースは9言語(トルコ語・英語・ドイツ語・フランス語・スペイン語・イタリア語・アラビア語・ロシア語・日本語)で利用でき、学習できる言語も同じ言語プールに基づいています。',
+    faqQ2: '対応言語は?', faqA2: 'アプリのインターフェースは10言語(トルコ語・英語・ドイツ語・フランス語・スペイン語・イタリア語・ポルトガル語・アラビア語・ロシア語・日本語)で利用でき、学習できる言語も同じ言語プールに基づいています。',
     faqQ3: 'Premiumでは何ができますか?', faqA3: 'Premiumプランでは、アプリ内の追加機能と広告なしの利用が可能になります。最新のプラン内容や料金はアプリ内のPremiumページをご確認ください。',
     faqQ4: 'データは安全ですか?', faqA4: 'アカウントデータと学習履歴は本人専用です。他のユーザーは、あなたが共有を選択した情報(プロフィールや統計サマリーなど)のみ閲覧できます。',
     faqQ5: 'モバイルアプリはありますか?', faqA5: 'モバイルアプリは現在開発中です。それまでは、スマートフォンのブラウザからウェブ版を快適にご利用いただけます。',
@@ -719,5 +720,76 @@ export const dictionaries = {
     footerSocialHeading: 'フォローする',
     footerComingSoon: '近日公開',
     footerRights: 'All rights reserved.',
+  },
+  pt: {
+    navFeatures: 'Funcionalidades', navHow: 'Como Funciona', navFaq: 'FAQ', navContact: 'Contacto',
+    navLogin: 'Iniciar Sessão', navRegister: 'Começar Grátis',
+
+    heroBadge: 'Interface em 10 idiomas · Grátis para começar',
+    heroTitle: 'Não decores palavras, aprende-as a jogar.',
+    heroSubtitle: 'O Lexis reúne a tua lista de vocabulário pessoal, o teu plano de estudo diário e jogos para competires com os teus amigos, tudo num só lugar.',
+    heroCtaPrimary: 'Começar Grátis',
+    heroCtaSecondary: 'Iniciar Sessão',
+    heroStat1Value: '10', heroStat1Label: 'idiomas de interface',
+    heroStat2Value: '6', heroStat2Label: 'modos de jogo',
+    heroStat3Value: '24/7', heroStat3Label: 'aprende ao teu ritmo',
+
+    featuresTitle: 'Tudo o que precisas para aprender, num só lugar',
+    featuresSubtitle: 'O Lexis combina vocabulário, um plano de estudo e jogos para tornar a aprendizagem sustentável.',
+    f1Title: 'Lista de vocabulário pessoal',
+    f1Desc: 'Guarda as palavras que aprendes, adiciona significados e frases de exemplo, e acompanha o estado (nova / a aprender / aprendida).',
+    f2Title: 'Reforça com jogos',
+    f2Desc: 'Reforça o que aprendeste com 6 modos de jogo divertidos — Escolha Múltipla, Forca, Escrita, Audição, Sprint e Correspondência.',
+    f3Title: 'Plano de estudo pessoal',
+    f3Desc: 'Define o teu objetivo diário, escolhe um modelo pronto ou cria o teu próprio — o Lexis acompanha o teu progresso.',
+    f4Title: 'Sistema de XP e níveis',
+    f4Desc: 'Cada atividade dá-te XP e mantém-te motivado à medida que subes de nível; cria um hábito com sequências diárias.',
+    f5Title: 'Aprende com os teus amigos',
+    f5Desc: 'Adiciona amigos, vejam os perfis um do outro, compitam na classificação, conversem e lancem desafios.',
+    f6Title: 'Interface em 10 idiomas',
+    f6Desc: 'Usa a interface em turco, inglês, alemão, francês, espanhol, italiano, português, árabe, russo e japonês.',
+
+    showcaseTitle: 'Uma vista de dentro da aplicação',
+    showcaseSubtitle: 'Ecrãs reais do resumo diário, da lista de palavras e dos modos de jogo.',
+    showcaseItem1: 'Resumo diário e acompanhamento de XP',
+    showcaseItem2: 'Lista de palavras e estado de aprendizagem',
+    showcaseItem3: 'Ecrã de jogo e de desafio',
+
+    howTitle: 'Como funciona',
+    howSubtitle: 'Cria um hábito de aprendizagem consistente em quatro passos.',
+    how1Title: 'Cria a tua conta',
+    how1Desc: 'Regista-te gratuitamente com o teu email e depois escolhe o teu idioma nativo e o idioma que queres aprender.',
+    how2Title: 'Constrói a tua lista de palavras',
+    how2Desc: 'Adiciona as palavras que encontras, ou usa sugestões do conjunto geral de palavras.',
+    how3Title: 'Segue o teu plano',
+    how3Desc: 'Acompanha o teu objetivo diário, revê com cartões e questionários, e reforça com jogos.',
+    how4Title: 'Compete com os teus amigos',
+    how4Desc: 'Vê a tua posição na classificação, desafia os teus amigos e mantenham-se motivados juntos.',
+
+    faqTitle: 'Perguntas frequentes',
+    faqSubtitle: 'Não encontras o que procuras? Contacta-nos à vontade.',
+    faqQ1: 'O Lexis é grátis?', faqA1: 'Sim, podes começar a usar o Lexis com uma conta gratuita. Também está disponível um plano Premium com funcionalidades adicionais.',
+    faqQ2: 'Que idiomas são suportados?', faqA2: 'A interface da aplicação está disponível em 10 idiomas (turco, inglês, alemão, francês, espanhol, italiano, português, árabe, russo, japonês); os idiomas que podes aprender baseiam-se no mesmo conjunto de idiomas.',
+    faqQ3: 'O que inclui o Premium?', faqA3: 'O plano Premium desbloqueia funcionalidades adicionais na aplicação e uma experiência sem anúncios. Consulta a página Premium dentro da aplicação para planos e preços atuais.',
+    faqQ4: 'Os meus dados estão seguros?', faqA4: 'Os dados da tua conta e o teu histórico de aprendizagem são privados; outros utilizadores só veem a informação que escolheres partilhar, como o teu perfil ou o resumo de estatísticas.',
+    faqQ5: 'Existe uma aplicação móvel?', faqA5: 'Uma aplicação móvel está atualmente em desenvolvimento. Entretanto, podes usar confortavelmente a versão web a partir do navegador do teu telemóvel.',
+    faqQ6: 'Como posso entrar em contacto?', faqA6: 'Podes contactar-nos pelo email ou através das nossas redes sociais abaixo.',
+
+    ctaTitle: 'Começa a aprender hoje',
+    ctaSubtitle: 'O registo demora menos de um minuto e a tua conta é totalmente gratuita.',
+    ctaButton: 'Criar Conta Grátis',
+
+    footerTagline: 'Uma experiência de aprendizagem de idiomas que combina vocabulário, plano e jogos.',
+    footerProductHeading: 'Produto',
+    footerLinkLogin: 'Iniciar Sessão',
+    footerLinkRegister: 'Registar',
+    footerLinkFeatures: 'Funcionalidades',
+    footerLinkHow: 'Como Funciona',
+    footerCompanyHeading: 'Empresa',
+    footerLinkFaq: 'FAQ',
+    footerLinkContact: 'Contacto',
+    footerSocialHeading: 'Segue-nos',
+    footerComingSoon: 'Brevemente',
+    footerRights: 'Todos os direitos reservados.',
   },
 } as const;

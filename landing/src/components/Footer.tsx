@@ -92,6 +92,7 @@ export function Footer() {
               <li><a href={LEGAL_URLS.privacy} className="text-gray-600 hover:text-gray-900 transition-colors">Gizlilik Politikası</a></li>
               <li><a href={LEGAL_URLS.distanceSales} className="text-gray-600 hover:text-gray-900 transition-colors">Mesafeli Satış Sözleşmesi</a></li>
               <li><a href={LEGAL_URLS.deliveryRefund} className="text-gray-600 hover:text-gray-900 transition-colors">Teslimat ve İade Şartları</a></li>
+              <li><a href={LEGAL_URLS.deleteAccount} className="text-gray-600 hover:text-gray-900 transition-colors">Hesap Silme</a></li>
             </ul>
           </div>
         </div>
