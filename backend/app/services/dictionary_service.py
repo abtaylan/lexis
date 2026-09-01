@@ -29,7 +29,17 @@ async def lookup_word(word: str, learning_lang: str, native_lang: str) -> dict:
     # ── 1) İngilizce öğreniliyorsa Cambridge ──
     if cambridge.supports(learning_lang):
         meanings = await cambridge.lookup(word, native_lang)
-        usable = [m for m in meanings if (m.get("meaning_native") or "").strip()]
+        # ÖNEMLİ: "bu sonucu kullan" kararını çeviri (meaning_native) başarısından
+        # ayır. Türkçe/ana dil çevirisi bulunamasa bile İngilizce tanım
+        # (meaning_target) veya örnek cümle varsa sonucu at etme — sadece
+        # gerçekten tamamen boş kayıtları ele. Böylece kullanıcı en azından
+        # İngilizce tanım + örnek cümleyi görür, çeviriyi kendisi girebilir.
+        usable = [
+            m for m in meanings
+            if (m.get("meaning_native") or "").strip()
+            or (m.get("meaning_target") or "").strip()
+            or m.get("examples")
+        ]
         if usable:
             return {"meanings": usable, "error": None, "source": "cambridge"}
 
@@ -44,10 +54,16 @@ async def lookup_word(word: str, learning_lang: str, native_lang: str) -> dict:
                 "word_type": pos,
                 "word_type_native": localize_pos(pos, native_lang),
                 "meaning_target": d["definition"],
+                # Çeviri (MyMemory) başarısız/rate-limit olursa boş bırak —
+                # meaning_target zaten dolu olduğu için sonuç yine kullanılabilir.
                 "meaning_native": translated or "",
                 "examples": [d["example"]] if d.get("example") else [],
             })
-        meanings = [m for m in meanings if (m.get("meaning_native") or "").strip()]
+        # NOT: Eskiden burada "meaning_native boş olanları ele" filtresi vardı;
+        # bu, sadece çeviri adımı arızalandığında mükemmel durumdaki İngilizce
+        # tanım + örnek cümleyi de siliyordu. meaning_target zaten definitions'tan
+        # geldiği için her zaman dolu — filtreye gerek yok, meanings listesini
+        # olduğu gibi döndür.
         if meanings:
             return {"meanings": meanings, "error": None, "source": "free_dictionary+mymemory"}
 

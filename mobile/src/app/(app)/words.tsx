@@ -120,6 +120,7 @@ function AddWordModal({
   const [example, setExample] = useState('');
   const [error, setError] = useState('');
   const [looking, setLooking] = useState(false);
+  const [lookupMsg, setLookupMsg] = useState('');
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -142,14 +143,19 @@ function AddWordModal({
   const handleLookup = async () => {
     if (!word.trim()) return;
     setLooking(true);
+    setLookupMsg('');
     try {
       const res = await dictionaryApi.lookup(word.trim(), learningLang, nativeLang);
       if (res.meanings.length > 0) {
         setMeaning(res.meanings[0].meaning_native || res.meanings[0].meaning_target);
         if (res.meanings[0].examples?.length) setExample(res.meanings[0].examples[0]);
+      } else {
+        // Web'deki eşdeğeri: sonuç boşsa görünür bir uyarı göster,
+        // kullanıcı butonun bozuk olmadığını anlasın ve elle girebilsin.
+        setLookupMsg(res.error || t('lookupNoMeaning'));
       }
     } catch {
-      /* sessiz — kullanıcı elle girebilir */
+      setLookupMsg(t('lookupNotFound'));
     } finally {
       setLooking(false);
     }
@@ -162,8 +168,22 @@ function AddWordModal({
         <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
           <Text style={[styles.modalTitle, { color: c.text }]}>{t('addWordModalTitle')}</Text>
 
-          <TextField label={t('wordRequiredLabel')} value={word} onChangeText={setWord} autoCapitalize="none" />
+          <TextField
+            label={t('wordRequiredLabel')}
+            value={word}
+            onChangeText={(v) => {
+              setWord(v);
+              if (lookupMsg) setLookupMsg('');
+            }}
+            autoCapitalize="none"
+          />
           <Button title={t('searchBtn')} variant="secondary" onPress={handleLookup} loading={looking} fullWidth={false} />
+
+          {lookupMsg ? (
+            <View style={[styles.lookupMsgBox, { backgroundColor: c.warningSoft }]}>
+              <Text style={{ color: c.warning, fontSize: 12 }}>{lookupMsg}</Text>
+            </View>
+          ) : null}
 
           <View style={{ height: spacing.sm }} />
           <TextField label={t('meaningRequiredLabel')} value={meaning} onChangeText={setMeaning} />
@@ -206,5 +226,6 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, paddingBottom: spacing.xxl },
   modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.md },
+  lookupMsgBox: { borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: 8, marginTop: spacing.xs },
   modalActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
 });

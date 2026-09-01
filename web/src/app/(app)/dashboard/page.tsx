@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
-  BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, CheckCheck, MessageCircle, Sun, Moon,
+  BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, MessageCircle, Sun, Moon,
 } from 'lucide-react';
 import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi, socialApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
 import { Leaderboard } from '@/components/layout/Leaderboard';
-import type { Stats, Word, DailyProgress, Language, UserLanguage, Notification, ConversationItem } from '@/types';
+import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem } from '@/types';
 
 // Çalışma dili seçicisi ile mesaj simgesi arasındaki hızlı erişim tema
 // butonunun etiketi — Sidebar.tsx'teki THEME_LABEL ile aynı çeviri deseni
@@ -95,14 +95,13 @@ export default function DashboardPage() {
   const [languages, setLanguages] = useState<Language[]>([]);
   const [switchingLang, setSwitchingLang] = useState(false);
 
-  // ── Bildirimler / hatırlatmalar (Madde 3a) ──
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  // ── Bildirimler (Madde 3a) — artık ayrı /notifications sayfasında;
+  // burada sadece üst bardaki zil ikonu için okunmamış sayısı tutuluyor.
   const [unreadCount, setUnreadCount] = useState(0);
-  const [notifLoading, setNotifLoading] = useState(true);
 
-  // ── Mesajlar (Madde 6, Faz 2) — gelen kutusu önizlemesi + rozet ──
+  // ── Mesajlar (Madde 6, Faz 2) — artık ayrı /messages sayfasında; burada
+  // sadece üst bardaki simge için okunmamış sayısı tutuluyor.
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
-  const [msgLoading, setMsgLoading] = useState(true);
   const msgPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -146,23 +145,21 @@ export default function DashboardPage() {
     languagesApi.getAll().then(setLanguages).catch(() => {});
   }, []);
 
-  const loadNotifications = () => {
-    notificationsApi
-      .getAll(8)
-      .then((res) => {
-        setNotifications(res.items);
-        setUnreadCount(res.unread_count);
-      })
-      .catch(() => {})
-      .finally(() => setNotifLoading(false));
-  };
-  useEffect(() => { loadNotifications(); }, []);
+  // Dashboard'da artık sadece rozet sayısı gerekiyor (liste /notifications
+  // sayfasında) — mesaj rozetiyle aynı aralıkla (MSG_POLL_MS) tazeleniyor.
+  useEffect(() => {
+    const loadUnreadNotifCount = () => {
+      notificationsApi.getAll(1).then((res) => setUnreadCount(res.unread_count)).catch(() => {});
+    };
+    loadUnreadNotifCount();
+    const interval = setInterval(loadUnreadNotifCount, MSG_POLL_MS);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadConversations = () => {
     socialApi.getConversations()
       .then(setConversations)
-      .catch(() => {})
-      .finally(() => setMsgLoading(false));
+      .catch(() => {});
   };
   useEffect(() => {
     loadConversations();
@@ -173,18 +170,6 @@ export default function DashboardPage() {
   }, []);
 
   const unreadMsgCount = conversations.reduce((acc, c) => acc + c.unread_count, 0);
-
-  const handleMarkRead = async (id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
-    setUnreadCount((c) => Math.max(0, c - 1));
-    try { await notificationsApi.markRead(id); } catch { loadNotifications(); }
-  };
-
-  const handleMarkAllRead = async () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    setUnreadCount(0);
-    try { await notificationsApi.markAllRead(); } catch { loadNotifications(); }
-  };
 
   const handleSwitchLang = async (code: string) => {
     if (switchingLang) return;
@@ -293,8 +278,28 @@ export default function DashboardPage() {
             {scheme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </button>
 
+          {/* Bildirimler simgesi + rozet — önceden dashboard'da büyük bir
+              kart olarak gömülüydü, kullanıcı isteğiyle üst bardaki ikon
+              satırına taşındı; tıklayınca ayrı /notifications sayfasına
+              gider (bkz. app/(app)/notifications/page.tsx). */}
+          <Link
+            href="/notifications"
+            aria-label={t('notificationsTitle')}
+            title={t('notificationsTitle')}
+            className="relative w-9 h-9 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 flex items-center justify-center text-gray-500 dark:text-slate-400 hover:text-blue-600 hover:dark:text-blue-400 hover:border-blue-200 transition-colors"
+          >
+            {unreadCount > 0 ? <BellRing className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </Link>
+
           {/* Madde 6, Faz 2 — mesajlaşma rozeti + simgesi (çalışma dili
-              seçicisinin hemen yanında, kullanıcı isteğiyle burada). */}
+              seçicisinin hemen yanında, kullanıcı isteğiyle burada); önceden
+              dashboard'da ayrıca bir gelen kutusu önizleme kartı da vardı,
+              o da aynı gerekçeyle kaldırıldı, /messages sayfasına gidiliyor. */}
           <Link
             href="/messages"
             aria-label={msgT.iconLabel}
@@ -310,121 +315,6 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
-
-      {/* Bildirimler / hatırlatmalar (Madde 3a) */}
-      {!notifLoading && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#FAEEDA] flex items-center justify-center">
-                {unreadCount > 0 ? (
-                  <BellRing className="w-3.5 h-3.5 text-[#854F0B]" />
-                ) : (
-                  <Bell className="w-3.5 h-3.5 text-[#854F0B]" />
-                )}
-              </div>
-              <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{t('notificationsTitle')}</p>
-              {unreadCount > 0 && (
-                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-[#FAEEDA] text-[#854F0B]">
-                  {t('unreadCountTpl').replace('{n}', String(unreadCount))}
-                </span>
-              )}
-            </div>
-            {unreadCount > 0 && (
-              <button
-                onClick={handleMarkAllRead}
-                className="flex items-center gap-1 text-xs text-gray-400 dark:text-slate-500 hover:text-[#185FA5] transition-colors"
-              >
-                <CheckCheck className="w-3.5 h-3.5" />
-                {t('markAllReadBtn')}
-              </button>
-            )}
-          </div>
-
-          {notifications.length === 0 ? (
-            <div className="text-center py-3">
-              <p className="text-xs text-gray-400 dark:text-slate-500">{t('noNotifications')}</p>
-              <p className="text-[11px] text-gray-300 dark:text-slate-600 mt-0.5">{t('noNotificationsSub')}</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {notifications.map((n) => (
-                <button
-                  key={n.id}
-                  onClick={() => !n.is_read && handleMarkRead(n.id)}
-                  className={`w-full flex items-start gap-2 text-left rounded-xl px-2.5 py-2 transition-colors ${
-                    n.is_read ? 'opacity-60' : 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 hover:dark:bg-slate-800'
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.is_read ? 'bg-gray-200 dark:bg-slate-700' : 'bg-[#378ADD]'}`}
-                  />
-                  <span className="min-w-0">
-                    <p className="text-xs font-medium text-gray-700 dark:text-slate-300 truncate">{n.title}</p>
-                    <p className="text-[11px] text-gray-400 dark:text-slate-500 truncate">{n.message}</p>
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Gelen kutusu önizlemesi — Madde 6, Faz 2 */}
-      {!msgLoading && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#E6F1FB] flex items-center justify-center">
-                <MessageCircle className="w-3.5 h-3.5 text-[#185FA5]" />
-              </div>
-              <p className="text-sm font-medium text-gray-700 dark:text-slate-300">{msgT.title}</p>
-              {unreadMsgCount > 0 && (
-                <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-[#E6F1FB] text-[#185FA5]">
-                  {unreadMsgCount}
-                </span>
-              )}
-            </div>
-            {conversations.length > 0 && (
-              <Link href="/messages" className="text-xs text-gray-400 dark:text-slate-500 hover:text-[#185FA5] transition-colors">
-                {msgT.viewAll}
-              </Link>
-            )}
-          </div>
-
-          {conversations.length === 0 ? (
-            <div className="text-center py-3">
-              <p className="text-xs text-gray-400 dark:text-slate-500">{msgT.empty}</p>
-              <p className="text-[11px] text-gray-300 dark:text-slate-600 mt-0.5">{msgT.emptySub}</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {conversations.slice(0, 4).map((c) => {
-                const name = c.other_user.display_name || c.other_user.username || '?';
-                return (
-                  <Link
-                    key={c.id}
-                    href={c.other_user.username ? `/messages/${c.other_user.username}` : '/messages'}
-                    className={`flex items-center gap-2 text-left rounded-xl px-2.5 py-2 transition-colors ${
-                      c.unread_count > 0 ? 'bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 hover:dark:bg-slate-800' : 'hover:bg-slate-50 hover:dark:bg-slate-800'
-                    }`}
-                  >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${c.unread_count > 0 ? 'bg-[#378ADD]' : 'bg-gray-200 dark:bg-slate-700'}`} />
-                    <span className="min-w-0 flex-1">
-                      <p className="text-xs font-medium text-gray-700 dark:text-slate-300 truncate">{name}</p>
-                      <p className="text-[11px] text-gray-400 dark:text-slate-500 truncate">
-                        {c.last_message_sender_id && c.last_message_preview
-                          ? `${c.last_message_sender_id !== c.other_user.id ? `${msgT.you}: ` : ''}${c.last_message_preview}`
-                          : ''}
-                      </p>
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* Seviye / XP — Madde: XPBar ön yüz bileşeni */}
       <XPBar />
