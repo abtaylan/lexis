@@ -69,7 +69,18 @@ async def lookup_word(word: str, learning_lang: str, native_lang: str) -> dict:
 
     # ── 3) Son çare: sadece kelimenin doğrudan çevirisi ──
     translated_word = await mymemory.translate(word, learning_lang, native_lang)
-    if translated_word:
+    # ÖNEMLİ: MyMemory, gerçek bir çeviri bulamadığında (veya learning_lang/
+    # native_lang beklenmedik şekilde aynıysa, ör. kullanıcı hedef dilde değil
+    # kendi ana dilinde bir kelime girdiğinde) bazen kelimeyi OLDUĞU GİBİ geri
+    # döndürüyor. Bu durumda "Anlam" alanı kelimenin birebir kendisiyle
+    # doluyor, "Örnek cümle" de boş kalıyor — kullanıcıya sözlük çalışıyormuş
+    # ama anlamsız/yanlış sonuç veriyormuş gibi görünüyordu. Çeviri, girilen
+    # kelimeyle (büyük/küçük harf ve boşluk farkı gözetmeksizin) aynıysa bunu
+    # "anlam bulunamadı" say, kullanıcıyı yanıltan bir sahte sonuç gösterme.
+    is_real_translation = (
+        translated_word and translated_word.strip().casefold() != word.strip().casefold()
+    )
+    if is_real_translation:
         return {
             "meanings": [{
                 "word_type": "",

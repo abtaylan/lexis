@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CircleCheckBig, CircleX, RotateCcw, Layers, ChevronRight } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useLocale } from '@/i18n';
 import { wordsApi } from '@/api/words';
 import { languagesApi } from '@/api/languages';
@@ -71,6 +71,20 @@ export default function FlashcardsScreen() {
   useEffect(() => {
     loadCards();
   }, [loadCards]);
+
+  // Kullanıcı geri bildirimi: yeni eklenen bir kelime "tekrar et" kartlarında
+  // hemen çıkmıyordu, ancak uygulamadan tamamen çıkıp tekrar girince
+  // görünüyordu. Sebep: bu sekme, sekmeler arasında unmount olmadığı için
+  // yukarıdaki useEffect sadece İLK açılışta çalışıyor — Kelime Listesi'nden
+  // yeni kelime ekleyip bu sekmeye dönmek kartları yeniden çekmiyordu.
+  // useFocusEffect ile bu sekmeye her dönüldüğünde (odağı kazandığında) kart
+  // kuyruğunu tazeliyoruz.
+  useFocusEffect(
+    useCallback(() => {
+      loadCards();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+  );
 
   const current = queue[index];
   const progress = queue.length > 0 ? (index / queue.length) * 100 : 0;

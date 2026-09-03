@@ -4,13 +4,13 @@
     "slug": "lexis",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo-icon.png",
+    "icon": "./assets/app-icon.png",
     "scheme": "lexis",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "bundleIdentifier": "app.lexis.mobile",
-      "icon": "./assets/logo-icon.png",
+      "icon": "./assets/app-icon.png",
       "supportsTablet": false,
       "infoPlist": {
         "UIBackgroundModes": [

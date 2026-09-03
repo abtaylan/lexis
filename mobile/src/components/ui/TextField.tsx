@@ -28,10 +28,17 @@ export function TextField({ label, error, style, secureToggle, secureTextEntry, 
         <TextInput
           placeholderTextColor={c.textMuted}
           secureTextEntry={isSecure}
+          // iOS'ta multiline TextInput, yükseklik elle verilmezse tek satır
+          // kadar küçük görünür (Android'de içeriğe göre kendiliğinden büyür).
+          // "Örnek cümle" gibi çok satırlı alanların yazma alanı bu yüzden
+          // iOS'ta gözle görülür şekilde küçük kalıyordu — minHeight ve üstten
+          // hizalamayı burada garanti ediyoruz.
+          textAlignVertical={props.multiline ? 'top' : undefined}
           style={[
             styles.input,
             { borderColor: error ? c.danger : c.border, color: c.text, backgroundColor: c.surface },
             secureToggle && styles.inputWithIcon,
+            props.multiline && styles.inputMultiline,
             style,
           ]}
           {...props}
@@ -64,6 +71,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   inputWithIcon: { paddingRight: spacing.md + 26 },
+  inputMultiline: { minHeight: 80, paddingTop: spacing.md - 2 },
   eyeBtn: { position: 'absolute', right: spacing.md - 4, padding: 4 },
   error: { fontSize: 12, marginTop: 4 },
 });

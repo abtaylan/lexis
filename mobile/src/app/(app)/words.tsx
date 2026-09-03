@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Modal, Pressable, StyleSheet, Text, View, Platform } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { FlatList, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
 import { wordsApi, dictionaryApi } from '@/api/words';
@@ -20,17 +20,52 @@ export default function WordsScreen() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
 
+  // Arama kutusuna her tuş vuruşunda anında sorgu tetiklemek, ağ isteğini
+  // ve bununla birlikte FlatList'in "refreshing" durumunu her karakterde
+  // yeniden tetikliyordu. Bu, özellikle iOS'ta RefreshControl'ün klavyeyi
+  // kapatmasına ve yazılan metnin "kaybolmuş" gibi görünmesine yol açıyordu.
+  // Aramayı 350ms'lik bir yazma duraklamasından sonra çalıştırarak hem bu
+  // titremeyi/klavye kapanmasını önlüyor hem de gereksiz istekleri azaltıyoruz.
+  // Kutuya yazılan metin (`search`) her zaman anında ekranda görünür; sorgu
+  // yalnızca `debouncedSearch` değiştiğinde çalışır.
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['words', search],
-    queryFn: () => wordsApi.getAll({ search: search || undefined, per_page: 50 }),
+    queryKey: ['words', debouncedSearch],
+    queryFn: () => wordsApi.getAll({ search: debouncedSearch || undefined, per_page: 50 }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => wordsApi.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['words'] }),
   });
+
+  // FlatList'e her tuş vuruşunda YENİ bir inline renderItem/onDelete
+  // fonksiyonu geçmek, `search` state'i değiştikçe (yani yazarken) listedeki
+  // TÜM satırların gereksiz yere yeniden render edilmesine yol açıyordu.
+  // Kelime listesi büyüdükçe bu, özellikle daha zayıf cihazlarda yazarken
+  // gözle görülür bir gecikmeye/asılı kalmaya sebep oluyor, kullanıcıya
+  // "yazdığım harfler görünmüyor" gibi geliyordu. renderItem'ı useCallback
+  // ile sabitleyip WordRow'u React.memo yaparak arama kutusuna yazmanın
+  // liste satırlarını tekrar tekrar çizmesini engelliyoruz.
+  const renderItem = useCallback(
+    ({ item }: { item: Word }) => (
+      <WordRow
+        word={item}
+        onDelete={() => deleteMutation.mutate(item.id)}
+        statusLabel={
+          item.status === 'learned' ? t('statusLearned') : item.status === 'archived' ? t('statusArchived') : t('statusLearning')
+        }
+      />
+    ),
+    [deleteMutation, t]
+  );
 
   return (
     <ScreenContainer scroll={false} padded={false}>
@@ -39,7 +74,9 @@ export default function WordsScreen() {
           placeholder={t('searchPlaceholder')}
           value={search}
           onChangeText={setSearch}
-          style={{ marginBottom: 0, flex: 1 }}
+          // Kullanıcı geri bildirimi: kutu çok küçüktü, yazarken yazdığı
+          // metni zor görüyordu. Yüksekliği ve yazı boyutunu büyütüyoruz.
+          style={{ marginBottom: 0, flex: 1, paddingVertical: spacing.md + 6, fontSize: 17 }}
         />
       </View>
 
@@ -50,15 +87,7 @@ export default function WordsScreen() {
         refreshing={isRefetching}
         onRefresh={refetch}
         ListEmptyComponent={!isLoading ? <EmptyState title={t('noWordsFound')} subtitle={t('noWordsFoundSub')} /> : null}
-        renderItem={({ item }) => (
-          <WordRow
-            word={item}
-            onDelete={() => deleteMutation.mutate(item.id)}
-            statusLabel={
-              item.status === 'learned' ? t('statusLearned') : item.status === 'archived' ? t('statusArchived') : t('statusLearning')
-            }
-          />
-        )}
+        renderItem={renderItem}
       />
 
       <Pressable onPress={() => setModalOpen(true)} style={[styles.fab, { backgroundColor: c.primary }]}>
@@ -79,7 +108,7 @@ export default function WordsScreen() {
   );
 }
 
-function WordRow({ word, onDelete, statusLabel }: { word: Word; onDelete: () => void; statusLabel: string }) {
+const WordRow = React.memo(function WordRow({ word, onDelete, statusLabel }: { word: Word; onDelete: () => void; statusLabel: string }) {
   const c = useThemeColors();
   const statusColor = word.status === 'learned' ? c.success : word.status === 'archived' ? c.textMuted : c.primary;
   return (
@@ -98,7 +127,7 @@ function WordRow({ word, onDelete, statusLabel }: { word: Word; onDelete: () => 
       </Pressable>
     </Card>
   );
-}
+});
 
 function AddWordModal({
   visible,
@@ -121,6 +150,24 @@ function AddWordModal({
   const [error, setError] = useState('');
   const [looking, setLooking] = useState(false);
   const [lookupMsg, setLookupMsg] = useState('');
+
+  // Modal kapatılıp (İptal/dışarı tıklama ile) tekrar "+" ile açıldığında
+  // eski arama sonucu (Anlam/Örnek cümle/hata) hâlâ state'te duruyordu —
+  // çünkü modal hiç unmount olmuyor, sadece `visible` prop'u değişiyor.
+  // Sonuç: kullanıcı yeni bir kelime yazsa bile "Anlam" alanında BİR ÖNCEKİ
+  // aramadan kalma alakasız bir değer (ör. daha önce başka bir kelime için
+  // gelen bir çeviri) görünmeye devam ediyordu — sözlükten hatalı/garip bir
+  // sonuç geldiği izlenimi veriyordu. Modal her açıldığında tüm alanları
+  // sıfırlıyoruz ki her "Yeni Kelime Ekle" oturumu temiz başlasın.
+  useEffect(() => {
+    if (visible) {
+      setWord('');
+      setMeaning('');
+      setExample('');
+      setError('');
+      setLookupMsg('');
+    }
+  }, [visible]);
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -163,53 +210,78 @@ function AddWordModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      {/* Kullanıcı geri bildirimi: klavye açılınca (özellikle "Kelime" alanına
+          dokununca) modal kartı hem iOS hem Android'de neredeyse tamamen
+          klavyenin arkasında kalıyor, üstteki "Kelime" alanı görünmez oluyordu.
+          Sebep: modalCard'ın sabit bir yüksekliği/limiti yoktu ve içeriği
+          kaydırılamıyordu — klavye açılınca kalan alan içeriğe yetmiyordu.
+          Şimdi: modalCard'a bir üst sınır (maxHeight) koyup alanları bir
+          ScrollView içine aldık, Android için de behavior="height" ekledik
+          (Android'de "padding" davranışı beklendiği gibi çalışmıyordu) —
+          böylece klavye açıkken de tüm alanlara kaydırarak ulaşılabiliyor. */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
+        style={{ flex: 1 }}
+      >
       <View style={styles.modalOverlay}>
         <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
-          <Text style={[styles.modalTitle, { color: c.text }]}>{t('addWordModalTitle')}</Text>
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            <Text style={[styles.modalTitle, { color: c.text }]}>{t('addWordModalTitle')}</Text>
 
-          <TextField
-            label={t('wordRequiredLabel')}
-            value={word}
-            onChangeText={(v) => {
-              setWord(v);
-              if (lookupMsg) setLookupMsg('');
-            }}
-            autoCapitalize="none"
-          />
-          <Button title={t('searchBtn')} variant="secondary" onPress={handleLookup} loading={looking} fullWidth={false} />
+            <TextField
+              label={t('wordRequiredLabel')}
+              value={word}
+              onChangeText={(v) => {
+                setWord(v);
+                if (lookupMsg) setLookupMsg('');
+              }}
+              autoCapitalize="none"
+              // iOS'ta sistem otomatik düzeltmesi/imla önerisi, kullanıcı yazmayı
+              // bitirmeden (boşluk/noktalama ile) kelimeyi sessizce farklı bir
+              // kelimeyle değiştirebiliyordu (Android'de bu davranış yok). Sonuç:
+              // sözlükte aranan kelime kullanıcının yazdığından farklı oluyor,
+              // eşleşme bulunamıyor, kayıt sırasında "anlam" alanı (bulunamayan
+              // çeviri yerine düşen) kelimenin kendisiyle doluyor ve "örnek cümle"
+              // boş kalıyordu. Otomatik düzeltmeyi kapatarak arananla kaydedilenin
+              // her zaman kullanıcının yazdığı kelime olmasını garantiliyoruz.
+              autoCorrect={false}
+              spellCheck={false}
+            />
+            <Button title={t('searchBtn')} variant="secondary" onPress={handleLookup} loading={looking} fullWidth={false} />
 
-          {lookupMsg ? (
-            <View style={[styles.lookupMsgBox, { backgroundColor: c.warningSoft }]}>
-              <Text style={{ color: c.warning, fontSize: 12 }}>{lookupMsg}</Text>
+            {lookupMsg ? (
+              <View style={[styles.lookupMsgBox, { backgroundColor: c.warningSoft }]}>
+                <Text style={{ color: c.warning, fontSize: 12 }}>{lookupMsg}</Text>
+              </View>
+            ) : null}
+
+            <View style={{ height: spacing.sm }} />
+            <TextField label={t('meaningRequiredLabel')} value={meaning} onChangeText={setMeaning} />
+            <TextField label={t('exampleLabel')} value={example} onChangeText={setExample} multiline />
+
+            {error ? <Text style={{ color: c.danger, fontSize: 12, marginBottom: spacing.sm }}>{error}</Text> : null}
+
+            <View style={styles.modalActions}>
+              <View style={{ flex: 1 }}>
+                <Button title={t('cancelBtn')} variant="ghost" onPress={onClose} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Button
+                  title={t('saveBtn')}
+                  onPress={() => {
+                    if (!word.trim() || !meaning.trim()) {
+                      setError(t('meaningRequired'));
+                      return;
+                    }
+                    setError('');
+                    createMutation.mutate();
+                  }}
+                  loading={createMutation.isPending}
+                />
+              </View>
             </View>
-          ) : null}
-
-          <View style={{ height: spacing.sm }} />
-          <TextField label={t('meaningRequiredLabel')} value={meaning} onChangeText={setMeaning} />
-          <TextField label={t('exampleLabel')} value={example} onChangeText={setExample} multiline />
-
-          {error ? <Text style={{ color: c.danger, fontSize: 12, marginBottom: spacing.sm }}>{error}</Text> : null}
-
-          <View style={styles.modalActions}>
-            <View style={{ flex: 1 }}>
-              <Button title={t('cancelBtn')} variant="ghost" onPress={onClose} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                title={t('saveBtn')}
-                onPress={() => {
-                  if (!word.trim() || !meaning.trim()) {
-                    setError(t('meaningRequired'));
-                    return;
-                  }
-                  setError('');
-                  createMutation.mutate();
-                }}
-                loading={createMutation.isPending}
-              />
-            </View>
-          </View>
+          </ScrollView>
         </View>
       </View>
       </KeyboardAvoidingView>
@@ -224,7 +296,7 @@ const styles = StyleSheet.create({
   statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.full },
   fab: { position: 'absolute', right: spacing.lg, bottom: spacing.lg, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', elevation: 4 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, paddingBottom: spacing.xxl },
+  modalCard: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, paddingBottom: spacing.xxl, maxHeight: '90%' },
   modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.md },
   lookupMsgBox: { borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: 8, marginTop: spacing.xs },
   modalActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },

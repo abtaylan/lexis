@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
@@ -19,6 +19,16 @@ const ASKED_KEY = 'lexis_notif_permission_asked';
 
 type ThemeColors = ReturnType<typeof useThemeColors>;
 type ColorKey = keyof ThemeColors;
+
+// Saatin dilimine göre karşılama metni anahtarını seçer (cihaz saatine göre):
+// 05:00–11:59 Günaydın, 12:00–17:59 İyi günler, 18:00–21:59 İyi akşamlar,
+// 22:00–04:59 İyi geceler.
+function greetingKeyForHour(hour: number): 'greeting' | 'greetingAfternoon' | 'greetingEvening' | 'greetingNight' {
+  if (hour >= 5 && hour < 12) return 'greeting';
+  if (hour >= 12 && hour < 18) return 'greetingAfternoon';
+  if (hour >= 18 && hour < 22) return 'greetingEvening';
+  return 'greetingNight';
+}
 
 interface QuickAction {
   key: string;
@@ -39,6 +49,20 @@ export default function DashboardScreen() {
     queryKey: ['stats-summary'],
     queryFn: statsApi.getSummary,
   });
+
+  // Kullanıcı geri bildirimi: kelime ekleyip/tekrar edip Dashboard'a geri
+  // dönünce "Tekrar Bekleyen"/"Bugün Eklenen" sayıları güncellenmiyordu —
+  // sadece uygulamadan tamamen çıkıp tekrar girince düzeliyordu. Sebep: bu
+  // sekme, sekmeler arası geçişte unmount OLMUYOR, bu yüzden useQuery yalnızca
+  // İLK açılışta veri çekiyor; Kelime Ekle/Flashcards gibi başka ekranlardan
+  // dönüşte bu ekran odağı tekrar kazandığında hiçbir şey bu veriyi tazelemiyordu.
+  // useFocusEffect ile sekme her odaklandığında (geri dönüldüğünde) istatistikleri
+  // yeniden çekiyoruz — artık uygulamayı kapatıp açmaya gerek kalmıyor.
+  useFocusEffect(
+    useCallback(() => {
+      refetch();
+    }, [refetch])
+  );
 
   useEffect(() => {
     (async () => {
@@ -63,10 +87,12 @@ export default function DashboardScreen() {
     { key: 'friends', icon: Users, label: fs.title, route: '/(app)/friends', bg: 'accentSoft', fg: 'accent' },
   ];
 
+  const greetingText = t(greetingKeyForHour(new Date().getHours()));
+
   return (
     <ScreenContainer refreshing={isRefetching} onRefresh={refetch} padded={false}>
       <DashboardHeader
-        greeting={`${t('greeting')}${user?.display_name ? `, ${user.display_name}` : ''} 👋`}
+        greeting={`${greetingText}${user?.display_name ? `, ${user.display_name}` : ''} 👋`}
         subtitle={t('dailySummarySubtitle')}
       />
 
