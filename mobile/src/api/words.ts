@@ -56,9 +56,22 @@ export const wordsApi = {
 };
 
 export const dictionaryApi = {
+  /**
+   * Sözlük araması. ÖNEMLİ: bu uç nokta diğerlerinden çok daha yavaş —
+   * backend sırayla Cambridge'i scrape ediyor, sonra free_dictionary ve
+   * MyMemory'ye düşüyor. Railway konteyneri soğuksa veya Cambridge yavaş
+   * cevap veriyorsa toplam süre client.ts'teki genel 20sn timeout'u
+   * aşabiliyor; axios o zaman istisna fırlatıyor ve arayüzde "Sözlükte
+   * bulunamadı" yazıyor — kullanıcıya kelime sözlükte yokmuş gibi
+   * görünüyor, oysa istek hiç tamamlanmamış oluyor. (3 Eylül 2026'da
+   * doğrulandı: canlı API "try" için 10, "bus" için 4 anlamı sorunsuz
+   * dönüyor, yani sorun sunucuda değil, isteğin yarıda kesilmesinde.)
+   * Bu yüzden SADECE bu çağrı için timeout'u belirgin şekilde yükseltiyoruz.
+   */
   lookup: async (word: string, learning_lang?: string, native_lang?: string): Promise<DictionaryResult> => {
     const res = await api.get<DictionaryResult>('/dictionary/lookup', {
       params: { word, learning_lang, native_lang },
+      timeout: 60000,
     });
     return res.data;
   },

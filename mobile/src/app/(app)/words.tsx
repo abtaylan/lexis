@@ -74,9 +74,33 @@ export default function WordsScreen() {
           placeholder={t('searchPlaceholder')}
           value={search}
           onChangeText={setSearch}
+          autoCorrect={false}
+          autoCapitalize="none"
           // Kullanıcı geri bildirimi: kutu çok küçüktü, yazarken yazdığı
           // metni zor görüyordu. Yüksekliği ve yazı boyutunu büyütüyoruz.
-          style={{ marginBottom: 0, flex: 1, paddingVertical: spacing.md + 6, fontSize: 17 }}
+          // ★ ASIL HATA BURADAYDI (3 Eylül 2026'da bulundu):
+          // Bu stilde `flex: 1` vardı. `flex: 1` = flexBasis 0 demek. Bu
+          // TextInput'un kapsayıcısı (TextField.tsx içindeki `inputWrap`
+          // View'ı) sabit bir yüksekliğe sahip DEĞİL — yüksekliğini
+          // içeriğinden alıyor. Yükseklik "auto" olan bir kapsayıcıda
+          // flexBasis 0 olan çocuğun İÇERİK yüksekliği 0'a çöküyor: kutu
+          // ekranda normal boyutta görünüyor (çünkü padding + border yerinde
+          // duruyor) ama yazının çizileceği alan 0 piksel kalıyor. Sonuç:
+          // kullanıcı yazıyor, `search` state'i güncelleniyor, liste doğru
+          // filtreleniyor, iOS klavyesi bile yazılanı tahmin ediyor — ama
+          // harfler EKRANDA GÖRÜNMÜYOR. Kullanıcının gönderdiği ekran
+          // görüntüsündeki mavi seçim bloğu da bunu doğruluyor: metin var,
+          // sadece çizilecek yeri yok. Genişlik zaten TextField'ın dış
+          // View'ındaki `width: '100%'` ile geliyor, bu yüzden `flex: 1`e
+          // hiç gerek yok — kaldırıyoruz. Rengi de garantiye almak için
+          // açıkça veriyoruz.
+          style={{
+            marginBottom: 0,
+            paddingVertical: spacing.md + 6,
+            fontSize: 17,
+            color: c.text,
+            backgroundColor: c.surface,
+          }}
         />
       </View>
 
@@ -201,8 +225,20 @@ function AddWordModal({
         // kullanıcı butonun bozuk olmadığını anlasın ve elle girebilsin.
         setLookupMsg(res.error || t('lookupNoMeaning'));
       }
-    } catch {
-      setLookupMsg(t('lookupNotFound'));
+    } catch (e: any) {
+      // ÖNEMLİ AYRIM: buraya düşmek "kelime sözlükte yok" DEMEK DEĞİL —
+      // istek hiç tamamlanamadı demek (zaman aşımı / ağ hatası / sunucu
+      // hatası). Eskiden burada da "Sözlükte bulunamadı" yazıyordu ve bu
+      // yüzden aylarca "iOS'ta Cambridge kelimeyi bulamıyor" sanıldı; oysa
+      // canlı API aynı kelimeleri sorunsuz dönüyordu (3 Eylül 2026'da
+      // doğrulandı). Artık nedeni ayırt edilebilir şekilde gösteriyoruz ki
+      // bir daha karıştırılmasın.
+      const isTimeout = e?.code === 'ECONNABORTED' || /timeout/i.test(e?.message ?? '');
+      setLookupMsg(
+        isTimeout
+          ? 'Sözlük sunucusu zamanında yanıt vermedi. Tekrar dene veya elle gir.'
+          : 'Bağlantı hatası: sözlüğe ulaşılamadı. Tekrar dene veya elle gir.'
+      );
     } finally {
       setLooking(false);
     }

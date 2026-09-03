@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Constants from 'expo-constants';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, LOCALE_META } from '@/i18n';
 import { authApi } from '@/api/auth';
@@ -107,6 +108,18 @@ export default function ProfileScreen() {
         <Text style={{ color: c.text, fontWeight: '700', fontSize: 14, marginBottom: spacing.sm }}>{t('accountInfoTitle')}</Text>
         <InfoRow label="Email" value={user?.email ?? ''} c={c} />
         <InfoRow label={t('roleLabel')} value={user?.role ?? 'user'} c={c} />
+        {/* Test/destek sürecinde "telefonda gerçekten hangi build kurulu?"
+            sorusunu kesin olarak cevaplamak için: Constants.nativeAppVersion /
+            nativeBuildVersion, EAS'in "remote" versiyonlama ile atadığı
+            gerçek native CFBundleVersion / versionCode değerini, derleme
+            zamanında değil ÇALIŞMA ZAMANINDA cihazdaki binary'den okur — yani
+            app.json'daki statik değeri değil, telefona kurulu olan build'in
+            gerçek sürümünü gösterir. */}
+        <InfoRow
+          label={t('appVersionLabel') || 'Sürüm'}
+          value={`${Constants.nativeAppVersion ?? '?'} (${Constants.nativeBuildVersion ?? '?'})`}
+          c={c}
+        />
       </Card>
 
       <BadgeShowcase />
