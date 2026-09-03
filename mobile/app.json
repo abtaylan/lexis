@@ -23,7 +23,7 @@
       "package": "app.lexis.mobile",
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F1FB",
+        "backgroundColor": "#071D45",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -51,9 +51,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#378ADD",
+          "backgroundColor": "#071D45",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 140
+          "imageWidth": 260
         }
       ],
       [
