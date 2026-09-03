@@ -65,16 +65,32 @@ npx expo install expo-application
 
 ---
 
-## ⚠️ Android build hatası — BİZİM KODLA İLGİSİ YOK
+## ⚠️ Android build hatası — Maven Central 429 (kodla ilgisi yok)
 
-Build `7c7aa3ec` · "Run gradlew" log'u:
+Build `7c7aa3ec` ve `ea5aeb28` — **iki kez üst üste**, ikisi de "Run gradlew" adımında ~2m40s'de düştü. İlkinin log'u:
 ```
 Could not GET 'https://repo.maven.apache.org/maven2/.../expo.modules.webview-57.0.1.pom'.
 Received status code 429 from server: Too Many Requests
 > Repository MavenRepo is disabled due to earlier error below:
 > There are 15 more failures with identical causes.
 ```
-**Maven Central rate limit (429).** Geçici altyapı sorunu. **Çözüm: build'i tekrar çalıştırmak.** Kodda değiştirilecek bir şey yok.
+Düşen paketler: `expo.modules.webview`, `expo.modules.ui`, `expo.modules.application`, `expo.modules.asset`, `org.bouncycastle`.
+
+**Neden Maven'dan indiriliyor?** Expo SDK 53'ten beri Android'de **Precompiled Expo Modules** varsayılan: expo modülleri kaynaktan derlenmek yerine Maven Central'dan hazır AAR olarak çekiliyor (log'daki `[📦]` işareti bunu gösteriyor). Maven Central EAS sunucularını rate-limit'leyince build tamamen düşüyor.
+
+### Uygulanan çözüm
+`mobile/package.json`'a Expo'nun dokümante ettiği ayar eklendi — modüller Maven'dan indirilmek yerine **kaynaktan derleniyor**:
+```json
+"expo": {
+  "autolinking": {
+    "android": {
+      "buildFromSource": [".*"]
+    }
+  }
+}
+```
+**Bedeli:** Android build'i biraz daha uzun sürer. Maven Central rahatlayınca bu blok kaldırılabilir (zorunlu değil).
+Kaynak: https://docs.expo.dev/guides/prebuilt-expo-modules/
 
 ---
 
@@ -164,23 +180,30 @@ Denendi, **çalışmadı / yanlış çıktı**:
 
 ---
 
-## 8. SIRADAKİ ADIM
+## 8. DURUM ÖZETİ (3 Eylül 20:50)
+
+| Konu | Durum |
+|---|---|
+| Arama kutusunda yazı görünmüyor | ✅ Çözüldü, kullanıcı doğruladı |
+| Sözlük "kelimeyi bulamıyor" | ✅ Çözüldü, kullanıcı doğruladı (aktif dili English yapınca `try` hemen geldi) |
+| iOS ana ekran ikonu | ✅ Çözüldü, kullanıcı doğruladı (doğru L logosu kondu) |
+| Android build | ⏳ `buildFromSource` eklendi, yeniden denenecek |
+| Profil → Sürüm satırı | ⏳ `expo-application`'a geçildi, test bekliyor |
+| XP / oyun sömürüsü | ⏸ Kullanıcı kararı bekliyor |
+| App Store gönderimi | ⏸ Sırada |
+
+## 9. SIRADAKİ ADIM
 
 ```bash
-cd "C:\Users\ytt\OneDrive\Masaüstü\PROJELER\lexis\lexis\mobile"
-npx expo install expo-application
-
-cd ..
+cd "C:\Users\ytt\OneDrive\Masaüstü\PROJELER\lexis\lexis"
 git add -A
-git commit -m "Sozluk 404 handling, aktif dil gostergesi, surum satiri expo-application"
+git commit -m "Android: expo modullerini kaynaktan derle (Maven Central 429 workaround)"
 git push
 
 cd mobile
-eas build --profile preview --platform all
+eas build --profile preview --platform android
 ```
 
-Kurulumdan sonra test sırası:
-1. **Profil → Sürüm** → artık `1.0.0 (9)` gibi gerçek numara göstermeli (`? (?)` değil)
-2. **Profil → Dillerim → English → "Aktif Yap"**
-3. Kelime ekle → etikette `EN → TR` yazdığını gör → `try` ara → anlam gelmeli
-4. Ana ekran ikonu
+Sonra kontrol:
+1. **Profil → Sürüm** → `? (?)` değil gerçek numara göstermeli
+2. Android'de ikon ve arama kutusu
