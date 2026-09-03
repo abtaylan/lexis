@@ -226,19 +226,32 @@ function AddWordModal({
         setLookupMsg(res.error || t('lookupNoMeaning'));
       }
     } catch (e: any) {
-      // ÖNEMLİ AYRIM: buraya düşmek "kelime sözlükte yok" DEMEK DEĞİL —
-      // istek hiç tamamlanamadı demek (zaman aşımı / ağ hatası / sunucu
-      // hatası). Eskiden burada da "Sözlükte bulunamadı" yazıyordu ve bu
-      // yüzden aylarca "iOS'ta Cambridge kelimeyi bulamıyor" sanıldı; oysa
-      // canlı API aynı kelimeleri sorunsuz dönüyordu (3 Eylül 2026'da
-      // doğrulandı). Artık nedeni ayırt edilebilir şekilde gösteriyoruz ki
-      // bir daha karıştırılmasın.
+      // ★ ASIL HATA BURADAYDI (3 Eylül 2026'da bulundu):
+      // Backend (backend/app/api/routes/dictionary.py) anlam bulamadığında
+      // 200 + boş liste DEĞİL, **HTTP 404** döndürüyor. axios 404'ü istisna
+      // sayıp doğrudan buraya atlıyor — yani yukarıdaki `res.meanings.length`
+      // kontrolü ve backend'in kendi açıklayıcı mesajı ("Anlam bulunamadı,
+      // elle girebilirsin.") HİÇBİR ZAMAN ekrana gelemiyordu. Kullanıcıya
+      // hep genel bir hata görünüyordu ve bu yüzden "iOS'ta Cambridge
+      // kelimeyi bulamıyor" sanıldı. Oysa canlı API testi gösterdi ki:
+      //   learning_lang=en → "try" 10 anlam, "bus" 4 anlam (source: cambridge)
+      //   learning_lang=de → 404
+      // Yani sorun sözlükte değil, o an AKTİF ÖĞRENME DİLİNDE: cihazda
+      // Almanca aktifken İngilizce kelime aranınca doğal olarak sonuç yok.
+      // Artık 404'ü "bulunamadı" olarak, gerçek ağ/zaman aşımı hatalarını
+      // ise ayrı ayrı gösteriyoruz.
+      const status = e?.response?.status;
+      const detail = e?.response?.data?.detail;
       const isTimeout = e?.code === 'ECONNABORTED' || /timeout/i.test(e?.message ?? '');
-      setLookupMsg(
-        isTimeout
-          ? 'Sözlük sunucusu zamanında yanıt vermedi. Tekrar dene veya elle gir.'
-          : 'Bağlantı hatası: sözlüğe ulaşılamadı. Tekrar dene veya elle gir.'
-      );
+      if (status === 404) {
+        setLookupMsg(typeof detail === 'string' && detail ? detail : t('lookupNoMeaning'));
+      } else if (isTimeout) {
+        setLookupMsg('Sözlük sunucusu zamanında yanıt vermedi. Tekrar dene veya elle gir.');
+      } else if (status) {
+        setLookupMsg(`Sözlük servisi hata verdi (${status}). Tekrar dene veya elle gir.`);
+      } else {
+        setLookupMsg('Bağlantı hatası: sözlüğe ulaşılamadı. Tekrar dene veya elle gir.');
+      }
     } finally {
       setLooking(false);
     }
@@ -265,8 +278,15 @@ function AddWordModal({
           <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             <Text style={[styles.modalTitle, { color: c.text }]}>{t('addWordModalTitle')}</Text>
 
+            {/* Etikette aktif dil çiftini gösteriyoruz. Sebep: kullanıcının
+                iOS cihazında aktif öğrenme dili Almanca'yken İngilizce kelime
+                aranıyordu; sonuç doğal olarak boş dönüyor ama ekranda bunun
+                sebebi hiç görünmüyordu ve "sözlük bozuk" sanıldı. Artık hangi
+                dilde arama yapıldığı kutunun hemen üstünde yazıyor. */}
             <TextField
-              label={t('wordRequiredLabel')}
+              label={`${t('wordRequiredLabel')}${
+                learningLang ? `  ·  ${learningLang.toUpperCase()} → ${(nativeLang ?? 'tr').toUpperCase()}` : ''
+              }`}
               value={word}
               onChangeText={(v) => {
                 setWord(v);

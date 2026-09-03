@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale, LOCALE_META } from '@/i18n';
 import { authApi } from '@/api/auth';
@@ -109,15 +110,20 @@ export default function ProfileScreen() {
         <InfoRow label="Email" value={user?.email ?? ''} c={c} />
         <InfoRow label={t('roleLabel')} value={user?.role ?? 'user'} c={c} />
         {/* Test/destek sürecinde "telefonda gerçekten hangi build kurulu?"
-            sorusunu kesin olarak cevaplamak için: Constants.nativeAppVersion /
-            nativeBuildVersion, EAS'in "remote" versiyonlama ile atadığı
-            gerçek native CFBundleVersion / versionCode değerini, derleme
-            zamanında değil ÇALIŞMA ZAMANINDA cihazdaki binary'den okur — yani
-            app.json'daki statik değeri değil, telefona kurulu olan build'in
-            gerçek sürümünü gösterir. */}
+            sorusunu kesin olarak cevaplamak için gösteriliyor.
+            expo-application, EAS'in "remote" versiyonlama ile atadığı gerçek
+            native değerleri (iOS: CFBundleShortVersionString / CFBundleVersion,
+            Android: versionName / versionCode) derleme zamanında değil ÇALIŞMA
+            ZAMANINDA cihazdaki binary'den okur — yani app.json'daki statik
+            değeri değil, telefona kurulu olan build'in gerçek sürümünü verir.
+            NOT: Önce Constants.nativeAppVersion / nativeBuildVersion
+            kullanılmıştı ama bunlar expo-constants'ın bu sürümünde artık
+            kaldırılmış; cihazda "? (?)" görünmesinin sebebi buydu. */}
         <InfoRow
           label={t('appVersionLabel') || 'Sürüm'}
-          value={`${Constants.nativeAppVersion ?? '?'} (${Constants.nativeBuildVersion ?? '?'})`}
+          value={`${Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '?'} (${
+            Application.nativeBuildVersion ?? '?'
+          })`}
           c={c}
         />
       </Card>
