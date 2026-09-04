@@ -26,22 +26,32 @@ export const SOCIAL_LINKS: SocialLink[] = [
 
 // ─────────────────────────────────────────────────────────────────────────
 // İşletme / yasal bilgiler (KVKK, Mesafeli Sözleşmeler Yönetmeliği ve iyzico
-// üye iş yeri başvurusu için zorunlu). 29 Ağustos 2026 oturumunda kullanıcı
-// onayıyla, C:\...\PROJELER\iyzico klasöründeki e-Vergi Levhası'ndan alındı
-// (aynı şahıs işletmesinin hem uzlaş.io hem Lexis'i kapsadığı doğrulandı).
-// NOT: Levhadaki TC Kimlik No kasıtlı olarak BURAYA YAZILMADI — yalnızca
-// işletmenin Vergi Kimlik No'su (iyzico/e-ticaret bildirimlerinde kullanılan
-// alan) kullanıldı. Telefon numarası kullanıcı tarafından ayrıca sağlandı.
+// üye iş yeri başvurusu için zorunlu).
+//
+// 4 Eylül 2026 KARARI: Lexis artık Arif Emre Taylan'ın şahıs işletmesi
+// üzerinden değil, Behçet'in kendi adına başvurduğu GVK mükerrer 20/B
+// "mobil uygulama geliştiriciliği" kazanç istisnası üzerinden yürütülüyor
+// (bkz. Küçükköy Vergi Dairesi Müdürlüğü'ne sunulan dilekçe, işlem no
+// 1dmtmujj741x4u — sonuç bekleniyor). Bu yüzden aşağıdaki bilgiler Arif
+// Emre'den Behçet'in kendi bilgilerine çevrildi:
+//   - legalName/ownerName: Ahmet Behçet Taylan
+//   - address: App Store Connect'teki (Business > Agreements > Legal Entity)
+//     kayıtlı adresle aynı — Google Play Console'daki "Yasal ad ve adres" da
+//     bununla uyumlu, sadece Apple'daki kayıt bina no + ilçe dahil daha tam.
+//   - phone: Google Play Console'daki doğrulanmış iletişim numarasıyla aynı.
+//   - taxNumber: HENÜZ BOŞ — dilekçe onaylanıp Behçet'in kendi vergi/istisna
+//     kaydı netleşmeden geçerli bir numara yok. Dilekçe sonuçlanınca
+//     doldurulmalı (bkz. LEXIS_DEVIR notları).
 // ─────────────────────────────────────────────────────────────────────────
 export const COMPANY_INFO = {
-  // Vergi levhasında "Ticaret Ünvanı" alanı boş — şahıs mükellefinde ad-soyad unvan yerine geçer.
-  legalName: 'Arif Emre Taylan',
-  ownerName: 'Arif Emre Taylan', // İşletme sahibi / vergi mükellefi
-  taxOffice: 'Karamürsel Vergi Dairesi',
-  taxNumber: '8320646446', // Vergi Kimlik No (TC Kimlik No değil)
+  // Şahıs mükellefinde ad-soyad unvan yerine geçer (Ticaret Ünvanı yok).
+  legalName: 'Ahmet Behçet Taylan',
+  ownerName: 'Ahmet Behçet Taylan', // İşletme sahibi / vergi mükellefi
+  taxOffice: 'Küçükköy Vergi Dairesi Müdürlüğü',
+  taxNumber: '', // TBD — GVK mükerrer 20/B istisna dilekçesi onaylanınca doldurulacak
   mersisNo: '', // Şahıs işletmeleri için MERSİS zorunlu değildir, tüzel kişiliğe geçilirse doldurulur.
-  address: '4 Temmuz Mah. 111. Cad. No: 28 İç Kapı No: 7, Karamürsel / Kocaeli',
-  phone: '+90 505 240 03 85',
+  address: 'Mimar Sinan Mahallesi Itır Sokak No 13, Sultanbeyli / İstanbul - 34000',
+  phone: '+90 545 490 18 79',
   kepAddress: '', // Opsiyonel — Kayıtlı Elektronik Posta adresiniz varsa buraya girin.
   email: CONTACT_EMAIL,
 };

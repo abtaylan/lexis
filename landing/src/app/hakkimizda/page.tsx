@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <LegalLayout title="Hakkımızda" updatedAt="29 Ağustos 2026">
+    <LegalLayout title="Hakkımızda" updatedAt="4 Eylül 2026">
       <>
         <h2>Lexis Nedir?</h2>
         <p>
@@ -22,9 +22,8 @@ export default function AboutPage() {
 
         <h2>Kim İşletiyor?</h2>
         <p>
-          Lexis&apos;in ticari/yasal işletmecisi (vergi mükellefi) {COMPANY_INFO.legalName}&apos;dır.
-          Uygulamanın geliştirilmesi ve ürün yönetimi Ahmet Behçet Taylan tarafından
-          yürütülmektedir.
+          Lexis&apos;in geliştirilmesi, ürün yönetimi ve ticari/yasal işletmeciliği (vergi mükellefi)
+          {' '}{COMPANY_INFO.legalName} tarafından yürütülmektedir.
         </p>
 
         <h2>İletişim</h2>
