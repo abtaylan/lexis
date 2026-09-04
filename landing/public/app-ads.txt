@@ -1,0 +1,8 @@
+# app-ads.txt — Google AdMob yetkilendirmesi (4 Eylül 2026).
+# AdMob konsolu bu dosyayı lexis-blush.vercel.app (bu landing projesinin
+# varsayılan Vercel adresi, Google Play'deki "Lexis" uygulamasının web sitesi
+# alanında kayıtlı) kök dizininde taradı ve bulamadı — bu dosya o eksikliği
+# gideriyor. Snippet AdMob konsolundan alındı (Uygulamalar > app-ads.txt >
+# "app-ads.txt dosyasını ayarlama"); pub- kimliği hem Android hem iOS Lexis
+# uygulamasıyla aynı (ca-app-pub-7117270113356521), tek satır ikisini de kapsıyor.
+google.com, pub-7117270113356521, DIRECT, f08c47fec0942fa0
