@@ -180,6 +180,13 @@ export default function GameScreen() {
   };
 
   // ── eşleştirme (matching) — kelime/anlam çifti tıklanınca kontrol ──
+  // XP KURALI (4 Eylül 2026 — "İlk Doğru Deneme"): önceden yanlış eşleştirme
+  // sunucuya HİÇ bildirilmiyordu, bu da sınırsız/bedelsiz deneme-yanılmayla
+  // XP kasılmasına yol açıyordu (bkz. LEXIS_XP_YENI_KURALLAR.md). Artık her
+  // yanlış eşleştirmede İKİ tarafın (kelime tarafı + anlam tarafı) da
+  // is_correct:false ile /attempt'e bildirilmesi gerekiyor — böylece bu iki
+  // kelimeden biri sonradan doğru eşleştirilse bile sunucu bunun "ilk deneme"
+  // olmadığını bilip XP vermez. Skor (tur ilerlemesi) etkilenmez, sadece XP.
   const attemptMatch = async (wordUid: string, meaningUid: string, sid: string, pool: PoolSource) => {
     if (wordUid === meaningUid) {
       const newMatched = [...matchedUids, wordUid];
@@ -206,6 +213,20 @@ export default function GameScreen() {
       }
     } else {
       setWrongPairFlash({ w: wordUid, m: meaningUid });
+      const wordItem = matchingItems.find((it) => it.uid === wordUid);
+      const meaningItem = matchingItems.find((it) => it.uid === meaningUid);
+      for (const item of [wordItem, meaningItem]) {
+        if (!item) continue;
+        try {
+          await gamesApi.submitAttempt(sid, {
+            word_id: item.word_id,
+            general_word_id: item.general_word_id,
+            is_correct: false,
+          });
+        } catch {
+          /* sessiz — bu bildirim başarısız olsa bile oyun akışını bozmasın */
+        }
+      }
       setTimeout(() => {
         setWrongPairFlash(null);
         setSelectedWordUid(null);

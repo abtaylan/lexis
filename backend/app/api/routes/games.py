@@ -33,10 +33,21 @@ Altı oyun modu desteklenir:
 - "typing", "matching", "listening", "sprint" (Faz 3) -> dördü de next-word/attempt
   akışını kullanır (word_to_meaning yönünde); ek uç nokta/şema gerekmez.
   Doğruluk kontrolü (is_correct) istemci tarafında hesaplanıp /attempt'e
-  gönderilir (multiple_choice'taki gibi). "listening" kelimeyi istemci
-  üzerinde (expo-speech) seslendirir; "sprint" ise "typing" ile aynı akışı
-  süre sınırlı (60 sn) kullanır. XP değerleri xp_service.XP_AMOUNTS içinde
-  ayrıca tanımlıdır (game_typing, game_matching, game_listening, game_sprint).
+  gönderilir (multiple_choice'taki gibi) — "matching" dahil: 4 Eylül 2026'dan
+  itibaren yanlış eşleştirmeler de /attempt'e gönderiliyor (önceden sadece
+  doğru eşleşme gönderiliyordu, bu bir XP sömürüsüne yol açıyordu — bkz.
+  LEXIS_XP_YENI_KURALLAR.md). "listening" kelimeyi istemci üzerinde
+  (expo-speech) seslendirir; "sprint" ise "typing" ile aynı akışı süre
+  sınırlı (60 sn) kullanır. XP değerleri xp_service.XP_AMOUNTS içinde ayrıca
+  tanımlıdır (game_typing, game_matching, game_listening, game_sprint).
+
+XP KURALI ("İlk Doğru Deneme", 4 Eylül 2026): /attempt endpoint'i, bir kelime
+için XP vermeden önce bu session'da o kelime için DAHA ÖNCE kaydedilmiş bir
+deneme olup olmadığını kontrol eder (bkz. _prior_attempt_count). Varsa —
+yanlış bilinip sonra doğru bulunmuş olsa bile — XP verilmez, sadece skor
+sayılır. İstemcinin gönderdiği attempts_count alanına güvenilmez; gerçek
+sayı sunucudaki game_attempts kayıtlarından türetilir. Detay:
+LEXIS_XP_YENI_KURALLAR.md
 """
 
 import random
@@ -106,6 +117,32 @@ def _attempted_ids(session_id: str, field: str) -> list[str]:
         .execute()
     )
     return [row[field] for row in (result.data or []) if row.get(field)]
+
+
+def _prior_attempt_count(
+    session_id: str, word_id: str | None, general_word_id: str | None
+) -> int:
+    """Bu session'da bu kelime için DAHA ÖNCE kaydedilmiş deneme sayısı.
+
+    XP KURALI (4 Eylül 2026 — "İlk Doğru Deneme" kararı): XP sadece bu sayı
+    0 iken (yani bu, o kelime için sunucunun gördüğü ilk deneme ise) verilir.
+    İstemcinin gönderdiği `attempts_count` alanına KASITLI OLARAK güvenilmiyor
+    (istemci taraflı sayaç manipülasyona açık) — gerçek sayı burada, sunucunun
+    kendi `game_attempts` kayıtlarından sayılıyor. Bkz. LEXIS_XP_YENI_KURALLAR.md.
+    """
+    # NOT: `count="exact"` yerine kasıtlı olarak `.select(...).execute()` +
+    # `len(result.data)` kullanılıyor — bu dosyadaki `_attempted_ids` ile
+    # aynı, halihazırda kanıtlanmış desen (bkz. yukarısı); count parametresi
+    # kurulu supabase-py sürümünde test edilmedi, riske girilmedi.
+    query = supabase_admin.table("game_attempts").select("id").eq(
+        "session_id", session_id
+    )
+    if word_id:
+        query = query.eq("word_id", word_id)
+    else:
+        query = query.eq("general_word_id", general_word_id)
+    result = query.execute()
+    return len(result.data or [])
 
 
 def _build_options(correct_text: str, distractor_texts: list[str]) -> list[GameWordOption]:
@@ -345,7 +382,16 @@ async def submit_attempt(
     leveled_up = False
     new_level = None
 
-    if attempt_in.is_correct:
+    # "İlk Doğru Deneme" kuralı (4 Eylül 2026): bu kelime için sunucunun daha
+    # önce kaydettiği bir deneme varsa (doğru ya da yanlış fark etmez), bu
+    # sefer doğru bilinse bile XP verilmez — sadece skor/ilerleme için sayılır.
+    # Detay ve gerekçe: LEXIS_XP_YENI_KURALLAR.md
+    prior_attempts = _prior_attempt_count(
+        session_id, attempt_in.word_id, attempt_in.general_word_id
+    )
+    is_first_attempt = prior_attempts == 0
+
+    if attempt_in.is_correct and is_first_attempt:
         # multiple_choice modunda yöne göre farklı XP kaynağı kullanılır
         # (definition_to_word en zor kabul edilir, meaning_to_word ondan
         # biraz daha kolay — ikisi de word_to_meaning'den daha fazla XP verir).
@@ -371,7 +417,7 @@ async def submit_attempt(
         "word_id": attempt_in.word_id,
         "general_word_id": attempt_in.general_word_id,
         "is_correct": attempt_in.is_correct,
-        "attempts_count": attempt_in.attempts_count,
+        "attempts_count": prior_attempts + 1,
         "time_taken_ms": attempt_in.time_taken_ms,
         "xp_awarded": xp_awarded,
     }
