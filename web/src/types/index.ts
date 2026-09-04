@@ -41,6 +41,12 @@ export interface SubscriptionStatus {
   premium_until?: string;
   plan_code?: string;
   status?: string;
+  // 'ios' | 'android' | null — null demek en son abonelik web/iyzico kaynaklı
+  // (ya da hiç abonelik yok). 4 Eylül 2026 kararı: premium satışı artık
+  // yalnızca mobilden; web profili bunu "İptal Et" butonu mu yoksa "bu
+  // abonelik mobil uygulamadan yönetiliyor" mesajı mı göstereceğine karar
+  // vermek için kullanıyor.
+  store?: string | null;
 }
 
 // Not: Oyun (game) tipleri artık burada değil, lib/api.ts içinde tanımlı

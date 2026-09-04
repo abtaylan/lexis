@@ -27,6 +27,12 @@ class SubscriptionStatus(BaseModel):
     premium_until: str | None = None
     plan_code: str | None = None
     status: str | None = None
+    # 'ios' | 'android' | None — None demek en son abonelik web/iyzico kaynaklı
+    # (ya da hiç abonelik yok). Web tarafı bunu, "İptal Et" butonunu mu yoksa
+    # "bu abonelik mobil uygulamadan yönetiliyor" mesajını mı göstereceğine
+    # karar vermek için kullanıyor (bkz. 4 Eylül 2026 kararı: premium satışı
+    # artık sadece mobilden).
+    store: str | None = None
 
 
 # ── Mobil Apple/Google IAP (App Store / Play Store native abonelik) ──────

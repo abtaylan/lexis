@@ -25,6 +25,18 @@ router = APIRouter()
 # (iyzico'ya) özgüdür; mobil premium ekranı bunları KULLANMIYOR, bunun
 # yerine /verify-purchase'ı çağırıyor (bkz. dosyanın altı). Store kuralları
 # mobilde native Apple/Google IAP'ı zorunlu kılıyor, iyzico web'de kalıyor.
+#
+# 4 Eylül 2026 KARARI: Premium üyelik satışı artık YALNIZCA mobil
+# uygulamadan (App Store / Google Play IAP) yapılıyor. Web'den satın alma
+# tamamen kapatıldı — sebep: iyzico'nun Subscription API'si (checkout-form)
+# vergi mükellefiyeti/şirket gerektiriyor, oysa mobil IAP + GVK mükerrer
+# 20/B istisnası şahıs olarak (şirketsiz) sürdürülebiliyor. Bu bayrak
+# False olduğu sürece /checkout 403 döner; web'deki premium sayfası da
+# artık fiyat/checkout göstermiyor, kullanıcıyı mobil uygulamaya yönlendiriyor.
+# Aşağıdaki /checkout, /callback, /webhook, /cancel uçları GERİYE DÖNÜK
+# UYUMLULUK için (varsa eski web aboneliklerini yönetmek amacıyla) kodda
+# duruyor; yeni web satın alma akışı devre dışı.
+WEB_PREMIUM_CHECKOUT_ENABLED = False
 
 # Her para birimi kendi fiyatına VE kendi iyzico pricing-plan referansına
 # sahip (iyzico'da bir "pricing plan" tek bir para birimine bağlı olduğu
@@ -89,7 +101,7 @@ async def get_my_subscription(current_user=Depends(get_current_user)):
 
     latest = (
         supabase_admin.table("subscriptions")
-        .select("plan_code, status")
+        .select("plan_code, status, store")
         .eq("user_id", current_user.id)
         .order("created_at", desc=True)
         .limit(1)
@@ -102,11 +114,18 @@ async def get_my_subscription(current_user=Depends(get_current_user)):
         premium_until=data.get("premium_until"),
         plan_code=row.get("plan_code"),
         status=row.get("status"),
+        store=row.get("store"),
     )
 
 
 @router.post("/checkout", response_model=CheckoutResponse)
 async def start_checkout(req: CheckoutRequest, current_user=Depends(get_current_user)):
+    if not WEB_PREMIUM_CHECKOUT_ENABLED:
+        # bkz. 4 Eylül 2026 kararı (dosya başı NOT) — web'den premium satışı kapalı.
+        raise HTTPException(
+            status_code=403,
+            detail="Premium üyelik artık yalnızca mobil uygulama üzerinden satın alınabiliyor.",
+        )
     plan = _plan_by_id(req.plan_id)
 
     # Kullanıcının profil bilgisini al (isim/soyisim iyzico'ya zorunlu)
@@ -284,6 +303,19 @@ async def cancel_subscription(current_user=Depends(get_current_user)):
     row = (active.data or [None])[0]
     if not row:
         raise HTTPException(status_code=404, detail="Aktif abonelik bulunamadı.")
+
+    # Mobil IAP (App Store/Play Store) kaynaklı abonelikte iyzico_subscription_ref
+    # yok — bu aboneliği store'un kendi aboneliği yönetim ekranından iptal etmesi
+    # gerekiyor, iyzico API'sine hiç istek atmıyoruz (bkz. 4 Eylül 2026 kararı).
+    if row.get("store") in ("ios", "android"):
+        store_name = "App Store" if row["store"] == "ios" else "Google Play"
+        return {
+            "message": (
+                f"Bu abonelik mobil uygulama üzerinden ({store_name}) satın alındı. "
+                f"İptal etmek için lütfen cihazınızdaki {store_name} abonelik "
+                "ayarlarını kullanın; buradan iptal edilemez."
+            )
+        }
 
     try:
         await iyzico_client.cancel_subscription(row["iyzico_subscription_ref"])
