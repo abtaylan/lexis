@@ -2,7 +2,7 @@ name: Lexis - daily word email
 
 on:
   schedule:
-    - cron: '0 5 * * *'  # 08:00 Türkiye saati (UTC+3, DST yok)
+    - cron: '0 6 * * *'  # 09:00 Türkiye saati (UTC+3, DST yok)
   workflow_dispatch: {}
 
 jobs:
