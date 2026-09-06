@@ -9,12 +9,21 @@ bildirimlerini okuması/okundu işaretlemesi için var.
 
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
+from app.core.tokens import verify_action_token
 
 router = APIRouter()
+
+# cat -> profiles sütunu eşlemesi (bkz. migration 019). Yeni bir "tek tık
+# kapatma" bildirim türü eklenirse buraya bir satır eklemek yeterli.
+_UNSUBSCRIBE_COLUMNS = {
+    "daily_word": "email_daily_word_enabled",
+    "push_reminder": "push_daily_reminder_enabled",
+}
 
 
 class NotificationResponse(BaseModel):
@@ -67,3 +76,30 @@ async def mark_all_read(current_user=Depends(get_current_user)):
         "user_id", current_user.id
     ).eq("is_read", False).execute()
     return {"message": "ok"}
+
+
+@router.get("/unsubscribe", response_class=HTMLResponse)
+async def unsubscribe(uid: str, token: str, cat: str = "daily_word"):
+    """
+    Girişsiz "tek tık" abonelikten çıkma linki — günün kelimesi e-postasının
+    altındaki linke tıklandığında açılır (bkz. email_service.py::
+    send_daily_word_email). Kullanıcı login olmadan bu bildirim türünü
+    kapatabilsin diye auth gerektirmiyor; bunun yerine SECRET_KEY ile
+    imzalanmış bir token doğrulanıyor (bkz. app/core/tokens.py) — böylece
+    başka birinin user_id'sini tahmin edip onun ayarını değiştirmesi
+    engellenir.
+    """
+    column = _UNSUBSCRIBE_COLUMNS.get(cat)
+    if not column or not verify_action_token(uid, cat, token):
+        return HTMLResponse(
+            "<div style='font-family:Arial;text-align:center;padding:40px;'>"
+            "<h2>Lexis</h2><p>Bu bağlantı geçersiz veya süresi dolmuş.</p></div>",
+            status_code=400,
+        )
+
+    supabase_admin.table("profiles").update({column: False}).eq("id", uid).execute()
+    return HTMLResponse(
+        "<div style='font-family:Arial;text-align:center;padding:40px;'>"
+        "<h2>Lexis</h2><p>Bu bildirim türü kapatıldı. İstersen ileride uygulamadan "
+        "tekrar açabilirsin.</p></div>"
+    )

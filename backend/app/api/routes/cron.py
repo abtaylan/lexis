@@ -84,3 +84,63 @@ async def run_post_daily_content(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# ── Kullanıcı isteği (6 Eylül 2026) — günün kelimesi e-postası + günde 2
+# kez push hatırlatması. Yukarıdaki iki endpoint'le birebir aynı sebep/
+# desen: SMTP/Resend (e-posta) ve Expo Push API (push) gerçek dış ağ
+# erişimi gerektiriyor, bu yüzden Claude tarafında değil, burada, dışarıdan
+# (GitHub Actions) tetikleniyor. Script'ler bkz. backend/
+# send_daily_word_email.py ve backend/send_push_reminder.py.
+@router.post("/send-daily-word-email")
+async def run_send_daily_word_email(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    def _run() -> dict:
+        import send_daily_word_email
+
+        with job_run("send_daily_word_email") as run:
+            result = send_daily_word_email.main()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
+
+
+@router.post("/send-push-reminder-morning")
+async def run_send_push_reminder_morning(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    def _run() -> dict:
+        import send_push_reminder
+
+        with job_run("send_push_reminder_morning") as run:
+            result = send_push_reminder.main("morning")
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
+
+
+@router.post("/send-push-reminder-evening")
+async def run_send_push_reminder_evening(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    def _run() -> dict:
+        import send_push_reminder
+
+        with job_run("send_push_reminder_evening") as run:
+            result = send_push_reminder.main("evening")
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}

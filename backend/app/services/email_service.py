@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 import httpx
 
 from app.core.config import settings
+from app.core.tokens import make_action_token
 from app.services.notification_log import log_notification
 
 
@@ -202,3 +203,98 @@ def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, l
     except Exception as e:
         print(f"REMINDER EMAIL SEND ERROR via SMTP ({to_email}): {e}")
         log_notification("email", "schedule_reminder", to_email, "failed", {"activity": activity, "error": str(e), "via": "smtp"})
+
+
+def send_daily_word_email(to_email: str, user_id: str, content: dict) -> None:
+    """
+    Günün kelimesi e-postası — kullanıcı isteği (6 Eylül 2026): her gün
+    üyelere kayıtlı e-postalarına gönderilen, İngilizce/Türkçe anlam, 2
+    örnek cümle (+ çevirisi) ve YDS/YÖKDİL/TOEFL tarzı dilbilgisi analizi
+    içeren öğretici e-posta (bkz. send_daily_word_email.py / madde 019
+    migration'daki daily_word_content tablosu).
+
+    content: daily_word_content tablosundan gelen bir satır (dict) — word,
+    meaning_en, meaning_tr, example_1_en/tr, example_2_en/tr,
+    grammar_note_tr, level anahtarlarını içerir.
+
+    Diğer e-postalarla aynı OTP_MODE/RESEND/SMTP altyapısını kullanır.
+    Ayrıca girişsiz "tek tık" abonelikten çıkma linki içerir (bkz.
+    app/core/tokens.py + notifications.py::unsubscribe) — profil
+    ayarlarında henüz görsel bir toggle yok, bu link kullanıcının bu
+    e-postaları kapatabileceği tek yol.
+    """
+    if settings.OTP_MODE != "real":
+        print(f"[DAILY-WORD-DEV] {to_email} → '{content['word']}'")
+        log_notification("email", "daily_word", to_email, "skipped", {"word": content["word"], "reason": "OTP_MODE=fixed"})
+        return
+
+    if not settings.RESEND_API_KEY and (not settings.SMTP_USER or not settings.SMTP_PASSWORD):
+        print(f"[DAILY-WORD] Mail sağlayıcısı ayarlanmamış, gönderilemedi: {to_email} → {content['word']}")
+        log_notification("email", "daily_word", to_email, "failed", {"word": content["word"], "reason": "no email provider configured"})
+        return
+
+    subject = f"Lexis — Günün Kelimesi: {content['word']}"
+    unsub_token = make_action_token(user_id, "daily_word")
+    unsub_url = (
+        f"{settings.BACKEND_PUBLIC_URL}/api/v1/notifications/unsubscribe"
+        f"?uid={user_id}&token={unsub_token}&cat=daily_word"
+    )
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
+      <h2 style="color:#0284c7; margin-bottom: 4px;">Lexis</h2>
+      <p style="color:#94a3b8; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 4px;">
+        {content.get('level', 'YDS / YÖKDİL / TOEFL')}
+      </p>
+      <h1 style="font-size: 32px; color:#0f172a; margin: 0 0 4px;">{content['word']}</h1>
+
+      <div style="margin: 16px 0; padding: 14px 16px; background:#f0f9ff; border-radius: 10px;">
+        <p style="margin:0 0 4px; color:#334155; font-size: 14px;"><strong>EN:</strong> {content['meaning_en']}</p>
+        <p style="margin:0; color:#334155; font-size: 14px;"><strong>TR:</strong> {content['meaning_tr']}</p>
+      </div>
+
+      <h3 style="color:#0f172a; font-size: 15px; margin: 20px 0 8px;">Örnek Cümleler</h3>
+      <p style="margin:0 0 2px; color:#0f172a; font-size:14px;">1. {content['example_1_en']}</p>
+      <p style="margin:0 0 12px; color:#64748b; font-size:13px; font-style: italic;">— {content['example_1_tr']}</p>
+      <p style="margin:0 0 2px; color:#0f172a; font-size:14px;">2. {content['example_2_en']}</p>
+      <p style="margin:0 0 4px; color:#64748b; font-size:13px; font-style: italic;">— {content['example_2_tr']}</p>
+
+      <div style="margin: 20px 0; padding: 14px 16px; background:#fef9c3; border-radius: 10px;">
+        <p style="margin:0 0 4px; color:#78350f; font-size: 13px; font-weight:bold;">📘 Dilbilgisi Notu</p>
+        <p style="margin:0; color:#78350f; font-size: 13px; line-height:1.5;">{content['grammar_note_tr']}</p>
+      </div>
+
+      <a href="{settings.FRONTEND_URL}/dashboard" style="display:inline-block; margin-top: 8px; background:#0284c7; color:#fff; text-decoration:none; padding:10px 18px; border-radius:8px; font-size:14px; font-weight:bold;">
+        Lexis'i Aç
+      </a>
+
+      <p style="color:#94a3b8; font-size: 11px; margin-top: 28px;">
+        Bu e-postayı her gün almak istemiyorsan <a href="{unsub_url}" style="color:#94a3b8;">buradan kapatabilirsin</a>.
+      </p>
+    </div>
+    """
+
+    if settings.RESEND_API_KEY:
+        try:
+            _send_via_resend(to_email, subject, html_body)
+            log_notification("email", "daily_word", to_email, "sent", {"word": content["word"], "via": "resend"})
+        except Exception as e:
+            print(f"DAILY WORD EMAIL SEND ERROR via Resend ({to_email}): {e}")
+            log_notification("email", "daily_word", to_email, "failed", {"word": content["word"], "error": str(e), "via": "resend"})
+        return
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        with _IPv4SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+        log_notification("email", "daily_word", to_email, "sent", {"word": content["word"], "via": "smtp"})
+    except Exception as e:
+        print(f"DAILY WORD EMAIL SEND ERROR via SMTP ({to_email}): {e}")
+        log_notification("email", "daily_word", to_email, "failed", {"word": content["word"], "error": str(e), "via": "smtp"})
