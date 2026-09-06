@@ -470,6 +470,111 @@ async def game_analytics(admin=Depends(get_current_admin)):
 
 
 # ================================================================
+# 8b) Canlı aktiflik — "şu an aktif kullanıcı" + bölüm bazlı kullanım
+#     (4 Eylül 2026 — admin panel "Genel Bakış" sayfası için eklendi)
+# ================================================================
+@router.get("/live-activity")
+async def live_activity(admin=Depends(get_current_admin)):
+    now = datetime.now(UTC)
+    since_30d = (now - timedelta(days=30)).isoformat()
+
+    # last_seen_at her authenticated istekte core/auth.py::_touch_last_seen
+    # tarafından güncelleniyor — hem web hem mobil aynı backend'i kullandığı
+    # için ikisini de kapsıyor.
+    profiles = (
+        supabase_admin.table("profiles").select("id, last_seen_at").execute()
+    ).data or []
+
+    cutoff_5min = now - timedelta(minutes=5)
+    cutoff_1h = now - timedelta(hours=1)
+    today_str = now.date().isoformat()
+    online_now = online_1h = active_today = 0
+    for p in profiles:
+        ls = p.get("last_seen_at")
+        if not ls:
+            continue
+        ls_dt = datetime.fromisoformat(ls.replace("Z", "+00:00"))
+        if ls_dt >= cutoff_5min:
+            online_now += 1
+        if ls_dt >= cutoff_1h:
+            online_1h += 1
+        if ls_dt.date().isoformat() == today_str:
+            active_today += 1
+
+    # ── Bölüm bazlı kullanım (son 30 gün, benzersiz kullanıcı sayısı) ──
+    # Ayrı bir "event log" tablosu kurmak yerine, her bölümün zaten kendi
+    # tablosundaki created_at/started_at üzerinden benzersiz kullanıcı
+    # sayısını çıkarıyoruz — mevcut şemadan ek altyapı gerekmeden çıkarılabilir.
+    def distinct_users(table: str, col: str, date_col: str, extra_filter=None) -> int:
+        q = supabase_admin.table(table).select(col).gte(date_col, since_30d)
+        if extra_filter:
+            q = extra_filter(q)
+        rows = q.execute().data or []
+        return len({r[col] for r in rows if r.get(col)})
+
+    words_users = distinct_users("words", "user_id", "created_at")
+    game_users = distinct_users("game_sessions", "user_id", "started_at")
+
+    flashcard_rows = (
+        supabase_admin.table("xp_events")
+        .select("user_id")
+        .eq("source_type", "flashcard_review")
+        .gte("created_at", since_30d)
+        .execute()
+    ).data or []
+    flashcard_users = len({r["user_id"] for r in flashcard_rows})
+
+    # Çalışma programı bir "aktivite" değil, standing bir ayar — bu yüzden
+    # 30 günlük pencere yerine "kaç kullanıcının aktif programı var" sayılıyor.
+    schedule_rows = (
+        supabase_admin.table("study_schedule").select("user_id").eq("is_active", True).execute()
+    ).data or []
+    schedule_users = len({r["user_id"] for r in schedule_rows})
+
+    msg_rows = (
+        supabase_admin.table("messages").select("sender_id").gte("created_at", since_30d).execute()
+    ).data or []
+    friend_rows = (
+        supabase_admin.table("friendships")
+        .select("requester_id, addressee_id")
+        .gte("created_at", since_30d)
+        .execute()
+    ).data or []
+    follow_rows = (
+        supabase_admin.table("follows").select("follower_id").gte("created_at", since_30d).execute()
+    ).data or []
+    social_ids = {r["sender_id"] for r in msg_rows if r.get("sender_id")}
+    for r in friend_rows:
+        if r.get("requester_id"):
+            social_ids.add(r["requester_id"])
+        if r.get("addressee_id"):
+            social_ids.add(r["addressee_id"])
+    for r in follow_rows:
+        if r.get("follower_id"):
+            social_ids.add(r["follower_id"])
+    social_users = len(social_ids)
+
+    feature_usage = sorted(
+        [
+            {"feature": "Kelime Ekleme / Sözlük", "users": words_users},
+            {"feature": "Oyun / Quiz", "users": game_users},
+            {"feature": "Flashcard Tekrarı", "users": flashcard_users},
+            {"feature": "Çalışma Programı", "users": schedule_users},
+            {"feature": "Sosyal (Arkadaş/Mesaj)", "users": social_users},
+        ],
+        key=lambda x: -x["users"],
+    )
+
+    return {
+        "online_now": online_now,
+        "online_last_hour": online_1h,
+        "active_today": active_today,
+        "total_users": len(profiles),
+        "feature_usage_30d": feature_usage,
+    }
+
+
+# ================================================================
 # 8) Admin işlem geçmişi (audit log)
 # ================================================================
 @router.get("/audit-log")

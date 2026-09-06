@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Users, BarChart3, ArrowLeft, LogOut, ShieldCheck, Activity, CreditCard,
-  BookOpen, Share2, Bell, Gamepad2, History, Smartphone, Eye,
+  BookOpen, Share2, Bell, Gamepad2, History, Smartphone, Eye, LayoutDashboard,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 
@@ -12,6 +12,9 @@ import { useAuth } from '@/store/auth';
 // — bkz. app/(admin)/layout.tsx'teki not. Admin panel iç kullanım için
 // olduğundan burada bilinçli olarak sabit Türkçe metin kullanılıyor.
 const adminNav = [
+  // "Genel Bakış" — anlık aktiflik + platform özeti + bölüm kullanımı, admin
+  // panelin yeni varsayılan iniş sayfası (4 Eylül 2026, bkz. overview/page.tsx).
+  { href: '/admin/overview', label: 'Genel Bakış', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Kullanıcılar', icon: Users },
   { href: '/admin/stats', label: 'İstatistikler', icon: BarChart3 },
   { href: '/admin/system-health', label: 'Sistem Sağlığı', icon: Activity },

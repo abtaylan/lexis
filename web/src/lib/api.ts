@@ -36,6 +36,7 @@ import type {
   SocialPost,
   NotificationLogEntry,
   GameAnalytics,
+  LiveActivity,
   AuditLogEntry,
   PricingPlan,
   CheckoutResponse,
@@ -487,6 +488,10 @@ export const adminApi = {
   },
   getGameAnalytics: async (): Promise<GameAnalytics> => {
     const res = await api.get<GameAnalytics>('/admin/game-analytics');
+    return res.data;
+  },
+  getLiveActivity: async (): Promise<LiveActivity> => {
+    const res = await api.get<LiveActivity>('/admin/live-activity');
     return res.data;
   },
   getAuditLog: async (params?: { action?: string; target_type?: string; limit?: number }): Promise<{ items: AuditLogEntry[]; total: number }> => {

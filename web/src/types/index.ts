@@ -436,6 +436,21 @@ export interface GameAnalytics {
   accuracy_percent: number;
 }
 
+// "Genel Bakış" sayfası — anlık aktif kullanıcı + bölüm bazlı kullanım
+// (4 Eylül 2026, bkz. backend admin_platform.py::live_activity)
+export interface FeatureUsage {
+  feature: string;
+  users: number;
+}
+
+export interface LiveActivity {
+  online_now: number;
+  online_last_hour: number;
+  active_today: number;
+  total_users: number;
+  feature_usage_30d: FeatureUsage[];
+}
+
 // ============================================================
 // Madde 6, Faz 1 — Arkadaşlık + Takip + Profil görüntüleme
 // ============================================================

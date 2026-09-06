@@ -1,9 +1,34 @@
+import logging
+from datetime import UTC, datetime
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.database import supabase_admin
 
+logger = logging.getLogger(__name__)
 security = HTTPBearer()
+
+
+def _touch_last_seen(user_id: str) -> None:
+    """
+    profiles.last_seen_at'i günceller — admin panelin "şu an aktif kullanıcı"
+    sayacı (bkz. admin_platform.py::live_activity) bu alana bakıyor. Kolon
+    şemada zaten vardı ama hiçbir yerden yazılmıyordu (4 Eylül 2026'da admin
+    panel incelemesinde fark edildi). Web ve mobil AYNI backend'i kullandığı
+    için buraya tek bir yerden eklemek ikisini de kapsıyor.
+
+    Best-effort: burası her authenticated istekte çalıştığından bir hata
+    asla auth akışını bozmamalı — sadece logla ve devam et. Trafik büyürse
+    (şu an ~60 kullanıcı) bu senkron update'i throttle etmek/kuyruğa almak
+    gerekebilir; şimdilik gerekli değil.
+    """
+    try:
+        supabase_admin.table("profiles").update(
+            {"last_seen_at": datetime.now(UTC).isoformat()}
+        ).eq("id", user_id).execute()
+    except Exception:
+        logger.warning("last_seen_at güncellenemedi (user_id=%s)", user_id, exc_info=True)
 
 
 async def get_current_user(
@@ -18,7 +43,10 @@ async def get_current_user(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Geçersiz token"
             )
+        _touch_last_seen(user.user.id)
         return user.user
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
