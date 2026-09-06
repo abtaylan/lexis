@@ -164,6 +164,83 @@ async def deactivate_user(user_id: str, admin=Depends(get_current_admin_full)):
     return {"message": "Kullanıcı deaktif edildi"}
 
 
+# ── Kalıcı sil ────────────────────────────────────────────────
+# Kullanıcı isteği (6 Eylül 2026): deaktif etmenin ötesinde, kalıcı silme
+# özelliği. profiles.id -> auth.users(id) ON DELETE CASCADE olduğu için
+# auth kullanıcısı silinince words/daily_progress/study_sessions/
+# study_schedule/subscriptions/notifications/user_learning_languages/
+# blocks/follows/friendships/conversations/messages/reports/push_tokens
+# gibi tabolar otomatik temizleniyor — ANCAK information_schema'dan
+# çıkarılan bağımlılık haritasında (6 Eylül 2026) game_sessions,
+# user_badges, xp_events, game_attempts ve challenges'ın bir kısmı NO
+# ACTION FK kullanıyor (muhtemelen sıralama/performans kaygısıyla cascade
+# yerine böyle bırakılmış). Bunlar önden elle temizlenmezse
+# auth.admin.delete_user() bir foreign key violation ile başarısız olur.
+def _purge_user_dependent_rows(user_id: str) -> None:
+    word_ids = [
+        w["id"] for w in (
+            supabase_admin.table("words").select("id").eq("user_id", user_id).execute().data or []
+        )
+    ]
+    session_ids = [
+        s["id"] for s in (
+            supabase_admin.table("game_sessions").select("id").eq("user_id", user_id).execute().data or []
+        )
+    ]
+
+    if session_ids:
+        supabase_admin.table("game_attempts").delete().in_("session_id", session_ids).execute()
+        supabase_admin.table("challenges").delete().in_("challenger_session_id", session_ids).execute()
+        supabase_admin.table("challenges").delete().in_("challenged_session_id", session_ids).execute()
+    if word_ids:
+        supabase_admin.table("game_attempts").delete().in_("word_id", word_ids).execute()
+
+    supabase_admin.table("challenges").delete().eq("challenger_id", user_id).execute()
+    supabase_admin.table("challenges").delete().eq("challenged_id", user_id).execute()
+
+    supabase_admin.table("game_sessions").delete().eq("user_id", user_id).execute()
+    supabase_admin.table("user_badges").delete().eq("user_id", user_id).execute()
+    supabase_admin.table("xp_events").delete().eq("user_id", user_id).execute()
+
+
+@router.delete("/users/{user_id}/permanent")
+async def delete_user_permanently(user_id: str, admin=Depends(get_current_admin_full)):
+    """
+    KALICI silme — deactivate_user'ın aksine GERİ ALINAMAZ. Kullanıcının
+    tüm verisi (kelimeler, oyun geçmişi, XP, rozetler, arkadaşlıklar,
+    mesajlar, push token'ları, vb.) ve auth hesabı tamamen silinir.
+
+    Bilinçli güvenlik önlemi: bir admin/salt-okunur-admin hesabı buradan
+    silinemez (yanlışlıkla kendini ya da başka bir admini silmeyi
+    engeller) — önce rolü 'user' yapılmalı.
+    """
+    profile = (
+        supabase_admin.table("profiles").select("id, display_name, role").eq("id", user_id).single().execute()
+    )
+    if not profile.data:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+    if profile.data.get("role") in ADMIN_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail="Bir admin hesabı doğrudan silinemez — önce rolünü 'user' yap.",
+        )
+
+    try:
+        _purge_user_dependent_rows(user_id)
+        supabase_admin.auth.admin.delete_user(user_id)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error("DELETE_USER_PERMANENT failed for user_id=%s: %s", user_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Kullanıcı silinemedi: {e}")
+
+    log_admin_action(
+        admin.id, admin.email, "user.delete_permanent", "user", user_id,
+        {"display_name": profile.data.get("display_name")},
+    )
+    return {"message": "Kullanıcı kalıcı olarak silindi."}
+
+
 # ── Yeniden aktif et ──────────────────────────────────────────
 @router.patch("/users/{user_id}/activate")
 async def activate_user(user_id: str, admin=Depends(get_current_admin_full)):

@@ -1,0 +1,23 @@
+name: Lexis - daily word email
+
+on:
+  schedule:
+    - cron: '0 5 * * *'  # 08:00 Türkiye saati (UTC+3, DST yok)
+  workflow_dispatch: {}
+
+jobs:
+  trigger-daily-word-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/send-daily-word-email
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/send-daily-word-email" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "İstek başarısız (HTTP $http_code)"
+            exit 1
+          fi

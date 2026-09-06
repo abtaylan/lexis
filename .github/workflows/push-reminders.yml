@@ -1,0 +1,40 @@
+name: Lexis - push reminders
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # 09:00 Türkiye saati (UTC+3, DST yok) — sabah
+    - cron: '0 17 * * *'  # 20:00 Türkiye saati (UTC+3, DST yok) — akşam
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: 'morning veya evening (workflow_dispatch ile manuel tetiklerken)'
+        required: true
+        default: 'morning'
+
+jobs:
+  trigger-push-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Slot belirle (hangi cron tetikledi)
+        id: slot
+        run: |
+          if [ "${{ github.event.schedule }}" = "0 6 * * *" ]; then
+            echo "slot=morning" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 17 * * *" ]; then
+            echo "slot=evening" >> "$GITHUB_OUTPUT"
+          else
+            echo "slot=${{ github.event.inputs.slot }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "POST /internal/cron/send-push-reminder-<slot>"
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/send-push-reminder-${{ steps.slot.outputs.slot }}" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "İstek başarısız (HTTP $http_code)"
+            exit 1
+          fi

@@ -436,6 +436,9 @@ export const adminApi = {
   activateUser: async (id: string): Promise<void> => {
     await api.patch(`/admin/users/${id}/activate`);
   },
+  deleteUserPermanently: async (id: string): Promise<void> => {
+    await api.delete(`/admin/users/${id}/permanent`);
+  },
   getStats: async (): Promise<AdminStats> => {
     const res = await api.get<AdminStats>('/admin/stats');
     return res.data;

@@ -93,8 +93,8 @@ async def system_health(admin=Depends(get_current_admin)):
         },
         "cron_jobs": cron_jobs,
         "mobile_app": {
-            "status": "in_development",
-            "note": "React Native (Expo) uygulaması henüz geliştirme aşamasında — canlı sürüm/crash/push metrikleri için bu alan ileride doldurulacak.",
+            "status": "live_ios_pending_android",
+            "note": "iOS App Store'da yayında/aktif. Android Play Console'da kapalı test + prod-erişim inceleme sürecinde. Canlı sürüm/crash/push metrikleri için bu alan ileride store API'leriyle doldurulacak.",
         },
     }
 

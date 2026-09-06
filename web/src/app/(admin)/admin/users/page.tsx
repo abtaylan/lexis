@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   ShieldCheck, ShieldOff, UserX, UserCheck, Loader2, Users, Plus, X,
   ChevronRight, BookOpen, CheckCircle2, RefreshCw, Archive, Target,
-  Calendar, Globe, GraduationCap, KeyRound, Eye,
+  Calendar, Globe, GraduationCap, KeyRound, Eye, Trash2, AlertTriangle,
 } from 'lucide-react';
 import { adminApi, languagesApi } from '@/lib/api';
 import type { AdminUser, AdminUserDetail, Language } from '@/types';
@@ -134,6 +134,67 @@ function CreateUserModal({ languages, onSave, onClose }: {
   );
 }
 
+// ── Kalıcı silme onay modalı ─────────────────────────────────
+// Deaktif etmenin aksine GERİ ALINAMAZ bir işlem olduğu için tek tıkla
+// çalışan native confirm() yerine, adminin kullanıcının e-postasını
+// birebir yazmasını isteyen daha ağır bir onay adımı kullanılıyor
+// (6 Eylül 2026, kullanıcı isteği).
+function DeleteUserModal({ user, onConfirm, onClose }: {
+  user: AdminUser;
+  onConfirm: () => Promise<void>;
+  onClose: () => void;
+}) {
+  const [typed, setTyped] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+  const matches = typed.trim().toLowerCase() === (user.email || '').toLowerCase();
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    setError('');
+    try { await onConfirm(); onClose(); }
+    catch (err: unknown) { setError(getErrorMessage(err, 'Kullanıcı silinemedi.')); }
+    finally { setDeleting(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-red-50 dark:bg-red-500/10 flex items-center justify-center"><AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" /></div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Kullanıcıyı Kalıcı Sil</h2>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:bg-gray-100 hover:dark:bg-slate-800 transition-colors"><X className="w-4 h-4" /></button>
+        </div>
+
+        <div className="px-6 py-5 space-y-3">
+          <p className="text-sm text-gray-600 dark:text-slate-400">
+            <strong>{user.display_name || user.email}</strong> ve tüm verisi (kelimeler, oyun geçmişi, XP,
+            rozetler, arkadaşlıklar, mesajlar) kalıcı olarak silinecek. Bu işlem <strong>geri alınamaz</strong>.
+          </p>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">
+              Onaylamak için e-postayı yaz: <span className="font-mono">{user.email}</span>
+            </label>
+            <input type="text" value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={user.email}
+              className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition" />
+          </div>
+          {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
+        </div>
+
+        <div className="flex gap-3 px-6 pb-6">
+          <button onClick={onClose} className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800 transition-colors">Vazgeç</button>
+          <button onClick={handleDelete} disabled={!matches || deleting}
+            className="flex-1 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
+            {deleting ? 'Siliniyor…' : 'Kalıcı Sil'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Detay paneli ──────────────────────────────────────────────
 function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => void }) {
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
@@ -225,6 +286,7 @@ export default function AdminUsersPage() {
   const [error, setError]     = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [detailId, setDetailId]     = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [search, setSearch]   = useState('');
 
   const load = async () => {
@@ -262,6 +324,11 @@ export default function AdminUsersPage() {
   };
 
   const handleCreate = async (data: NewUserForm) => { await adminApi.createUser(data); load(); };
+
+  const handleDeletePermanent = async (u: AdminUser) => {
+    await adminApi.deleteUserPermanently(u.id);
+    load();
+  };
 
   const filtered = users.filter((u) =>
     !search ||
@@ -347,6 +414,11 @@ export default function AdminUsersPage() {
                           <button onClick={() => handleToggleActive(u)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100 ${u.is_active ? 'text-gray-400 dark:text-slate-500 hover:text-red-500 hover:dark:text-red-400 hover:bg-red-50 hover:dark:bg-red-500/10' : 'text-gray-400 dark:text-slate-500 hover:text-[#3B6D11] hover:bg-[#EAF3DE]'}`} title={u.is_active ? 'Deaktif et' : 'Aktifleştir'}>
                             {u.is_active ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                           </button>
+                          {u.role !== 'admin' && u.role !== 'admin_readonly' && (
+                            <button onClick={() => setDeleteTarget(u)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-red-600 hover:dark:text-red-400 hover:bg-red-50 hover:dark:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100" title="Kalıcı sil">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </>
                       )}
                     </div>
@@ -360,6 +432,13 @@ export default function AdminUsersPage() {
 
       {showCreate && <CreateUserModal languages={languages} onSave={handleCreate} onClose={() => setShowCreate(false)} />}
       {detailId && <UserDetailPanel userId={detailId} onClose={() => setDetailId(null)} />}
+      {deleteTarget && (
+        <DeleteUserModal
+          user={deleteTarget}
+          onConfirm={() => handleDeletePermanent(deleteTarget)}
+          onClose={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }

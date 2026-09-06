@@ -1,16 +1,34 @@
 'use client';
 
-import { Smartphone, Construction, Bell as BellIcon, Bug, GitBranch } from 'lucide-react';
+import { Smartphone, Apple, Bell as BellIcon, Bug, GitBranch, CheckCircle2, Clock } from 'lucide-react';
 
-// Mobil uygulama (React Native / Expo — bkz. Bölüm 5) henüz geliştirilmedi.
-// Bu sayfa, uygulama gelip backend'e analitik/crash/push verisi göndermeye
-// başladığında doldurulacak alanlar için bir iskelet — böylece admin panel
-// navigasyonu ve backend "mobile_app" sistem sağlığı alanı şimdiden yerinde.
+// Mobil uygulama (React Native / Expo) — durum güncellendi (6 Eylül 2026,
+// kullanıcı isteği): iOS App Store'da yayında/aktif, Android Play
+// Console'da kapalı test + inceleme/prod-erişim sürecinde. Bu sayfa henüz
+// canlı store API verisi çekmiyor (App Store Connect / Play Console API
+// entegrasyonu ayrı bir iş) — durum metni elle güncellenen bir özet.
 export default function MobileAppPage() {
+  const storeStatus = [
+    {
+      icon: Apple,
+      platform: 'iOS',
+      badge: 'Aktif',
+      badgeClass: 'bg-[#EAF3DE] text-[#3B6D11]',
+      desc: 'App Store’da yayında ve indirilebilir durumda.',
+    },
+    {
+      icon: Smartphone,
+      platform: 'Android',
+      badge: 'İnceleme sürecinde',
+      badgeClass: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400',
+      desc: 'Play Console’da kapalı test aşamasında — prod erişimi için gereken minimum test kullanıcısı/süre şartları tamamlanıyor.',
+    },
+  ];
+
   const plannedSections = [
     { icon: GitBranch, title: 'Sürüm takibi', desc: 'iOS/Android üzerinde yayındaki sürümler, güncelleme oranı (Expo EAS build kanalları).' },
     { icon: Bug, title: 'Crash raporlama', desc: 'Uygulama çökme/hata raporları — bir crash reporting SDK entegre edildiğinde burada listelenecek.' },
-    { icon: BellIcon, title: 'Push bildirim yönetimi', desc: 'Push token kayıtları, gönderilen kampanyalar ve teslim oranları.' },
+    { icon: BellIcon, title: 'Push bildirim yönetimi', desc: 'Push token kayıtları, günün kelimesi ve sabah/akşam hatırlatma kampanyalarının teslim oranları.' },
   ];
 
   return (
@@ -20,17 +38,21 @@ export default function MobileAppPage() {
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">React Native (Expo) uygulaması — iOS ve Android</p>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-8 flex flex-col items-center text-center gap-3">
-        <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 flex items-center justify-center">
-          <Construction className="w-7 h-7" />
-        </div>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Henüz geliştirme aşamasında</h2>
-        <p className="text-sm text-gray-500 dark:text-slate-400 max-w-md">
-          Mobil uygulama, Büyük İşler listesindeki (Bölüm 5) henüz başlanmamış maddelerden biri.
-          Kod tabanında <code className="font-mono text-xs bg-gray-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">mobile/</code>
-          klasörü altında Expo iskeleti mevcut ancak backend&apos;e canlı analitik/crash/push verisi göndermiyor.
-          Bu sayfa, uygulama üretime geçtiğinde doldurulacak alanların yer tutucusu.
-        </p>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {storeStatus.map(({ icon: Icon, platform, badge, badgeClass, desc }) => (
+          <div key={platform} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 flex items-center justify-center"><Icon className="w-4 h-4" /></div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{platform}</p>
+              </div>
+              <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${badgeClass}`}>
+                {badge === 'Aktif' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{badge}
+              </span>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-slate-400">{desc}</p>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -47,7 +69,7 @@ export default function MobileAppPage() {
       </div>
 
       <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-slate-500">
-        <Smartphone className="w-3.5 h-3.5" />Genel sistem sağlığı özetinde de &quot;mobile_app: in_development&quot; olarak işaretli (bkz. Sistem Sağlığı sayfası).
+        <Smartphone className="w-3.5 h-3.5" />Bu sayfa henüz App Store Connect / Play Console API&apos;lerinden canlı veri çekmiyor — yukarıdaki durum elle güncellenen bir özet.
       </div>
     </div>
   );

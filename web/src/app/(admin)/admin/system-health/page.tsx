@@ -124,7 +124,7 @@ export default function SystemHealthPage() {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 flex items-center justify-center shrink-0"><Smartphone className="w-6 h-6" /></div>
         <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Mobil uygulama — geliştirme aşamasında</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Mobil uygulama — iOS aktif, Android inceleme sürecinde</p>
           <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{data.mobile_app.note}</p>
         </div>
       </div>
