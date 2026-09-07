@@ -112,7 +112,13 @@ export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
         <View style={styles.miniCard}>
           <View style={[styles.miniCardHead, { justifyContent: 'space-between' }]}>
             <Text style={styles.miniCardLabel}>{xp ? `${xpLabels.level.toUpperCase()} ${xp.level}` : '—'}</Text>
-            {xp && <Text style={styles.xpRemaining}>{xp.xp_to_next_level} XP kaldı</Text>}
+            {/* KULLANICI İSTEĞİ (7 Eylül 2026): "seviye geçmek için şu kadar
+                kaldı demesin, mevcut xp değeri artarak devam etsin, zaten
+                dolunca seviye 2 yazar." — geri sayım yerine bu seviye
+                içindeki mevcut XP'yi (xp_into_level) artan bir sayı olarak
+                gösteriyoruz; bar zaten dolunca backend seviyeyi bir üste
+                çıkarıyor ve bu sayı otomatik sıfırlanıp yeniden başlıyor. */}
+            {xp && <Text style={styles.xpRemaining}>{xp.xp_into_level} XP</Text>}
           </View>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${xpPct}%` }]} />

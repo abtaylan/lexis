@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CircleCheckBig, CircleX, RotateCcw, Layers, ChevronRight, BookPlus } from 'lucide-react-native';
 import { router, useFocusEffect } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
 import { wordsApi } from '@/api/words';
 import { languagesApi } from '@/api/languages';
@@ -23,6 +24,7 @@ export default function FlashcardsScreen() {
   const { user } = useAuth();
   const { t } = useLocale();
   const c = useThemeColors();
+  const queryClient = useQueryClient();
 
   const [langNames, setLangNames] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -94,6 +96,10 @@ export default function FlashcardsScreen() {
     setReviewing(true);
     try {
       await wordsApi.review(current.id, success);
+      // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "Uygulama içindeyken
+      // değişimi görmem lazım" — bkz. game.tsx'teki aynı yorum.
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
     } catch {
       /* sessiz */
     } finally {

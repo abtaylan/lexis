@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { router } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { Volume2 } from 'lucide-react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
 import { gamesApi } from '@/api/games';
 import type { Direction, GameFinishResult, GameMode, NextWordResult, PoolSource } from '@/api/types';
@@ -41,6 +42,7 @@ function shuffleArray<T>(arr: T[]): T[] {
 export default function GameScreen() {
   const { gt } = useLocale();
   const c = useThemeColors();
+  const queryClient = useQueryClient();
 
   const [stage, setStage] = useState<Stage>('mode');
   const [gameMode, setGameMode] = useState<GameMode>('multiple_choice');
@@ -203,6 +205,15 @@ export default function GameScreen() {
             is_correct: true,
           });
           setXpEarned((x) => x + res.xp_awarded);
+      // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "Uygulama içindeyken
+      // değişimi görmem lazım" — DashboardHeader'ın kendi ['xp']/
+      // ['stats-summary'] sorgularını burada aktif olarak invalidate
+      // ediyoruz. Tab navigator ekranları unmount etmediği için (yalnızca
+      // odağı değiştiriyor), Dashboard sekmesi arkada halâ "mounted"
+      // durumdaysa bu invalidate onu ANINDA, sekme değiştirmeden tazeler;
+      // değilse zaten DashboardHeader'daki useFocusEffect devreye girer.
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
           if (res.leveled_up) setLevelUp(res.new_level);
         } catch {
           /* sessiz */
@@ -301,6 +312,15 @@ export default function GameScreen() {
       });
       setScore(res.session_score);
       setXpEarned((x) => x + res.xp_awarded);
+      // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "Uygulama içindeyken
+      // değişimi görmem lazım" — DashboardHeader'ın kendi ['xp']/
+      // ['stats-summary'] sorgularını burada aktif olarak invalidate
+      // ediyoruz. Tab navigator ekranları unmount etmediği için (yalnızca
+      // odağı değiştiriyor), Dashboard sekmesi arkada halâ "mounted"
+      // durumdaysa bu invalidate onu ANINDA, sekme değiştirmeden tazeler;
+      // değilse zaten DashboardHeader'daki useFocusEffect devreye girer.
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
       if (res.leveled_up) setLevelUp(res.new_level);
     } catch {
       /* sessiz */
@@ -323,6 +343,15 @@ export default function GameScreen() {
       });
       setScore(res.session_score);
       setXpEarned((x) => x + res.xp_awarded);
+      // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "Uygulama içindeyken
+      // değişimi görmem lazım" — DashboardHeader'ın kendi ['xp']/
+      // ['stats-summary'] sorgularını burada aktif olarak invalidate
+      // ediyoruz. Tab navigator ekranları unmount etmediği için (yalnızca
+      // odağı değiştiriyor), Dashboard sekmesi arkada halâ "mounted"
+      // durumdaysa bu invalidate onu ANINDA, sekme değiştirmeden tazeler;
+      // değilse zaten DashboardHeader'daki useFocusEffect devreye girer.
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
       if (res.leveled_up) setLevelUp(res.new_level);
     } catch {
       /* sessiz */
@@ -353,6 +382,15 @@ export default function GameScreen() {
       setWrongGuesses(res.wrong_guesses);
       setMaxWrongGuesses(res.max_wrong_guesses);
       setXpEarned((x) => x + res.xp_awarded);
+      // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "Uygulama içindeyken
+      // değişimi görmem lazım" — DashboardHeader'ın kendi ['xp']/
+      // ['stats-summary'] sorgularını burada aktif olarak invalidate
+      // ediyoruz. Tab navigator ekranları unmount etmediği için (yalnızca
+      // odağı değiştiriyor), Dashboard sekmesi arkada halâ "mounted"
+      // durumdaysa bu invalidate onu ANINDA, sekme değiştirmeden tazeler;
+      // değilse zaten DashboardHeader'daki useFocusEffect devreye girer.
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
       if (res.leveled_up) setLevelUp(res.new_level);
 
       if (res.is_complete) {

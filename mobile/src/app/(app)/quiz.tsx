@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Brain, CircleCheckBig, CircleX, RotateCcw, Trophy } from 'lucide-react-native';
 import { router } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
 import { wordsApi } from '@/api/words';
 import type { Word } from '@/api/types';
@@ -44,6 +45,7 @@ function buildQuiz(words: Word[]): QuizCard[] {
 export default function QuizScreen() {
   const { t } = useLocale();
   const c = useThemeColors();
+  const queryClient = useQueryClient();
 
   const [cards, setCards] = useState<QuizCard[]>([]);
   const [index, setIndex] = useState(0);
@@ -92,6 +94,10 @@ export default function QuizScreen() {
     setSubmitting(true);
     try {
       await wordsApi.review(current.word.id, isCorrect);
+      // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "Uygulama içindeyken
+      // değişimi görmem lazım" — bkz. game.tsx'teki aynı yorum.
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
     } catch {
       /* sessiz */
     } finally {
