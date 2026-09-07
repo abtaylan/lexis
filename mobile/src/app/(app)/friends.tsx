@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Search, UserPlus, UserMinus, UserCheck, X, Check } from 'lucide-react-native';
 import { socialApi } from '@/api/social';
 import type { FriendshipItem, UserCard } from '@/api/types';
@@ -33,7 +33,19 @@ export default function FriendsScreen() {
   const c = useThemeColors();
   const qc = useQueryClient();
   const fs = FRIENDS_STRINGS[locale] ?? FRIENDS_STRINGS.tr;
-  const [tab, setTab] = useState<Tab>('friends');
+  // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "bildirime tıklayınca o
+  // sayfaya geçiş olmalı" — bir arkadaşlık isteği bildirimine tıklandığında
+  // notifications.tsx buraya ?tab=requests ile yönlendiriyor; geçerli bir
+  // sekme adı değilse (ya da hiç parametre yoksa) varsayılan 'friends'e düşer.
+  const { tab: tabParam } = useLocalSearchParams<{ tab?: string }>();
+  const initialTab: Tab = tabParam === 'requests' || tabParam === 'search' ? tabParam : 'friends';
+  const [tab, setTab] = useState<Tab>(initialTab);
+  // Ekran zaten mount edilmişken (tab navigator ekranları unmount etmiyor)
+  // bildirimden tekrar ?tab=requests ile gelinirse useState'in ilk değeri
+  // devreye girmez — bu yüzden param her değiştiğinde de sekmeyi güncelliyoruz.
+  React.useEffect(() => {
+    if (tabParam === 'requests' || tabParam === 'search') setTab(tabParam);
+  }, [tabParam]);
 
   const friendsQuery = useQuery({ queryKey: ['social-friends'], queryFn: socialApi.getFriends });
   const pendingQuery = useQuery({ queryKey: ['social-pending'], queryFn: socialApi.getPendingRequests });

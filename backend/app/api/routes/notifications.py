@@ -78,6 +78,32 @@ async def mark_all_read(current_user=Depends(get_current_user)):
     return {"message": "ok"}
 
 
+@router.delete("/{notification_id}")
+async def delete_notification(notification_id: str, current_user=Depends(get_current_user)):
+    """
+    KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "bildirim temizle özelliği
+    olmalı" — tek bir bildirimi kalıcı olarak siler. Sahiplik kontrolü
+    için user_id eşleşmesi zorunlu (başka birinin bildirimini silemesin).
+    """
+    result = (
+        supabase_admin.table("notifications")
+        .delete()
+        .eq("id", notification_id)
+        .eq("user_id", current_user.id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Bildirim bulunamadı.")
+    return {"message": "ok"}
+
+
+@router.delete("")
+async def clear_notifications(current_user=Depends(get_current_user)):
+    """Kullanıcının tüm bildirimlerini temizler ("Tümünü temizle")."""
+    supabase_admin.table("notifications").delete().eq("user_id", current_user.id).execute()
+    return {"message": "ok"}
+
+
 @router.get("/unsubscribe", response_class=HTMLResponse)
 async def unsubscribe(uid: str, token: str, cat: str = "daily_word"):
     """

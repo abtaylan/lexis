@@ -13,6 +13,12 @@ export const notificationsApi = {
   markAllRead: async (): Promise<void> => {
     await api.patch('/notifications/read-all');
   },
+  remove: async (id: string): Promise<void> => {
+    await api.delete(`/notifications/${id}`);
+  },
+  clearAll: async (): Promise<void> => {
+    await api.delete('/notifications');
+  },
 };
 
 // ── Push token kaydı (Faz 1 — temel altyapı, bkz. backend/app/api/routes/push_tokens.py) ──
