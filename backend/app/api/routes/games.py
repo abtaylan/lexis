@@ -17,10 +17,15 @@ Altı oyun modu desteklenir:
   Bu modda ayrıca `direction` (yön) seçilebilir:
     - "word_to_meaning" (varsayılan): kelime gösterilir, anlamı bulunur.
     - "meaning_to_word": anlam gösterilir, doğru kelime 4 seçenekten bulunur.
-    - "definition_to_word" (Faz 2, monolingual): İngilizce tanım gösterilir,
-      doğru İngilizce kelime 4 seçenekten bulunur. Sadece pool_source="general"
-      ile çalışır — kullanıcının kendi "words" tablosunda İngilizce tanım
-      tutulmaz, sadece general_word_pool.definition doldurulur (backfill).
+    - "definition_to_word" (Faz 2, monolingual): öğrenilen dildeki tanım
+      gösterilir, doğru kelime (aynı dilde) 4 seçenekten bulunur. Sadece
+      pool_source="general" ile çalışır — kullanıcının kendi "words"
+      tablosunda tanım metni tutulmaz, sadece general_word_pool.definition
+      doldurulur (backfill, 10 dilin tamamı için mevcuttur — bkz. seed script).
+      NOT (7 Eylül 2026 düzeltmesi): bu mod başlangıçta sadece İngilizce için
+      tasarlanmıştı; UI metinleri "İngilizce tanım" diyordu ama backfill artık
+      10 dilin tamamını kapsıyor — metinler dil-nötr hale getirildi (bkz.
+      mobile/web dirDefinitionToWordDesc).
   Üç yönün de XP değeri farklıdır (definition_to_word en zor kabul edilir,
   meaning_to_word ondan biraz daha kolay, çünkü öğrenilen dildeki kelimeyi
   üretmeyi/tanımayı gerektirirler).
@@ -70,6 +75,7 @@ from app.schemas.games import (
     NextWordResponse,
     PoolSource,
 )
+from app.services.spaced_repetition import calculate_next_review
 from app.services.xp_service import award_xp
 
 router = APIRouter()
@@ -180,6 +186,83 @@ def _fetch_word_text(word_id: str | None, general_word_id: str | None) -> str:
     return row.data["word"]
 
 
+# KULLANICI İSTEĞİ (7 Eylül 2026): "hangi oyunu oynuyorsam kesinlikle benim
+# doğru bildiğim kelimeler hazinemde olsun ... yanlış bildiklerim önüme
+# tekrar düşsün". Önceden submit_attempt/guess_letter sadece game_attempts'e
+# yazıp XP veriyordu; `words` tablosuna (kelime hazinesi + istatistikler +
+# spaced repetition) HİÇ dokunmuyordu — bu yüzden oyunlarda doğru bilinen
+# genel havuz kelimeleri hazineye hiç eklenmiyor, "own" havuzundaki
+# kelimeler de oyun sırasında yanlış bilinse bile tekrar rotasyonuna
+# girmiyordu (sadece flashcard/review endpoint'i spaced repetition
+# güncelliyordu). Bu fonksiyon her attempt sonrası çağrılarak iki tabloyu
+# tutarlı hale getirir:
+#   - pool_source="own" (word_id dolu): kelime zaten hazinede — her denemede
+#     calculate_next_review ile durumu güncellenir (yanlışsa "learning"a
+#     döner ve next_review_at yakınlaşır -> flashcard'larda tekrar önüne düşer).
+#   - pool_source="general" (general_word_id dolu): kelime hazinede yoksa
+#     SADECE doğru bilindiğinde otomatik eklenir (kullanıcı isteği "doğru
+#     bildiğim kelimeler" ile sınırlı); zaten hazindeyse (daha önce eklenmişse)
+#     her denemede normal şekilde güncellenir.
+def _sync_word_progress(
+    user_id: str, word_id: str | None, general_word_id: str | None, is_correct: bool
+) -> None:
+    if word_id:
+        existing = (
+            supabase_admin.table("words")
+            .select("*")
+            .eq("id", word_id)
+            .eq("user_id", user_id)
+            .execute()
+        ).data
+        if not existing:
+            return
+        row = existing[0]
+    else:
+        pool_row = (
+            supabase_admin.table("general_word_pool")
+            .select("word, meaning, example, definition, source_lang, target_lang")
+            .eq("id", general_word_id)
+            .single()
+            .execute()
+        ).data
+        if not pool_row:
+            return
+
+        existing = (
+            supabase_admin.table("words")
+            .select("*")
+            .eq("user_id", user_id)
+            .ilike("word", pool_row["word"])
+            .eq("source_lang", pool_row["source_lang"])
+            .execute()
+        ).data
+        if existing:
+            row = existing[0]
+            word_id = row["id"]
+        elif is_correct:
+            insert_row = {
+                "user_id": user_id,
+                "word": pool_row["word"],
+                "meaning": pool_row["meaning"],
+                "meaning_native": pool_row["meaning"],
+                "meaning_target": pool_row.get("definition"),
+                "example": pool_row.get("example"),
+                "source_lang": pool_row["source_lang"],
+                "target_lang": pool_row["target_lang"],
+            }
+            insert_row.update(calculate_next_review(insert_row, True))
+            supabase_admin.table("words").insert(insert_row).execute()
+            return
+        else:
+            # Yanlış bilindi ve kelime henüz hazinede değil -> eklenecek/
+            # geri döndürülecek bir şey yok, sessizce çık.
+            return
+
+    supabase_admin.table("words").update(
+        calculate_next_review(row, is_correct)
+    ).eq("id", word_id).execute()
+
+
 @router.post("/sessions", response_model=GameSessionResponse, status_code=201)
 async def create_session(
     session_in: GameSessionCreate,
@@ -191,8 +274,8 @@ async def create_session(
     ):
         raise HTTPException(
             status_code=422,
-            detail="Bu yön (İngilizce tanım) sadece genel kelime havuzuyla kullanılabilir, "
-            "kendi kelimelerinde İngilizce tanım tutulmuyor.",
+            detail="Bu yön (tanımdan kelime bulma) sadece genel kelime havuzuyla kullanılabilir, "
+            "kendi kelimelerinde tanım metni tutulmuyor.",
         )
 
     row = {
@@ -254,7 +337,7 @@ async def next_word(
         if attempted:
             query = query.not_.in_("id", attempted)
         if direction == Direction.definition_to_word.value:
-            # Sadece İngilizce tanımı backfill edilmiş kelimeler bu yönde
+            # Sadece tanımı backfill edilmiş kelimeler bu yönde
             # sorulabilir (definition NULL olan kelimeler atlanır).
             query = query.not_.is_("definition", "null")
         candidates = (query.limit(CANDIDATE_FETCH_LIMIT).execute().data) or []
@@ -298,7 +381,7 @@ async def next_word(
     options = None
     if mode == "multiple_choice":
         if direction in (Direction.meaning_to_word.value, Direction.definition_to_word.value):
-            # Anlam VEYA İngilizce tanım gösterilir, doğru KELİME 4 seçenekten bulunur.
+            # Anlam VEYA tanım gösterilir, doğru KELİME 4 seçenekten bulunur.
             # (definition_to_word'de pool_source her zaman "general" — create_session'da
             # doğrulanıyor — bu yüzden "own" dalı burada pratikte hiç tetiklenmez.)
             correct_text = chosen["word"]
@@ -425,6 +508,11 @@ async def submit_attempt(
     if not attempt_result.data:
         raise HTTPException(status_code=500, detail="Deneme kaydedilemedi.")
 
+    # Hazine/istatistik/spaced-repetition senkronizasyonu — bkz. yukarısı.
+    _sync_word_progress(
+        current_user.id, attempt_in.word_id, attempt_in.general_word_id, attempt_in.is_correct
+    )
+
     new_score = session["score"] + (1 if attempt_in.is_correct else 0)
     new_xp_earned = session["xp_earned"] + xp_awarded
     supabase_admin.table("game_sessions").update(
@@ -510,6 +598,9 @@ async def guess_letter(
                 "xp_awarded": xp_awarded,
             }
         ).execute()
+
+        # Hazine/istatistik/spaced-repetition senkronizasyonu — bkz. yukarısı.
+        _sync_word_progress(current_user.id, word_id, general_word_id, is_complete)
 
         new_score = session["score"] + (1 if is_complete else 0)
         new_xp_earned = session["xp_earned"] + xp_awarded
