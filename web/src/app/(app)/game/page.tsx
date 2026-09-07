@@ -791,6 +791,18 @@ const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 
 // Eşleştirme (matching) modunda kart sırasını karıştırmak için basit
 // Fisher-Yates — orijinal diziyi bozmadan yeni bir dizi döndürür.
+// KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026 — Arapça öğrenen kullanıcıdan):
+// "buradaki kelimeleri hareketsiz yazdığında kabul etmiyor ama kabul etmesi
+// lazım ya da üstte harekelerle yazın demesi lazım" — Arapça klavyelerde
+// harekeler (tashkeel/i'rab) çoğunlukla hiç yazılmaz, ama doğru cevaplar DB'de
+// harekeli tutuluyor. Karşılaştırma öncesi SADECE Arapça harekeler siliniyor
+// (diğer dillerdeki aksan farkları — örn. Fransızca "café" vs "cafe" — hâlâ
+// yanlış sayılmaya devam ediyor, kapsam bilerek dar tutuldu).
+const ARABIC_DIACRITICS_RE = /[\u064B-\u065F\u0670\u06D6-\u06ED\u08D4-\u08E1\u08E3-\u08FF]/g;
+function normalizeTypedAnswer(s: string): string {
+  return s.trim().toLocaleLowerCase().replace(ARABIC_DIACRITICS_RE, '');
+}
+
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -1091,8 +1103,8 @@ export default function GamePage() {
   // doğru kelimeyi düz metin olarak döndürüyor, bkz. games.py). ──
   const handleTypingSubmit = async () => {
     if (typingResult || !current || !sessionId || !typedAnswer.trim()) return;
-    const correctWord = (current.word ?? '').trim().toLocaleLowerCase();
-    const isCorrect = typedAnswer.trim().toLocaleLowerCase() === correctWord;
+    const correctWord = normalizeTypedAnswer(current.word ?? '');
+    const isCorrect = normalizeTypedAnswer(typedAnswer) === correctWord;
     setTypingResult(isCorrect ? 'correct' : 'wrong');
     try {
       const res = await gamesApi.submitAttempt(sessionId, {
