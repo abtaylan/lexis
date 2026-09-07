@@ -5,6 +5,7 @@ import * as Speech from 'expo-speech';
 import { Volume2 } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
+import { useAuth } from '@/store/auth';
 import { gamesApi } from '@/api/games';
 import type { Direction, GameFinishResult, GameMode, NextWordResult, PoolSource } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -42,6 +43,24 @@ function normalizeTypedAnswer(s: string): string {
   return s.trim().toLocaleLowerCase().replace(ARABIC_DIACRITICS_RE, '');
 }
 
+// KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor ki bu" —
+// Speech.speak() dil parametresi hiç verilmiyordu, cihazın varsayılan
+// (genelde Türkçe/İngilizce) sesi kullanılıyordu; bu ses motoru Arapça metni
+// çoğu cihazda ya hiç okumuyor ya da sessizce hata veriyordu (bkz. aşağıdaki
+// speakWord — artık öğrenilen dile göre BCP-47 kodu geçiliyor). Desteklenen
+// öğrenme dilleri (supabase/seeds/001_languages.sql) ile birebir.
+const SPEECH_LANG_MAP: Record<string, string> = {
+  en: 'en-US',
+  tr: 'tr-TR',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  it: 'it-IT',
+  ja: 'ja-JP',
+  ar: 'ar-SA',
+  ru: 'ru-RU',
+};
+
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -56,6 +75,7 @@ export default function GameScreen() {
   const { gt } = useLocale();
   const c = useThemeColors();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const [stage, setStage] = useState<Stage>('mode');
   const [gameMode, setGameMode] = useState<GameMode>('multiple_choice');
@@ -372,14 +392,30 @@ export default function GameScreen() {
     setTimeout(() => loadNext(sessionId, true, poolSource), isCorrect ? 900 : 1600);
   };
 
-  // ── dinleme (listening) — kelimeyi expo-speech ile sesli okur (bkz.
-  // web/game/page.tsx'teki SpeechSynthesis kullanımıyla aynı mantık). Dil
-  // kodu şimdilik verilmiyor, cihazın varsayılan sesi kullanılıyor. ──
+  // ── dinleme (listening) — kelimeyi expo-speech ile sesli okur. KULLANICI
+  // GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor ki bu" — dil kodu hiç
+  // verilmiyordu, cihazın varsayılan (genelde TR/EN) TTS sesi Arapça metni
+  // okuyamayıp sessizce hata veriyordu. Artık öğrenilen dile göre BCP-47 kodu
+  // geçiliyor (bkz. SPEECH_LANG_MAP); o dil için cihazda ses yoksa (onError)
+  // dil belirtmeden bir kez daha deneniyor — hiç ses çıkmamasındansa
+  // cihazın varsayılan sesiyle okunması tercih ediliyor. ──
   const speakWord = (text: string) => {
     if (!text) return;
+    const langCode = SPEECH_LANG_MAP[user?.learning_lang ?? ''];
     try {
       Speech.stop();
-      Speech.speak(text);
+      Speech.speak(text, {
+        language: langCode,
+        onError: () => {
+          if (langCode) {
+            try {
+              Speech.speak(text);
+            } catch {
+              /* sessiz */
+            }
+          }
+        },
+      });
     } catch {
       /* sessiz — cihaz TTS desteklemiyor olabilir */
     }

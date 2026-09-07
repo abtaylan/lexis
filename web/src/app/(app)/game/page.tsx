@@ -33,6 +33,7 @@ import {
   type GuessLetterResult,
 } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { useAuth } from '@/store/auth';
 
 type Strings = {
   pageTitle: string;
@@ -803,6 +804,23 @@ function normalizeTypedAnswer(s: string): string {
   return s.trim().toLocaleLowerCase().replace(ARABIC_DIACRITICS_RE, '');
 }
 
+// KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor ki bu" —
+// SpeechSynthesisUtterance.lang hiç ayarlanmıyordu, tarayıcı varsayılan
+// sesini (genelde TR/EN) kullanıyordu ve bu Arapça metni okuyamıyordu.
+// Artık öğrenilen dile göre BCP-47 kodu geçiliyor. Desteklenen öğrenme
+// dilleri (supabase/seeds/001_languages.sql) ile birebir.
+const SPEECH_LANG_MAP: Record<string, string> = {
+  en: 'en-US',
+  tr: 'tr-TR',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  it: 'it-IT',
+  ja: 'ja-JP',
+  ar: 'ar-SA',
+  ru: 'ru-RU',
+};
+
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -828,6 +846,7 @@ export default function GamePage() {
   const { locale } = useLocale();
   const t = STRINGS[locale];
   const searchParams = useSearchParams();
+  const { user } = useAuth();
 
   // Madde 6, Faz 3 — Meydan okuma (challenge) entegrasyonu. Yeni bir oyun
   // akışı yok: /game?challengeId=...&mode=... ile açılınca mod seçimi
@@ -1128,19 +1147,33 @@ export default function GamePage() {
   };
 
   // ── dinleme (listening) — kelimeyi tarayıcının SpeechSynthesis API'siyle
-  // sesli okur. Dil kodu şimdilik verilmiyor (tarayıcı varsayılan/otomatik
-  // algılama sesini kullanır); ileride NextWordResult'a öğrenilen dilin
-  // BCP-47 kodu eklenirse utter.lang'a bağlanabilir. ──
-  const speakWord = useCallback((text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis || !text) return;
-    try {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.speak(utter);
-    } catch {
-      /* sessiz — tarayıcı TTS desteklemiyor olabilir */
-    }
-  }, []);
+  // sesli okur. KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor
+  // ki bu" — artık öğrenilen dile göre utter.lang ayarlanıyor; tarayıcıda o
+  // dil için ses yoksa (onerror) lang belirtmeden bir kez daha deneniyor. ──
+  const speakWord = useCallback(
+    (text: string) => {
+      if (typeof window === 'undefined' || !window.speechSynthesis || !text) return;
+      const langCode = SPEECH_LANG_MAP[user?.learning_lang ?? ''];
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        if (langCode) utter.lang = langCode;
+        utter.onerror = () => {
+          if (langCode) {
+            try {
+              window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+            } catch {
+              /* sessiz */
+            }
+          }
+        };
+        window.speechSynthesis.speak(utter);
+      } catch {
+        /* sessiz — tarayıcı TTS desteklemiyor olabilir */
+      }
+    },
+    [user?.learning_lang]
+  );
 
   // ── eşleştirme (matching) — kelime/anlam çifti tıklanınca kontrol ──
   const attemptMatch = useCallback(
