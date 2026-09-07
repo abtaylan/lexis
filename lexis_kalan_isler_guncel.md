@@ -166,3 +166,40 @@ Sadece `ar, de, en, es, fr`'de 5'er kayıt var. `it, ja, ru, tr, pt` boş. SQL i
 **Mobil (`mobile/`):** `src/i18n/locales.ts`, `src/i18n/index.tsx`, `src/app/(auth)/register.tsx` (filtre eksik), `src/app/(app)/profile.tsx` (filtre doğru), `src/components/DashboardHeader.tsx` (zil+mesaj ikonu, web'e bu oturumda taşınan tasarımın orijinali)
 
 **Backend (`backend/`):** `app/api/routes/games.py`, `app/api/routes/words.py`, `app/services/learning_languages.py`, `app/services/badge_service.py`, `backend/seed_general_word_pool.py`
+
+---
+
+## V2 Yol Haritası (Android onayı sonrası — 6-7 Eylül 2026 planlaması)
+
+Öncelik sırası kullanıcı tarafından netleştirildi. Aşağıdaki liste sıradaki büyük sürüm (v2) için üzerinde anlaşılan kapsamdır — henüz kod yazılmadı, planlama/karar aşaması.
+
+### 1. YDS / YÖKDİL / IELTS / TOEFL Sınav Hazırlık Alanı — ÖNCELİK #1
+- Uygulama içinde ayrı bir "Sınav Hazırlık" alanı: YDS, YÖKDİL, IELTS, TOEFL için örnek sorular
+- Her soru için doğru cevap analizi (neden doğru/yanlış açıklaması)
+- Bu 4 sınavın her biri için tam süreli (timed) deneme sınavı modu
+- Kullanıcı, sınav sorularındaki kelimeleri doğrudan kendi kelime hazinesine ekleyebilmeli
+- Not: mevcut `daily_word_content` tablosundaki YDS/YÖKDİL tarzı dilbilgisi notları bu alanla doğal olarak örtüşüyor, içerik altyapısı kısmen hazır.
+
+### 2. Gerçek Zamanlı Düello — ÖNCELİK #2
+- Anlık eşleşmeli, canlı kelime düellosu (Kahoot tarzı) — viral/sosyal büyümeyi destekler
+- **Önemli tespit:** Bu sistem şu an MEVCUT DEĞİL. Backend'de websocket/realtime altyapısı yok (`challenge_service.py` sadece asenkron/turn-based). Sıfırdan inşa edilmesi gerekiyor.
+- Önerilen yaklaşım: Supabase Realtime channels (zaten Supabase kullanıldığı için en düşük maliyetli entegrasyon yolu)
+
+### 3. Referans / Davet Programı — ÖNCELİK #3
+- Arkadaşını davet et → ikinize de X gün premium
+- Mevcut sosyal altyapı (follow/friends sistemi, `social.py`) üzerine kolayca oturur
+
+### 4. Yeni Diller — ÖNCELİK #4
+- Kesinleşen: Korece (ko), Çince (zh) — Duolingo 2025 Türkiye Dil Raporu'na göre Türkiye'de en hızlı büyüyen diller
+- Ek öneriler (veri destekli): Hollandaca (nl) — Türk diasporası 3. sırada (~500K, Almanya ve Fransa'dan sonra); Azerice (az) ve Farsça (fa) — düşük maliyetli/stratejik ek seçenekler
+- Zaten desteklenen 10 dil, Remitly Türkiye talep sıralamasındaki ilk grubu (İngilizce, Almanca, Fransızca, İtalyanca, İspanyolca, Arapça, Rusça) kapsıyor
+
+### 5. Kurumsal / Dershane (B2B) Paketi — ÖNCELİK #5
+- YDS/YÖKDİL öğrenci kitlesi göz önüne alınırsa dershanelere toplu lisans satışı yeni bir B2B gelir kanalı olabilir
+- Hedef segment kategorileri ve 5 adımlı outreach yaklaşımı daha önce hazırlandı (dershaneler, üniversite hazırlık okulları, kurumsal dil eğitimi veren şirketler)
+- Somut, isim bazlı hedef listesi ve pilot outreach e-postası/one-pager talep üzerine hazırlanabilir — henüz yapılmadı
+
+### Şimdilik ertelenenler (v2 kapsamı dışında)
+- Telaffuz / dinleme pratiği
+- Ana ekran widget'ı (mobil)
+
