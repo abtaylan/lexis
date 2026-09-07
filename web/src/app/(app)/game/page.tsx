@@ -48,6 +48,7 @@ type Strings = {
   typingPromptLabel: string;
   typingInputPlaceholder: string;
   typingCheckBtn: string;
+  typingSkipBtn: string;
   modeListeningLabel: string;
   modeListeningDesc: string;
   listeningPromptLabel: string;
@@ -119,6 +120,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'Bu anlama gelen kelimeyi yaz',
     typingInputPlaceholder: 'Kelimeyi yaz…',
     typingCheckBtn: 'Kontrol Et',
+    typingSkipBtn: 'Pas Geç',
     modeListeningLabel: 'Dinleme',
     modeListeningDesc: 'Kelimeyi dinle, duyduğunu yaz',
     listeningPromptLabel: 'Duyduğun kelimeyi yaz',
@@ -187,6 +189,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'Type the word that matches this meaning',
     typingInputPlaceholder: 'Type the word…',
     typingCheckBtn: 'Check',
+    typingSkipBtn: 'Skip',
     modeListeningLabel: 'Listening',
     modeListeningDesc: 'Listen to the word and type what you hear',
     listeningPromptLabel: 'Type the word you hear',
@@ -255,6 +258,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'اكتب الكلمة التي تطابق هذا المعنى',
     typingInputPlaceholder: 'اكتب الكلمة…',
     typingCheckBtn: 'تحقق',
+    typingSkipBtn: 'تخطي',
     modeListeningLabel: 'الاستماع',
     modeListeningDesc: 'استمع إلى الكلمة واكتب ما سمعته',
     listeningPromptLabel: 'اكتب الكلمة التي سمعتها',
@@ -323,6 +327,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'Напиши слово, соответствующее этому значению',
     typingInputPlaceholder: 'Введите слово…',
     typingCheckBtn: 'Проверить',
+    typingSkipBtn: 'Пропустить',
     modeListeningLabel: 'Аудирование',
     modeListeningDesc: 'Прослушай слово и напиши то, что услышал',
     listeningPromptLabel: 'Напиши услышанное слово',
@@ -391,6 +396,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'Schreibe das Wort, das zu dieser Bedeutung passt',
     typingInputPlaceholder: 'Wort eingeben…',
     typingCheckBtn: 'Prüfen',
+    typingSkipBtn: 'Überspringen',
     modeListeningLabel: 'Hören',
     modeListeningDesc: 'Höre das Wort und schreibe, was du hörst',
     listeningPromptLabel: 'Schreibe das gehörte Wort',
@@ -459,6 +465,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'Écris le mot qui correspond à ce sens',
     typingInputPlaceholder: 'Écris le mot…',
     typingCheckBtn: 'Vérifier',
+    typingSkipBtn: 'Passer',
     modeListeningLabel: 'Écoute',
     modeListeningDesc: 'Écoute le mot et écris ce que tu entends',
     listeningPromptLabel: 'Écris le mot que tu entends',
@@ -527,6 +534,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'Escribe la palabra que corresponde a este significado',
     typingInputPlaceholder: 'Escribe la palabra…',
     typingCheckBtn: 'Comprobar',
+    typingSkipBtn: 'Saltar',
     modeListeningLabel: 'Escucha',
     modeListeningDesc: 'Escucha la palabra y escribe lo que oyes',
     listeningPromptLabel: 'Escribe la palabra que escuchas',
@@ -595,6 +603,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'Scrivi la parola che corrisponde a questo significato',
     typingInputPlaceholder: 'Scrivi la parola…',
     typingCheckBtn: 'Verifica',
+    typingSkipBtn: 'Salta',
     modeListeningLabel: 'Ascolto',
     modeListeningDesc: "Ascolta la parola e scrivi quello che senti",
     listeningPromptLabel: 'Scrivi la parola che senti',
@@ -663,6 +672,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'この意味に合う単語を入力してください',
     typingInputPlaceholder: '単語を入力…',
     typingCheckBtn: '確認',
+    typingSkipBtn: 'スキップ',
     modeListeningLabel: 'リスニング',
     modeListeningDesc: '単語を聞いて、聞こえたとおりに入力する',
     listeningPromptLabel: '聞こえた単語を入力してください',
@@ -731,6 +741,7 @@ const STRINGS: Record<Locale, Strings> = {
     typingPromptLabel: 'Escreve a palavra que corresponde a este significado',
     typingInputPlaceholder: 'Escreve a palavra…',
     typingCheckBtn: 'Verificar',
+    typingSkipBtn: 'Pular',
     modeListeningLabel: 'Audição',
     modeListeningDesc: 'Ouve a palavra e escreve o que ouviste',
     listeningPromptLabel: 'Escreve a palavra que ouviste',
@@ -1144,6 +1155,29 @@ export default function GamePage() {
       },
       isCorrect ? 900 : 1600
     );
+  };
+
+  // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "bilmiyorsan direkt bitir demeye
+  // hakkın var pas geçme gibi bir şey olması lazım" — "Kontrol Et" butonu
+  // boş cevapla devre dışı kaldığı için, kelimeyi bilmeyen kullanıcının tek
+  // seçeneği tüm oturumu bitirmekti. Artık "Pas Geç" ile bu soru yanlış
+  // sayılıp oturum bitmeden bir sonraki kelimeye geçilebiliyor.
+  const handleSkip = async () => {
+    if (typingResult || !current || !sessionId) return;
+    setTypingResult('wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        word_id: current.word_id ?? undefined,
+        general_word_id: current.general_word_id ?? undefined,
+        is_correct: false,
+      });
+      setScore(res.session_score);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(() => {
+      loadNext(sessionId, true, poolSource);
+    }, 1600);
   };
 
   // ── dinleme (listening) — kelimeyi tarayıcının SpeechSynthesis API'siyle
@@ -1940,13 +1974,21 @@ export default function GamePage() {
               }`}
             />
             {typingResult === null && (
-              <button
-                onClick={handleTypingSubmit}
-                disabled={!typedAnswer.trim()}
-                className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
-              >
-                {t.typingCheckBtn}
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleTypingSubmit}
+                  disabled={!typedAnswer.trim()}
+                  className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
+                >
+                  {t.typingCheckBtn}
+                </button>
+                <button
+                  onClick={handleSkip}
+                  className="w-full text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 rounded-xl py-2 text-sm font-medium transition-colors"
+                >
+                  {t.typingSkipBtn}
+                </button>
+              </div>
             )}
           </div>
 
@@ -2004,13 +2046,21 @@ export default function GamePage() {
               }`}
             />
             {typingResult === null && (
-              <button
-                onClick={handleTypingSubmit}
-                disabled={!typedAnswer.trim()}
-                className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
-              >
-                {t.typingCheckBtn}
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleTypingSubmit}
+                  disabled={!typedAnswer.trim()}
+                  className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
+                >
+                  {t.typingCheckBtn}
+                </button>
+                <button
+                  onClick={handleSkip}
+                  className="w-full text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 rounded-xl py-2 text-sm font-medium transition-colors"
+                >
+                  {t.typingSkipBtn}
+                </button>
+              </div>
             )}
           </div>
 

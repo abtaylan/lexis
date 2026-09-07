@@ -18,6 +18,7 @@ export type GameStrings = {
   typingPromptLabel: string;
   typingInputPlaceholder: string;
   typingCheckBtn: string;
+  typingSkipBtn: string;
   modeListeningLabel: string;
   modeListeningDesc: string;
   listeningPromptLabel: string;
@@ -82,6 +83,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'Bu anlama gelen kelimeyi yaz',
     typingInputPlaceholder: 'Kelimeyi yaz…',
     typingCheckBtn: 'Kontrol Et',
+    typingSkipBtn: 'Pas Geç',
     modeListeningLabel: 'Dinleme',
     modeListeningDesc: 'Kelimeyi dinle, duyduğunu yaz',
     listeningPromptLabel: 'Duyduğun kelimeyi yaz',
@@ -144,6 +146,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'Type the word that matches this meaning',
     typingInputPlaceholder: 'Type the word…',
     typingCheckBtn: 'Check',
+    typingSkipBtn: 'Skip',
     modeListeningLabel: 'Listening',
     modeListeningDesc: 'Listen to the word and type what you hear',
     listeningPromptLabel: 'Type the word you hear',
@@ -206,6 +209,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'اكتب الكلمة التي تطابق هذا المعنى',
     typingInputPlaceholder: 'اكتب الكلمة…',
     typingCheckBtn: 'تحقق',
+    typingSkipBtn: 'تخطي',
     modeListeningLabel: 'الاستماع',
     modeListeningDesc: 'استمع إلى الكلمة واكتب ما سمعته',
     listeningPromptLabel: 'اكتب الكلمة التي سمعتها',
@@ -268,6 +272,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'Напиши слово, соответствующее этому значению',
     typingInputPlaceholder: 'Введите слово…',
     typingCheckBtn: 'Проверить',
+    typingSkipBtn: 'Пропустить',
     modeListeningLabel: 'Аудирование',
     modeListeningDesc: 'Прослушай слово и напиши то, что услышал',
     listeningPromptLabel: 'Напиши услышанное слово',
@@ -330,6 +335,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'Schreibe das Wort, das zu dieser Bedeutung passt',
     typingInputPlaceholder: 'Wort eingeben…',
     typingCheckBtn: 'Prüfen',
+    typingSkipBtn: 'Überspringen',
     modeListeningLabel: 'Hören',
     modeListeningDesc: 'Höre das Wort und schreibe, was du hörst',
     listeningPromptLabel: 'Schreibe das gehörte Wort',
@@ -392,6 +398,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'Écris le mot qui correspond à ce sens',
     typingInputPlaceholder: 'Écris le mot…',
     typingCheckBtn: 'Vérifier',
+    typingSkipBtn: 'Passer',
     modeListeningLabel: 'Écoute',
     modeListeningDesc: 'Écoute le mot et écris ce que tu entends',
     listeningPromptLabel: 'Écris le mot que tu entends',
@@ -454,6 +461,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'Escribe la palabra que corresponde a este significado',
     typingInputPlaceholder: 'Escribe la palabra…',
     typingCheckBtn: 'Comprobar',
+    typingSkipBtn: 'Saltar',
     modeListeningLabel: 'Escucha',
     modeListeningDesc: 'Escucha la palabra y escribe lo que oyes',
     listeningPromptLabel: 'Escribe la palabra que escuchas',
@@ -516,6 +524,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'Scrivi la parola che corrisponde a questo significato',
     typingInputPlaceholder: 'Scrivi la parola…',
     typingCheckBtn: 'Verifica',
+    typingSkipBtn: 'Salta',
     modeListeningLabel: 'Ascolto',
     modeListeningDesc: 'Ascolta la parola e scrivi quello che senti',
     listeningPromptLabel: 'Scrivi la parola che senti',
@@ -578,6 +587,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'この意味に合う単語を入力してください',
     typingInputPlaceholder: '単語を入力…',
     typingCheckBtn: '確認',
+    typingSkipBtn: 'スキップ',
     modeListeningLabel: 'リスニング',
     modeListeningDesc: '単語を聞いて、聞こえたとおりに入力する',
     listeningPromptLabel: '聞こえた単語を入力してください',
@@ -640,6 +650,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     typingPromptLabel: 'Escreve a palavra que corresponde a este significado',
     typingInputPlaceholder: 'Escreve a palavra…',
     typingCheckBtn: 'Verificar',
+    typingSkipBtn: 'Pular',
     modeListeningLabel: 'Audição',
     modeListeningDesc: 'Ouve a palavra e escreve o que ouves',
     listeningPromptLabel: 'Escreve a palavra que ouves',

@@ -392,6 +392,28 @@ export default function GameScreen() {
     setTimeout(() => loadNext(sessionId, true, poolSource), isCorrect ? 900 : 1600);
   };
 
+  // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "bilmiyorsan direkt bitir demeye
+  // hakkın var pas geçme gibi bir şey olması lazım" — "Kontrol Et" butonu
+  // boş cevapla devre dışı kaldığı için, kelimeyi bilmeyen kullanıcının tek
+  // seçeneği tüm oturumu bitirmekti (aşağıdaki handleFinish). Artık "Pas Geç"
+  // ile bu soru yanlış sayılıp (istatistik/spaced-repetition'a öyle işleniyor,
+  // bkz. submit_attempt) oturum bitmeden bir sonraki kelimeye geçilebiliyor.
+  const handleSkip = async () => {
+    if (typingResult || !current || !sessionId) return;
+    setTypingResult('wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        word_id: current.word_id ?? undefined,
+        general_word_id: current.general_word_id ?? undefined,
+        is_correct: false,
+      });
+      setScore(res.session_score);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(() => loadNext(sessionId, true, poolSource), 1600);
+  };
+
   // ── dinleme (listening) — kelimeyi expo-speech ile sesli okur. KULLANICI
   // GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor ki bu" — dil kodu hiç
   // verilmiyordu, cihazın varsayılan (genelde TR/EN) TTS sesi Arapça metni
@@ -931,8 +953,9 @@ export default function GameScreen() {
           />
 
           {typingResult === null && (
-            <View style={{ marginTop: spacing.sm }}>
+            <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
               <Button title={gt.typingCheckBtn} onPress={handleTypingSubmit} disabled={!typedAnswer.trim()} />
+              <Button title={gt.typingSkipBtn} onPress={handleSkip} variant="ghost" />
             </View>
           )}
 
@@ -1001,8 +1024,9 @@ export default function GameScreen() {
           />
 
           {typingResult === null && (
-            <View style={{ marginTop: spacing.sm }}>
+            <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
               <Button title={gt.typingCheckBtn} onPress={handleTypingSubmit} disabled={!typedAnswer.trim()} />
+              <Button title={gt.typingSkipBtn} onPress={handleSkip} variant="ghost" />
             </View>
           )}
 
