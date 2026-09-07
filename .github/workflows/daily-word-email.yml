@@ -2,7 +2,14 @@ name: Lexis - daily word email
 
 on:
   schedule:
-    - cron: '5 6 * * *'  # 09:00 Türkiye saati (UTC+3, DST yok)
+    # 09:00 Türkiye saati (UTC+3, DST yok) civarı, 10 dakikada bir 6 deneme
+    # (06:00-06:50 UTC). NEDEN BÖYLE: GitHub Actions'ın günde tek bir sabit
+    # dakikadaki (örn. 06:05) cron tick'i bazen SESSİZCE hiç çalıştırmadığı
+    # görüldü (bkz. cron.py'deki already_ran_today notu, 7 Eylül 2026) —
+    # schedule-reminders.yml'nin (*/5 * * * *) kanıtlanmış güvenilir
+    # deseniyle aynı mantık: birden fazla deneme şansı, backend tarafında
+    # idempotency (already_ran_today) ile günde tek gönderim garantisi.
+    - cron: '0,10,20,30,40,50 6 * * *'
   workflow_dispatch: {}
 
 jobs:

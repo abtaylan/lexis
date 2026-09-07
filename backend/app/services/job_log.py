@@ -33,6 +33,44 @@ from typing import Any
 from app.core.database import supabase_admin
 
 
+# ── "Bugün zaten çalıştı mı?" idempotency kontrolü (7 Eylül 2026) ──
+# NEDEN VAR: daily-word-email.yml ve push-reminders.yml GitHub Actions'ta
+# günde sadece 1-2 kez tetiklenen cron'lardı — GitHub'ın özellikle tam
+# saatteki (06:00 UTC gibi) cron tick'lerini bazen SESSİZCE hiç
+# çalıştırmadığı (run bile oluşturmadığı) görüldü: her iki job da
+# cron_job_runs tablosunda hiç kayıt bırakmadan günler geçirdi (bkz. 7
+# Eylül 2026 araştırması). Çözüm: workflow'lar artık hedef saat aralığında
+# birkaç dakikada bir birden fazla kez tetikleniyor (schedule-reminders.yml
+# ile aynı, kanıtlanmış-güvenilir desen — o *_/5 * * * * ile hiç
+# aksamadan çalışıyor), asıl gönderim işini burada bu fonksiyon
+# "bugün zaten başarıyla çalıştı mı" diye kontrol ederek koruyor —
+# tekrar tetiklenen denemeler gerçek işi tekrar yapmadan sessizce
+# atlanıyor, kullanıcılara aynı e-posta/push'un birden fazla kez
+# gitmesi engelleniyor.
+def already_ran_today(job_name: str) -> bool:
+    """
+    job_name için bugün (UTC takvim günü) 'success' ile biten bir çalışma
+    var mı? Tablo sorgusu başarısız olursa (örn. henüz migrate edilmemiş)
+    False döner — job'un asıl işi engellenmez, en kötü ihtimalle eski
+    "tek seferlik" davranışa düşer.
+    """
+    try:
+        today_start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
+        res = (
+            supabase_admin.table("cron_job_runs")
+            .select("id")
+            .eq("job_name", job_name)
+            .eq("status", "success")
+            .gte("started_at", today_start.isoformat())
+            .limit(1)
+            .execute()
+        )
+        return bool(res.data)
+    except Exception as e:
+        print(f"JOB LOG WARNING (already_ran_today, {job_name}): {e}")
+        return False
+
+
 class _JobRun:
     def __init__(self, job_name: str):
         self.job_name = job_name

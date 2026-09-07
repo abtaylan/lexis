@@ -33,7 +33,7 @@ from fastapi import APIRouter, Header, HTTPException
 from starlette.concurrency import run_in_threadpool
 
 from app.core.config import settings
-from app.services.job_log import job_run
+from app.services.job_log import already_ran_today, job_run
 
 router = APIRouter()
 
@@ -92,11 +92,25 @@ async def run_post_daily_content(
 # erişimi gerektiriyor, bu yüzden Claude tarafında değil, burada, dışarıdan
 # (GitHub Actions) tetikleniyor. Script'ler bkz. backend/
 # send_daily_word_email.py ve backend/send_push_reminder.py.
+#
+# GÜVENİLİRLİK GÜNCELLEMESİ (7 Eylül 2026): Bu iki job (+ push'un iki slotu)
+# GitHub Actions'ta günde sadece 1-2 kez tetikleniyordu ve cron_job_runs
+# tablosunda HİÇ kayıt bırakmadan (run bile oluşmadan) günler geçti — GitHub
+# bazı zamanlanmış tick'leri sessizce hiç çalıştırmıyor. Çözüm:
+# .github/workflows/daily-word-email.yml ve push-reminders.yml artık hedef
+# saat aralığında (örn. 06:00-06:50 UTC) 10 dakikada bir birden fazla kez
+# tetikleniyor — schedule-reminders.yml'nin (*/5 * * * *) kanıtlanmış
+# güvenilir deseniyle aynı mantık. Aynı günde birden fazla e-posta/push
+# gitmesini engellemek için burada `already_ran_today` ile bugün zaten
+# başarıyla çalışmışsa asıl iş atlanıyor.
 @router.post("/send-daily-word-email")
 async def run_send_daily_word_email(
     x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
 ):
     _check_secret(x_cron_secret)
+
+    if already_ran_today("send_daily_word_email"):
+        return {"status": "skipped", "reason": "already_ran_today"}
 
     def _run() -> dict:
         import send_daily_word_email
@@ -116,6 +130,9 @@ async def run_send_push_reminder_morning(
 ):
     _check_secret(x_cron_secret)
 
+    if already_ran_today("send_push_reminder_morning"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
     def _run() -> dict:
         import send_push_reminder
 
@@ -133,6 +150,9 @@ async def run_send_push_reminder_evening(
     x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
 ):
     _check_secret(x_cron_secret)
+
+    if already_ran_today("send_push_reminder_evening"):
+        return {"status": "skipped", "reason": "already_ran_today"}
 
     def _run() -> dict:
         import send_push_reminder
