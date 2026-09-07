@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, MessageCircle, Flame } from 'lucide-react-native';
@@ -40,8 +40,24 @@ export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
     queryFn: socialApi.getUnreadMessageCount,
     refetchInterval: 30000,
   });
-  const { data: stats } = useQuery({ queryKey: ['stats-summary'], queryFn: statsApi.getSummary });
-  const { data: xp } = useQuery({ queryKey: ['xp'], queryFn: statsApi.getXp });
+  const { data: stats, refetch: refetchStats } = useQuery({ queryKey: ['stats-summary'], queryFn: statsApi.getSummary });
+  const { data: xp, refetch: refetchXp } = useQuery({ queryKey: ['xp'], queryFn: statsApi.getXp });
+
+  // KULLANICI GERİ BİLDİRİMİ (6 Eylül 2026): "Xp puanlarım artmasına rağmen
+  // ana ekranda seviye ve Xp göstergesi değişmiyor". Sebep: bu sorgu
+  // (['xp']) hiçbir yerde tazelenmiyordu — sadece ilk mount'ta çekiliyordu.
+  // DashboardScreen'deki useFocusEffect yalnızca kendi elindeki
+  // ['stats-summary'] sorgusunu tazeliyor, bu bileşenin ayrı ['xp']
+  // sorgusuna dokunmuyordu. Diğer sekmelerdeki aynı desende olduğu gibi
+  // (bkz. dashboard.tsx, flashcards.tsx) bu sekme odağı her kazandığında
+  // (oyun/flashcard/quiz'den dönüşte dahil) XP'yi ve özet istatistikleri
+  // burada da yeniden çekiyoruz.
+  useFocusEffect(
+    useCallback(() => {
+      refetchXp();
+      refetchStats();
+    }, [refetchXp, refetchStats])
+  );
 
   const unreadNotifications = notifData?.unread_count ?? 0;
   const hasUnreadMessages = (unreadMessages ?? 0) > 0;
