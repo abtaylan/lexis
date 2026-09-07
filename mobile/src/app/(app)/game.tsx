@@ -17,6 +17,13 @@ import { Button } from '@/components/ui/Button';
 type Stage = 'mode' | 'direction' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
 
 const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+// KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026 — eşin ekran görüntüsü): "burada
+// arapça harfler olması gerekiyor klavye seçeneği eksik" — kelime tahmin
+// (wordle) modundaki ekran-üstü klavye öğrenilen dil ne olursa olsun sabit
+// Latin QWERTY gösteriyordu; Arapça öğrenirken bu klavyeyle Arapça harf
+// tahmin etmek mümkün değildi. Öğrenilen dil Arapça ise bu satırlar
+// kullanılır (bkz. aşağıdaki keyboardRows).
+const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'فقكلمنهوي'];
 
 // ── Eşleştirme (matching) — web'deki app/(app)/game/page.tsx'teki aynı mantık
 // mobile'a taşındı: tek seferde MATCHING_BATCH_SIZE kadar kelime çekilip iki
@@ -100,6 +107,16 @@ export default function GameScreen() {
   // karşılaştırma. ──
   const [typedAnswer, setTypedAnswer] = useState('');
   const [typingResult, setTypingResult] = useState<'correct' | 'wrong' | null>(null);
+
+  // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026 — eşin WhatsApp mesajı): "burada
+  // arapça harfler olması gerekiyor klavye seçeneği eksik" — cihazda Arapça
+  // sistem klavyesi kurulu olmayabiliyor. Öğrenilen dil Arapça ise yazma/
+  // dinleme modlarında TextInput'un altında uygulama-içi bir Arapça klavye
+  // gösteriliyor (bkz. aşağıdaki render); bu iki fonksiyon o klavyenin
+  // tuşlarına bağlanıyor. Sistem klavyesi devre dışı BIRAKILMIYOR — cihazında
+  // zaten Arapça klavyesi olan kullanıcı onu da kullanmaya devam edebilir.
+  const insertArabicChar = (ch: string) => setTypedAnswer((prev) => prev + ch);
+  const backspaceArabic = () => setTypedAnswer((prev) => prev.slice(0, -1));
 
   // ── sprint state — tüm oturum için tek bir geri sayım (bkz. web/game/page.tsx
   // içindeki aynı isimli useEffect) ──
@@ -760,6 +777,7 @@ export default function GameScreen() {
   const isListening = gameMode === 'listening';
   const isSprint = gameMode === 'sprint';
   const isMultipleChoice = gameMode === 'multiple_choice';
+  const keyboardRows = user?.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
   const activeDirection = current.direction ?? direction;
   const isDefinition = activeDirection === 'definition_to_word';
   const isReverse = !isWordle && (activeDirection === 'meaning_to_word' || isDefinition);
@@ -884,7 +902,7 @@ export default function GameScreen() {
 
           {!roundResult && (
             <View style={{ alignItems: 'center', gap: 6 }}>
-              {KEYBOARD_ROWS.map((row, i) => (
+              {keyboardRows.map((row, i) => (
                 <View key={i} style={{ flexDirection: 'row', gap: 5 }}>
                   {row.split('').map((letter) => {
                     const lower = letter.toLowerCase();
@@ -951,6 +969,30 @@ export default function GameScreen() {
               },
             ]}
           />
+
+          {user?.learning_lang === 'ar' && typingResult === null && (
+            <View style={{ alignItems: 'center', gap: 6, marginTop: spacing.sm }}>
+              {ARABIC_KEYBOARD_ROWS.map((row, i) => (
+                <View key={i} style={{ flexDirection: 'row', gap: 5 }}>
+                  {row.split('').map((letter) => (
+                    <Pressable
+                      key={letter}
+                      onPress={() => insertArabicChar(letter)}
+                      style={[styles.key, { borderColor: c.border, backgroundColor: c.surface }]}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: c.text }}>{letter}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ))}
+              <Pressable
+                onPress={backspaceArabic}
+                style={[styles.key, { width: 64, borderColor: c.border, backgroundColor: c.surface }]}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '600', color: c.text }}>⌫</Text>
+              </Pressable>
+            </View>
+          )}
 
           {typingResult === null && (
             <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
@@ -1022,6 +1064,30 @@ export default function GameScreen() {
               },
             ]}
           />
+
+          {user?.learning_lang === 'ar' && typingResult === null && (
+            <View style={{ alignItems: 'center', gap: 6, marginTop: spacing.sm }}>
+              {ARABIC_KEYBOARD_ROWS.map((row, i) => (
+                <View key={i} style={{ flexDirection: 'row', gap: 5 }}>
+                  {row.split('').map((letter) => (
+                    <Pressable
+                      key={letter}
+                      onPress={() => insertArabicChar(letter)}
+                      style={[styles.key, { borderColor: c.border, backgroundColor: c.surface }]}
+                    >
+                      <Text style={{ fontSize: 15, fontWeight: '600', color: c.text }}>{letter}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ))}
+              <Pressable
+                onPress={backspaceArabic}
+                style={[styles.key, { width: 64, borderColor: c.border, backgroundColor: c.surface }]}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '600', color: c.text }}>⌫</Text>
+              </Pressable>
+            </View>
+          )}
 
           {typingResult === null && (
             <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>

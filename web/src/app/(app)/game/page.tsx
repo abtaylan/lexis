@@ -800,6 +800,9 @@ const STRINGS: Record<Locale, Strings> = {
 };
 
 const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+// KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "burada arapça harfler olması
+// gerekiyor klavye seçeneği eksik" — bkz. mobile/game.tsx'teki aynı not.
+const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'فقكلمنهوي'];
 
 // Eşleştirme (matching) modunda kart sırasını karıştırmak için basit
 // Fisher-Yates — orijinal diziyi bozmadan yeni bir dizi döndürür.
@@ -900,6 +903,11 @@ export default function GamePage() {
   // çünkü doğruluk kontrolü üçünde de aynı: current.word ile karşılaştırma ──
   const [typedAnswer, setTypedAnswer] = useState('');
   const [typingResult, setTypingResult] = useState<'correct' | 'wrong' | null>(null);
+
+  // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "burada arapça harfler olması
+  // gerekiyor klavye seçeneği eksik" — bkz. mobile/game.tsx'teki aynı not.
+  const insertArabicChar = (ch: string) => setTypedAnswer((prev) => prev + ch);
+  const backspaceArabic = () => setTypedAnswer((prev) => prev.slice(0, -1));
 
   // ── sprint state — tüm oturum için tek bir geri sayım ──
   const [sprintSecondsLeft, setSprintSecondsLeft] = useState(60);
@@ -1750,6 +1758,7 @@ export default function GamePage() {
   const isListening = gameMode === 'listening';
   const isSprint = gameMode === 'sprint';
   const isMultipleChoice = gameMode === 'multiple_choice';
+  const keyboardRows = user?.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
   const activeDirection = current.direction ?? direction;
   const isDefinition = activeDirection === 'definition_to_word';
   const isReverse = !isWordle && (activeDirection === 'meaning_to_word' || isDefinition);
@@ -1905,7 +1914,7 @@ export default function GamePage() {
           {/* Klavye */}
           {!roundResult && (
             <div className="w-full flex flex-col items-center gap-2">
-              {KEYBOARD_ROWS.map((row, i) => (
+              {keyboardRows.map((row, i) => (
                 <div key={i} className="flex gap-1.5">
                   {row.split('').map((letter) => {
                     const lower = letter.toLowerCase();
@@ -1973,6 +1982,33 @@ export default function GamePage() {
                     : 'border-gray-200 dark:border-slate-700 focus:border-[#378ADD]'
               }`}
             />
+
+            {user?.learning_lang === 'ar' && typingResult === null && (
+              <div className="flex flex-col items-center gap-1.5">
+                {ARABIC_KEYBOARD_ROWS.map((row, i) => (
+                  <div key={i} className="flex gap-1">
+                    {row.split('').map((letter) => (
+                      <button
+                        key={letter}
+                        type="button"
+                        onClick={() => insertArabicChar(letter)}
+                        className="w-7 h-9 rounded-md border border-gray-200 dark:border-slate-700 text-sm font-semibold text-gray-800 dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        {letter}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={backspaceArabic}
+                  className="w-16 h-9 rounded-md border border-gray-200 dark:border-slate-700 text-sm font-semibold text-gray-800 dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  ⌫
+                </button>
+              </div>
+            )}
+
             {typingResult === null && (
               <div className="flex flex-col gap-2">
                 <button
@@ -2045,6 +2081,33 @@ export default function GamePage() {
                     : 'border-gray-200 dark:border-slate-700 focus:border-[#378ADD]'
               }`}
             />
+
+            {user?.learning_lang === 'ar' && typingResult === null && (
+              <div className="flex flex-col items-center gap-1.5">
+                {ARABIC_KEYBOARD_ROWS.map((row, i) => (
+                  <div key={i} className="flex gap-1">
+                    {row.split('').map((letter) => (
+                      <button
+                        key={letter}
+                        type="button"
+                        onClick={() => insertArabicChar(letter)}
+                        className="w-7 h-9 rounded-md border border-gray-200 dark:border-slate-700 text-sm font-semibold text-gray-800 dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        {letter}
+                      </button>
+                    ))}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={backspaceArabic}
+                  className="w-16 h-9 rounded-md border border-gray-200 dark:border-slate-700 text-sm font-semibold text-gray-800 dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  ⌫
+                </button>
+              </div>
+            )}
+
             {typingResult === null && (
               <div className="flex flex-col gap-2">
                 <button
