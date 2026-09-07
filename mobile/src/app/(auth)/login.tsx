@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useLocale } from '@/i18n';
 import { authApi } from '@/api/auth';
+import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/utils/errors';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { spacing } from '@/constants/theme';
@@ -13,16 +14,43 @@ import { Button } from '@/components/ui/Button';
 export default function LoginScreen() {
   const { t } = useLocale();
   const c = useThemeColors();
+  const { login: loginToStore, updateUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // NOT (7 Eylül 2026 kullanıcı isteği): "otp sadece üye olurken ... üye
+  // olduktan sonra ilk kez girerken otp gelsin, bundan sonra gelmesin" —
+  // backend artık kayıttan sonraki ilk giriş dışında OTP istemiyor, doğrudan
+  // access_token ile dönüyor. 'pending' alanı yoksa (yani access_token
+  // geldiyse) OTP ekranına hiç gitmeden direkt oturum açılıp dashboard'a
+  // geçiliyor; 'pending: true' geldiyse (ilk giriş) eskisi gibi OTP ekranına
+  // yönlendiriliyor.
   const handleLogin = async () => {
     setError('');
     setLoading(true);
     try {
-      await authApi.login({ email: email.trim(), password });
+      const res = await authApi.login({ email: email.trim(), password });
+      if ('access_token' in res) {
+        await loginToStore(res.access_token, res.refresh_token, {
+          id: res.user.id,
+          email: res.user.email,
+          username: '',
+          display_name: res.user.display_name,
+          is_admin: false,
+          daily_goal: 5,
+          created_at: '',
+        });
+        try {
+          const fullUser = await authApi.getMe();
+          await updateUser(fullUser);
+        } catch {
+          /* profil sonradan da yenilenebilir */
+        }
+        router.replace('/(app)/dashboard');
+        return;
+      }
       router.push({ pathname: '/(auth)/verify-otp', params: { email: email.trim(), purpose: 'login' } });
     } catch (e) {
       setError(getErrorMessage(e, t('loginErrorMsg')));

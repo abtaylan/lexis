@@ -15,8 +15,13 @@ export const authApi = {
     return res.data;
   },
 
-  login: async (data: { email: string; password: string }): Promise<OtpPendingResponse> => {
-    const res = await api.post<OtpPendingResponse>('/auth/login', data);
+  // NOT (7 Eylül 2026 kullanıcı isteği): backend artık kayıttan sonraki ilk
+  // giriş dışında OTP istemiyor — bu yüzden dönüş tipi ya OtpPendingResponse
+  // (pending: true, ilk giriş) ya da doğrudan AuthResponse (access_token,
+  // sonraki girişler) olabilir. Hangisi geldiği login.tsx'te 'access_token'
+  // alanının varlığına bakılarak ayırt ediliyor.
+  login: async (data: { email: string; password: string }): Promise<OtpPendingResponse | AuthResponse> => {
+    const res = await api.post<OtpPendingResponse | AuthResponse>('/auth/login', data);
     return res.data;
   },
 

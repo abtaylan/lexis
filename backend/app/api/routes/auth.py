@@ -221,6 +221,27 @@ async def login(req: LoginRequest):
         if not access_token:
             raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
 
+        # KULLANICI İSTEĞİ (7 Eylül 2026): "otp sadece üye olurken gelsin,
+        # üye olduktan sonra uygulamaya ilk kez girerken otp gelsin, bundan
+        # sonra ... her seferinde olması user'ları soğutuyor" — Instagram/X/
+        # Duolingo gibi OTP artık sadece kayıt + kayıttan sonraki İLK girişte
+        # isteniyor. Bu email için daha önce en az bir kez login-purpose OTP
+        # başarıyla doğrulanmışsa (yani bu ilk giriş değilse) OTP adımı
+        # tamamen atlanıyor, token'lar doğrudan (verify-otp ile aynı response
+        # şekliyle) dönüyor.
+        if otp_service.has_ever_verified(req.email, "login"):
+            payload = _decode_jwt_payload(access_token)
+            user_payload = {
+                "id": payload.get("sub", ""),
+                "email": payload.get("email", req.email),
+                "display_name": (payload.get("user_metadata") or {}).get("display_name", ""),
+            }
+            return {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "user": user_payload,
+            }
+
         otp_service.create_otp(
             email=req.email,
             purpose="login",
