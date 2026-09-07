@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { CircleCheckBig, CircleX, RotateCcw, Layers, ChevronRight } from 'lucide-react-native';
+import { CircleCheckBig, CircleX, RotateCcw, Layers, ChevronRight, BookPlus } from 'lucide-react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useLocale } from '@/i18n';
 import { wordsApi } from '@/api/words';
@@ -132,15 +132,25 @@ export default function FlashcardsScreen() {
   }
 
   if (queue.length === 0) {
+    // KULLANICI GERİ BİLDİRİMİ (6 Eylül 2026): "final kartlara kelime
+    // eklenmemiş, boş gözüküyor, harika iş yazıyor, çok saçma". Bu ekrana
+    // sadece kelime hazinesi TAMAMEN BOŞSA düşülüyor (loadCards, bugün
+    // tekrarı gelen kelime yoksa zaten TÜM kelimelere düşüyor — yani bu dal
+    // hiçbir zaman "bugün için hepsini bitirdin" anlamına gelmiyor, sadece
+    // "hiç kelimen yok" anlamına geliyor). Bu yüzden kutlama mesajı yerine
+    // kelime eklemeye yönlendiren, dürüst bir boş durum gösteriyoruz.
     return (
       <ScreenContainer>
         <View style={styles.center}>
           <Card style={{ alignItems: 'center', width: '100%', paddingVertical: spacing.xl }}>
-            <View style={[styles.iconBadge, { backgroundColor: c.successSoft }]}>
-              <CircleCheckBig color={c.success} size={26} />
+            <View style={[styles.iconBadge, { backgroundColor: c.primarySoft }]}>
+              <BookPlus color={c.primary} size={26} />
             </View>
-            <Text style={{ color: c.text, fontSize: 18, fontWeight: '700', marginTop: spacing.md }}>{t('greatJob')}</Text>
-            <Text style={{ color: c.textMuted, fontSize: 13, marginTop: 4, textAlign: 'center' }}>{t('noWordsDue')}</Text>
+            <Text style={{ color: c.text, fontSize: 18, fontWeight: '700', marginTop: spacing.md }}>{t('noWordsYetTitle')}</Text>
+            <Text style={{ color: c.textMuted, fontSize: 13, marginTop: 4, textAlign: 'center' }}>{t('noWordsYetSubtitle')}</Text>
+            <View style={{ width: '100%', marginTop: spacing.lg }}>
+              <Button title={t('addWordBtn')} icon={<BookPlus color="#FFFFFF" size={16} />} onPress={() => router.push('/(app)/words')} />
+            </View>
           </Card>
         </View>
       </ScreenContainer>

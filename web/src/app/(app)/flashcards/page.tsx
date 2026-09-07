@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { CheckCircle2, XCircle, RotateCcw, Loader2, Layers, ChevronRight } from 'lucide-react';
+import { CheckCircle2, XCircle, RotateCcw, Loader2, Layers, ChevronRight, BookPlus } from 'lucide-react';
 import { wordsApi, languagesApi } from '@/lib/api';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
 import { useLocale } from '@/lib/i18n';
 import type { Word, Language } from '@/types';
@@ -67,6 +68,7 @@ function DoneScreen({ total, correct, onRestart }: { total: number; correct: num
 export default function FlashcardsPage() {
   const { user } = useAuth();
   const { t } = useLocale();
+  const router = useRouter();
   const [langNames, setLangNames] = useState<Record<string, string>>({});
   useEffect(() => {
     languagesApi.getAll()
@@ -160,17 +162,31 @@ export default function FlashcardsPage() {
   }
 
   // ── Boş kuyruk ──
+  // KULLANICI GERİ BİLDİRİMİ (6 Eylül 2026): "final kartlara kelime
+  // eklenmemiş, boş gözüküyor, harika iş yazıyor, çok saçma". Bu ekrana
+  // sadece kelime hazinesi TAMAMEN BOŞSA düşülüyor (loadCards, bugün tekrarı
+  // gelen kelime yoksa zaten TÜM kelimelere düşüyor) — yani bu dal hiçbir
+  // zaman "bugün için hepsini bitirdin" anlamına gelmiyor, sadece "hiç
+  // kelimen yok" anlamına geliyor. Bu yüzden kutlama mesajı yerine kelime
+  // eklemeye yönlendiren, dürüst bir boş durum gösteriyoruz.
   if (queue.length === 0) {
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-10 flex flex-col items-center gap-4 text-center max-w-sm w-full">
-          <div className="w-14 h-14 rounded-2xl bg-[#EAF3DE] flex items-center justify-center">
-            <CheckCircle2 className="w-7 h-7 text-[#3B6D11]" />
+          <div className="w-14 h-14 rounded-2xl bg-[#E1F5EE] flex items-center justify-center">
+            <BookPlus className="w-7 h-7 text-[#0F6E56]" />
           </div>
           <div>
-            <p className="text-lg font-bold text-gray-900 dark:text-slate-100">{t('greatJob')}</p>
-            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{t('noWordsDue')}</p>
+            <p className="text-lg font-bold text-gray-900 dark:text-slate-100">{t('noWordsYetTitle')}</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{t('noWordsYetSubtitle')}</p>
           </div>
+          <button
+            onClick={() => router.push('/words')}
+            className="mt-2 inline-flex items-center gap-2 rounded-xl bg-[#0F6E56] text-white text-sm font-semibold px-5 py-2.5 hover:opacity-90 transition-opacity"
+          >
+            <BookPlus className="w-4 h-4" />
+            {t('addWordBtn')}
+          </button>
         </div>
       </div>
     );
