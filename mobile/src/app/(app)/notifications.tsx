@@ -1,5 +1,6 @@
 import React from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, type Href } from 'expo-router';
 import { Bell, MessageCircle, Trophy, UserPlus, Flame, Trash2 } from 'lucide-react-native';
@@ -58,6 +59,29 @@ function routeFor(n: Notification): Href | null {
   }
 }
 
+// Swipeable'ın renderRightActions'ı — sola kaydırınca ortaya çıkan kırmızı
+// "Sil" aksiyonu. progress 0→1 arası animasyonla genişleyip belirginleşir.
+function DeleteAction({
+  progress,
+  onPress,
+  label,
+}: {
+  progress: Animated.AnimatedInterpolation<number>;
+  onPress: () => void;
+  label: string;
+}) {
+  const c = useThemeColors();
+  const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1], extrapolate: 'clamp' });
+  return (
+    <Pressable onPress={onPress} style={[styles.deleteAction, { backgroundColor: c.danger }]}>
+      <Animated.View style={{ alignItems: 'center', gap: 2, transform: [{ scale }] }}>
+        <Trash2 color="#fff" size={18} />
+        <Text style={styles.deleteActionText}>{label}</Text>
+      </Animated.View>
+    </Pressable>
+  );
+}
+
 function pad2(n: number) {
   return n < 10 ? `0${n}` : String(n);
 }
@@ -109,10 +133,19 @@ export default function NotificationsScreen() {
     ]);
   };
 
-  const onPressItem = async (n: Notification) => {
+  // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "üzerine tıklayınca bir şey
+  // olmadı" — önceki sürümde okundu-işaretleme isteği `await` ediliyordu;
+  // bu istek başarısız olursa (ağ hatası, backend henüz deploy olmamış
+  // vb.) yönlendirme koduna hiç ulaşılmıyordu. Artık yönlendirme HER
+  // ZAMAN hemen çalışıyor; okundu işaretleme arka planda, sonucu
+  // beklemeden ve hata olsa bile sessizce (navigasyonu etkilemeden)
+  // yapılıyor.
+  const onPressItem = (n: Notification) => {
     if (!n.is_read) {
-      await notificationsApi.markRead(n.id);
-      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      notificationsApi
+        .markRead(n.id)
+        .then(() => queryClient.invalidateQueries({ queryKey: ['notifications'] }))
+        .catch(() => {});
     }
     const target = routeFor(n);
     if (target) router.push(target);
@@ -154,8 +187,18 @@ export default function NotificationsScreen() {
       {!isLoading && !isError && items.length === 0 && <EmptyState title={ns.empty} subtitle={ns.emptySub} />}
 
       {items.map((n) => (
-        <View key={n.id} style={styles.rowOuter}>
-          <Pressable onPress={() => onPressItem(n)} style={styles.row}>
+        // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "üzerine gelince sola
+        // kaydır yapıp, sil butonu çıksın" — sabit çöp kutusu ikonu yerine
+        // sola kaydırınca (swipe) açılan kırmızı "Sil" aksiyonu.
+        <Swipeable
+          key={n.id}
+          renderRightActions={(progress) => (
+            <DeleteAction progress={progress} onPress={() => deleteMutation.mutate(n.id)} label={ns.deleteBtn} />
+          )}
+          overshootRight={false}
+          rightThreshold={40}
+        >
+          <Pressable onPress={() => onPressItem(n)} style={[styles.row, { backgroundColor: c.background }]}>
             <View style={[styles.iconWrap, { backgroundColor: n.is_read ? c.border : c.primarySoft }]}>
               {iconFor(n.type, n.is_read ? c.textMuted : c.primary, 18)}
             </View>
@@ -172,17 +215,7 @@ export default function NotificationsScreen() {
               {!n.is_read && <View style={[styles.dot, { backgroundColor: c.danger }]} />}
             </View>
           </Pressable>
-          {/* KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "bildirim temizle
-              özelliği olmalı" — tekil satır silme. Ana Pressable'ın (yönlendirme)
-              dışına, ayrı bir dokunma alanı olarak konuldu. */}
-          <Pressable
-            onPress={() => deleteMutation.mutate(n.id)}
-            hitSlop={8}
-            style={styles.deleteBtn}
-          >
-            <Trash2 color={c.textMuted} size={15} />
-          </Pressable>
-        </View>
+        </Swipeable>
       ))}
     </ScreenContainer>
   );
@@ -192,9 +225,9 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerIcon: { width: 34, height: 34, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  rowOuter: { flexDirection: 'row', alignItems: 'center' },
-  row: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   iconWrap: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 7, height: 7, borderRadius: 4 },
-  deleteBtn: { padding: spacing.xs, marginLeft: spacing.xs },
+  deleteAction: { width: 72, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, marginLeft: spacing.sm },
+  deleteActionText: { color: '#fff', fontSize: 11, fontWeight: '700' },
 });

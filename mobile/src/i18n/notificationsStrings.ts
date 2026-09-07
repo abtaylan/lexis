@@ -13,6 +13,7 @@ export interface NotificationsStrings {
   clearAll: string;
   clearAllConfirm: string;
   clearAllBtn: string;
+  deleteBtn: string;
 }
 
 export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
@@ -25,6 +26,7 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'Tümünü temizle',
     clearAllConfirm: 'Tüm bildirimler kalıcı olarak silinsin mi?',
     clearAllBtn: 'Temizle',
+    deleteBtn: 'Sil',
   },
   en: {
     title: 'Notifications',
@@ -35,6 +37,7 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'Clear all',
     clearAllConfirm: 'Permanently delete all notifications?',
     clearAllBtn: 'Clear',
+    deleteBtn: 'Delete',
   },
   de: {
     title: 'Benachrichtigungen',
@@ -45,6 +48,7 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'Alle löschen',
     clearAllConfirm: 'Sollen alle Benachrichtigungen dauerhaft gelöscht werden?',
     clearAllBtn: 'Löschen',
+    deleteBtn: 'Löschen',
   },
   fr: {
     title: 'Notifications',
@@ -55,6 +59,7 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'Tout effacer',
     clearAllConfirm: 'Supprimer définitivement toutes les notifications ?',
     clearAllBtn: 'Effacer',
+    deleteBtn: 'Supprimer',
   },
   es: {
     title: 'Notificaciones',
@@ -65,6 +70,7 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'Borrar todo',
     clearAllConfirm: '¿Eliminar permanentemente todas las notificaciones?',
     clearAllBtn: 'Borrar',
+    deleteBtn: 'Eliminar',
   },
   it: {
     title: 'Notifiche',
@@ -75,6 +81,7 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'Cancella tutto',
     clearAllConfirm: 'Eliminare definitivamente tutte le notifiche?',
     clearAllBtn: 'Cancella',
+    deleteBtn: 'Elimina',
   },
   ar: {
     title: 'الإشعارات',
@@ -85,6 +92,7 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'مسح الكل',
     clearAllConfirm: 'هل تريد حذف جميع الإشعارات نهائيًا؟',
     clearAllBtn: 'مسح',
+    deleteBtn: 'حذف',
   },
   ru: {
     title: 'Уведомления',
@@ -95,6 +103,7 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'Очистить всё',
     clearAllConfirm: 'Удалить все уведомления без возможности восстановления?',
     clearAllBtn: 'Очистить',
+    deleteBtn: 'Удалить',
   },
   ja: {
     title: '通知',
@@ -105,6 +114,7 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'すべて削除',
     clearAllConfirm: 'すべての通知を完全に削除しますか?',
     clearAllBtn: '削除',
+    deleteBtn: '削除',
   },
   pt: {
     title: 'Notificações',
@@ -115,5 +125,6 @@ export const NOTIFICATIONS_STRINGS: Record<Locale, NotificationsStrings> = {
     clearAll: 'Limpar tudo',
     clearAllConfirm: 'Eliminar permanentemente todas as notificações?',
     clearAllBtn: 'Limpar',
+    deleteBtn: 'Eliminar',
   },
 };
