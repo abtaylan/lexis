@@ -232,6 +232,23 @@ export interface ScheduleTemplate {
   created_at: string;
 }
 
+// Kullanıcı isteği (8 Eylül 2026) — tüm yabancı dil sınavları için sınav
+// hatırlatıcısı (YDS, YÖKDİL, e-YDS, TOEFL, IELTS vb.).
+export interface ExamReminder {
+  id: string;
+  user_id: string;
+  exam_name: string;
+  exam_date: string; // YYYY-MM-DD
+  note: string | null;
+  created_at: string;
+}
+
+export interface ExamReminderCreate {
+  exam_name: string;
+  exam_date: string; // YYYY-MM-DD
+  note?: string;
+}
+
 export interface ScheduleTemplateCreate {
   name: string;
   items: ScheduleTemplateItem[];

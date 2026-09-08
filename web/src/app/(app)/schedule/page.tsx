@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react';
 import {
   Plus, Trash2, X, Clock, CalendarDays, ExternalLink, Loader2,
   Sparkles, Flame, Zap, Coffee, Check, Headphones, BookOpen,
-  GraduationCap, Save, Star, User as UserIcon, Bell,
+  GraduationCap, Save, Star, User as UserIcon, Bell, CalendarClock,
 } from 'lucide-react';
-import { scheduleApi } from '@/lib/api';
+import { scheduleApi, examReminderApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { getErrorMessage } from '@/lib/errors';
-import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem } from '@/types';
+import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem, ExamReminder } from '@/types';
 
 // Haftanın günlerini index'lemek için (0=Pazar…6=Cumartesi) — weekdays[i]
 // çevirisiyle birlikte kullanılıyor, bkz. `grouped` aşağıda.
@@ -42,6 +42,10 @@ const TASK_LINKS: Record<string, string> = {
   'YÖKDİL Sözlük Kitabı': '',
   'Voice of America': 'https://learningenglish.voanews.com/',
   "Luke's English Podcast": 'https://teacherluke.co.uk/',
+  // Aşama 6: "YDS'den Nasıl 96 Aldım?" videosundaki tavsiyelere göre
+  // hazırlanan taktik sınav şablonu (bkz. TEMPLATES altındaki 'ydstaktik').
+  'Çıkmış Soru Analizi': '',
+  'Taktik Kaynak Kitap': '',
 };
 
 // Aşama 5: çok dilli program kaynakları — activity_key seçici için kategori etiketleri.
@@ -164,6 +168,32 @@ const TEMPLATES: Template[] = [
       { day_of_week: 4, time_slot: '08:00', activity: 'News in Levels', duration_min: 20, link_url: link('News in Levels') },
       { day_of_week: 5, time_slot: '08:00', activity: 'YÖKDİL Sözlük Kitabı', duration_min: 30, link_url: link('YÖKDİL Sözlük Kitabı') },
       { day_of_week: 6, time_slot: '10:00', activity: 'Genel Tekrar', duration_min: 45, link_url: link('Genel Tekrar') },
+    ],
+  },
+  // KULLANICI İSTEĞİ (8 Eylül 2026): Nihal Gökçe'nin "YDS'den Nasıl 96
+  // Aldım?" videosundaki (youtube.com/watch?v=jNai6ntlKXo) yönteme göre —
+  // sınavın bir "taktik sınavı" olduğu, çıkmış soru analizinin (özellikle
+  // kelime/phrasal verb) ve düzenli okumanın kritik olduğu vurgusuyla.
+  // YDS/YÖKDİL/e-YDS gibi tüm YÖK dil yeterlik sınavlarına uyarlanabilir
+  // genel bir taktik şablonu — yukarıdaki 'yokdil' şablonundan farkı,
+  // çıkmış soru analizine ayrı oturumlar ayırması ve düzenli okumayı
+  // (sınav dışı) haftalık yapıya sabitlemesi.
+  {
+    id: 'ydstaktik',
+    name: 'Sınav Taktiği (YDS/YÖKDİL)',
+    desc: 'Çıkmış soru analizi + düzenli okuma · video tavsiyesi',
+    icon: <GraduationCap className="w-5 h-5" />,
+    accent: '#9A3412',
+    items: [
+      { day_of_week: 1, time_slot: '08:00', activity: 'Taktik Kaynak Kitap', duration_min: 30, link_url: link('Taktik Kaynak Kitap') },
+      { day_of_week: 1, time_slot: '20:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
+      { day_of_week: 2, time_slot: '08:00', activity: 'Çıkmış Soru Analizi', duration_min: 40, link_url: link('Çıkmış Soru Analizi') },
+      { day_of_week: 3, time_slot: '08:00', activity: 'Haber Okuma', duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 3, time_slot: '20:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
+      { day_of_week: 4, time_slot: '08:00', activity: 'Çıkmış Soru Analizi', duration_min: 40, link_url: link('Çıkmış Soru Analizi') },
+      { day_of_week: 5, time_slot: '08:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 6, time_slot: '10:00', activity: 'Genel Tekrar', duration_min: 60, link_url: link('Genel Tekrar') },
+      { day_of_week: 0, time_slot: '11:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
     ],
   },
 ];
@@ -459,6 +489,110 @@ function SaveTemplateModal({ items, onSaved, onClose }: {
 }
 
 // ── Ana sayfa ─────────────────────────────────────────────────
+// KULLANICI İSTEĞİ (8 Eylül 2026): "sınav hatırlatıcısı ekleyelim mobil
+// uygulama ve web uygulama sayfasına (tüm yabancı dil sınavları için
+// olmalı)". ÖSYM sınav takvimi zamanla değişebildiği için tarihleri burada
+// SABİT KOD OLARAK TUTMUYORUZ — kullanıcı kendi başvurduğu sınavın tarihini
+// giriyor, biz sadece ÖSYM'nin resmi takvim sayfasına bağlantı veriyoruz.
+function daysUntilExam(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(`${dateStr}T00:00:00`);
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function ExamRemindersCard() {
+  const [exams, setExams] = useState<ExamReminder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState('');
+  const [dateVal, setDateVal] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const load = async () => {
+    setLoading(true);
+    try { setExams(await examReminderApi.getAll()); }
+    finally { setLoading(false); }
+  };
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount'ta veri çekme (fetch-on-effect) deseni; sayfadaki diğer bileşenlerle aynı desen
+  useEffect(() => { load(); }, []);
+
+  const handleAdd = async () => {
+    if (!name.trim() || !dateVal) { setError('Sınav adı ve tarihi gerekli.'); return; }
+    setSaving(true); setError('');
+    try {
+      await examReminderApi.create({ exam_name: name.trim(), exam_date: dateVal });
+      setName(''); setDateVal(''); setShowAdd(false);
+      await load();
+    } catch (err) {
+      setError(getErrorMessage(err, 'Sınav hatırlatıcısı eklenemedi.'));
+    } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    await examReminderApi.delete(id).catch(() => {});
+    load();
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-xl bg-[#FDEEEA] flex items-center justify-center"><CalendarClock className="w-5 h-5 text-[#9A3412]" /></div>
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Sınav Hatırlatıcıları</h2>
+            <p className="text-xs text-gray-400 dark:text-slate-500">YDS, YÖKDİL, TOEFL, IELTS — herhangi bir yabancı dil sınavı</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <a href="https://www.osym.gov.tr" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 dark:text-slate-500 hover:text-[#185FA5] transition-colors underline decoration-dotted">ÖSYM sınav takvimi ↗</a>
+          <button onClick={() => setShowAdd((s) => !s)} className="flex items-center gap-1.5 bg-[#FDEEEA] hover:bg-[#fbe0d6] text-[#9A3412] rounded-lg px-3 py-1.5 text-xs font-medium transition-colors">
+            <Plus className="w-3.5 h-3.5" />Sınav Ekle
+          </button>
+        </div>
+      </div>
+
+      {showAdd && (
+        <div className="mb-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-800 flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[140px]">
+            <label className="block text-[11px] text-gray-500 dark:text-slate-400 mb-1">Sınav adı</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Örn. YDS, YÖKDİL, TOEFL" className="w-full text-sm rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#378ADD]" />
+          </div>
+          <div>
+            <label className="block text-[11px] text-gray-500 dark:text-slate-400 mb-1">Sınav tarihi</label>
+            <input type="date" value={dateVal} onChange={(e) => setDateVal(e.target.value)} className="text-sm rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-[#378ADD]" />
+          </div>
+          <button onClick={handleAdd} disabled={saving} className="bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-50 text-white rounded-lg px-3 py-1.5 text-sm font-medium transition-colors">{saving ? '...' : 'Ekle'}</button>
+          <button onClick={() => { setShowAdd(false); setError(''); }} className="text-xs text-gray-400 dark:text-slate-500 px-2 py-1.5">Vazgeç</button>
+          {error && <p className="text-xs text-red-500 w-full">{error}</p>}
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-xs text-gray-400 dark:text-slate-500">Yükleniyor…</p>
+      ) : exams.length === 0 ? (
+        <p className="text-xs text-gray-400 dark:text-slate-500">Henüz eklenmiş bir sınav yok. Sınav tarihini eklersen 30/14/7/3/1 gün kala ve sınav günü hatırlatma alırsın.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {exams.map((exam) => {
+            const days = daysUntilExam(exam.exam_date);
+            const urgent = days <= 7;
+            return (
+              <div key={exam.id} className={`flex items-center gap-2 rounded-xl px-3 py-2 text-xs ${urgent ? 'bg-[#FDEEEA] text-[#9A3412]' : 'bg-slate-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300'}`}>
+                <span className="font-semibold">{exam.exam_name}</span>
+                <span className="opacity-70">{new Date(`${exam.exam_date}T00:00:00`).toLocaleDateString('tr-TR')}</span>
+                <span className="font-medium">{days > 0 ? `${days} gün kaldı` : days === 0 ? 'Bugün!' : 'Geçti'}</span>
+                <button onClick={() => handleDelete(exam.id)} className="text-gray-300 dark:text-slate-600 hover:text-red-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SchedulePage() {
   const { t } = useLocale();
   const weekdays = t('weekdayLabels').split(',');
@@ -543,6 +677,8 @@ export default function SchedulePage() {
           </button>
         </div>
       </div>
+
+      <ExamRemindersCard />
 
       {loading ? (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-12 flex items-center justify-center">

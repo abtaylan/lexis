@@ -20,6 +20,8 @@ import type {
   ScheduleCreate,
   ScheduleTemplate,
   ScheduleTemplateCreate,
+  ExamReminder,
+  ExamReminderCreate,
   Notification,
   AdminUser,
   AdminUserDetail,
@@ -387,6 +389,21 @@ export const scheduleApi = {
   },
   deleteTemplate: async (id: string): Promise<void> => {
     await api.delete(`/schedule/templates/${id}`);
+  },
+};
+
+// ── Sınav Hatırlatıcı API (tüm yabancı dil sınavları) ──────────
+export const examReminderApi = {
+  getAll: async (): Promise<ExamReminder[]> => {
+    const res = await api.get('/exam-reminders');
+    return res.data.exam_reminders;
+  },
+  create: async (data: ExamReminderCreate): Promise<ExamReminder> => {
+    const res = await api.post<ExamReminder>('/exam-reminders', data);
+    return res.data;
+  },
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/exam-reminders/${id}`);
   },
 };
 
