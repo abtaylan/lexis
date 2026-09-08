@@ -51,6 +51,7 @@ from app.core.database import supabase_admin
 from app.services import badge_service, xp_service
 from app.services.job_log import job_run
 from app.services.leaderboard_service import get_top_n_for_reward
+from app.services.notify import notify_user
 
 Period = Literal["weekly", "monthly"]
 
@@ -134,14 +135,12 @@ async def _reward_period(period: Period) -> int:
         label = PERIOD_LABEL_TR[period]
         premium_note = f" + {premium_days} gün Premium" if premium_days > 0 else ""
         try:
-            supabase_admin.table("notifications").insert(
-                {
-                    "user_id": user_id,
-                    "type": "reward",
-                    "title": f"🏆 {label.capitalize()} liderlik tablosunda {entry['rank']}. sırasın!",
-                    "message": f"Tebrikler! Bu {label} dönemde {entry['rank']}. oldun — +{bonus_xp} XP ve yeni bir rozet kazandın{premium_note}.",
-                }
-            ).execute()
+            notify_user(
+                user_id,
+                "reward",
+                f"🏆 {label.capitalize()} liderlik tablosunda {entry['rank']}. sırasın!",
+                f"Tebrikler! Bu {label} dönemde {entry['rank']}. oldun — +{bonus_xp} XP ve yeni bir rozet kazandın{premium_note}.",
+            )
         except Exception as e:
             print(f"REWARD NOTIFICATION WARNING (user={user_id}, period={period}): {e}")
 

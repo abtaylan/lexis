@@ -25,6 +25,7 @@ from fastapi import HTTPException
 
 from app.core.database import supabase_admin
 from app.services.block_service import is_blocked_either_way
+from app.services.notify import notify_user
 
 _PROFILE_COLS = "id, username, display_name, avatar_url, level, is_active"
 
@@ -174,12 +175,12 @@ def send_friend_request(current_user_id: str, username: str) -> dict[str, Any]:
 
     sender = _get_profile(current_user_id)
     sender_name = (sender or {}).get("display_name") or (sender or {}).get("username") or "Bir kullanıcı"
-    supabase_admin.table("notifications").insert({
-        "user_id": target["id"],
-        "type": "friend_request",
-        "title": "Yeni arkadaşlık isteği",
-        "message": f"{sender_name} sana bir arkadaşlık isteği gönderdi.",
-    }).execute()
+    notify_user(
+        target["id"],
+        "friend_request",
+        "Yeni arkadaşlık isteği",
+        f"{sender_name} sana bir arkadaşlık isteği gönderdi.",
+    )
 
     return {
         "id": row["id"],
@@ -221,12 +222,12 @@ def respond_to_request(current_user_id: str, friendship_id: str, accept: bool) -
     if accept:
         accepter = _get_profile(current_user_id)
         accepter_name = (accepter or {}).get("display_name") or (accepter or {}).get("username") or "Bir kullanıcı"
-        supabase_admin.table("notifications").insert({
-            "user_id": row["requester_id"],
-            "type": "friend_accept",
-            "title": "Arkadaşlık isteğin kabul edildi",
-            "message": f"{accepter_name} arkadaşlık isteğini kabul etti.",
-        }).execute()
+        notify_user(
+            row["requester_id"],
+            "friend_accept",
+            "Arkadaşlık isteğin kabul edildi",
+            f"{accepter_name} arkadaşlık isteğini kabul etti.",
+        )
 
     other = _get_profile(row["requester_id"])
     return {

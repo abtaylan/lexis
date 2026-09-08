@@ -40,6 +40,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from app.core.database import supabase_admin
 from app.services.email_service import send_schedule_reminder_email
 from app.services.job_log import job_run
+from app.services.push_service import send_push_batch
 
 # Script'in ne sıklıkla çalıştığı varsayımı — cron satırıyla eşleşmeli.
 REMINDER_WINDOW_MINUTES = 5
@@ -152,6 +153,10 @@ def main() -> int:
         message = f"\"{item['activity']}\" görevin {lead_label} başlıyor (saat {item['time_slot']})."
 
         try:
+            # UNIQUE(schedule_item_id, reminder_date) constraint'i önce ayrı
+            # bir insert ile kontrol ediliyor (notify_user push'u da tetiklediği
+            # için, tekrar/yarış durumunda push'un da atlanması lazım — bu
+            # yüzden önce dedup insert'i, sonra push).
             supabase_admin.table("notifications").insert(
                 {
                     "user_id": item["user_id"],
@@ -167,6 +172,25 @@ def main() -> int:
             # düşer, sessizce atla (zaten gönderilmiş demektir).
             print(f"NOTIFICATION INSERT SKIP ({item['id']}): {e}")
             continue
+
+        # KULLANICI GERİ BİLDİRİMİ (8 Eylül 2026): "bildirim gelmiş ama
+        # telefona gelmemiş, bunların da bildirimi gelmesi lazım" — program
+        # hatırlatmaları da artık uygulama-içi listeye ek olarak gerçek push
+        # gönderiyor (yukarıdaki dedup insert'ten SONRA, notify_user'ın kendi
+        # notifications insert'i AYRI bir satır olarak ikinci kez eklenmesin
+        # diye push'u burada doğrudan push_service üzerinden tetikliyoruz).
+        try:
+            tokens_res = (
+                supabase_admin.table("push_tokens")
+                .select("token")
+                .eq("user_id", item["user_id"])
+                .execute()
+            )
+            tokens = [r["token"] for r in (tokens_res.data or []) if r.get("token")]
+            if tokens:
+                send_push_batch(tokens, title, message, "schedule_reminder")
+        except Exception as e:
+            print(f"SCHEDULE REMINDER PUSH WARNING ({item['id']}): {e}")
 
         if to_email:
             send_schedule_reminder_email(to_email, item["activity"], item["time_slot"], lead_label)

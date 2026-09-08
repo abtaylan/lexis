@@ -33,6 +33,7 @@ from fastapi import HTTPException
 
 from app.core.database import supabase_admin
 from app.services.friends_service import friendship_status_map
+from app.services.notify import notify_user
 
 _PROFILE_COLS = "id, username, display_name, avatar_url, level, is_active"
 
@@ -144,12 +145,12 @@ def create_challenge(current_user_id: str, target_username: str, mode: str) -> d
 
     challenger = _get_profile(current_user_id)
     challenger_name = (challenger or {}).get("display_name") or (challenger or {}).get("username") or "Bir kullanıcı"
-    supabase_admin.table("notifications").insert({
-        "user_id": other["id"],
-        "type": "challenge_invite",
-        "title": "Yeni meydan okuma",
-        "message": f"{challenger_name} seni bir oyuna meydan okudu.",
-    }).execute()
+    notify_user(
+        other["id"],
+        "challenge_invite",
+        "Yeni meydan okuma",
+        f"{challenger_name} seni bir oyuna meydan okudu.",
+    )
 
     return _item(row, current_user_id)
 
@@ -172,12 +173,12 @@ def respond_to_challenge(current_user_id: str, challenge_id: str, accept: bool) 
     if accept:
         accepter = _get_profile(current_user_id)
         accepter_name = (accepter or {}).get("display_name") or (accepter or {}).get("username") or "Bir kullanıcı"
-        supabase_admin.table("notifications").insert({
-            "user_id": row["challenger_id"],
-            "type": "challenge_accept",
-            "title": "Meydan okuman kabul edildi",
-            "message": f"{accepter_name} meydan okumanı kabul etti — sıra oynamakta!",
-        }).execute()
+        notify_user(
+            row["challenger_id"],
+            "challenge_accept",
+            "Meydan okuman kabul edildi",
+            f"{accepter_name} meydan okumanı kabul etti — sıra oynamakta!",
+        )
 
     return _item(updated, current_user_id)
 
@@ -264,12 +265,7 @@ def submit_score(current_user_id: str, challenge_id: str, session_id: str) -> di
                 msg = "Meydan okumayı kazandın!"
             else:
                 msg = "Meydan okumayı kaybettin — bir dahaki sefere!"
-            supabase_admin.table("notifications").insert({
-                "user_id": uid,
-                "type": "challenge_result",
-                "title": "Meydan okuma sonuçlandı",
-                "message": msg,
-            }).execute()
+            notify_user(uid, "challenge_result", "Meydan okuma sonuçlandı", msg)
 
     return _item(updated, current_user_id)
 

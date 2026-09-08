@@ -2,6 +2,7 @@ from datetime import date, timedelta
 
 from app.core.database import supabase_admin
 from app.services import badge_service, xp_service
+from app.services.notify import notify_user
 
 # Ödül sistemi — seri kilometre taşları (bkz. backlog "Ödül sistemi:
 # ödülleri sen belirle, sana bırakıyorum"). Rozet kodları (streak_7 vb.)
@@ -32,14 +33,12 @@ async def _maybe_award_streak_milestone(user_id: str, streak_days: int) -> None:
         metadata={"streak_days": streak_days, "badge_code": badge_code},
     )
     try:
-        supabase_admin.table("notifications").insert(
-            {
-                "user_id": user_id,
-                "type": "reward",
-                "title": f"🔥 {streak_days} günlük seri!",
-                "message": f"Tebrikler, {streak_days} gün üst üste çalıştın! +{bonus_xp} XP ve yeni bir rozet kazandın.",
-            }
-        ).execute()
+        notify_user(
+            user_id,
+            "reward",
+            f"🔥 {streak_days} günlük seri!",
+            f"Tebrikler, {streak_days} gün üst üste çalıştın! +{bonus_xp} XP ve yeni bir rozet kazandın.",
+        )
     except Exception as e:
         print(f"STREAK MILESTONE NOTIFICATION WARNING (user={user_id}): {e}")
 

@@ -26,6 +26,7 @@ from fastapi import HTTPException
 
 from app.core.database import supabase_admin
 from app.services.block_service import is_blocked_either_way
+from app.services.notify import notify_user
 
 _PROFILE_COLS = "id, username, display_name, avatar_url, level, is_active"
 
@@ -225,12 +226,12 @@ def send_message(current_user_id: str, other_username: str, body: str) -> dict[s
 
     sender = _get_profile(current_user_id)
     sender_name = (sender or {}).get("display_name") or (sender or {}).get("username") or "Bir kullanıcı"
-    supabase_admin.table("notifications").insert({
-        "user_id": other["id"],
-        "type": "new_message",
-        "title": "Yeni mesaj",
-        "message": f"{sender_name} sana bir mesaj gönderdi.",
-    }).execute()
+    notify_user(
+        other["id"],
+        "new_message",
+        "Yeni mesaj",
+        f"{sender_name} sana bir mesaj gönderdi.",
+    )
 
     return msg
 
