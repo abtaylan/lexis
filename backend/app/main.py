@@ -9,6 +9,7 @@ from app.api.routes import (
     auth,
     cron,
     dictionary,
+    exam_reminders,
     games,
     languages,
     notifications,
@@ -63,6 +64,8 @@ app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["
 app.include_router(social.router, prefix="/api/v1/social", tags=["Social"])
 # Mobil uygulama Faz 1 — push bildirim token kaydı (bkz. migration 017_push_tokens.sql)
 app.include_router(push_tokens.router, prefix="/api/v1/me", tags=["Push Tokens"])
+# Kullanıcı isteği (8 Eylül 2026) — tüm yabancı dil sınavları için sınav hatırlatıcısı
+app.include_router(exam_reminders.router, prefix="/api/v1/exam-reminders", tags=["Exam Reminders"])
 # Vercel Cron / GitHub Actions'tan secret-korumalı tetikleme — bkz. app/api/routes/cron.py
 app.include_router(cron.router, prefix="/internal/cron", tags=["Internal Cron"])
 

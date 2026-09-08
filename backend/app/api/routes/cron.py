@@ -164,3 +164,28 @@ async def run_send_push_reminder_evening(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# Kullanıcı isteği (8 Eylül 2026) — tüm yabancı dil sınavları için sınav
+# hatırlatıcısı (bkz. app/api/routes/exam_reminders.py, send_exam_reminders.py).
+# Günde 1 kez çalışması yeterli — push-reminders.yml'nin sabah penceresine
+# eklenen ek bir adımla tetikleniyor (bkz. .github/workflows/push-reminders.yml).
+@router.post("/send-exam-reminders")
+async def run_send_exam_reminders(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    if already_ran_today("send_exam_reminders"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
+    def _run() -> dict:
+        import send_exam_reminders
+
+        with job_run("send_exam_reminders") as run:
+            result = send_exam_reminders.main()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
