@@ -54,9 +54,27 @@ async def get_stats(current_user=Depends(get_current_user)):
     )
 
     today_data = next((r for r in (progress.data or []) if r["date"] == today), None)
-    current_streak = today_data["streak_day"] if today_data else 0
-    today_added = today_data["words_added"] if today_data else 0
-    daily_goal = today_data.get("goal", 5) if today_data else 5
+    if today_data:
+        current_streak = today_data["streak_day"]
+        today_added = today_data["words_added"]
+        daily_goal = today_data.get("goal", 5)
+    else:
+        # KULLANICI GERİ BİLDİRİMİ (8 Eylül 2026): "ben birkaç gündür giriyorum
+        # ama ana ekranda Seri 0 Gün yazıyor" — kök neden: streak SADECE bugün
+        # bir kelime eklenmiş/tekrar edilmişse (yani daily_progress'te bugüne
+        # ait satır varsa) gösteriliyordu. Kullanıcı o gün henüz hiç kelime
+        # eklemeden/tekrar etmeden (örn. sabah sadece uygulamayı açıp bakarken)
+        # ekranı görürse, serisi aslında hâlâ geçerli olmasına rağmen "0 Gün"
+        # yazıyordu. Artık Duolingo'daki gibi davranıyor: bugüne ait kayıt
+        # yoksa dünün serisi (kırılmadıysa, yani dün bir kayıt varsa) hâlâ
+        # gösterilir — gün içinde bir kelime eklenip/tekrar edilince
+        # update_streak() zaten +1 artırıp bugünün satırını oluşturacak.
+        # Dün de kayıt yoksa (2+ günlük boşluk) seri gerçekten kırılmıştır → 0.
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        yesterday_data = next((r for r in (progress.data or []) if r["date"] == yesterday), None)
+        current_streak = yesterday_data["streak_day"] if yesterday_data else 0
+        today_added = 0
+        daily_goal = (yesterday_data or {}).get("goal", 5)
 
     return {
         "learning_lang": active_lang,
