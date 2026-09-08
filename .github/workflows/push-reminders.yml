@@ -24,21 +24,25 @@ jobs:
       - name: Slot belirle (hangi saat penceresinde tetiklendi)
         id: slot
         run: |
-          # KULLANICI GERİ BİLDİRİMİ ÜZERİNE GÜNCELLEME (7 Eylül 2026): artık
-          # her pencerede birden fazla dakikada tetiklendiği için
-          # github.event.schedule'ı tek bir sabit string ile karşılaştırmak
-          # yerine (eskiden '0 6 * * *' gibi tam eşleşme aranıyordu, artık
-          # '0,10,20,...' listesiyle eşleşmez) tetiklenen ANIN UTC saatine
-          # bakıyoruz — 6. saatteyse sabah, 17. saatteyse akşam penceresi.
+          # GERÇEK ARIZA (8 Eylül 2026): sabah penceresinin (06:00-06:50 UTC
+          # hedef) tetiklenmesi GitHub tarafında ~5 SAAT gecikti — cron ilk
+          # kez gerçekten ateşlendi ama saat==6 tam eşleşmesi arayan eski
+          # kod "Beklenmeyen saat: 10" deyip hata verdi, push HİÇ gönderilmedi
+          # (bkz. cron_job_runs / Actions run #2). GitHub'ın zamanlanmış
+          # workflow'ları dakikalarca değil SAATLERCE geciktirebildiği
+          # kanıtlandı. Bu yüzden artık tam saat eşleşmesi yerine günü ikiye
+          # bölen geniş bir pencere kullanılıyor: 00:00-11:59 UTC arası
+          # tetiklenen HER şey "morning", 12:00-23:59 UTC arası tetiklenen
+          # HER şey "evening" sayılır — hangi saatte gelirse gelsin
+          # sınıflandırma asla başarısız olmaz. Aynı gün birden fazla
+          # gönderim olmasını backend'deki already_ran_today (slot bazlı,
+          # bkz. cron.py) zaten engelliyor.
           if [ -n "${{ github.event.schedule }}" ]; then
             hour=$(date -u +%H)
-            if [ "$hour" = "06" ]; then
+            if [ "$hour" -lt 12 ]; then
               echo "slot=morning" >> "$GITHUB_OUTPUT"
-            elif [ "$hour" = "17" ]; then
-              echo "slot=evening" >> "$GITHUB_OUTPUT"
             else
-              echo "Beklenmeyen saat: $hour (schedule=${{ github.event.schedule }})"
-              exit 1
+              echo "slot=evening" >> "$GITHUB_OUTPUT"
             fi
           else
             echo "slot=${{ github.event.inputs.slot }}" >> "$GITHUB_OUTPUT"
