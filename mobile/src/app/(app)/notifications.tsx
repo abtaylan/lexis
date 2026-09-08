@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Animated, Pressable, StyleSheet, Text, View }
 import { Swipeable } from 'react-native-gesture-handler';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, type Href } from 'expo-router';
-import { Bell, MessageCircle, Trophy, UserPlus, Flame, Trash2 } from 'lucide-react-native';
+import { Bell, MessageCircle, Trophy, UserPlus, Flame, Trash2, CheckCheck } from 'lucide-react-native';
 import { notificationsApi } from '@/api/notifications';
 import type { Notification } from '@/api/types';
 import { NOTIFICATIONS_STRINGS } from '@/i18n/notificationsStrings';
@@ -153,26 +153,45 @@ export default function NotificationsScreen() {
 
   return (
     <ScreenContainer refreshing={isRefetching} onRefresh={refetch}>
-      <View style={styles.headerRow}>
+      <View style={styles.headerTitleRow}>
         <View style={styles.headerLeft}>
           <View style={[styles.headerIcon, { backgroundColor: c.primarySoft }]}>
             <Bell color={c.primary} size={18} />
           </View>
           <Text style={{ color: c.text, fontSize: 20, fontWeight: '700' }}>{ns.title}</Text>
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+      </View>
+
+      {/* KULLANICI GERİ BİLDİRİMİ (8 Eylül 2026): "sağ üstte tümünü okundu ve
+          temizle kötü gözüküyor, daha okunaklı ve düzgün yapmak lazım" — eskiden
+          başlıkla aynı satıra sıkıştırılmış, düz metin linkleri (dar ekranlarda
+          başlığa bitişik/kırpılmış görünüyordu). Artık başlığın ALTINDA ayrı bir
+          satırda, ikonlu ve dolgulu (pill) gerçek buton görünümünde — birbirinden
+          ve ekran kenarından net boşlukla ayrılmış. */}
+      {(hasUnread || items.length > 0) && (
+        <View style={styles.headerActionsRow}>
           {hasUnread && (
-            <Pressable onPress={onMarkAllRead} hitSlop={8}>
-              <Text style={{ color: c.primary, fontSize: 12, fontWeight: '600' }}>{ns.markAllRead}</Text>
+            <Pressable
+              onPress={onMarkAllRead}
+              hitSlop={6}
+              style={[styles.actionPill, { backgroundColor: c.primarySoft }]}
+            >
+              <CheckCheck color={c.primary} size={14} />
+              <Text style={{ color: c.primary, fontSize: 12.5, fontWeight: '600' }}>{ns.markAllRead}</Text>
             </Pressable>
           )}
           {items.length > 0 && (
-            <Pressable onPress={onClearAll} hitSlop={8}>
-              <Text style={{ color: c.danger, fontSize: 12, fontWeight: '600' }}>{ns.clearAll}</Text>
+            <Pressable
+              onPress={onClearAll}
+              hitSlop={6}
+              style={[styles.actionPill, { backgroundColor: c.dangerSoft }]}
+            >
+              <Trash2 color={c.danger} size={14} />
+              <Text style={{ color: c.danger, fontSize: 12.5, fontWeight: '600' }}>{ns.clearAll}</Text>
             </Pressable>
           )}
         </View>
-      </View>
+      )}
 
       {isLoading && (
         <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
@@ -222,9 +241,18 @@ export default function NotificationsScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.lg },
+  headerTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerIcon: { width: 34, height: 34, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  headerActionsRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginBottom: spacing.lg },
+  actionPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: radius.full,
+  },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm },
   iconWrap: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   dot: { width: 7, height: 7, borderRadius: 4 },
