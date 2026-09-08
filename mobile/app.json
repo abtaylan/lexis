@@ -22,6 +22,7 @@
     },
     "android": {
       "package": "app.lexis.mobile",
+      "googleServicesFile": "./google-services.json",
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#071D45",

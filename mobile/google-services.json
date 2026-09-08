@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "856605079231",
+    "project_id": "lexis-291d9",
+    "storage_bucket": "lexis-291d9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:856605079231:android:53ddf2988a0c7d46cfb80a",
+        "android_client_info": {
+          "package_name": "app.lexis.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDQwOt8Ydy0dZ85z5lXJCKwkARGXLCbNus"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
