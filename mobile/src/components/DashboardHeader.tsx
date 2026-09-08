@@ -60,7 +60,6 @@ export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
   );
 
   const unreadNotifications = notifData?.unread_count ?? 0;
-  const hasUnreadMessages = (unreadMessages ?? 0) > 0;
   const initial = (user?.display_name || user?.username || '?').trim().charAt(0).toUpperCase();
 
   const xpSpan = xp ? Math.max(1, xp.next_level_xp_target - xp.current_level_xp_floor) : 1;
@@ -91,7 +90,7 @@ export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
           />
           <HeaderIconButton
             icon={<MessageCircle color="#fff" size={17} />}
-            dot={hasUnreadMessages}
+            count={unreadMessages ?? 0}
             onPress={() => router.push('/(app)/messages')}
           />
           <Pressable onPress={() => router.push('/(app)/profile')} style={styles.avatar} hitSlop={8}>
