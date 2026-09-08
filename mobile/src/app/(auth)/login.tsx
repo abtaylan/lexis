@@ -10,6 +10,7 @@ import { spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
+import { AppleSignInButton } from '@/components/AppleSignInButton';
 
 export default function LoginScreen() {
   const { t } = useLocale();
@@ -86,6 +87,17 @@ export default function LoginScreen() {
 
       <Button title={loading ? t('loggingInBtn') : t('loginBtnText')} onPress={handleLogin} loading={loading} />
 
+      <View style={styles.dividerRow}>
+        <View style={[styles.dividerLine, { backgroundColor: c.border }]} />
+        <Text style={[styles.dividerText, { color: c.textSecondary }]}>{t('orDividerText')}</Text>
+        <View style={[styles.dividerLine, { backgroundColor: c.border }]} />
+      </View>
+      <AppleSignInButton
+        onError={setError}
+        onStart={() => setLoading(true)}
+        onFinish={() => setLoading(false)}
+      />
+
       <Pressable onPress={() => router.push('/(auth)/forgot-password')} style={styles.linkRow}>
         <Text style={[styles.link, { color: c.primary }]}>{t('forgotPasswordLink')}</Text>
       </Pressable>
@@ -106,6 +118,9 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: '700' },
   error: { fontSize: 13, marginBottom: spacing.md },
   linkRow: { alignItems: 'flex-end', marginTop: spacing.sm },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, gap: spacing.sm },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  dividerText: { fontSize: 12, fontWeight: '600' },
   link: { fontSize: 13, fontWeight: '600' },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
 });

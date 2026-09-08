@@ -12,6 +12,7 @@
       "bundleIdentifier": "app.lexis.mobile",
       "icon": "./assets/app-icon.png",
       "supportsTablet": false,
+      "usesAppleSignIn": true,
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification"
@@ -41,6 +42,7 @@
     "plugins": [
       "expo-router",
       "expo-iap",
+      "expo-apple-authentication",
       [
         "react-native-google-mobile-ads",
         {

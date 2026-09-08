@@ -29,6 +29,10 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class AppleSignInRequest(BaseModel):
+    id_token: str
+    full_name: str | None = None
+
 class VerifyOtpRequest(BaseModel):
     email: EmailStr
     code: str
@@ -260,6 +264,79 @@ async def login(req: LoginRequest):
     except Exception as e:
         print(f"LOGIN ERROR: {e}")
         raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
+
+@router.post("/apple")
+async def apple_sign_in(req: AppleSignInRequest):
+    """
+    Apple ile Giris (native, expo-apple-authentication). Supabase Auth'un
+    yerlesik Apple saglayicisi kullaniliyor: sign_in_with_id_token, Apple'in
+    JWKS'ine karsi imzayi sunucu tarafinda (Supabase GoTrue) dogruluyor. Ayni
+    e-posta ile onceden sifreyle kayitli bir hesap varsa (e-posta iki tarafta
+    da dogrulanmissa) otomatik olarak AYNI hesaba baglaniyor -- Bilal'in geri
+    bildirimi (7 Eylul 2026 WhatsApp): "Apple hesabi uzerinde tutma, Game
+    Center gibi otomatik tanima" tam olarak bu davranis. OTP adimi YOK: Apple'in
+    kendi Face ID/Touch ID dogrulamasi zaten guclu bir kimlik dogrulama.
+    """
+    try:
+        temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+        result = temp_client.auth.sign_in_with_id_token({
+            "provider": "apple",
+            "token": req.id_token,
+        })
+        if not result.session or not result.user:
+            raise HTTPException(status_code=401, detail="Apple ile giris dogrulanamadi.")
+
+        access_token = result.session.access_token
+        refresh_token = result.session.refresh_token
+        user_id = result.user.id
+        email = result.user.email or ""
+
+        # Ilk giriste (trigger sadece id/display_name ekliyor -- bkz.
+        # public.handle_new_user) profili register akisiyla ayni varsayilanlarla
+        # tamamla: username hala bossa bu, bu kullanicinin ilk Apple girisidir.
+        try:
+            profile = (
+                supabase_admin.table("profiles").select("username").eq("id", user_id).single().execute()
+            )
+            if not (profile.data or {}).get("username"):
+                display_name = (req.full_name or "").strip() or (email.split("@")[0] if email else "Kullanıcı")
+                base_username = (email.split("@")[0] if email else user_id[:8]) or user_id[:8]
+                username = base_username
+                try:
+                    supabase_admin.table("profiles").update({
+                        "display_name": display_name,
+                        "username": username,
+                    }).eq("id", user_id).execute()
+                except Exception:
+                    # username cakismasi -- kullanici id'sinin bir parcasiyla benzersizlestir
+                    username = f"{base_username}{user_id[:6]}"
+                    supabase_admin.table("profiles").update({
+                        "display_name": display_name,
+                        "username": username,
+                    }).eq("id", user_id).execute()
+                try:
+                    await learning_languages.add_language(user_id, "en", make_active=True)
+                except Exception as e:
+                    print(f"APPLE_SIGNIN learning_languages warning: {e}")
+        except Exception as e:
+            print(f"APPLE_SIGNIN profile bootstrap warning: {e}")
+
+        payload = _decode_jwt_payload(access_token)
+        user_payload = {
+            "id": payload.get("sub", user_id),
+            "email": payload.get("email", email),
+            "display_name": (payload.get("user_metadata") or {}).get("display_name", ""),
+        }
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": user_payload,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"APPLE_SIGNIN ERROR: {e}")
+        raise HTTPException(status_code=401, detail="Apple ile giris basarisiz. Lutfen tekrar deneyin.")
 
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyOtpRequest):

@@ -11,6 +11,7 @@ import { spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
+import { AppleSignInButton } from '@/components/AppleSignInButton';
 import { ChipSelect } from '@/components/ui/ChipSelect';
 
 export default function RegisterScreen() {
@@ -107,6 +108,17 @@ export default function RegisterScreen() {
           {error ? <Text style={[styles.error, { color: c.danger }]}>{error}</Text> : null}
 
           <Button title={mt('continueBtn')} onPress={goToLanguageStep} />
+
+          <View style={styles.dividerRow}>
+            <View style={[styles.dividerLine, { backgroundColor: c.border }]} />
+            <Text style={[styles.dividerText, { color: c.textSecondary }]}>{t('orDividerText')}</Text>
+            <View style={[styles.dividerLine, { backgroundColor: c.border }]} />
+          </View>
+          <AppleSignInButton
+            onError={setError}
+            onStart={() => setLoading(true)}
+            onFinish={() => setLoading(false)}
+          />
         </>
       ) : (
         <>
@@ -154,6 +166,9 @@ const styles = StyleSheet.create({
   label: { fontSize: 13, fontWeight: '600', marginBottom: spacing.sm },
   hint: { fontSize: 11, marginTop: -spacing.sm, marginBottom: spacing.md },
   error: { fontSize: 13, marginBottom: spacing.md },
+  dividerRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg, gap: spacing.sm },
+  dividerLine: { flex: 1, height: StyleSheet.hairlineWidth },
+  dividerText: { fontSize: 12, fontWeight: '600' },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: spacing.xl },
   link: { fontSize: 13, fontWeight: '600' },
 });

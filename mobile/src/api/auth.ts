@@ -25,6 +25,13 @@ export const authApi = {
     return res.data;
   },
 
+  // Apple ile Giris (native, expo-apple-authentication) -- OTP YOK, backend
+  // Supabase'in yerlesik Apple saglayicisiyla dogrudan session donduruyor.
+  appleSignIn: async (data: { id_token: string; full_name?: string }): Promise<AuthResponse> => {
+    const res = await api.post<AuthResponse>('/auth/apple', data);
+    return res.data;
+  },
+
   verifyOtp: async (data: {
     email: string;
     code: string;
