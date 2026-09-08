@@ -1,9 +1,12 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 import { Tabs } from 'expo-router';
+import * as Notifications from 'expo-notifications';
 import { CalendarDays, Trophy, User } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { WordsTabIcon, GameTabIcon, DashboardTabIcon } from '@/components/icons/TabIcons';
+import { useNotificationsSetup } from '@/hooks/useNotificationsSetup';
 
 // Alt sekme çubuğu — telefon ekranlarında 5 sekmenin metin etiketiyle sığmaması
 // (tablet için tasarlanmış "Dashboard" gibi uzun etiketler dar ekranlarda
@@ -13,6 +16,49 @@ import { WordsTabIcon, GameTabIcon, DashboardTabIcon } from '@/components/icons/
 export default function AppTabsLayout() {
   const { t, mt, lbLabels } = useLocale();
   const c = useThemeColors();
+  const { requestPermissionAndRegister } = useNotificationsSetup();
+
+  // KULLANICI İSTEĞİ (8 Eylül 2026): "bu kullanıcıların tamamına bildirim
+  // gitmeli, her seferinde ben sana ios kullanıcı geldikçe bildirmeme gerek
+  // yok, bunu çözmen lazım" — dashboard.tsx'teki tek seferlik (sadece ilk
+  // mount'ta çalışan) self-heal yeterli değildi: bir kullanıcı OS izni
+  // ekranını görmeden/atlayarak dashboard'u ilk açtığı anda kaçırırsa, ya da
+  // izni DAHA SONRA telefon ayarlarından elle açarsa, uygulama bunu bir daha
+  // asla yakalamıyordu — push_tokens'a hiç düşmüyordu.
+  //
+  // Artık bu kontrol, oturum açıkken kalıcı olan sekme katmanında (bu layout,
+  // (app) grubuna her girişte bir kez mount olur ve tab değişiminde
+  // UNMOUNT OLMAZ) hem ilk açılışta hem de her uygulama ön plana her
+  // geldiğinde (AppState 'active') sessizce tekrar deneniyor: OS izni zaten
+  // "granted" ise kullanıcıya hiçbir prompt çıkmadan token yeniden alınıp
+  // backend'e kaydediliyor. Böylece kayıp/eksik push_tokens satırı, hangi
+  // kullanıcı olursa olsun, elle takip etmeye gerek kalmadan kendi kendine
+  // onarılıyor.
+  const registeringRef = useRef(false);
+  const ensureTokenRegistered = React.useCallback(async () => {
+    if (registeringRef.current) return;
+    registeringRef.current = true;
+    try {
+      const current = await Notifications.getPermissionsAsync();
+      if (current.status === 'granted') {
+        await requestPermissionAndRegister();
+      }
+    } catch {
+      /* sessiz — kritik yol değil, bir sonraki ön plana gelişte tekrar denenir */
+    } finally {
+      registeringRef.current = false;
+    }
+  }, [requestPermissionAndRegister]);
+
+  useEffect(() => {
+    ensureTokenRegistered();
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        ensureTokenRegistered();
+      }
+    });
+    return () => sub.remove();
+  }, [ensureTokenRegistered]);
 
   return (
     <Tabs

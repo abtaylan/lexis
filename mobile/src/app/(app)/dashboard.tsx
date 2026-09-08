@@ -14,8 +14,6 @@ import { Card } from '@/components/ui/Card';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
-import * as Notifications from 'expo-notifications';
-import { useNotificationsSetup } from '@/hooks/useNotificationsSetup';
 
 const ASKED_KEY = 'lexis_notif_permission_asked';
 
@@ -46,7 +44,6 @@ export default function DashboardScreen() {
   const c = useThemeColors();
   const { user } = useAuth();
   const fs = FRIENDS_STRINGS[locale] ?? FRIENDS_STRINGS.tr;
-  const { requestPermissionAndRegister } = useNotificationsSetup();
 
   const { data: stats, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['stats-summary'],
@@ -68,23 +65,12 @@ export default function DashboardScreen() {
   );
 
   useEffect(() => {
+    // NOT (8 Eylül 2026): Eksik/kayıp push token'ı sessizce onarma işi artık
+    // üst katmandaki (app)/_layout.tsx'e taşındı — orası sadece ilk açılışta
+    // değil, uygulama HER ön plana gelişinde (AppState 'active') tekrar
+    // deniyor, burasından çok daha güvenilir. Bu ekran sadece "hiç izin
+    // sorulmadıysa soft-ask ekranını göster" görevini koruyor.
     (async () => {
-      // KULLANICI GERİ BİLDİRİMİ (8 Eylül 2026): "sabahki bildirim telefonuma
-      // hiç gelmedi" — kök neden: push_tokens tablosunda bu kullanıcı için
-      // HİÇ kayıt yoktu. "İzin soruldu mu" bayrağı (ASKED_KEY) cihaz bazlı ve
-      // kalıcı; izin ekranı bir kez gösterilip kapatıldıktan (veya bu bayrak
-      // başka bir hesap/eski sürüm testinde set olduktan) sonra bir daha asla
-      // tekrar denenmiyordu — izin aslında OS düzeyinde "granted" olsa bile
-      // token'ın backend'e kayıtlı olduğundan hiçbir zaman emin olunmuyordu.
-      // Artık: izin zaten verilmişse (kullanıcıya herhangi bir prompt
-      // ÇIKMADAN, OS seviyesinde no-op) token'ı sessizce yeniden alıp backend'e
-      // kaydediyoruz — böylece kayıp/eksik push_tokens satırı kendiliğinden
-      // onarılıyor. İzin hiç sorulmadıysa eskisi gibi soft-ask ekranına gidiyor.
-      const current = await Notifications.getPermissionsAsync();
-      if (current.status === 'granted') {
-        requestPermissionAndRegister();
-        return;
-      }
       const asked = await bulkStorage.getItem(ASKED_KEY);
       if (!asked) {
         const timer = setTimeout(() => router.push('/(app)/notification-permission'), 1200);
