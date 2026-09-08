@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Sparkles, Star, Save, X, Trash2, Plus, Check,
+  Sparkles, Star, Save, X, Trash2, Plus, Check, CalendarClock,
   Flame, Zap, Coffee, Headphones, BookOpen, GraduationCap, User as UserIcon,
 } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { scheduleApi } from '@/api/schedule';
-import type { ScheduleCreate, ScheduleItem, ScheduleTemplate } from '@/api/types';
+import { examReminderApi } from '@/api/examReminders';
+import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ExamReminder } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -40,6 +41,10 @@ const TASK_LINKS: Record<string, string> = {
   'YÖKDİL Sözlük Kitabı': '',
   'Voice of America': 'https://learningenglish.voanews.com/',
   "Luke's English Podcast": 'https://teacherluke.co.uk/',
+  // Aşama 6: "YDS'den Nasıl 96 Aldım?" videosundaki tavsiyelere göre
+  // hazırlanan taktik sınav şablonu (bkz. TEMPLATES altındaki 'ydstaktik').
+  'Çıkmış Soru Analizi': '',
+  'Taktik Kaynak Kitap': '',
 };
 
 function link(activity: string): string {
@@ -144,7 +149,155 @@ const TEMPLATES: Template[] = [
       { day_of_week: 6, time_slot: '10:00', activity: 'Genel Tekrar', duration_min: 45, link_url: link('Genel Tekrar') },
     ],
   },
+  {
+    id: 'ydstaktik',
+    name: 'Sınav Taktiği (YDS/YÖKDİL)',
+    desc: 'Çıkmış soru analizi + düzenli okuma · video tavsiyesi',
+    icon: <GraduationCap color="#9A3412" size={20} />,
+    accent: '#9A3412',
+    items: [
+      { day_of_week: 1, time_slot: '08:00', activity: 'Taktik Kaynak Kitap', duration_min: 30, link_url: link('Taktik Kaynak Kitap') },
+      { day_of_week: 1, time_slot: '20:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
+      { day_of_week: 2, time_slot: '08:00', activity: 'Çıkmış Soru Analizi', duration_min: 40, link_url: link('Çıkmış Soru Analizi') },
+      { day_of_week: 3, time_slot: '08:00', activity: 'Haber Okuma', duration_min: 30, link_url: link('Haber Okuma') },
+      { day_of_week: 3, time_slot: '20:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
+      { day_of_week: 4, time_slot: '08:00', activity: 'Çıkmış Soru Analizi', duration_min: 40, link_url: link('Çıkmış Soru Analizi') },
+      { day_of_week: 5, time_slot: '08:00', activity: 'Video Analizi', duration_min: 25, link_url: link('Video Analizi') },
+      { day_of_week: 6, time_slot: '10:00', activity: 'Genel Tekrar', duration_min: 60, link_url: link('Genel Tekrar') },
+      { day_of_week: 0, time_slot: '11:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
+    ],
+  },
 ];
+
+// KULLANICI İSTEĞİ (8 Eylül 2026): "sınav hatırlatıcısı ekleyelim mobil
+// uygulama ve web uygulama sayfasına (tüm yabancı dil sınavları için
+// olmalı)". ÖSYM sınav takvimi zamanla değişebildiği için tarihleri burada
+// SABİT KOD OLARAK TUTMUYORUZ — kullanıcı kendi başvurduğu sınavın tarihini
+// giriyor, biz sadece ÖSYM'nin resmi takvim sayfasına bağlantı veriyoruz.
+// Native bir tarih seçici (DateTimePicker) proje bağımlılıklarında henüz
+// yok — yeni bir native modül eklemek yeni bir native build gerektirir,
+// bu yüzden bilinçli olarak basit metin girişi (YYYY-AA-GG) kullanıldı.
+function daysUntilExam(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(`${dateStr}T00:00:00`);
+  return Math.round((target.getTime() - today.getTime()) / 86400000);
+}
+
+function ExamRemindersCard() {
+  const c = useThemeColors();
+  const qc = useQueryClient();
+  const [showAdd, setShowAdd] = useState(false);
+  const [name, setName] = useState('');
+  const [dateVal, setDateVal] = useState('');
+  const [error, setError] = useState('');
+
+  const { data: exams, isLoading } = useQuery({
+    queryKey: ['exam-reminders'],
+    queryFn: examReminderApi.getAll,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: examReminderApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['exam-reminders'] });
+      setName(''); setDateVal(''); setShowAdd(false); setError('');
+    },
+    onError: () => setError('Sınav hatırlatıcısı eklenemedi. Tarihi YYYY-AA-GG biçiminde girdiğinden emin ol.'),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => examReminderApi.delete(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['exam-reminders'] }),
+  });
+
+  const handleAdd = () => {
+    if (!name.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(dateVal)) {
+      setError('Sınav adı ve tarihi (YYYY-AA-GG) gerekli.');
+      return;
+    }
+    createMutation.mutate({ exam_name: name.trim(), exam_date: dateVal });
+  };
+
+  return (
+    <Card style={{ marginBottom: spacing.lg }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 }}>
+          <View style={{ width: 34, height: 34, borderRadius: radius.md, backgroundColor: c.dangerSoft, alignItems: 'center', justifyContent: 'center' }}>
+            <CalendarClock color={c.danger} size={18} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: c.text, fontSize: 14, fontWeight: '700' }}>Sınav Hatırlatıcıları</Text>
+            <Text style={{ color: c.textMuted, fontSize: 11 }}>YDS, YÖKDİL, TOEFL, IELTS — herhangi bir sınav</Text>
+          </View>
+        </View>
+        <Pressable onPress={() => setShowAdd((s) => !s)} style={[styles.pillBtn, { backgroundColor: c.dangerSoft }]}>
+          <Plus color={c.danger} size={14} />
+          <Text style={{ color: c.danger, fontWeight: '700', fontSize: 12 }}>Ekle</Text>
+        </Pressable>
+      </View>
+
+      <Pressable onPress={() => Linking.openURL('https://www.osym.gov.tr')}>
+        <Text style={{ color: c.textMuted, fontSize: 11, textDecorationLine: 'underline', marginBottom: spacing.sm }}>
+          ÖSYM sınav takvimini görüntüle ↗
+        </Text>
+      </Pressable>
+
+      {showAdd && (
+        <View style={{ marginBottom: spacing.sm, gap: spacing.xs }}>
+          <TextField placeholder="Sınav adı (Örn. YDS, YÖKDİL, TOEFL)" value={name} onChangeText={setName} />
+          <TextField placeholder="Sınav tarihi (YYYY-AA-GG)" value={dateVal} onChangeText={setDateVal} keyboardType="numbers-and-punctuation" />
+          {!!error && <Text style={{ color: c.danger, fontSize: 11 }}>{error}</Text>}
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <View style={{ flex: 1 }}>
+              <Button title={createMutation.isPending ? '...' : 'Kaydet'} onPress={handleAdd} loading={createMutation.isPending} />
+            </View>
+            <Pressable onPress={() => { setShowAdd(false); setError(''); }} style={{ paddingHorizontal: spacing.md, justifyContent: 'center' }}>
+              <Text style={{ color: c.textMuted, fontSize: 13 }}>Vazgeç</Text>
+            </Pressable>
+          </View>
+        </View>
+      )}
+
+      {isLoading ? (
+        <Text style={{ color: c.textMuted, fontSize: 12 }}>Yükleniyor…</Text>
+      ) : !exams || exams.length === 0 ? (
+        <Text style={{ color: c.textMuted, fontSize: 12 }}>
+          Henüz eklenmiş bir sınav yok. Sınav tarihini eklersen 30/14/7/3/1 gün kala ve sınav günü hatırlatma alırsın.
+        </Text>
+      ) : (
+        <View style={{ gap: spacing.xs }}>
+          {exams.map((exam: ExamReminder) => {
+            const days = daysUntilExam(exam.exam_date);
+            const urgent = days <= 7;
+            return (
+              <View
+                key={exam.id}
+                style={{
+                  flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                  backgroundColor: urgent ? c.dangerSoft : 'transparent',
+                  borderWidth: urgent ? 0 : 1, borderColor: c.border, borderRadius: radius.md,
+                  paddingVertical: spacing.xs + 2, paddingHorizontal: spacing.sm,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1 }}>
+                  <Text style={{ color: urgent ? c.danger : c.text, fontWeight: '700', fontSize: 12 }}>{exam.exam_name}</Text>
+                  <Text style={{ color: c.textMuted, fontSize: 11 }}>{exam.exam_date.split('-').reverse().join('.')}</Text>
+                  <Text style={{ color: urgent ? c.danger : c.textSecondary, fontSize: 11, fontWeight: '600' }}>
+                    {days > 0 ? `${days} gün kaldı` : days === 0 ? 'Bugün!' : 'Geçti'}
+                  </Text>
+                </View>
+                <Pressable onPress={() => deleteMutation.mutate(exam.id)} hitSlop={6}>
+                  <X color={c.textMuted} size={14} />
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
+      )}
+    </Card>
+  );
+}
 
 export default function ScheduleScreen() {
   const { t } = useLocale();
@@ -225,6 +378,8 @@ export default function ScheduleScreen() {
           </Pressable>
         </View>
       </View>
+
+      <ExamRemindersCard />
 
       {!isLoading && !hasItems && (
         <View>
