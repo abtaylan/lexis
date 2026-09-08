@@ -105,10 +105,16 @@ export const authApi = {
     return res.data;
   },
 
-  // Login artık direkt token dönmüyor — şifre doğrulanır ve OTP kodu gönderilir.
-  // Kullanıcı /verify-otp?email=...&purpose=login ekranına yönlendirilmeli.
-  login: async (data: { email: string; password: string }): Promise<OtpPendingResponse> => {
-    const res = await api.post<OtpPendingResponse>('/auth/login', data);
+  // KULLANICI İSTEĞİ (7-8 Eylül 2026): "OTP sadece üye olurken/kayıt sonrası
+  // ilk girişte gelsin, sonraki girişlerde gerek yok" — backend artık bu
+  // email için login-purpose OTP daha önce en az bir kez doğrulandıysa
+  // (has_ever_verified) OTP adımını tamamen atlayıp token'ları DOĞRUDAN
+  // dönüyor (AuthResponse). İlk girişte ise eskisi gibi {pending:true,...}
+  // dönüp OTP ekranına yönlendirilmesi gerekiyor. Bu yüzden dönüş tipi artık
+  // union — çağıran taraf (login/page.tsx) 'access_token' alanına bakarak
+  // ayırt ediyor (mobile/src/app/(auth)/login.tsx ile aynı mantık).
+  login: async (data: { email: string; password: string }): Promise<OtpPendingResponse | AuthResponse> => {
+    const res = await api.post<OtpPendingResponse | AuthResponse>('/auth/login', data);
     return res.data;
   },
 

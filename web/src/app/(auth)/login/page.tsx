@@ -6,6 +6,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
 import { authApi } from '@/lib/api';
+import { useAuth } from '@/store/auth';
+import type { User as UserType } from '@/types';
 import { Button, Input, Card } from '@/components/ui';
 import { useLocale } from '@/lib/i18n';
 import { getErrorMessage } from '@/lib/errors';
@@ -13,6 +15,7 @@ import { getErrorMessage } from '@/lib/errors';
 export default function LoginPage() {
   const router = useRouter();
   const { t } = useLocale();
+  const { login: loginToStore } = useAuth();
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPw, setShowPw] = useState(false);
@@ -29,10 +32,41 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Şifre doğrulanır, OTP kodu gönderilir — token burada dönmez.
-      await authApi.login(form);
+      const res = await authApi.login(form);
+
+      // KULLANICI İSTEĞİ (7-8 Eylül 2026): "OTP sadece üye olurken/kayıt
+      // sonrası ilk girişte gelsin, sonraki girişlerde gerek yok" — mobil
+      // tarafta zaten uygulanmıştı (mobile/src/app/(auth)/login.tsx), web
+      // burada eksikti: backend 'access_token' ile DİREKT dönse bile web
+      // hep /verify-otp'a yönlendiriyordu, kullanıcı her girişte OTP
+      // ekranına düşüyordu. Artık backend cevabında 'access_token' varsa
+      // (yani bu email için daha önce en az bir kez doğrulanmışsa) OTP
+      // ekranına hiç gitmeden doğrudan oturum açılıp dashboard'a geçiliyor;
+      // 'pending: true' geldiyse (kayıt sonrası ilk giriş) eskisi gibi OTP
+      // ekranına yönlendiriliyor.
+      if ('access_token' in res) {
+        localStorage.setItem('lexis_token', res.access_token);
+        const me = await authApi.getMe();
+        const user: UserType = {
+          id: me.id,
+          email: me.email,
+          username: me.username || '',
+          display_name: me.display_name,
+          is_admin: me.is_admin ?? me.role === 'admin',
+          role: me.role,
+          daily_goal: me.daily_goal ?? 5,
+          native_lang: me.native_lang,
+          learning_lang: me.learning_lang,
+          created_at: me.created_at || new Date().toISOString(),
+        };
+        loginToStore(res.access_token, user);
+        router.push(user.role === 'admin' || user.role === 'admin_readonly' ? '/admin' : '/dashboard');
+        return;
+      }
+
       router.push(`/verify-otp?email=${encodeURIComponent(form.email)}&purpose=login`);
     } catch (err) {
+      localStorage.removeItem('lexis_token');
       setError(getErrorMessage(err, t('loginErrorMsg')));
     } finally {
       setLoading(false);
