@@ -2,6 +2,13 @@
 // gerçek production adresini kullanır (21 Ağustos 2026'da lexis-web olarak deploy edildi).
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://lexis-web.vercel.app';
 
+// Bu landing sitesinin kendi adresi (SEO metadata'sı — Open Graph, JSON-LD,
+// sitemap.xml, robots.txt — için tek kaynak, 4 Eylül 2026). Özel alan adı
+// lexiswords.com satın alınıp Vercel'e bağlandı (doğrulandı: site şu an
+// bu adresten yayında); Vercel'de env değişkeni tanımlıysa onu, tanımlı
+// değilse bu gerçek marka adresini kullanır.
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lexiswords.com';
+
 export const LOGIN_URL = `${APP_URL}/login`;
 export const REGISTER_URL = `${APP_URL}/register`;
 

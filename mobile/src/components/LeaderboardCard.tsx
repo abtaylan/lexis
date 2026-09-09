@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { router } from 'expo-router';
 import { statsApi } from '@/api/stats';
 import type { LeaderboardEntry, LeaderboardPeriod } from '@/api/types';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { Card } from '@/components/ui/Card';
+
+// Satıra dokununca profile git — web'deki Leaderboard.tsx'in `Link href={`/u/${username}`}`
+// davranışıyla aynı: "ben" satırı dahil her satır kendi public profiline gidiyor
+// (bkz. friends.tsx'teki goToProfile ile aynı navigasyon deseni, 4 Eylül 2026).
+function goToProfile(username?: string) {
+  if (!username) return;
+  router.push({ pathname: '/(app)/user-profile', params: { username } });
+}
 
 export function LeaderboardCard({ limit = 5 }: { limit?: number }) {
   const { lbLabels } = useLocale();
@@ -69,7 +78,14 @@ function Row({ entry, isMe, youLabel, pointsLabel }: { entry: LeaderboardEntry; 
   const c = useThemeColors();
   const initial = (entry.username || '?').charAt(0).toUpperCase();
   return (
-    <View style={[styles.row, isMe && { backgroundColor: c.warningSoft, borderRadius: radius.md }]}>
+    <Pressable
+      onPress={() => goToProfile(entry.username)}
+      style={({ pressed }) => [
+        styles.row,
+        isMe && { backgroundColor: c.warningSoft, borderRadius: radius.md },
+        pressed && { opacity: 0.6 },
+      ]}
+    >
       <Text style={[styles.rank, { color: entry.rank <= 3 ? c.warning : c.textMuted }]}>
         {entry.rank <= 3 ? '👑' : entry.rank}
       </Text>
@@ -85,7 +101,7 @@ function Row({ entry, isMe, youLabel, pointsLabel }: { entry: LeaderboardEntry; 
       <Text style={{ fontSize: 12, fontWeight: '600', color: c.textSecondary }}>
         {entry.xp.toLocaleString()} {pointsLabel}
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
