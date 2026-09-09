@@ -20,6 +20,13 @@ gereği onay beklenmeden karara bağlandı):
 - games.py'deki desenlerle tutarlı: session/next-item/attempt/finish akışı,
   supabase_admin ile doğrudan erişim, award_xp ile XP entegrasyonu, "words"
   tablosuna kelime ekleme _sync_word_progress'teki insert şablonunu izler.
+
+9 Eylül 2026 — İstatistik & İçerik Motoru Faz 2 eklendi: kullanıcılar kendi
+soru önerilerini gönderebiliyor (POST /questions/suggest, status=pending
+olarak düşer), adminler bu kuyruğu görüp onaylayıp/reddedebiliyor
+(GET/POST /admin/questions/...). next_question ve list_exam_types artık
+sadece status=approved sorularla çalışıyor — pending/rejected sorular
+kullanıcıya hiç gösterilmiyor (bkz. supabase/migrations/026_exam_prep_stats_and_content.sql).
 """
 
 import random
@@ -27,19 +34,24 @@ from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_admin, get_current_admin_full, get_current_user
 from app.core.database import supabase_admin
 from app.schemas.exams import (
     AddWordFromQuestionResponse,
     ExamAttemptCreate,
     ExamAttemptResponse,
     ExamFinishResponse,
+    ExamQuestionModerationResponse,
     ExamQuestionOption,
+    ExamQuestionSuggestionCreate,
+    ExamQuestionSuggestionResponse,
     ExamSessionCreate,
     ExamSessionResponse,
     ExamTypeInfo,
     NextQuestionResponse,
+    PendingExamQuestion,
 )
+from app.services.audit_log import log_admin_action
 from app.services.spaced_repetition import calculate_next_review
 from app.services.xp_service import award_xp
 
@@ -113,11 +125,15 @@ async def list_exam_types(current_user=Depends(get_current_user)):
         # NOT: count="exact" kasıtlı olarak kullanılmıyor — games.py'deki aynı
         # kararla tutarlı (kurulu supabase-py sürümünde test edilmedi, bkz.
         # games.py::_prior_attempt_count yorumu). len(result.data) güvenli.
+        # status=approved filtresi: pending/rejected sorular sayıya dahil değil
+        # (kullanıcı katkısı/AI üretimi onay bekleyen sorular "kaç soru var"
+        # göstergesini şişirmesin).
         result = (
             supabase_admin.table("exam_questions")
             .select("id")
             .eq("exam_type", exam_type)
             .eq("is_active", True)
+            .eq("status", "approved")
             .execute()
         )
         count = len(result.data or [])
@@ -142,6 +158,8 @@ async def create_session(session_in: ExamSessionCreate, current_user=Depends(get
         total_questions = session_in.total_questions or PRACTICE_DEFAULT_QUESTIONS
         time_limit_seconds = None
 
+    _, learning_lang = _profile_langs(current_user.id)
+
     row = {
         "user_id": current_user.id,
         "exam_type": exam_type,
@@ -150,6 +168,7 @@ async def create_session(session_in: ExamSessionCreate, current_user=Depends(get
         "time_limit_seconds": time_limit_seconds,
         "score": 0,
         "xp_earned": 0,
+        "learning_lang": learning_lang,
     }
     result = supabase_admin.table("exam_sessions").insert(row).execute()
     if not result.data:
@@ -172,6 +191,7 @@ async def next_question(session_id: str, current_user=Depends(get_current_user))
         .select("id, question_text, options")
         .eq("exam_type", session["exam_type"])
         .eq("is_active", True)
+        .eq("status", "approved")
     )
     if attempted:
         query = query.not_.in_("id", attempted)
@@ -361,3 +381,129 @@ async def add_word_from_question(question_id: str, current_user=Depends(get_curr
         added_count += 1
 
     return AddWordFromQuestionResponse(added_count=added_count, already_had_count=already_had_count)
+
+
+# ── İstatistik & İçerik Motoru Faz 2: kullanıcı soru önerisi ───────────
+
+
+@router.post("/questions/suggest", response_model=ExamQuestionSuggestionResponse, status_code=201)
+async def suggest_question(
+    payload: ExamQuestionSuggestionCreate, current_user=Depends(get_current_user)
+):
+    """Kullanıcı kendi sorusunu önerir — status=pending olarak kaydedilir,
+    next_question/list_exam_types onaylanmadan (status=approved) bu soruyu
+    hiç görmez. Admin GET/POST /admin/questions/... ile onaylar/reddeder."""
+    if not _exam_area_enabled(current_user.id):
+        raise HTTPException(
+            status_code=403,
+            detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen, ana dili Türkçe olan kullanıcılar için kullanılabilir.",
+        )
+
+    option_ids = [opt.id for opt in payload.options]
+    if len(set(option_ids)) != len(option_ids):
+        raise HTTPException(status_code=422, detail="Şık id'leri birbirinden farklı olmalı.")
+    if payload.correct_option not in option_ids:
+        raise HTTPException(
+            status_code=422, detail="correct_option, options listesindeki bir id ile eşleşmeli."
+        )
+
+    _, learning_lang = _profile_langs(current_user.id)
+
+    row = {
+        "exam_type": payload.exam_type.value,
+        "question_text": payload.question_text,
+        "options": [opt.model_dump() for opt in payload.options],
+        "correct_option": payload.correct_option,
+        "explanation": payload.explanation,
+        "topic_tag": payload.topic_tag,
+        "learning_lang": learning_lang,
+        "source_type": "user",
+        "status": "pending",
+        "submitted_by": current_user.id,
+        "is_active": True,
+    }
+    result = supabase_admin.table("exam_questions").insert(row).execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Soru önerisi kaydedilemedi.")
+
+    created = result.data[0]
+    return ExamQuestionSuggestionResponse(id=created["id"], status=created["status"])
+
+
+# ── İstatistik & İçerik Motoru Faz 2: admin moderasyon kuyruğu ────────
+# admin.py'deki RBAC desenini izler: get_current_admin salt-okunur listeleme
+# için yeterli, get_current_admin_full mutasyon (onay/red) için zorunlu.
+
+
+@router.get("/admin/questions/pending", response_model=list[PendingExamQuestion])
+async def list_pending_questions(admin=Depends(get_current_admin)):
+    result = (
+        supabase_admin.table("exam_questions")
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", desc=False)
+        .execute()
+    )
+    rows = result.data or []
+
+    email_map: dict[str, str] = {}
+    submitter_ids = {r["submitted_by"] for r in rows if r.get("submitted_by")}
+    if submitter_ids:
+        try:
+            page = supabase_admin.auth.admin.list_users()
+            users = page if isinstance(page, list) else getattr(page, "users", [])
+            for u in users:
+                if u.id in submitter_ids:
+                    email_map[u.id] = u.email
+        except Exception as e:
+            print(f"LIST_PENDING_QUESTIONS email map warning: {e}")
+
+    return [
+        PendingExamQuestion(
+            id=r["id"],
+            exam_type=r["exam_type"],
+            learning_lang=r["learning_lang"],
+            question_text=r["question_text"],
+            options=[ExamQuestionOption(**opt) for opt in r["options"]],
+            correct_option=r["correct_option"],
+            explanation=r.get("explanation"),
+            topic_tag=r.get("topic_tag"),
+            source_type=r["source_type"],
+            submitted_by=r.get("submitted_by"),
+            submitted_by_email=email_map.get(r.get("submitted_by")),
+            created_at=r["created_at"],
+        )
+        for r in rows
+    ]
+
+
+@router.post(
+    "/admin/questions/{question_id}/approve", response_model=ExamQuestionModerationResponse
+)
+async def approve_question(question_id: str, admin=Depends(get_current_admin_full)):
+    result = (
+        supabase_admin.table("exam_questions")
+        .update({"status": "approved"})
+        .eq("id", question_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Soru bulunamadı.")
+    log_admin_action(admin.id, admin.email, "exam_question.approve", "exam_question", question_id)
+    return ExamQuestionModerationResponse(id=question_id, status="approved")
+
+
+@router.post(
+    "/admin/questions/{question_id}/reject", response_model=ExamQuestionModerationResponse
+)
+async def reject_question(question_id: str, admin=Depends(get_current_admin_full)):
+    result = (
+        supabase_admin.table("exam_questions")
+        .update({"status": "rejected"})
+        .eq("id", question_id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Soru bulunamadı.")
+    log_admin_action(admin.id, admin.email, "exam_question.reject", "exam_question", question_id)
+    return ExamQuestionModerationResponse(id=question_id, status="rejected")

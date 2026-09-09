@@ -100,3 +100,48 @@ class ExamFinishResponse(BaseModel):
 class AddWordFromQuestionResponse(BaseModel):
     added_count: int
     already_had_count: int
+
+
+# ── Sınav Hazırlık İstatistik & İçerik Motoru — Faz 2: soru havuzu
+#    büyütme (kullanıcı katkısı + moderasyon kuyruğu) ──────────────────
+
+
+class ExamQuestionSuggestionCreate(BaseModel):
+    """Kullanıcının kendi önerdiği soru — onay bekleyen (pending) kayıt
+    olarak exam_questions'a düşer, admin onaylayana kadar next-question
+    havuzunda görünmez."""
+
+    exam_type: ExamType
+    question_text: str = Field(min_length=10, max_length=2000)
+    options: list[ExamQuestionOption] = Field(min_length=2, max_length=6)
+    correct_option: str
+    explanation: str | None = Field(default=None, max_length=2000)
+    topic_tag: str | None = Field(default=None, max_length=100)
+
+
+class ExamQuestionSuggestionResponse(BaseModel):
+    id: str
+    status: str
+
+
+class PendingExamQuestion(BaseModel):
+    """Admin moderasyon kuyruğunda listelenen soru — kaynağı user veya ai,
+    durumu pending olan tüm exam_questions kayıtları."""
+
+    id: str
+    exam_type: str
+    learning_lang: str
+    question_text: str
+    options: list[ExamQuestionOption]
+    correct_option: str
+    explanation: str | None = None
+    topic_tag: str | None = None
+    source_type: str
+    submitted_by: str | None = None
+    submitted_by_email: str | None = None
+    created_at: datetime
+
+
+class ExamQuestionModerationResponse(BaseModel):
+    id: str
+    status: str
