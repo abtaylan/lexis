@@ -30,6 +30,8 @@ import type {
   ExamAttemptResult,
   ExamFinishResult,
   AddWordFromQuestionResult,
+  ExamQuestionSuggestionInput,
+  ExamQuestionSuggestionResult,
   Notification,
   AdminUser,
   AdminUserDetail,
@@ -451,6 +453,11 @@ export const examsApi = {
   },
   addWordFromQuestion: async (questionId: string): Promise<AddWordFromQuestionResult> => {
     const res = await api.post<AddWordFromQuestionResult>(`/exams/questions/${questionId}/add-word`);
+    return res.data;
+  },
+  // Sınav Hazırlık İstatistik & İçerik Motoru Faz 2 — kullanıcı soru önerisi.
+  suggestQuestion: async (data: ExamQuestionSuggestionInput): Promise<ExamQuestionSuggestionResult> => {
+    const res = await api.post<ExamQuestionSuggestionResult>('/exams/questions/suggest', data);
     return res.data;
   },
 };

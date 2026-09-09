@@ -328,6 +328,20 @@ export interface AddWordFromQuestionResult {
   already_had_count: number;
 }
 
+export interface ExamQuestionSuggestionInput {
+  exam_type: ExamType;
+  question_text: string;
+  options: ExamQuestionOption[];
+  correct_option: string;
+  explanation?: string;
+  topic_tag?: string;
+}
+
+export interface ExamQuestionSuggestionResult {
+  id: string;
+  status: string;
+}
+
 export interface AdminUser {
   id: string;
   email: string;

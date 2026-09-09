@@ -64,6 +64,7 @@ type ExamStrings = {
   levelUpTpl: string;
   playAgainBtn: string;
   backToDashboardBtn: string;
+  suggestEntryLabel: string;
 };
 
 // mobile/src/i18n/examStrings.ts ile birebir aynı tr/en metinler.
@@ -103,6 +104,7 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     levelUpTpl: 'Seviye atladın! Yeni seviye: {level}',
     playAgainBtn: 'Tekrar Dene',
     backToDashboardBtn: 'Panele Dön',
+    suggestEntryLabel: 'Soru Öner',
   },
   en: {
     pageTitle: 'Exam Prep Area',
@@ -139,6 +141,7 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     levelUpTpl: 'You leveled up! New level: {level}',
     playAgainBtn: 'Try Again',
     backToDashboardBtn: 'Back to Dashboard',
+    suggestEntryLabel: 'Suggest a Question',
   },
 };
 
@@ -365,6 +368,13 @@ export default function ExamPrepPage() {
             );
           })}
         </div>
+
+        <button
+          onClick={() => router.push('/exam-suggest')}
+          className="mt-6 w-full text-center text-sm font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
+        >
+          {et.suggestEntryLabel}
+        </button>
       </div>
     );
   }
