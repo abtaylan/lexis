@@ -76,6 +76,7 @@ from app.schemas.games import (
     PoolSource,
 )
 from app.services.spaced_repetition import calculate_next_review
+from app.services.streak import update_streak
 from app.services.xp_service import award_xp
 
 router = APIRouter()
@@ -513,6 +514,14 @@ async def submit_attempt(
         current_user.id, attempt_in.word_id, attempt_in.general_word_id, attempt_in.is_correct
     )
 
+    # Seri (streak) güncelle — Bug (9 Eylül 2026): bu çağrı hiç yoktu, sadece
+    # words.py'deki eski flashcard-review akışı update_streak() çağırıyordu.
+    # Sonuç: oyun modlarından (Çoktan Seçmeli/Adam Asmaca) XP kazanılıyor ama
+    # seri sayacı hiç ilerlemiyordu — "her gün giriyorum ama seri 0 gösteriyor"
+    # şikayetinin kök nedeni buydu.
+    game_learning_lang, _ = _get_profile_langs(current_user.id)
+    await update_streak(current_user.id, "word_reviewed", learning_lang=game_learning_lang)
+
     new_score = session["score"] + (1 if attempt_in.is_correct else 0)
     new_xp_earned = session["xp_earned"] + xp_awarded
     supabase_admin.table("game_sessions").update(
@@ -601,6 +610,10 @@ async def guess_letter(
 
         # Hazine/istatistik/spaced-repetition senkronizasyonu — bkz. yukarısı.
         _sync_word_progress(current_user.id, word_id, general_word_id, is_complete)
+
+        # Seri (streak) güncelle — bkz. submit_attempt'teki not (9 Eylül 2026 bug fix).
+        game_learning_lang, _ = _get_profile_langs(current_user.id)
+        await update_streak(current_user.id, "word_reviewed", learning_lang=game_learning_lang)
 
         new_score = session["score"] + (1 if is_complete else 0)
         new_xp_earned = session["xp_earned"] + xp_awarded
