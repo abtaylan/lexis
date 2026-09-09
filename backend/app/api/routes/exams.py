@@ -99,9 +99,27 @@ def _profile_langs(user_id: str) -> tuple[str, str]:
     return data.get("native_lang", "tr"), data.get("learning_lang", "en")
 
 
+def _exam_content_learning_langs() -> set[str]:
+    """Onayli (approved) soru icerigi olan learning_lang kodlarinin kumesi —
+    V2 Yol Haritasi madde #5 (9 Eylul 2026): Sinav Hazirlik Alani artik
+    native_lang=tr + learning_lang=en'e SABIT degil, hangi dil ciftlerinde
+    icerik VARSA o kullanicilara acik. Su an sadece learning_lang=en icin
+    soru bankasi dolu (bkz. supabase/migrations/024_exam_prep_yds_seed.sql
+    ve sonraki dalgalar) — yeni bir dil icin soru eklenince bu fonksiyon
+    otomatik olarak o dili de acar, kod degisikligi gerekmez."""
+    result = (
+        supabase_admin.table("exam_questions")
+        .select("learning_lang")
+        .eq("is_active", True)
+        .eq("status", "approved")
+        .execute()
+    )
+    return {row["learning_lang"] for row in (result.data or []) if row.get("learning_lang")}
+
+
 def _exam_area_enabled(user_id: str) -> bool:
-    native_lang, learning_lang = _profile_langs(user_id)
-    return native_lang == "tr" and learning_lang == "en"
+    _, learning_lang = _profile_langs(user_id)
+    return learning_lang in _exam_content_learning_langs()
 
 
 def _get_session(session_id: str, user_id: str) -> dict:
@@ -185,6 +203,7 @@ async def list_exam_types(current_user=Depends(get_current_user)):
     if not _exam_area_enabled(current_user.id):
         return []
 
+    _, learning_lang = _profile_langs(current_user.id)
     infos = []
     for exam_type in SUPPORTED_EXAM_TYPES:
         # NOT: count="exact" kasıtlı olarak kullanılmıyor — games.py'deki aynı
@@ -199,6 +218,7 @@ async def list_exam_types(current_user=Depends(get_current_user)):
             .eq("exam_type", exam_type)
             .eq("is_active", True)
             .eq("status", "approved")
+            .eq("learning_lang", learning_lang)
             .execute()
         )
         count = len(result.data or [])
@@ -211,7 +231,7 @@ async def create_session(session_in: ExamSessionCreate, current_user=Depends(get
     if not _exam_area_enabled(current_user.id):
         raise HTTPException(
             status_code=403,
-            detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen, ana dili Türkçe olan kullanıcılar için kullanılabilir.",
+            detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen kullanıcılar için kullanılabilir.",
         )
 
     exam_type = session_in.exam_type.value
@@ -257,6 +277,7 @@ async def next_question(session_id: str, current_user=Depends(get_current_user))
         .eq("exam_type", session["exam_type"])
         .eq("is_active", True)
         .eq("status", "approved")
+        .eq("learning_lang", session.get("learning_lang", "en"))
     )
     if attempted:
         query = query.not_.in_("id", attempted)
@@ -470,7 +491,7 @@ async def suggest_question(
     if not _exam_area_enabled(current_user.id):
         raise HTTPException(
             status_code=403,
-            detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen, ana dili Türkçe olan kullanıcılar için kullanılabilir.",
+            detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen kullanıcılar için kullanılabilir.",
         )
 
     option_ids = [opt.id for opt in payload.options]
@@ -652,16 +673,18 @@ async def practice_questions_by_topic(
     if not _exam_area_enabled(current_user.id):
         raise HTTPException(
             status_code=403,
-            detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen, ana dili Türkçe olan kullanıcılar için kullanılabilir.",
+            detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen kullanıcılar için kullanılabilir.",
         )
     limit = max(1, min(limit, 10))
 
+    _, practice_learning_lang = _profile_langs(current_user.id)
     query = (
         supabase_admin.table("exam_questions")
         .select("id, exam_type, question_text, options, correct_option, explanation")
         .eq("topic_tag", topic_tag)
         .eq("is_active", True)
         .eq("status", "approved")
+        .eq("learning_lang", practice_learning_lang)
     )
     if exam_type is not None:
         query = query.eq("exam_type", exam_type.value)

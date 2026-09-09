@@ -41,16 +41,34 @@ from app.schemas.grammar import (
 router = APIRouter()
 
 
-def _grammar_area_enabled(user_id: str) -> bool:
+def _profile_learning_lang(user_id: str) -> str:
     profile = (
         supabase_admin.table("profiles")
-        .select("native_lang, learning_lang")
+        .select("learning_lang")
         .eq("id", user_id)
         .single()
         .execute()
     )
-    data = profile.data or {}
-    return data.get("native_lang", "tr") == "tr" and data.get("learning_lang", "en") == "en"
+    return (profile.data or {}).get("learning_lang", "en")
+
+
+def _grammar_content_learning_langs() -> set[str]:
+    """Yayinda (published) Gramer Rehberi icerigi olan learning_lang
+    kodlarinin kumesi — exams.py::_exam_content_learning_langs ile ayni
+    desen (V2 Yol Haritasi madde #5, 9 Eylul 2026). Kasitli olarak
+    kopyalandi, cross-module import yerine (bkz. dosya basindaki modul
+    docstring'i)."""
+    result = (
+        supabase_admin.table("grammar_topics")
+        .select("learning_lang")
+        .eq("status", "published")
+        .execute()
+    )
+    return {row["learning_lang"] for row in (result.data or []) if row.get("learning_lang")}
+
+
+def _grammar_area_enabled(user_id: str) -> bool:
+    return _profile_learning_lang(user_id) in _grammar_content_learning_langs()
 
 
 @router.get("/categories", response_model=list[GrammarCategoryResponse])
@@ -63,13 +81,15 @@ async def list_categories(current_user=Depends(get_current_user)):
 
 @router.get("/topics", response_model=list[GrammarTopicSummary])
 async def list_topics(current_user=Depends(get_current_user)):
-    if not _grammar_area_enabled(current_user.id):
+    learning_lang = _profile_learning_lang(current_user.id)
+    if learning_lang not in _grammar_content_learning_langs():
         return []
 
     result = (
         supabase_admin.table("grammar_topics")
         .select("id, slug, category_id, title_tr, summary_tr, level, exam_relevance, sort_order")
         .eq("status", "published")
+        .eq("learning_lang", learning_lang)
         .order("sort_order")
         .execute()
     )
@@ -97,10 +117,11 @@ async def list_topics(current_user=Depends(get_current_user)):
 
 @router.get("/topics/{slug}", response_model=GrammarTopicDetail)
 async def get_topic(slug: str, current_user=Depends(get_current_user)):
-    if not _grammar_area_enabled(current_user.id):
+    learning_lang = _profile_learning_lang(current_user.id)
+    if learning_lang not in _grammar_content_learning_langs():
         raise HTTPException(
             status_code=403,
-            detail="Gramer Rehberi şu an sadece İngilizce öğrenen, ana dili Türkçe olan kullanıcılar için kullanılabilir.",
+            detail="Gramer Rehberi şu an sadece İngilizce öğrenen kullanıcılar için kullanılabilir.",
         )
 
     result = (
@@ -108,6 +129,7 @@ async def get_topic(slug: str, current_user=Depends(get_current_user)):
         .select("*")
         .eq("slug", slug)
         .eq("status", "published")
+        .eq("learning_lang", learning_lang)
         .execute()
     )
     if not result.data:
