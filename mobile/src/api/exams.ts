@@ -4,6 +4,7 @@ import type {
   AddWordFromQuestionResult,
   ExamAttemptResult,
   ExamFinishResult,
+  ExamPracticeQuestionsResult,
   ExamQuestionSuggestionInput,
   ExamQuestionSuggestionResult,
   ExamSession,
@@ -11,6 +12,7 @@ import type {
   ExamType,
   ExamTypeInfo,
   NextQuestionResult,
+  WeakTopicsResult,
 } from './types';
 
 export const examsApi = {
@@ -48,6 +50,28 @@ export const examsApi = {
   // Sınav Hazırlık İstatistik & İçerik Motoru Faz 2 — kullanıcı soru önerisi.
   suggestQuestion: async (data: ExamQuestionSuggestionInput): Promise<ExamQuestionSuggestionResult> => {
     const res = await api.post<ExamQuestionSuggestionResult>('/exams/questions/suggest', data);
+    return res.data;
+  },
+  // Madde #3b — yanlış cevaptan sonra aynı konudan ekstra pratik soru seti.
+  practiceQuestionsByTopic: async (
+    topicTag: string,
+    opts?: { examType?: ExamType; excludeQuestionId?: string; limit?: number }
+  ): Promise<ExamPracticeQuestionsResult> => {
+    const params: Record<string, string | number> = {};
+    if (opts?.examType) params.exam_type = opts.examType;
+    if (opts?.excludeQuestionId) params.exclude_question_id = opts.excludeQuestionId;
+    if (opts?.limit) params.limit = opts.limit;
+    const res = await api.get<ExamPracticeQuestionsResult>(
+      `/exams/topics/${encodeURIComponent(topicTag)}/practice-questions`,
+      { params }
+    );
+    return res.data;
+  },
+  // Madde #3c — haftalık/günlük zayıf konu özeti (dashboard widget'ı için).
+  weakTopics: async (days = 7, limit = 5): Promise<WeakTopicsResult> => {
+    const res = await api.get<WeakTopicsResult>('/exams/stats/weak-topics', {
+      params: { days, limit },
+    });
     return res.data;
   },
 };

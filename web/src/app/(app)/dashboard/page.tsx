@@ -7,18 +7,43 @@ import {
   BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, MessageCircle, Sun, Moon,
   GraduationCap, ChevronRight,
 } from 'lucide-react';
-import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi, socialApi } from '@/lib/api';
+import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi, socialApi, examsApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
 import { Leaderboard } from '@/components/layout/Leaderboard';
-import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem } from '@/types';
+import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem } from '@/types';
 
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı dashboard
 // banner'ı. mobile/src/i18n/examStrings.ts'teki pageTitle/pageSubtitle/
 // bannerCta ile birebir aynı tr/en metinler (bu alan sadece native_lang=tr +
 // learning_lang=en kullanıcılarına açık, bkz. backend _exam_area_enabled) —
 // diğer diller tr'ye düşer (Sidebar.tsx'teki EXAM_PREP_LABEL ile tutarlı).
+// Madde #3c: haftalık zayıf konu özeti — sadece en az bir zayıf konu varsa
+// gösterilen widget (backend boş liste dönerse hiç render edilmez, bkz.
+// exams.py::weak_topics'teki "soft-disable" deseni).
+const WEAK_TOPICS_STRINGS: Partial<Record<Locale, { title: string; subtitle: string; accuracyTpl: string; reviewBtn: string; practiceBtn: string }>> = {
+  tr: {
+    title: 'Zayıf Konuların',
+    subtitle: 'Son dönemde en çok yanlış yaptığın konular',
+    accuracyTpl: 'Doğruluk: %{percent}',
+    reviewBtn: 'İncele',
+    practiceBtn: 'Pratik Yap',
+  },
+  en: {
+    title: 'Your Weak Topics',
+    subtitle: 'Topics you have missed most recently',
+    accuracyTpl: 'Accuracy: {percent}%',
+    reviewBtn: 'Review',
+    practiceBtn: 'Practice',
+  },
+};
+
+function humanizeTopicTag(tag: string): string {
+  const cleaned = tag.replace(/^vocab-/, '').replace(/-/g, ' ');
+  return cleaned.replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
 const EXAM_BANNER: Partial<Record<Locale, { title: string; subtitle: string; cta: string }>> = {
   tr: {
     title: 'Sınav Hazırlık Alanı',
@@ -122,6 +147,18 @@ export default function DashboardPage() {
   // sadece üst bardaki simge için okunmamış sayısı tutuluyor.
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const msgPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Madde #3c: zayıf konu özeti (dashboard widget'ı) ──
+  const [weakTopics, setWeakTopics] = useState<WeakTopicItem[]>([]);
+
+  useEffect(() => {
+    examsApi
+      .weakTopics(7, 3)
+      .then((res) => setWeakTopics(res.items))
+      .catch(() => {
+        /* soft-disable: uygun olmayan kullanıcı/hata durumunda widget hiç gösterilmez */
+      });
+  }, []);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -486,6 +523,56 @@ export default function DashboardPage() {
           </span>
         </div>
       </button>
+
+      {/* Madde #3c: zayıf konu özeti — sadece en az bir zayıf konu varsa gösterilir. */}
+      {weakTopics.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
+            {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.title}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+            {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.subtitle}
+          </p>
+          <div className="flex flex-col gap-2 mt-3">
+            {weakTopics.map((item) => (
+              <div
+                key={item.topic_tag}
+                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 dark:border-slate-800 p-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate">
+                    {item.related_grammar_topic?.title_tr ?? humanizeTopicTag(item.topic_tag)}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                    {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.accuracyTpl.replace(
+                      '{percent}',
+                      String(Math.round(item.accuracy_ratio * 100))
+                    )}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {item.related_grammar_topic && (
+                    <button
+                      onClick={() => router.push(`/exam-grammar/${item.related_grammar_topic!.slug}`)}
+                      className="text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors"
+                      style={{ borderColor: '#378ADD', color: '#378ADD' }}
+                    >
+                      {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.reviewBtn}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => router.push(`/exam-topic-practice?topic_tag=${encodeURIComponent(item.topic_tag)}`)}
+                    className="text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors"
+                    style={{ borderColor: '#854F0B', color: '#854F0B' }}
+                  >
+                    {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.practiceBtn}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Hızlı aksiyonlar */}
       <div className="grid grid-cols-3 gap-3">

@@ -16,9 +16,16 @@ için sadece native_lang=tr + learning_lang=en kullanıcılarına gösteriliyor.
 Sadece status='published' konular kullanıcıya döner — status='draft' olan
 (ör. ileride eklenecek AI taslakları, admin onayı almadan) hiç görünmez.
 
-Admin içerik yönetimi (CRUD, AI ile taslak üretimi) ve "bu konuyu pratik et"
-için topic_tag'e göre filtrelenmiş sınav oturumu (exams.py::create_session'a
-opsiyonel topic_tag parametresi) bu fazın kapsamında değil — sırada bekliyor.
+Admin içerik yönetimi (CRUD, AI ile taslak üretimi) bu fazın kapsamında değil.
+
+GÜNCELLEME (9 Eylül 2026, İstatistik & İçerik Motoru madde #3b): "bu konuyu
+pratik et" artık exams.py::GET /exams/topics/{topic_tag}/practice-questions
+ile çalışıyor — yukarıdaki notta bahsedilen tam bir session/XP akışı yerine
+BİLİNÇLİ olarak hafif bir mod seçildi (oturum açmaz, exam_attempts'e yazmaz,
+XP vermez); amaç ilerleme ölçmek değil, az önce yanlış yapılan konuyu hızlıca
+pekiştirmek. Aynı madde kapsamında exams.py::submit_attempt de artık yanlış
+cevapta topic_tag'e karşılık gelen (varsa) grammar_topics kaydını
+(related_grammar_topic) dönüyor.
 """
 
 from fastapi import APIRouter, Depends, HTTPException

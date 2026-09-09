@@ -348,6 +348,37 @@ export default function ExamPrepScreen() {
                   )}
                 </Card>
 
+                {/* Madde #3a/#3b: yanlış cevapta ilgili gramer konusuna
+                    yönlendirme + aynı konudan ekstra pratik önerisi. */}
+                {!attemptResult.is_correct && (attemptResult.related_grammar_topic || attemptResult.topic_tag) && (
+                  <View style={{ gap: spacing.sm }}>
+                    {attemptResult.related_grammar_topic && (
+                      <Button
+                        title={et.reviewGrammarTopicTpl.replace('{topic}', attemptResult.related_grammar_topic.title_tr)}
+                        variant="secondary"
+                        onPress={() =>
+                          router.push({
+                            pathname: '/(app)/exam-grammar-detail',
+                            params: { slug: attemptResult.related_grammar_topic!.slug },
+                          })
+                        }
+                      />
+                    )}
+                    {attemptResult.topic_tag && (
+                      <Button
+                        title={et.practiceThisTopicBtn}
+                        variant="ghost"
+                        onPress={() =>
+                          router.push({
+                            pathname: '/(app)/exam-topic-practice',
+                            params: { topic_tag: attemptResult.topic_tag!, exclude_question_id: question?.question_id ?? '' },
+                          })
+                        }
+                      />
+                    )}
+                  </View>
+                )}
+
                 {!!attemptResult.related_words?.length && (
                   <View style={{ gap: spacing.sm }}>
                     {attemptResult.related_words.map((rw) => (

@@ -543,6 +543,12 @@ export interface ExamRelatedWord {
   example?: string | null;
 }
 
+export interface RelatedGrammarTopic {
+  slug: string;
+  title_tr: string;
+  category_name_tr: string;
+}
+
 export interface ExamAttemptResult {
   id: string;
   is_correct: boolean;
@@ -553,6 +559,38 @@ export interface ExamAttemptResult {
   session_score: number;
   leveled_up: boolean;
   new_level: number | null;
+  // Madde #3a/#3b: yanlış cevapta ilgili gramer konusuna yönlendirme +
+  // aynı konudan ekstra pratik önerisi.
+  topic_tag?: string | null;
+  related_grammar_topic?: RelatedGrammarTopic | null;
+}
+
+export interface ExamPracticeQuestionItem {
+  id: string;
+  exam_type: ExamType;
+  question_text: string;
+  options: ExamQuestionOption[];
+  correct_option: string;
+  explanation: string;
+}
+
+export interface ExamPracticeQuestionsResult {
+  topic_tag: string;
+  related_grammar_topic?: RelatedGrammarTopic | null;
+  questions: ExamPracticeQuestionItem[];
+}
+
+export interface WeakTopicItem {
+  topic_tag: string;
+  total_count: number;
+  wrong_count: number;
+  accuracy_ratio: number;
+  related_grammar_topic?: RelatedGrammarTopic | null;
+}
+
+export interface WeakTopicsResult {
+  period_days: number;
+  items: WeakTopicItem[];
 }
 
 export interface ExamFinishResult {

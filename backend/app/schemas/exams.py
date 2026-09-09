@@ -73,6 +73,17 @@ class ExamRelatedWord(BaseModel):
     example: str | None = None
 
 
+class RelatedGrammarTopic(BaseModel):
+    """exam_questions.topic_tag, grammar_topics.slug ile eşleştiğinde
+    (ve o konu status='published' ise) döner — bkz. 027_grammar_reference.sql
+    yorumu. Eşleşme yoksa (henüz gramer rehberinde karşılığı olmayan bir
+    kelime/konu etiketiyse) related_grammar_topic alanı null kalır."""
+
+    slug: str
+    title_tr: str
+    category_name_tr: str
+
+
 class ExamAttemptResponse(BaseModel):
     id: str
     is_correct: bool
@@ -83,6 +94,10 @@ class ExamAttemptResponse(BaseModel):
     session_score: int
     leveled_up: bool
     new_level: int | None = None
+    # Madde #3a/#3b: yanlış cevapta ilgili gramer konusuna yönlendirme +
+    # aynı konudan ekstra pratik önerisi için gereken bilgi.
+    topic_tag: str | None = None
+    related_grammar_topic: RelatedGrammarTopic | None = None
 
 
 class ExamFinishResponse(BaseModel):
@@ -165,3 +180,45 @@ class AIQuestionGenerateResult(BaseModel):
     requested: int
     created: int
     question_ids: list[str]
+
+
+# ── İstatistik & İçerik Motoru #3: cevap sonrası kişisel öneri ─────────
+# (a) yanlış cevapta ilgili Gramer Rehberi konusuna yönlendirme
+# (b) aynı konudan ekstra pratik soru önerisi
+# (c) haftalık/günlük zayıf konu özeti
+
+
+class ExamPracticeQuestionItem(BaseModel):
+    id: str
+    exam_type: str
+    question_text: str
+    options: list[ExamQuestionOption]
+    correct_option: str
+    explanation: str
+
+
+class ExamPracticeQuestionsResult(BaseModel):
+    """GET /exams/topics/{topic_tag}/practice-questions cevabı — madde #3b.
+    Bağımsız, oturumsuz mini pratik seti: XP verilmez, ilerleme kaydedilmez,
+    sadece aynı konuyu tekrar pekiştirmek içindir."""
+
+    topic_tag: str
+    related_grammar_topic: RelatedGrammarTopic | None = None
+    questions: list[ExamPracticeQuestionItem]
+
+
+class WeakTopicItem(BaseModel):
+    topic_tag: str
+    total_count: int
+    wrong_count: int
+    accuracy_ratio: float
+    related_grammar_topic: RelatedGrammarTopic | None = None
+
+
+class WeakTopicsResult(BaseModel):
+    """GET /exams/stats/weak-topics cevabı — madde #3c. Sadece en az bir
+    yanlışın olduğu konular döner (wrong_count > 0), en çok yanlışa göre
+    sıralı."""
+
+    period_days: int
+    items: list[WeakTopicItem]

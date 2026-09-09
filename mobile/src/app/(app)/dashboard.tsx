@@ -2,11 +2,13 @@ import React, { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
 import { statsApi } from '@/api/stats';
 import { scheduleApi } from '@/api/schedule';
+import { examsApi } from '@/api/exams';
+import type { WeakTopicItem } from '@/api/types';
 import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
@@ -40,6 +42,12 @@ interface QuickAction {
   fg: ColorKey;
 }
 
+
+function humanizeTopicTag(tag: string): string {
+  const cleaned = tag.replace(/^vocab-/, '').replace(/-/g, ' ');
+  return cleaned.replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
 export default function DashboardScreen() {
   const { t, locale, et } = useLocale();
   const c = useThemeColors();
@@ -49,6 +57,14 @@ export default function DashboardScreen() {
   const { data: stats, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['stats-summary'],
     queryFn: statsApi.getSummary,
+  });
+
+  // Madde #3c: haftalık zayıf konu özeti. list_exam_types ile aynı desen —
+  // uygun olmayan kullanıcıda backend boş liste döner, widget o durumda hiç
+  // görünmez (bkz. exams.py::weak_topics).
+  const { data: weakTopics } = useQuery({
+    queryKey: ['exam-weak-topics'],
+    queryFn: () => examsApi.weakTopics(7, 3),
   });
 
   // Kullanıcı isteği (9 Eylül 2026): "ana ekrana bu sınav programı için bir
@@ -184,6 +200,50 @@ export default function DashboardScreen() {
           </View>
         </Pressable>
 
+        {/* Madde #3c: zayıf konu özeti — sadece en az bir zayıf konu varsa
+            gösterilir (backend boş liste dönerse widget hiç render edilmez). */}
+        {!!weakTopics?.items?.length && (
+          <Card style={{ marginTop: spacing.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              <TrendingDown color={c.danger} size={18} />
+              <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>{et.weakTopicsTitle}</Text>
+            </View>
+            <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{et.weakTopicsSubtitle}</Text>
+            <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+              {weakTopics.items.map((item: WeakTopicItem) => (
+                <View key={item.topic_tag} style={[styles.weakTopicRow, { borderColor: c.border }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: c.text }} numberOfLines={1}>
+                      {item.related_grammar_topic?.title_tr ?? humanizeTopicTag(item.topic_tag)}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
+                      {et.weakTopicsAccuracyTpl.replace('{percent}', String(Math.round(item.accuracy_ratio * 100)))}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+                    {item.related_grammar_topic && (
+                      <Pressable
+                        onPress={() =>
+                          router.push({ pathname: '/(app)/exam-grammar-detail', params: { slug: item.related_grammar_topic!.slug } })
+                        }
+                        style={[styles.weakTopicBtn, { borderColor: c.primary }]}
+                      >
+                        <Text style={{ color: c.primary, fontSize: 12, fontWeight: '700' }}>{et.weakTopicsReviewBtn}</Text>
+                      </Pressable>
+                    )}
+                    <Pressable
+                      onPress={() => router.push({ pathname: '/(app)/exam-topic-practice', params: { topic_tag: item.topic_tag } })}
+                      style={[styles.weakTopicBtn, { borderColor: c.warning }]}
+                    >
+                      <Text style={{ color: c.warning, fontSize: 12, fontWeight: '700' }}>{et.weakTopicsPracticeBtn}</Text>
+                    </Pressable>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </Card>
+        )}
+
         <View>
           <Text style={[styles.sectionLabel, { color: c.textMuted }]}>{t('quickActions')}</Text>
           <View style={styles.actionsGrid}>
@@ -262,6 +322,21 @@ function ActionTile({
 }
 
 const styles = StyleSheet.create({
+  weakTopicRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+  },
+  weakTopicBtn: {
+    borderWidth: 1.5,
+    borderRadius: radius.sm,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.sm,
+  },
   content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xl, gap: spacing.md },
   grid: { flexDirection: 'row', gap: spacing.sm },
   tile: { flex: 1, alignItems: 'center', paddingVertical: spacing.md, gap: spacing.xs },

@@ -66,6 +66,8 @@ type ExamStrings = {
   backToDashboardBtn: string;
   suggestEntryLabel: string;
   grammarEntryLabel: string;
+  reviewGrammarTopicTpl: string;
+  practiceThisTopicBtn: string;
 };
 
 // mobile/src/i18n/examStrings.ts ile birebir aynı tr/en metinler.
@@ -107,6 +109,8 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     backToDashboardBtn: 'Panele Dön',
     suggestEntryLabel: 'Soru Öner',
     grammarEntryLabel: 'Gramer Rehberi',
+    reviewGrammarTopicTpl: '"{topic}" Konusunu İncele',
+    practiceThisTopicBtn: 'Bu Konudan Pratik Yap',
   },
   en: {
     pageTitle: 'Exam Prep Area',
@@ -145,6 +149,8 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     backToDashboardBtn: 'Back to Dashboard',
     suggestEntryLabel: 'Suggest a Question',
     grammarEntryLabel: 'Grammar Guide',
+    reviewGrammarTopicTpl: 'Review "{topic}"',
+    practiceThisTopicBtn: 'Practice This Topic',
   },
 };
 
@@ -517,6 +523,35 @@ export default function ExamPrepPage() {
                     </p>
                   )}
                 </div>
+
+                {/* Madde #3a/#3b: yanlış cevapta ilgili gramer konusuna
+                    yönlendirme + aynı konudan ekstra pratik önerisi. */}
+                {!attemptResult.is_correct && (attemptResult.related_grammar_topic || attemptResult.topic_tag) && (
+                  <div className="flex flex-col gap-2">
+                    {attemptResult.related_grammar_topic && (
+                      <button
+                        onClick={() => router.push(`/exam-grammar/${attemptResult.related_grammar_topic!.slug}`)}
+                        className="w-full border border-[#378ADD] text-[#378ADD] rounded-xl py-2.5 text-sm font-semibold transition-colors hover:bg-[#E6F1FB]"
+                      >
+                        {et.reviewGrammarTopicTpl.replace('{topic}', attemptResult.related_grammar_topic.title_tr)}
+                      </button>
+                    )}
+                    {attemptResult.topic_tag && (
+                      <button
+                        onClick={() =>
+                          router.push(
+                            `/exam-topic-practice?topic_tag=${encodeURIComponent(attemptResult.topic_tag!)}${
+                              question?.question_id ? `&exclude_question_id=${encodeURIComponent(question.question_id)}` : ''
+                            }`
+                          )
+                        }
+                        className="w-full border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 rounded-xl py-2.5 text-sm font-semibold transition-colors hover:border-gray-300"
+                      >
+                        {et.practiceThisTopicBtn}
+                      </button>
+                    )}
+                  </div>
+                )}
 
                 {!!attemptResult.related_words?.length && (
                   <div className="flex flex-col gap-2">

@@ -131,7 +131,7 @@ export default function ExamGrammarDetailPage() {
           <div className="mt-8 mb-4">
             {topic.has_practice_questions ? (
               <button
-                onClick={() => router.push('/exam-prep')}
+                onClick={() => router.push(`/exam-topic-practice?topic_tag=${encodeURIComponent(slug)}`)}
                 className="w-full bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl py-3 text-sm font-medium transition-colors"
               >
                 {t.practiceCta}

@@ -139,7 +139,10 @@ export default function ExamGrammarDetailScreen() {
 
           <View style={{ marginTop: spacing.xl, marginBottom: spacing.xl }}>
             {topic.has_practice_questions ? (
-              <Button title={et.grammarPracticeCta} onPress={() => router.push('/(app)/exam-prep')} />
+              <Button
+                title={et.grammarPracticeCta}
+                onPress={() => router.push({ pathname: '/(app)/exam-topic-practice', params: { topic_tag: topic.slug } })}
+              />
             ) : (
               <Text style={{ fontSize: 13, color: c.textMuted, textAlign: 'center' }}>{et.grammarNoQuestionsYet}</Text>
             )}

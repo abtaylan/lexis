@@ -69,6 +69,17 @@ export type ExamStrings = {
   grammarMistakesTitle: string;
   grammarPracticeCta: string;
   grammarNoQuestionsYet: string;
+  reviewGrammarTopicTpl: string;
+  practiceThisTopicBtn: string;
+  topicPracticeTitle: string;
+  topicPracticeSubtitle: string;
+  topicPracticeDoneTitle: string;
+  weakTopicsTitle: string;
+  weakTopicsSubtitle: string;
+  weakTopicsEmpty: string;
+  weakTopicsAccuracyTpl: string;
+  weakTopicsReviewBtn: string;
+  weakTopicsPracticeBtn: string;
 };
 
 export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
@@ -136,6 +147,17 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     grammarMistakesTitle: 'Sık Yapılan Hatalar',
     grammarPracticeCta: 'Bu Konuyu Pratik Et',
     grammarNoQuestionsYet: 'Bu konu için henüz pratik sorusu eklenmedi.',
+    reviewGrammarTopicTpl: '"{topic}" Konusunu İncele',
+    practiceThisTopicBtn: 'Bu Konudan Pratik Yap',
+    topicPracticeTitle: 'Konu Pratiği',
+    topicPracticeSubtitle: 'Bu konudan birkaç soru daha — XP verilmez, sadece pekiştirme içindir.',
+    topicPracticeDoneTitle: 'Bu tur tamamlandı!',
+    weakTopicsTitle: 'Zayıf Konuların',
+    weakTopicsSubtitle: 'Son dönemde en çok yanlış yaptığın konular',
+    weakTopicsEmpty: 'Henüz zayıf bir konu tespit edilmedi — sınav sorularını çözmeye devam et.',
+    weakTopicsAccuracyTpl: 'Doğruluk: %{percent}',
+    weakTopicsReviewBtn: 'İncele',
+    weakTopicsPracticeBtn: 'Pratik Yap',
   },
   en: {
     entryLabel: 'Exam Prep',
@@ -201,5 +223,16 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     grammarMistakesTitle: 'Common Mistakes',
     grammarPracticeCta: 'Practice This Topic',
     grammarNoQuestionsYet: 'No practice questions for this topic yet.',
+    reviewGrammarTopicTpl: 'Review "{topic}"',
+    practiceThisTopicBtn: 'Practice This Topic',
+    topicPracticeTitle: 'Topic Practice',
+    topicPracticeSubtitle: 'A few more questions on this topic — no XP, just reinforcement.',
+    topicPracticeDoneTitle: 'Round complete!',
+    weakTopicsTitle: 'Your Weak Topics',
+    weakTopicsSubtitle: 'Topics you have missed most recently',
+    weakTopicsEmpty: 'No weak topics detected yet — keep practicing exam questions.',
+    weakTopicsAccuracyTpl: 'Accuracy: {percent}%',
+    weakTopicsReviewBtn: 'Review',
+    weakTopicsPracticeBtn: 'Practice',
   },
 };

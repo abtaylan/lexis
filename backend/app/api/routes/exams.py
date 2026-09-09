@@ -30,7 +30,7 @@ kullanıcıya hiç gösterilmiyor (bkz. supabase/migrations/026_exam_prep_stats_
 """
 
 import random
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -43,15 +43,21 @@ from app.schemas.exams import (
     ExamAttemptCreate,
     ExamAttemptResponse,
     ExamFinishResponse,
+    ExamPracticeQuestionItem,
+    ExamPracticeQuestionsResult,
     ExamQuestionModerationResponse,
     ExamQuestionOption,
     ExamQuestionSuggestionCreate,
     ExamQuestionSuggestionResponse,
     ExamSessionCreate,
     ExamSessionResponse,
+    ExamType,
     ExamTypeInfo,
     NextQuestionResponse,
     PendingExamQuestion,
+    RelatedGrammarTopic,
+    WeakTopicItem,
+    WeakTopicsResult,
 )
 from app.services.audit_log import log_admin_action
 from app.services.exam_question_generator import (
@@ -119,6 +125,59 @@ def _attempted_question_ids(session_id: str) -> list[str]:
         .execute()
     )
     return [row["question_id"] for row in (result.data or [])]
+
+
+# ── Madde #3: cevap sonrası kişisel öneri — ortak yardımcılar ─────────
+# exam_questions.topic_tag, grammar_topics.slug ile aynı sözlükten (bkz.
+# 027_grammar_reference.sql yorumu). Bu yüzden basit bir .in_("slug", tags)
+# sorgusu yeterli — ayrı bir eşleme tablosuna gerek yok.
+
+
+def _grammar_topics_for_tags(tags: list[str]) -> dict[str, RelatedGrammarTopic]:
+    """topic_tag -> RelatedGrammarTopic eşlemesi. Sadece status='published'
+    konular döner (draft konular kullanıcıya hiç gösterilmez, grammar.py'deki
+    aynı kuralla tutarlı). Eşleşmeyen tag'ler sonuçta hiç yer almaz."""
+    tags = [t for t in dict.fromkeys(tags) if t]
+    if not tags:
+        return {}
+    topics = (
+        supabase_admin.table("grammar_topics")
+        .select("slug, title_tr, category_id")
+        .in_("slug", tags)
+        .eq("status", "published")
+        .execute()
+        .data
+    ) or []
+    if not topics:
+        return {}
+    category_ids = list({t["category_id"] for t in topics})
+    categories = (
+        supabase_admin.table("grammar_categories")
+        .select("id, name_tr")
+        .in_("id", category_ids)
+        .execute()
+        .data
+    ) or []
+    category_name_by_id = {c["id"]: c["name_tr"] for c in categories}
+    return {
+        t["slug"]: RelatedGrammarTopic(
+            slug=t["slug"],
+            title_tr=t["title_tr"],
+            category_name_tr=category_name_by_id.get(t["category_id"], ""),
+        )
+        for t in topics
+    }
+
+
+def _user_session_ids_since(user_id: str, since_iso: str) -> list[str]:
+    result = (
+        supabase_admin.table("exam_sessions")
+        .select("id")
+        .eq("user_id", user_id)
+        .gte("started_at", since_iso)
+        .execute()
+    )
+    return [row["id"] for row in (result.data or [])]
 
 
 @router.get("/exam-types", response_model=list[ExamTypeInfo])
@@ -279,6 +338,13 @@ async def submit_attempt(
         {"score": new_score, "xp_earned": new_xp_earned}
     ).eq("id", session_id).execute()
 
+    # Madde #3a: yanlış cevapta ilgili Gramer Rehberi konusuna yönlendirme.
+    # topic_tag her zaman döner (doğru cevapta da) — istemci sadece yanlış
+    # cevapta "İlgili konuyu incele" / "Bu konudan pratik yap" gösterir,
+    # ama veri her durumda hazır olsun diye burada hesaplanıyor.
+    topic_tag = question.get("topic_tag")
+    related_grammar_topic = _grammar_topics_for_tags([topic_tag]).get(topic_tag) if topic_tag else None
+
     return ExamAttemptResponse(
         id=attempt_result.data[0]["id"],
         is_correct=is_correct,
@@ -289,6 +355,8 @@ async def submit_attempt(
         session_score=new_score,
         leveled_up=leveled_up,
         new_level=new_level,
+        topic_tag=topic_tag,
+        related_grammar_topic=related_grammar_topic,
     )
 
 
@@ -566,3 +634,134 @@ async def generate_ai_questions(
     return AIQuestionGenerateResult(
         requested=payload.count, created=len(created_ids), question_ids=created_ids
     )
+
+# ── Madde #3b: aynı konudan ekstra pratik soru önerisi ────────────────
+# Bağımsız, oturumsuz mini pratik seti — next-question/attempt akışından
+# farklı olarak session açmaz, XP vermez, exam_attempts'e yazmaz. Sadece
+# kullanıcının az önce yanlış yaptığı konuyu pekiştirmesi için.
+
+
+@router.get("/topics/{topic_tag}/practice-questions", response_model=ExamPracticeQuestionsResult)
+async def practice_questions_by_topic(
+    topic_tag: str,
+    exam_type: ExamType | None = None,
+    exclude_question_id: str | None = None,
+    limit: int = 5,
+    current_user=Depends(get_current_user),
+):
+    if not _exam_area_enabled(current_user.id):
+        raise HTTPException(
+            status_code=403,
+            detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen, ana dili Türkçe olan kullanıcılar için kullanılabilir.",
+        )
+    limit = max(1, min(limit, 10))
+
+    query = (
+        supabase_admin.table("exam_questions")
+        .select("id, exam_type, question_text, options, correct_option, explanation")
+        .eq("topic_tag", topic_tag)
+        .eq("is_active", True)
+        .eq("status", "approved")
+    )
+    if exam_type is not None:
+        query = query.eq("exam_type", exam_type.value)
+    candidates = (query.limit(CANDIDATE_FETCH_LIMIT).execute().data) or []
+    if exclude_question_id:
+        candidates = [q for q in candidates if q["id"] != exclude_question_id]
+    random.shuffle(candidates)
+    chosen = candidates[:limit]
+
+    related_grammar_topic = _grammar_topics_for_tags([topic_tag]).get(topic_tag)
+
+    return ExamPracticeQuestionsResult(
+        topic_tag=topic_tag,
+        related_grammar_topic=related_grammar_topic,
+        questions=[
+            ExamPracticeQuestionItem(
+                id=q["id"],
+                exam_type=q["exam_type"],
+                question_text=q["question_text"],
+                options=[ExamQuestionOption(**opt) for opt in q["options"]],
+                correct_option=q["correct_option"],
+                explanation=q["explanation"],
+            )
+            for q in chosen
+        ],
+    )
+
+
+# ── Madde #3c: haftalık/günlük zayıf konu özeti ────────────────────────
+# exam_attempts + exam_questions.topic_tag üzerinden kullanıcı bazlı
+# agregasyon — ayrı bir sayaç tablosu/view yok (exam_question_stats view'ı
+# soru bazlı ve kullanıcıdan bağımsız olduğu için burada kullanılamaz).
+
+
+@router.get("/stats/weak-topics", response_model=WeakTopicsResult)
+async def weak_topics(days: int = 7, limit: int = 5, current_user=Depends(get_current_user)):
+    # list_exam_types ile aynı "soft-disable" deseni: uygun olmayan kullanıcı
+    # için 403 fırlatmak yerine boş sonuç dönülür — dashboard widget'ı bu
+    # durumda kendini hiç göstermez, hata da göstermez.
+    if not _exam_area_enabled(current_user.id):
+        return WeakTopicsResult(period_days=days, items=[])
+
+    days = max(1, min(days, 90))
+    limit = max(1, min(limit, 20))
+    since_iso = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+
+    session_ids = _user_session_ids_since(current_user.id, since_iso)
+    if not session_ids:
+        return WeakTopicsResult(period_days=days, items=[])
+
+    attempts = (
+        supabase_admin.table("exam_attempts")
+        .select("question_id, is_correct")
+        .in_("session_id", session_ids)
+        .execute()
+        .data
+    ) or []
+    if not attempts:
+        return WeakTopicsResult(period_days=days, items=[])
+
+    question_ids = list({a["question_id"] for a in attempts})
+    questions = (
+        supabase_admin.table("exam_questions")
+        .select("id, topic_tag")
+        .in_("id", question_ids)
+        .execute()
+        .data
+    ) or []
+    tag_by_question_id = {q["id"]: q.get("topic_tag") for q in questions}
+
+    counts: dict[str, dict[str, int]] = {}
+    for a in attempts:
+        tag = tag_by_question_id.get(a["question_id"])
+        if not tag:
+            continue
+        bucket = counts.setdefault(tag, {"total": 0, "wrong": 0})
+        bucket["total"] += 1
+        if not a["is_correct"]:
+            bucket["wrong"] += 1
+
+    # Sadece en az bir yanlışın olduğu konular gösterilir — amaç "zayıf
+    # konu" özeti, genel istatistik değil.
+    rows = [
+        {"topic_tag": tag, "total_count": c["total"], "wrong_count": c["wrong"]}
+        for tag, c in counts.items()
+        if c["wrong"] > 0
+    ]
+    rows.sort(key=lambda r: (-r["wrong_count"], r["wrong_count"] / r["total_count"]))
+    rows = rows[:limit]
+
+    grammar_map = _grammar_topics_for_tags([r["topic_tag"] for r in rows])
+    items = [
+        WeakTopicItem(
+            topic_tag=r["topic_tag"],
+            total_count=r["total_count"],
+            wrong_count=r["wrong_count"],
+            accuracy_ratio=round((r["total_count"] - r["wrong_count"]) / r["total_count"], 4),
+            related_grammar_topic=grammar_map.get(r["topic_tag"]),
+        )
+        for r in rows
+    ]
+    return WeakTopicsResult(period_days=days, items=items)
+
