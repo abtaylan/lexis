@@ -32,6 +32,10 @@ import type {
   AddWordFromQuestionResult,
   ExamQuestionSuggestionInput,
   ExamQuestionSuggestionResult,
+  PendingExamQuestion,
+  ExamQuestionModerationResult,
+  AIQuestionGenerateInput,
+  AIQuestionGenerateResult,
   Notification,
   AdminUser,
   AdminUserDetail,
@@ -556,6 +560,25 @@ export const adminApi = {
   },
   deleteWordPoolEntry: async (id: string): Promise<void> => {
     await api.delete(`/admin/word-pool/${id}`);
+  },
+
+  // Sınav Hazırlık — İstatistik & İçerik Motoru Faz 2b: soru moderasyon
+  // kuyruğu (kullanıcı önerileri + AI ile üretilenler) + AI soru üretimi.
+  getPendingExamQuestions: async (): Promise<PendingExamQuestion[]> => {
+    const res = await api.get<PendingExamQuestion[]>('/exams/admin/questions/pending');
+    return res.data;
+  },
+  approveExamQuestion: async (id: string): Promise<ExamQuestionModerationResult> => {
+    const res = await api.post<ExamQuestionModerationResult>(`/exams/admin/questions/${id}/approve`);
+    return res.data;
+  },
+  rejectExamQuestion: async (id: string): Promise<ExamQuestionModerationResult> => {
+    const res = await api.post<ExamQuestionModerationResult>(`/exams/admin/questions/${id}/reject`);
+    return res.data;
+  },
+  generateAiExamQuestions: async (data: AIQuestionGenerateInput): Promise<AIQuestionGenerateResult> => {
+    const res = await api.post<AIQuestionGenerateResult>('/exams/admin/questions/generate-ai', data);
+    return res.data;
   },
   getSocialPosts: async (limit = 30): Promise<{ posts: SocialPost[]; last_cron_run: { started_at: string; status: string } | null; mode: string }> => {
     const res = await api.get('/admin/social-posts', { params: { limit } });

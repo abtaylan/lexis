@@ -342,6 +342,38 @@ export interface ExamQuestionSuggestionResult {
   status: string;
 }
 
+export interface PendingExamQuestion {
+  id: string;
+  exam_type: ExamType;
+  learning_lang: string;
+  question_text: string;
+  options: ExamQuestionOption[];
+  correct_option: string;
+  explanation?: string;
+  topic_tag?: string;
+  source_type: string;
+  submitted_by?: string;
+  submitted_by_email?: string;
+  created_at: string;
+}
+
+export interface ExamQuestionModerationResult {
+  id: string;
+  status: string;
+}
+
+export interface AIQuestionGenerateInput {
+  exam_type: ExamType;
+  count: number;
+  topic_tag?: string;
+}
+
+export interface AIQuestionGenerateResult {
+  requested: number;
+  created: number;
+  question_ids: string[];
+}
+
 export interface AdminUser {
   id: string;
   email: string;
