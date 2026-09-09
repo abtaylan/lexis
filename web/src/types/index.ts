@@ -254,6 +254,80 @@ export interface ScheduleTemplateCreate {
   items: ScheduleTemplateItem[];
 }
 
+// V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı (YDS/YÖKDİL/
+// IELTS/TOEFL). mobile/src/api/types.ts'teki aynı adlı arayüzlerle birebir
+// alan eşleşmesi (backend/app/schemas/exams.py karşılığı).
+export type ExamType = 'yds' | 'yokdil' | 'ielts' | 'toefl';
+export type ExamSessionMode = 'practice' | 'timed_mock';
+
+export interface ExamTypeInfo {
+  exam_type: ExamType;
+  question_count: number;
+  available: boolean;
+}
+
+export interface ExamSession {
+  id: string;
+  user_id: string;
+  exam_type: ExamType;
+  session_mode: ExamSessionMode;
+  total_questions: number;
+  time_limit_seconds: number | null;
+  score: number;
+  xp_earned: number;
+  started_at: string;
+  ended_at: string | null;
+}
+
+export interface ExamQuestionOption {
+  id: string;
+  text: string;
+}
+
+export interface NextQuestionResult {
+  finished: boolean;
+  question_id?: string;
+  question_text?: string;
+  options?: ExamQuestionOption[];
+  question_index?: number;
+  total_questions?: number;
+}
+
+export interface ExamRelatedWord {
+  word: string;
+  meaning: string;
+  example?: string;
+}
+
+export interface ExamAttemptResult {
+  id: string;
+  is_correct: boolean;
+  correct_option: string;
+  explanation: string;
+  related_words: ExamRelatedWord[] | null;
+  xp_awarded: number;
+  session_score: number;
+  leveled_up: boolean;
+  new_level: number | null;
+}
+
+export interface ExamFinishResult {
+  id: string;
+  exam_type: ExamType;
+  session_mode: ExamSessionMode;
+  score: number;
+  total_questions: number;
+  xp_earned: number;
+  started_at: string;
+  ended_at: string;
+  mock_bonus_xp: number;
+}
+
+export interface AddWordFromQuestionResult {
+  added_count: number;
+  already_had_count: number;
+}
+
 export interface AdminUser {
   id: string;
   email: string;

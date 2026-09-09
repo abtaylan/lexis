@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, MessageCircle, Sun, Moon,
+  GraduationCap, ChevronRight,
 } from 'lucide-react';
 import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi, socialApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -12,6 +13,24 @@ import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
 import { Leaderboard } from '@/components/layout/Leaderboard';
 import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem } from '@/types';
+
+// V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı dashboard
+// banner'ı. mobile/src/i18n/examStrings.ts'teki pageTitle/pageSubtitle/
+// bannerCta ile birebir aynı tr/en metinler (bu alan sadece native_lang=tr +
+// learning_lang=en kullanıcılarına açık, bkz. backend _exam_area_enabled) —
+// diğer diller tr'ye düşer (Sidebar.tsx'teki EXAM_PREP_LABEL ile tutarlı).
+const EXAM_BANNER: Partial<Record<Locale, { title: string; subtitle: string; cta: string }>> = {
+  tr: {
+    title: 'Sınav Hazırlık Alanı',
+    subtitle: 'YDS, YÖKDİL, IELTS ve TOEFL için örnek sorularla pratik yap, doğru cevap analizini oku, kelimeleri hazinene ekle.',
+    cta: 'Sorulara Başla',
+  },
+  en: {
+    title: 'Exam Prep Area',
+    subtitle: 'Practice with sample questions for YDS, YÖKDİL, IELTS and TOEFL, read the answer analysis, and add words to your vocabulary.',
+    cta: 'Start Practicing',
+  },
+};
 
 // Çalışma dili seçicisi ile mesaj simgesi arasındaki hızlı erişim tema
 // butonunun etiketi — Sidebar.tsx'teki THEME_LABEL ile aynı çeviri deseni
@@ -444,6 +463,29 @@ export default function DashboardPage() {
           <span>{t('lastWeekColon')}: <strong className="text-gray-700 dark:text-slate-300">{lastWeekTotal} {t('wordsUnit')}</strong></span>
         </div>
       </div>
+
+      {/* Sınav Hazırlık Alanı banner'ı (V2 §1.1) */}
+      <button
+        onClick={() => router.push('/exam-prep')}
+        className="w-full text-left flex items-center gap-4 rounded-2xl p-4 transition-all hover:shadow-md"
+        style={{ background: '#FAEEDA' }}
+      >
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-white dark:bg-slate-900">
+          <GraduationCap className="w-5 h-5" style={{ color: '#854F0B' }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold" style={{ color: '#3b2a12' }}>
+            {(EXAM_BANNER[locale] ?? EXAM_BANNER.tr)!.title}
+          </p>
+          <p className="text-xs mt-0.5 line-clamp-2" style={{ color: '#854F0B' }}>
+            {(EXAM_BANNER[locale] ?? EXAM_BANNER.tr)!.subtitle}
+          </p>
+          <span className="inline-flex items-center gap-1 text-xs font-bold mt-1.5" style={{ color: '#854F0B' }}>
+            {(EXAM_BANNER[locale] ?? EXAM_BANNER.tr)!.cta}
+            <ChevronRight className="w-3.5 h-3.5" />
+          </span>
+        </div>
+      </button>
 
       {/* Hızlı aksiyonlar */}
       <div className="grid grid-cols-3 gap-3">

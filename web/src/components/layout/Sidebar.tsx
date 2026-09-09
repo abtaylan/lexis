@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
-  Menu, X, Users,
+  Menu, X, Users, GraduationCap,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -41,6 +41,18 @@ const FRIENDS_LABEL: Record<Locale, string> = {
   it: 'Amici',
   ja: '友達',
   pt: 'Amigos',
+};
+
+// V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı navigasyon
+// etiketi. Bu alan sadece native_lang=tr + learning_lang=en kullanıcılarına
+// gösteriliyor (bkz. exam-prep/page.tsx), o yüzden sadece tr/en dolduruldu —
+// diğer diller için useLocale zaten tr'ye düşer, bu kullanıcılar sayfayı
+// açtığında "disabled" ekranını görür (nav etiketi görünmez bile, aşağıda
+// filtreleniyor).
+const EXAM_PREP_LABEL: Record<Locale, string> = {
+  tr: 'Sınav Hazırlık', en: 'Exam Prep', ar: 'Sınav Hazırlık', ru: 'Sınav Hazırlık',
+  de: 'Sınav Hazırlık', fr: 'Sınav Hazırlık', es: 'Sınav Hazırlık', it: 'Sınav Hazırlık',
+  ja: 'Sınav Hazırlık', pt: 'Sınav Hazırlık',
 };
 
 // Açık/koyu tema seçici etiketi — aynı yerel çeviri deseni (bkz. yukarısı).
@@ -81,6 +93,11 @@ export function Sidebar() {
     { href: '/game', label: GAME_LABEL[locale], icon: Gamepad2 },
     { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
+    // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası
+    // mobildeki dashboard davranışıyla tutarlı: her zaman görünür, sayfanın
+    // kendisi (exam-prep/page.tsx) uygun olmayan dil çiftleri için nazik bir
+    // "kullanılamıyor" mesajı gösteriyor.
+    { href: '/exam-prep', label: EXAM_PREP_LABEL[locale], icon: GraduationCap },
     { href: '/stats', label: t('stats'), icon: BarChart3 },
     { href: '/profile', label: t('profile'), icon: User },
   ];

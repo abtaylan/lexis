@@ -22,6 +22,14 @@ import type {
   ScheduleTemplateCreate,
   ExamReminder,
   ExamReminderCreate,
+  ExamType,
+  ExamSessionMode,
+  ExamTypeInfo,
+  ExamSession,
+  NextQuestionResult,
+  ExamAttemptResult,
+  ExamFinishResult,
+  AddWordFromQuestionResult,
   Notification,
   AdminUser,
   AdminUserDetail,
@@ -404,6 +412,46 @@ export const examReminderApi = {
   },
   delete: async (id: string): Promise<void> => {
     await api.delete(`/exam-reminders/${id}`);
+  },
+};
+
+// ── Sınav Hazırlık Alanı (V2 §1.1, 9 Eylül 2026) ───────────────
+// mobile/src/api/exams.ts ile birebir aynı endpoint/alan eşleşmesi.
+export const examsApi = {
+  listExamTypes: async (): Promise<ExamTypeInfo[]> => {
+    const res = await api.get<ExamTypeInfo[]>('/exams/exam-types');
+    return res.data;
+  },
+  createSession: async (
+    exam_type: ExamType,
+    session_mode: ExamSessionMode,
+    total_questions?: number
+  ): Promise<ExamSession> => {
+    const res = await api.post<ExamSession>('/exams/sessions', {
+      exam_type,
+      session_mode,
+      total_questions,
+    });
+    return res.data;
+  },
+  nextQuestion: async (sessionId: string): Promise<NextQuestionResult> => {
+    const res = await api.get<NextQuestionResult>(`/exams/sessions/${sessionId}/next-question`);
+    return res.data;
+  },
+  submitAttempt: async (
+    sessionId: string,
+    data: { question_id: string; selected_option: string; time_taken_ms?: number }
+  ): Promise<ExamAttemptResult> => {
+    const res = await api.post<ExamAttemptResult>(`/exams/sessions/${sessionId}/attempt`, data);
+    return res.data;
+  },
+  finishSession: async (sessionId: string): Promise<ExamFinishResult> => {
+    const res = await api.post<ExamFinishResult>(`/exams/sessions/${sessionId}/finish`);
+    return res.data;
+  },
+  addWordFromQuestion: async (questionId: string): Promise<AddWordFromQuestionResult> => {
+    const res = await api.post<AddWordFromQuestionResult>(`/exams/questions/${questionId}/add-word`);
+    return res.data;
   },
 };
 
