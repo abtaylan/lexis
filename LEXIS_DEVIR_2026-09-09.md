@@ -35,13 +35,15 @@
 | DB'ye uygulama (5. dalga) | ✅ Supabase MCP ile 2 parça (topics, questions) uygulandı, `select count(*)` ile doğrulandı (15/78/175). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok. `supabase/migrations/033_grammar_reference_wave4.sql` repoya yazıldı, commit edildi ve kullanıcı push etti: `2170ede`. |
 | Google Play kapalı test durumu kontrol edildi (kullanıcı talebi) | ✅ Play Console'a girilip kontrol edildi: en az 12 test kullanıcısı kaydolma şartı karşılanmış (21 kişilik e-posta listesi var, Google yeşil tikle onaylamış); en az 12 kullanıcıyla 14 gün kesintisiz test şartı henüz karşılanmamış (sürüm 4 Eylül'de yayına alındı, 14 gün en erken ~18 Eylül'de dolar). Üretime başvuru o tarihe kadar pasif kalacak. |
 | Gramer Rehberi — kitaptan 6. dalga (8 yeni konu, aynı gün, "devam et" ile) | ✅ §0.2 planındaki 3 bölümün eksik kalan kısımları işlendi: **Present and Past** (1 konu: present-simple-vs-continuous — `tenses` kategorisine eklendi, böylece bölüm tamamlandı), **Conjunctions and Prepositions** (3 konu: time-clauses-future-meaning, if-unless-in-case, so-that-such-that — `sentence-structure` kategorisine eklendi), **Phrasal Verbs** (4 konu: phrasal-verbs-up-down, phrasal-verbs-in-out, phrasal-verbs-on-off, separable-inseparable-phrasal-verbs — `phrasal-vocab` kategorisine eklendi). Yeni kategori açılmadı. Kategori 15→15, konu 78→86. Her konu için 2'şer yeni gramer-YAPISI temelli `exam_questions` (16 yeni soru, 175→191). Detaylı liste: §0.7. |
-| DB'ye uygulama (6. dalga) | ⚠️ İlk `apply_migration` denemesi `level = 'a1'` check constraint hatasıyla başarısız oldu (tablo sadece a2/b1/b2/c1 kabul ediyor) — transaction otomatik rollback oldu, hiçbir satır eklenmedi. `present-simple-vs-continuous` konusunun level'ı `a2`'ye düzeltilip script yeniden çalıştırıldı (bu, TÜM 8 konunun UUID'lerini de yeniledi — script her çalıştığında `uuid.uuid4()` çağırıyor). Düzeltilmiş dosyalar yeniden okunup Supabase'e 2 parça (topics, questions) halinde uygulandı, `select count(*)` ile doğrulandı (15/86/191). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok. `supabase/migrations/034_grammar_reference_wave5.sql` repoya yazıldı, commit hazırlandı (`07bcc43`) — **henüz push edilmedi**, kullanıcı PowerShell'den push etmeli. |
+| DB'ye uygulama (6. dalga) | ⚠️ İlk `apply_migration` denemesi `level = 'a1'` check constraint hatasıyla başarısız oldu (tablo sadece a2/b1/b2/c1 kabul ediyor) — transaction otomatik rollback oldu, hiçbir satır eklenmedi. `present-simple-vs-continuous` konusunun level'ı `a2`'ye düzeltilip script yeniden çalıştırıldı (bu, TÜM 8 konunun UUID'lerini de yeniledi — script her çalıştığında `uuid.uuid4()` çağırıyor). Düzeltilmiş dosyalar yeniden okunup Supabase'e 2 parça (topics, questions) halinde uygulandı, `select count(*)` ile doğrulandı (15/86/191). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok. `supabase/migrations/034_grammar_reference_wave5.sql` repoya yazıldı, commit edildi ve kullanıcı push etti: `07bcc43`. |
+| Gramer Rehberi — kitaptan 7. dalga (5 yeni konu, aynı gün, "devam et" ile) | ✅ §0.2 planındaki kalan TEK iş işlendi: **Future** (1 konu: be-about-to — `future` kategorisine eklendi), **If ve Wish** (1 konu: mixed-conditionals — `conditionals` kategorisine eklendi), **Passive** (2 konu: reporting-passive, be-vs-get-passive — `passive` kategorisine eklendi), **Reported Speech** (1 konu: reported-commands-requests — `reported-speech` kategorisine eklendi). `time-clauses-future-meaning` 6. dalgada zaten eklendiği için Future bölümündeki "future time clauses" eksiği bilinçli olarak tekrar yazılmadı (içerik tekrarını önlemek için). Yeni kategori açılmadı. Kategori 15→15, konu 86→91. Her konu için 2'şer yeni gramer-YAPISI temelli `exam_questions` (10 yeni soru, 191→201). Detaylı liste: §0.9. **Bu dalgayla birlikte kitabın (Murphy, 5. baskı) ana gövdesi içerik olarak tamamlanmış oldu** (Ekler hariç, bkz. madde 17). |
+| DB'ye uygulama (7. dalga) | ✅ Supabase MCP ile 2 parça (topics, questions) uygulandı, `select count(*)` ile doğrulandı (15/91/201). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok (mevcut tüm uyarılar önceden var olan, alakasız konular). `supabase/migrations/035_grammar_reference_wave6.sql` repoya yazıldı, commit hazırlandı (`79666b6`) — **henüz push edilmedi**, kullanıcı PowerShell'den push etmeli. |
 
-**Bu oturumda YAPILMADI:** Gramer Rehberi'nin geri kalanı (Future/If ve Wish/Passive/Reported Speech küçük eksikleri, ~4-6 konu, bkz. §0.2), İçerik Motoru madde #5/#6, mobil native Google ile Giriş, `git push` PAT'ının kalıcı onarımı.
+**Bu oturumda YAPILMADI:** İçerik Motoru madde #5/#6, mobil native Google ile Giriş, `git push` PAT'ının kalıcı onarımı, §0.2 madde 17'deki Ekler (düzensiz fiil listesi vb. referans tabloları — mevcut konulara not olarak eklenebilir, ayrı satır gerekmez).
 
 ### 0.8. Yeni ders: grammar_topics.level check constraint
 
-`grammar_topics` tablosundaki `level` sütunu SADECE `a2`, `b1`, `b2`, `c1` değerlerini kabul ediyor — `a1` YASAK (constraint adı: `grammar_topics_level_check`). Çok temel/başlangıç seviyesi bir konu yazılırken bile en düşük değer olarak `a2` kullanılmalı. Bu hata `apply_migration`'ın TÜM migration'ı tek transaction'da uyguladığını da doğruladı: 8 INSERT'ten biri (1.'si) hata verince diğer 7'si de rollback oldu, hiçbir satır yazılmadı — bu yüzden hata sonrası "bazı satırlar girdi mi" diye kontrol etmeye gerek yok, migration ya tamamen uygulanır ya hiç uygulanmaz.
+`grammar_topics` tablosundaki `level` sütunu SADECE `a2`, `b1`, `b2`, `c1` değerlerini kabul ediyor — `a1` YASAK (constraint adı: `grammar_topics_level_check`). Çok temel/başlangıç seviyesi bir konu yazılırken bile en düşük değer olarak `a2` kullanılmalı. Bu hata `apply_migration`'ın TÜM migration'ı tek transaction'da uyguladığını da doğruladı: 8 INSERT'ten biri (1.'si) hata verince diğer 7'si de rollback oldu, hiçbir satır yazılmadı — bu yüzden hata sonrası "bazı satırlar girdi mi" diye kontrol etmeye gerek yok, migration ya tamamen uygulanır ya hiç uygulanmaz. **7. dalgada bu dersi uygulamak için script'e `assert level in ("a2","b1","b2","c1")` sanity check eklendi, hiç hata çıkmadı.**
 
 ### 0.1. Yeni eklenen 24 konunun tam listesi (tekrar yazmamak için)
 
@@ -103,17 +105,28 @@ Bu 12 konuyla birlikte §0.2'deki bölüm 9 (-ing ve to), bölüm 11 (Pronouns a
 
 Bu 8 konuyla birlikte §0.2'deki bölüm 1 (Present and Past), bölüm 14 (Conjunctions and Prepositions) ve bölüm 16 (Phrasal Verbs) artık TAMAMLANDI olarak işaretlendi — aşağıdaki plana bakınız.
 
-### 0.2. Kitabın geri kalanı — bölüm bölüm plan (86/145 ünite karşılığı yapıldı)
+### 0.9. Bu oturumun (7. dalga) eklediği 5 konunun tam listesi
 
-Kitap 16 ana bölüm + 7 ek'ten oluşuyor. Her bölüm için: ünite aralığı, şu an kaç konumuz var, ne eksik, kaba tahmini kaç konu daha gerekiyor. **Bu tahminler bağlayıcı değil** — yeni sohbet gerçek ünite listesini PDF'ten (kullanıcı zaten yükledi, uploads dizininde arşivlenmiş olabilir, gerekirse tekrar istenebilir) teyit ederek ilerlemeli, sadece kitabın ünite BAŞLIKLARINI kullanmalı (telif nedeniyle örnek/alıştırma içeriği ASLA kopyalanmayacak — bkz. üstteki telif notu, bu kural değişmez).
+| Kategori (slug) | Konu slug'ları |
+|---|---|
+| `future` (mevcut) | + `be-about-to` |
+| `conditionals` (mevcut) | + `mixed-conditionals` |
+| `passive` (mevcut) | + `reporting-passive`, `be-vs-get-passive` |
+| `reported-speech` (mevcut) | + `reported-commands-requests` |
+
+Bu 5 konuyla birlikte §0.2'deki bölüm 3 (Future), bölüm 5 (If ve Wish), bölüm 6 (Passive) ve bölüm 7 (Reported Speech) artık TAMAMLANDI olarak işaretlendi — aşağıdaki plana bakınız. **Bu dalgayla birlikte kitabın ana gövdesindeki 16 bölümün TAMAMI (Ekler hariç) TAMAMLANDI.**
+
+### 0.2. Kitabın geri kalanı — bölüm bölüm plan (91/145 ünite karşılığı yapıldı, ana gövde tamamlandı)
+
+Kitap 16 ana bölüm + 7 ek'ten oluşuyor. Her bölüm için: ünite aralığı, şu an kaç konumuz var. **16 ana bölümün TAMAMI artık TAMAMLANDI** — sadece madde 17'deki Ekler (referans tabloları) kaldı, onlar da ayrı konu değil, mevcut konulara not eklenerek kapatılabilir.
 
 1. **Present and Past (1-6):** ✅ **TAMAMLANDI** (6. dalga) — 3 konu var: present-perfect-vs-past-simple, past-simple-vs-continuous, present-simple-vs-continuous.
 2. **Present Perfect and Past (7-18, 12 ünite):** ✅ **TAMAMLANDI** (3. dalga) — 8 konu var: present-perfect-vs-past-simple, present-perfect-continuous, present-perfect-simple-vs-continuous, for-since-how-long, already-yet-still, gone-vs-been, past-perfect, past-perfect-continuous.
-3. **Future (19-25):** 3 konu var, iyi durumda. Eksik: future time clauses (when/before/after + present), be about to. ~1-2 konu.
+3. **Future (19-25):** ✅ **TAMAMLANDI** (7. dalga) — 4 konu var: future-going-to-will, future-present-continuous, future-continuous-perfect, be-about-to.
 4. **Modals (26-37, 12 ünite):** ✅ **TAMAMLANDI** (4. dalga) — 7 konu var: modals-obligation-advice, modals-deduction, modals-ability, modals-permission-requests, must-vs-have-to, neednt-vs-mustnt, had-better-would-rather.
-5. **If ve Wish (38-41):** 4 konu var, iyi durumda. Eksik: mixed conditionals. ~1 konu.
-6. **Passive (42-46):** 3 konu var. Eksik: reporting passive (it is said that...), be vs get passive. ~1-2 konu.
-7. **Reported Speech (47-48):** 1 konu var. Eksik: reported commands/requests. ~1 konu.
+5. **If ve Wish (38-41):** ✅ **TAMAMLANDI** (7. dalga) — 5 konu var: conditionals-zero-first, conditionals-second, conditionals-third, wish-if-only, mixed-conditionals.
+6. **Passive (42-46):** ✅ **TAMAMLANDI** (7. dalga) — 5 konu var: passive-present-past, passive-modals-perfect, causative-have-something-done, reporting-passive, be-vs-get-passive.
+7. **Reported Speech (47-48):** ✅ **TAMAMLANDI** (7. dalga) — 2 konu var: reported-speech-statements-questions, reported-commands-requests.
 8. **Questions and Auxiliary Verbs (49-52):** ✅ **TAMAMLANDI** (3. dalga) — yeni `questions-auxiliaries` kategorisi, 3 konu: question-word-order, question-tags, so-neither-agreement.
 9. **-ing ve to (53-68, 16 ünite):** ✅ **TAMAMLANDI** (5. dalga) — 8 konu var: gerund-vs-infinitive, verb-preposition-ing, used-to-be-used-to, verb-object-infinitive, adjective-preposition-ing, see-someone-do-vs-doing, gerund-as-subject-object, verb-ing-infinitive-meaning-change.
 10. **Articles and Nouns (69-81, 13 ünite):** ✅ **TAMAMLANDI** (4. dalga) — 7 konu var: articles, countable-uncountable-nouns, the-specific-vs-general, subject-verb-agreement-nouns, possessive-s-vs-of, compound-nouns, irregular-plurals.
@@ -123,19 +136,23 @@ Kitap 16 ana bölüm + 7 ek'ten oluşuyor. Her bölüm için: ünite aralığı,
 14. **Conjunctions and Prepositions (113-120):** ✅ **TAMAMLANDI** (6. dalga) — `sentence-structure` kategorisinde 6 konu var: connectors-linking-words, concession-connectors, purpose-reason-connectors, time-clauses-future-meaning, if-unless-in-case, so-that-such-that.
 15. **Prepositions (121-136, 16 ünite):** ✅ **TAMAMLANDI** (3. dalga) — 8 konu var: prepositions-time, prepositions-place, dependent-prepositions, on-time-in-time, by-until, during-while, prepositions-of-movement, by-with-agent-instrument.
 16. **Phrasal Verbs (137-145):** ✅ **TAMAMLANDI** (6. dalga) — `phrasal-vocab` kategorisinde 6 konu var: phrasal-verbs, word-formation-collocations, phrasal-verbs-up-down, phrasal-verbs-in-out, phrasal-verbs-on-off, separable-inseparable-phrasal-verbs.
-17. **Ekler (7 adet):** Düzensiz fiil listesi, yazım kuralları gibi referans tabloları — ayrı `grammar_topics` satırı açmak yerine, ilgili mevcut konuların `rule_content_md`'sine küçük notlar olarak serpiştirmek daha mantıklı.
+17. **Ekler (7 adet):** Düzensiz fiil listesi, yazım kuralları gibi referans tabloları — ayrı `grammar_topics` satırı açmak yerine, ilgili mevcut konuların `rule_content_md`'sine küçük notlar olarak serpiştirmek daha mantıklı. **Zorunlu değil, V2 önceliklerinden sonra ele alınabilir.**
 
-**Toplam tahmini eksik: ~4-6 konu** (86'dan ~90-92'ye çıkar). Kalan TEK iş, dört küçük bölümdeki eksikler: **Future** (~1-2 konu, bölüm 3 — future time clauses, be about to), **If ve Wish** (~1 konu, bölüm 5 — mixed conditionals), **Passive** (~1-2 konu, bölüm 6 — reporting passive, be/get passive farkı), **Reported Speech** (~1 konu, bölüm 7 — reported commands/requests). Bunlar tek dalgada bitirilebilecek kadar küçük. Bu son bölümler tamamlanınca kitabın "ana gövdesi" bitmiş olacak (Ekler hariç, bkz. madde 17 — düzensiz fiil listesi gibi referans tabloları ayrı konu açmak yerine mevcut konulara not olarak eklenebilir). Her dalgada aynı desen tekrarlanmalı:
+**Toplam tahmini eksik: 0 (ana gövde tamamlandı).** Kitabın 16 ana bölümünün TAMAMI artık içerik olarak kapsanmış durumda (91 grammar_topics, 201 exam_questions, 15 kategori). Kalan tek opsiyonel iş madde 17'deki Ekler (referans tabloları, zorunlu değil). **Bir sonraki oturumun asıl kararı artık Gramer Rehberi'nde değil — §1.1 madde #5/#6 kapsam netleştirmesi ya da §1.2 (Gerçek Zamanlı Düello) gibi V2 önceliklerinden hangisine geçileceği kullanıcıyla konuşulmalı** (bkz. §5).
+
+Yeni bir gramer dalgası gerekirse (ör. madde 17 Ekler'i işlemek istenirse) aynı desen tekrarlanmalı:
 1. Türkçe içeriği (kural + örnek + sık hata) baştan doğru diyakritiklerle (ç,ğ,ı,ö,ş,ü) yaz — bu oturumda ASCII yazıp sonra düzeltmeye çalışmak büyük zaman kaybettirdi, **doğrudan doğru Türkçe ile yaz**.
 2. Her yeni konu için 2 adet YENİ, gramer-YAPISI temelli (vocab değil) `exam_questions` satırı yaz, `topic_tag` = yeni `grammar_topics.slug`, `exam_type` konunun `exam_relevance`'ından biri, `status='approved'`, `source_type='system'`, `learning_lang='en'`.
-3. Supabase'e `apply_migration` ile 3 parça (categories varsa / topics / questions) uygula, `select count(*)` ile doğrula.
-4. `supabase/migrations/03X_...sql` dosyasını repoya yaz (bkz. `030_grammar_reference_expansion.sql`'in header formatı — telif notu dahil), commit hazırla, push komutunu kullanıcıya ver.
+3. Supabase'e `apply_migration` ile 2-3 parça (categories varsa / topics / questions) uygula, `select count(*)` ile doğrula.
+4. `level` sütunu SADECE a2/b1/b2/c1 kabul eder, `a1` YASAK (bkz. §0.8) — script'e `assert` ekle.
+5. `supabase/migrations/03X_...sql` dosyasını repoya yaz (bkz. `035_grammar_reference_wave6.sql`'in header formatı — telif notu dahil), commit hazırla, push komutunu kullanıcıya ver.
 
 ### 0.3. Bu oturumda öğrenilen dersler
 
 - **Türkçe diyakritik hatası:** İçerik önce ASCII (ç→c, ğ→g, ı→i, ö→o, ş→s, ü→u) yazılmış, sonra fark edilip düzeltilmişti — otomatik "deasciifier" pip paketleri bu ortamda kurulamadı (pypi.org/simple'da paket görünüyor ama pip bu proxy/index üzerinden bulamıyor). Manuel find-replace de riskli/yavaştı. **Ders: yeni içerik yazarken en baştan doğru Türkçe karakterlerle yaz, ASCII yazıp sonra düzeltmeyi deneme.**
 - **exam_questions şeması netleşti:** `topic_tag` serbest metin, `grammar_topics.slug` ile eşleşmesi opsiyonel ama eşleşirse "ilgili konuyu incele" özelliği devreye giriyor (`_grammar_topics_for_tags()`, `exams.py`). `status='approved'` + `source_type='system'` canlıda direkt görünür; `status='pending'`+`source_type='ai'` moderasyon kuyruğuna düşer (bkz. `/admin/exam-questions` paneli) — yeni içerik direkt yayınlanacaksa `approved`/`system` kullan.
 - **grammar_topics şeması netleşti:** `status='published'` + `source_type='manual'` mevcut 13 konunun deseni, yeni 24 konu da bu deseni takip etti (canlıda direkt görünür, `status='draft'` olsaydı görünmezdi).
+- **Devir notu dosyasının cihazdan silinmesi:** 7. dalga sonunda `LEXIS_DEVIR_2026-09-09.md` dosyasının cihazdaki kopyası bulunamadı (muhtemelen kullanıcı tarafında yerel bir temizlik/taşıma, git'e commit edilmemiş bir silme olarak görünüyordu). İçerik git geçmişinden (`git show <son-devir-commit>:LEXIS_DEVIR_2026-09-09.md`) kurtarıldı. **Ders: devir notu güncellemeden önce dosya cihazda yoksa, önce `git log -- <dosya>` ile son commit'i bul, `git show <commit>:<dosya>` ile içeriği kurtar.**
 
 ---
 
@@ -145,7 +162,7 @@ Bu oturum tamamen §0'daki Gramer Rehberi/soru havuzu işine odaklandı, aşağ�
 
 ### 1.1. YDS / YÖKDİL / IELTS / TOEFL Sınav Hazırlık Alanı — ÖNCELİK #1
 
-Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, session/attempt akışı, `timed_mock` modu (şemada `ExamSessionMode.timed_mock` mevcut), Gramer Rehberi (artık 37 konu), cevap sonrası kişisel öneri (ilgili konuyu incele / bu konudan pratik yap / haftalık zayıf konu özeti), dashboard widget'ları. **Kalan iş sadece §0.2'deki kitabın geri kalanı.** Madde #5 (çoklu dil/sınav genellemesi — IELTS/TOEFL şu an sadece learning_lang=en'e mi özel kalacak, başka dil çiftlerine mi genellenecek) ve madde #6 (istatistiği tüm uygulamaya yayma — şu an sadece Sınav Hazırlık alanında olan zayıf-konu/performans mantığının kelime/oyun tarafına da taşınması) kapsamı hâlâ netleşmedi, kullanıcıyla konuşulmalı.
+Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, session/attempt akışı, `timed_mock` modu (şemada `ExamSessionMode.timed_mock` mevcut), Gramer Rehberi (artık 91 konu, kitabın ana gövdesi tamamlandı), cevap sonrası kişisel öneri (ilgili konuyu incele / bu konudan pratik yap / haftalık zayıf konu özeti), dashboard widget'ları. **Gramer Rehberi'nin ana gövdesi bitti — kalan iş sadece opsiyonel Ekler (§0.2 madde 17).** Madde #5 (çoklu dil/sınav genellemesi — IELTS/TOEFL şu an sadece learning_lang=en'e mi özel kalacak, başka dil çiftlerine mi genellenecek) ve madde #6 (istatistiği tüm uygulamaya yayma — şu an sadece Sınav Hazırlık alanında olan zayıf-konu/performans mantığının kelime/oyun tarafına da taşınması) kapsamı hâlâ netleşmedi, **kullanıcıyla konuşulmalı**.
 
 ### 1.2. Gerçek Zamanlı Düello — ÖNCELİK #2
 
@@ -179,6 +196,7 @@ Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, se
 6. **Android production build:** Play Console'daki tek production build hâlâ eski runtimeVersion'da (1.0.0/versionCode 7) — yeni `eas build --profile production --platform android` + submit gerekiyor, yoksa OTA dahil hiçbir güncelleme Play Store'daki uygulamaya yansımaz.
 7. **AdSense (web sidebar) kararı** — GVK mükerrer 20/B istisnası kapsamına girmiyor, vergi dairesi sonucu netleşince değerlendirilecek.
 8. **Vergi dairesi istisna dilekçesi** (işlem no 1dmtmujj741x4u, Küçükköy VD) — sonucu bekleniyor; §2.2/2.3/2.7'nin hepsi buna bağlı.
+9. **Google Play kapalı test — 14 gün süresi:** en az 12 kullanıcıyla 14 gün kesintisiz test şartı ~18 Eylül 2026'da dolacak (sürüm 4 Eylül'de yayına alındı). O tarihten sonra üretime başvuru yapılabilir.
 
 ---
 
@@ -192,6 +210,7 @@ Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, se
 - Supabase MCP (`mcp__Supabase__*`, `project_id: mrxeuxscyztpiuagsumh`) canlı DB'ye doğrudan erişim.
 - Hassas dosya silme gerekirse `device_request_delete_permission` iste (bu oturumda `.git/index.lock` temizliği için kullanıldı ve çalıştı) ya da `_to_delete/` alt klasörüne taşı.
 - Gramer/soru içeriği SQL'i büyükse `apply_migration`'ı mantıklı parçalara böl (categories / topics / questions gibi) — tek seferde 150+ satırlık SQL de çalışıyor ama parçalamak hata ayıklamayı kolaylaştırıyor.
+- Devir notu dosyası cihazda bulunamazsa: `git log -- <dosya>` ile son commit'i bul, `git show <commit>:<dosya>` ile içeriği kurtar (bkz. §0.3).
 
 ---
 
@@ -213,7 +232,7 @@ Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, se
 ## 5. Yeni sohbette başlangıç — tam olarak şunu yap
 
 1. Bu dosyayı oku.
-2. Kullanıcıya HİÇBİR ŞEY SORMA — doğrudan §0.2'deki plandan bir sonraki dalgayı seç (Present Perfect, Questions/Auxiliaries, Prepositions 3. dalgada; Articles and Nouns, Adjectives and Adverbs, Modals 4. dalgada; -ing ve to, Pronouns and Determiners, Relative Clauses 5. dalgada; Present and Past, Conjunctions and Prepositions, Phrasal Verbs 6. dalgada TAMAMLANDI; kalan TEK iş: Future, If ve Wish, Passive, Reported Speech — küçük eksikler, ~4-6 konu, tek dalgada bitebilir) ve yazmaya başla. Bu dalga bitince kitabın ana gövdesi tamamlanmış olacak, §1.1 madde #5/#6 kapsam netleştirmesi veya §1.2 (Gerçek Zamanlı Düello) gibi bir sonraki V2 önceliğine geçilebilir.
-3. Yeni içerik yazarken Türkçe diyakritikleri baştan doğru yaz (§0.3'teki ders).
-4. Her dalga sonunda: Supabase'e uygula → doğrula → migration dosyasını repoya yaz → commit hazırla → kullanıcıya `git push` komutunu ver.
-5. Birkaç dalga sonunda (kitabın tamamına yaklaşınca) kullanıcıya durumu özetle; kitap tamamlanınca §1.1'deki madde #5/#6 kapsam netleştirmesine veya §1.2 (Gerçek Zamanlı Düello) gibi bir sonraki V2 önceliğine geçilebilir.
+2. **Gramer Rehberi'nin ana gövdesi (16 bölümün tamamı) artık TAMAMLANDI (91 konu, 201 soru).** Kullanıcıya HİÇBİR ŞEY SORMADAN devam edilecek otomatik bir "dalga" işi kalmadı — kalan tek opsiyonel iş §0.2 madde 17'deki Ekler (referans tabloları, zorunlu değil, düşük öncelikli).
+3. Bu yüzden yeni sohbet önce kullanıcıya kısa bir durum özeti versin (kitap tamamlandı) ve **§1.1 madde #5/#6 kapsam netleştirmesi ile §1.2 (Gerçek Zamanlı Düello) arasında hangisine öncelik verileceğini sorsun** — devir notunun kendisi de bu V2 kararlarının "kullanıcıyla konuşulmalı" olduğunu belirtiyor (madde 17 Ekler'i otomatik/onaysız işlemeye devam edilebilir, bu tek istisna).
+4. Eğer kullanıcı yine de "devam et" derse ve konuşulacak net bir V2 önceliği yoksa, en güvenli varsayılan §0.2 madde 17'deki Ekler'i (düzensiz fiil listesi, yazım kuralları gibi referans notlarını mevcut konuların `rule_content_md`'sine eklemek) işlemektir — bu da onay gerektirmeyen, düşük riskli bir iş.
+5. Her dalga/iş sonunda: Supabase'e uygula → doğrula → migration dosyasını repoya yaz → commit hazırla → kullanıcıya `git push` komutunu ver → devir notunu güncelle.
