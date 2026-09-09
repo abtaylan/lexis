@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
 import { statsApi } from '@/api/stats';
@@ -90,12 +90,6 @@ export default function DashboardScreen() {
     { key: 'flashcards', icon: Layers, label: t('flashcards'), route: '/(app)/flashcards', bg: 'successSoft', fg: 'success' },
     { key: 'stats', icon: BarChart3, label: t('stats'), route: '/(app)/stats', bg: 'primarySoft', fg: 'primary' },
     { key: 'friends', icon: Users, label: fs.title, route: '/(app)/friends', bg: 'accentSoft', fg: 'accent' },
-    // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı (YDS/YÖKDİL/
-    // IELTS/TOEFL). Ekranın kendisi (exam-prep.tsx) native_lang=tr +
-    // learning_lang=en dışındaki kullanıcılara nazik bir "kullanılamıyor"
-    // mesajı gösteriyor, bu yüzden burada profile göre koşullu gizleme
-    // yapılmadı (basit/tutarlı: giriş noktası her zaman görünür).
-    { key: 'examPrep', icon: GraduationCap, label: et.entryLabel, route: '/(app)/exam-prep', bg: 'warningSoft', fg: 'warning' },
   ];
 
   const greetingText = t(greetingKeyForHour(new Date().getHours()));
@@ -115,6 +109,33 @@ export default function DashboardScreen() {
             <StatTile icon={Clock} label={t('dueReview')} value={String(stats.learning)} bg="accentSoft" fg="accent" color={c} />
           </View>
         )}
+
+        {/* V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı artık ayrı,
+            öne çıkan bir banner olarak gösteriliyor (kullanıcı isteği: küçük
+            kısayol karosu yeterince görünür değildi, "Hızlı işlemler"
+            bölümünün üstünde kendi alanı olsun istendi). Ekranın kendisi
+            (exam-prep.tsx) native_lang=tr + learning_lang=en dışındaki
+            kullanıcılara nazik bir "kullanılamıyor" mesajı gösteriyor, bu
+            yüzden burada profile göre koşullu gizleme yapılmadı (basit/
+            tutarlı: giriş noktası her zaman görünür). */}
+        <Pressable
+          onPress={() => router.push('/(app)/exam-prep')}
+          style={({ pressed }) => [styles.examBanner, { backgroundColor: c.warningSoft, opacity: pressed ? 0.85 : 1 }]}
+        >
+          <View style={[styles.examBannerIcon, { backgroundColor: c.surface }]}>
+            <GraduationCap color={c.warning} size={22} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.examBannerTitle, { color: c.text }]}>{et.pageTitle}</Text>
+            <Text style={[styles.examBannerSubtitle, { color: c.textMuted }]} numberOfLines={2}>
+              {et.pageSubtitle}
+            </Text>
+            <View style={styles.examBannerCtaRow}>
+              <Text style={[styles.examBannerCta, { color: c.warning }]}>{et.bannerCta}</Text>
+              <ChevronRight color={c.warning} size={14} />
+            </View>
+          </View>
+        </Pressable>
 
         <View>
           <Text style={[styles.sectionLabel, { color: c.textMuted }]}>{t('quickActions')}</Text>
@@ -212,4 +233,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   actionLabel: { fontSize: 11.5, fontWeight: '600', color: '#374151', textAlign: 'center' },
+  examBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  examBannerIcon: { width: 44, height: 44, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  examBannerTitle: { fontSize: 14.5, fontWeight: '700' },
+  examBannerSubtitle: { fontSize: 12, marginTop: 2, lineHeight: 16 },
+  examBannerCtaRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: spacing.xs },
+  examBannerCta: { fontSize: 12.5, fontWeight: '700' },
 });

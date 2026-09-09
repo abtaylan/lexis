@@ -9,6 +9,7 @@ export type ExamStrings = {
   entryLabel: string;
   pageTitle: string;
   pageSubtitle: string;
+  bannerCta: string;
   disabledMessage: string;
   examTypeYds: string;
   examTypeYokdil: string;
@@ -49,6 +50,7 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     entryLabel: 'Sınav Hazırlık',
     pageTitle: 'Sınav Hazırlık Alanı',
     pageSubtitle: 'YDS, YÖKDİL, IELTS ve TOEFL için örnek sorularla pratik yap, doğru cevap analizini oku, kelimeleri hazinene ekle.',
+    bannerCta: 'Sorulara Başla',
     disabledMessage: 'Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen, ana dili Türkçe olan kullanıcılar için kullanılabilir.',
     examTypeYds: 'YDS',
     examTypeYokdil: 'YÖKDİL',
@@ -87,6 +89,7 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     entryLabel: 'Exam Prep',
     pageTitle: 'Exam Prep Area',
     pageSubtitle: 'Practice with sample questions for YDS, YÖKDİL, IELTS and TOEFL, read the answer analysis, and add words to your vocabulary.',
+    bannerCta: 'Start Practicing',
     disabledMessage: 'The Exam Prep Area is currently available only for Turkish-speaking users learning English.',
     examTypeYds: 'YDS',
     examTypeYokdil: 'YÖKDİL',
