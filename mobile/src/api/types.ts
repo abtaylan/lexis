@@ -571,3 +571,17 @@ export interface AddWordFromQuestionResult {
   added_count: number;
   already_had_count: number;
 }
+
+export interface ExamQuestionSuggestionInput {
+  exam_type: ExamType;
+  question_text: string;
+  options: ExamQuestionOption[];
+  correct_option: string;
+  explanation?: string | null;
+  topic_tag?: string | null;
+}
+
+export interface ExamQuestionSuggestionResult {
+  id: string;
+  status: string;
+}

@@ -5,7 +5,7 @@
 // attempt/finish akışının bire bir karşılığıdır (bkz. backend/app/api/routes/exams.py).
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { router } from 'expo-router';
+import { Link, router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, CheckCircle2, Clock, Plus, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
@@ -232,6 +232,11 @@ export default function ExamPrepScreen() {
             );
           })}
         </View>
+        <Link href="/exam-suggest" asChild>
+          <Pressable style={{ marginTop: spacing.lg, alignSelf: 'center' }}>
+            <Text style={{ color: c.primary, fontWeight: '600', fontSize: 14 }}>{et.suggestEntryLabel}</Text>
+          </Pressable>
+        </Link>
       </ScreenContainer>
     );
   }

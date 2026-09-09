@@ -43,6 +43,24 @@ export type ExamStrings = {
   levelUpTpl: string;
   playAgainBtn: string;
   backToDashboardBtn: string;
+  suggestEntryLabel: string;
+  suggestTitle: string;
+  suggestSubtitle: string;
+  suggestExamTypeLabel: string;
+  suggestQuestionLabel: string;
+  suggestQuestionPlaceholder: string;
+  suggestOptionLabelTpl: string;
+  suggestOptionPlaceholderTpl: string;
+  suggestCorrectOptionLabel: string;
+  suggestExplanationLabel: string;
+  suggestExplanationPlaceholder: string;
+  suggestTopicLabel: string;
+  suggestTopicPlaceholder: string;
+  suggestSubmitBtn: string;
+  suggestValidationError: string;
+  suggestSuccessTitle: string;
+  suggestSuccessBody: string;
+  suggestAnotherBtn: string;
 };
 
 export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
@@ -84,6 +102,24 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     levelUpTpl: 'Seviye atladın! Yeni seviye: {level}',
     playAgainBtn: 'Tekrar Dene',
     backToDashboardBtn: 'Panele Dön',
+    suggestEntryLabel: 'Soru Öner',
+    suggestTitle: 'Soru Öner',
+    suggestSubtitle: 'Kendi hazırladığın soruyu gönder — ekibimiz onayladıktan sonra havuza eklenir ve diğer kullanıcılarla paylaşılır.',
+    suggestExamTypeLabel: 'Sınav Türü',
+    suggestQuestionLabel: 'Soru Metni',
+    suggestQuestionPlaceholder: 'Soruyu buraya yaz — boşluk için ------- kullanabilirsin.',
+    suggestOptionLabelTpl: 'Şık {letter}',
+    suggestOptionPlaceholderTpl: 'Şık {letter} metni',
+    suggestCorrectOptionLabel: 'Doğru Şık',
+    suggestExplanationLabel: 'Açıklama (opsiyonel)',
+    suggestExplanationPlaceholder: 'Doğru cevabın neden doğru olduğunu kısaca açıkla',
+    suggestTopicLabel: 'Konu Etiketi (opsiyonel)',
+    suggestTopicPlaceholder: 'örn. zaman kipleri, phrasal verb, okuma anlama',
+    suggestSubmitBtn: 'Gönder',
+    suggestValidationError: 'Lütfen soruyu, dört şıkkı da ve doğru şıkkı doldur.',
+    suggestSuccessTitle: 'Teşekkürler!',
+    suggestSuccessBody: 'Sorun onay kuyruğuna eklendi. Onaylandığında havuza eklenip diğer kullanıcılarla paylaşılacak.',
+    suggestAnotherBtn: 'Başka Soru Öner',
   },
   en: {
     entryLabel: 'Exam Prep',
@@ -123,5 +159,23 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     levelUpTpl: 'You leveled up! New level: {level}',
     playAgainBtn: 'Try Again',
     backToDashboardBtn: 'Back to Dashboard',
+    suggestEntryLabel: 'Suggest a Question',
+    suggestTitle: 'Suggest a Question',
+    suggestSubtitle: 'Submit a question you wrote — once our team approves it, it will be added to the pool and shared with other users.',
+    suggestExamTypeLabel: 'Exam Type',
+    suggestQuestionLabel: 'Question Text',
+    suggestQuestionPlaceholder: 'Write the question here — use ------- for the blank.',
+    suggestOptionLabelTpl: 'Option {letter}',
+    suggestOptionPlaceholderTpl: 'Option {letter} text',
+    suggestCorrectOptionLabel: 'Correct Option',
+    suggestExplanationLabel: 'Explanation (optional)',
+    suggestExplanationPlaceholder: 'Briefly explain why the correct answer is correct',
+    suggestTopicLabel: 'Topic Tag (optional)',
+    suggestTopicPlaceholder: 'e.g. verb tenses, phrasal verbs, reading comprehension',
+    suggestSubmitBtn: 'Submit',
+    suggestValidationError: 'Please fill in the question, all four options, and the correct option.',
+    suggestSuccessTitle: 'Thank you!',
+    suggestSuccessBody: 'Your question was added to the review queue. Once approved, it will join the pool and be shared with other users.',
+    suggestAnotherBtn: 'Suggest Another',
   },
 };

@@ -107,6 +107,7 @@ export default function AppTabsLayout() {
       <Tabs.Screen name="user-profile" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="premium" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="exam-prep" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="exam-suggest" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }
