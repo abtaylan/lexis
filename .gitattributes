@@ -1,0 +1,19 @@
+# Satır sonu normalizasyonu — Windows'ta (VS Code/PowerShell) düzenlenen
+# dosyalar CRLF ile kaydediliyordu, repodaki commit'ler LF idi; bu fark
+# git status'ta gerçek içerik değişikliği olmayan onlarca "M" (değiştirilmiş)
+# dosya olarak görünüyordu (9 Eylül 2026'da tespit edildi ve düzeltildi).
+# Bu dosya artık tüm metin dosyalarını LF'ye normalize ediyor — hem repoda
+# hem her yeni checkout'ta.
+* text=auto eol=lf
+
+# Binary dosyalar — normalize edilmemeli
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.p8 binary
+*.p12 binary
+*.jks binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
