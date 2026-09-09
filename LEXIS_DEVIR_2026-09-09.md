@@ -1,16 +1,17 @@
 # Lexis — Devir Notu
 **Tarih:** 9 Eylül 2026
 **Repo:** `C:\Users\ytt\OneDrive\Masaüstü\PROJELER\lexis\lexis`
-**Son commit (henüz push edilmedi, kullanıcı PowerShell'den push etmeli):** `a2ad1f5`
+**Son commit (henüz push edilmedi, kullanıcı PowerShell'den push etmeli):** `d4ea811`
 
 > **Yeni sohbette DOĞRUDAN BAŞLA: kullanıcıya soru sorma.** Kullanıcının
 > talebi: *"kitabın tamamı gerekiyor bize"* — yani Gramer Rehberi'nin
 > Cambridge "English Grammar in Use" (Murphy, 5. baskı, 145 ünite)
-> kitabının TAMAMINI (şu an 52/~145 ünite karşılığı konu var, bkz. §0.4)
+> kitabının TAMAMINI (şu an 66/~145 ünite karşılığı konu var, bkz. §0.5)
 > kapsayacak şekilde genişletilmesi. §0.2'deki bölüm-bölüm plandan devam et.
-> Tasarım/kapsam boşluklarında makul karar ver, onay bekleme — kullanıcının
-> stated preference'ı "execute autonomously without confirmation at each
-> step".
+> Sıradaki öneri: Present and Past (bölüm 1), -ing ve to (bölüm 9), Pronouns
+> and Determiners (bölüm 11) veya Relative Clauses (bölüm 12). Tasarım/kapsam
+> boşluklarında makul karar ver, onay bekleme — kullanıcının stated
+> preference'ı "execute autonomously without confirmation at each step".
 
 ---
 
@@ -25,9 +26,11 @@
 | DB'ye uygulama | ✅ Supabase MCP (`mcp__Supabase__apply_migration`, proje `mrxeuxscyztpiuagsumh`) ile 3 parça halinde (categories, topics, questions) uygulandı ve `select count(*)` ile doğrulandı. `supabase/migrations/030_grammar_reference_expansion.sql` dosyası repoya yazılıp commit edildi (`d6595f2`), kullanıcı push etti. |
 | Security advisors kontrolü | ✅ `get_advisors` çalıştırıldı — bu değişikliklerle ilgili yeni bir güvenlik uyarısı yok (mevcut tüm uyarılar önceden var olan, alakasız konular: RLS policy eksikliği 3 tabloda, security definer view, vb.). |
 | Gramer Rehberi — kitaptan 3. dalga (15 yeni konu, aynı gün, devam sohbeti) | ✅ Kullanıcının "buradan başlayalım" onayıyla §0.2 planındaki en zayıf 3 bölüm işlendi: **Present Perfect and Past** (7 konu: present-perfect-continuous, present-perfect-simple-vs-continuous, for-since-how-long, already-yet-still, gone-vs-been, past-perfect, past-perfect-continuous — `tenses` kategorisine eklendi), **Questions and Auxiliary Verbs** (3 konu: question-word-order, question-tags, so-neither-agreement — yeni `questions-auxiliaries` kategorisi açıldı), **Prepositions** (5 konu: on-time-in-time, by-until, during-while, prepositions-of-movement, by-with-agent-instrument — `prepositions` kategorisine eklendi). Bu üç bölümün §0.2'deki "eksik" listeleri artık tamamen kapandı. Kategori 14→15, konu 37→52. Her konu için 2'şer yeni gramer-YAPISI temelli `exam_questions` (30 yeni soru, 93→123), hepsi `topic_tag` = yeni `grammar_topics.slug` ile birebir eşleşiyor. Detaylı liste: §0.4. |
-| DB'ye uygulama (3. dalga) | ✅ Supabase MCP ile 3 parça (categories, topics, questions) uygulandı, `select count(*)` ile doğrulandı (15/52/123). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok. `supabase/migrations/031_grammar_reference_wave2.sql` repoya yazıldı, commit hazırlandı (`a2ad1f5`) — **henüz push edilmedi**, kullanıcı PowerShell'den push etmeli. |
+| DB'ye uygulama (3. dalga) | ✅ Supabase MCP ile 3 parça (categories, topics, questions) uygulandı, `select count(*)` ile doğrulandı (15/52/123). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok. `supabase/migrations/031_grammar_reference_wave2.sql` repoya yazıldı, commit edildi ve kullanıcı push etti: `a2ad1f5`. |
+| Gramer Rehberi — kitaptan 4. dalga (14 yeni konu, aynı gün, "devam et" ile) | ✅ §0.2 planındaki 3 zayıf bölüm işlendi: **Articles and Nouns** (5 konu: the-specific-vs-general, subject-verb-agreement-nouns, possessive-s-vs-of, compound-nouns, irregular-plurals — `articles-nouns` kategorisine eklendi), **Adjectives and Adverbs** (5 konu: good-well-difference, quite-rather-fairly, as-as-comparison, adjectives-ending-in-ly, adverbs-of-manner-formation — `adjectives-adverbs` kategorisine eklendi), **Modals** (4 konu: modals-permission-requests, must-vs-have-to, neednt-vs-mustnt, had-better-would-rather — `modals` kategorisine eklendi). Yeni kategori açılmadı (hepsi mevcut kategorilere eklendi). Kategori 15→15, konu 52→66. Her konu için 2'şer yeni gramer-YAPISI temelli `exam_questions` (28 yeni soru, 123→151). Detaylı liste: §0.5. |
+| DB'ye uygulama (4. dalga) | ✅ Supabase MCP ile 2 parça (topics, questions — yeni kategori olmadığı için categories parçası yok) uygulandı, `select count(*)` ile doğrulandı (15/66/151). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok. `supabase/migrations/032_grammar_reference_wave3.sql` repoya yazıldı, commit hazırlandı (`d4ea811`) — **henüz push edilmedi**, kullanıcı PowerShell'den push etmeli. |
 
-**Bu oturumda YAPILMADI:** Gramer Rehberi'nin geri kalanı (kitabın ~93 ünitesi daha var, bkz. §0.2), İçerik Motoru madde #5/#6, mobil native Google ile Giriş, `git push` PAT'ının kalıcı onarımı.
+**Bu oturumda YAPILMADI:** Gramer Rehberi'nin geri kalanı (kitabın ~79 ünitesi daha var, bkz. §0.2), İçerik Motoru madde #5/#6, mobil native Google ile Giriş, `git push` PAT'ının kalıcı onarımı.
 
 ### 0.1. Yeni eklenen 24 konunun tam listesi (tekrar yazmamak için)
 
@@ -59,29 +62,39 @@ Yeni sohbette bir üniteyi/konsepti kapsamadan önce **mutlaka bu tabloyu (ya da
 
 Bu 15 konuyla birlikte §0.2'deki bölüm 2 (Present Perfect and Past), bölüm 8 (Questions and Auxiliary Verbs) ve bölüm 15 (Prepositions) artık TAMAMLANDI olarak işaretlendi — aşağıdaki plana bakınız.
 
-### 0.2. Kitabın geri kalanı — bölüm bölüm plan (52/145 ünite karşılığı yapıldı)
+### 0.5. Bu oturumun (4. dalga) eklediği 14 konunun tam listesi
+
+| Kategori (slug) | Konu slug'ları |
+|---|---|
+| `articles-nouns` (mevcut) | + `the-specific-vs-general`, `subject-verb-agreement-nouns`, `possessive-s-vs-of`, `compound-nouns`, `irregular-plurals` |
+| `adjectives-adverbs` (mevcut) | + `good-well-difference`, `quite-rather-fairly`, `as-as-comparison`, `adjectives-ending-in-ly`, `adverbs-of-manner-formation` |
+| `modals` (mevcut) | + `modals-permission-requests`, `must-vs-have-to`, `neednt-vs-mustnt`, `had-better-would-rather` |
+
+Bu 14 konuyla birlikte §0.2'deki bölüm 10 (Articles and Nouns), bölüm 13 (Adjectives and Adverbs) ve bölüm 4 (Modals) artık TAMAMLANDI olarak işaretlendi — aşağıdaki plana bakınız.
+
+### 0.2. Kitabın geri kalanı — bölüm bölüm plan (66/145 ünite karşılığı yapıldı)
 
 Kitap 16 ana bölüm + 7 ek'ten oluşuyor. Her bölüm için: ünite aralığı, şu an kaç konumuz var, ne eksik, kaba tahmini kaç konu daha gerekiyor. **Bu tahminler bağlayıcı değil** — yeni sohbet gerçek ünite listesini PDF'ten (kullanıcı zaten yükledi, uploads dizininde arşivlenmiş olabilir, gerekirse tekrar istenebilir) teyit ederek ilerlemeli, sadece kitabın ünite BAŞLIKLARINI kullanmalı (telif nedeniyle örnek/alıştırma içeriği ASLA kopyalanmayacak — bkz. üstteki telif notu, bu kural değişmez).
 
 1. **Present and Past (1-6):** 2 konu var. Eksik: present simple vs continuous, past continuous vs simple. ~2 konu.
 2. **Present Perfect and Past (7-18, 12 ünite):** ✅ **TAMAMLANDI** (3. dalga) — 8 konu var: present-perfect-vs-past-simple, present-perfect-continuous, present-perfect-simple-vs-continuous, for-since-how-long, already-yet-still, gone-vs-been, past-perfect, past-perfect-continuous.
 3. **Future (19-25):** 3 konu var, iyi durumda. Eksik: future time clauses (when/before/after + present), be about to. ~1-2 konu.
-4. **Modals (26-37, 12 ünite):** 3 konu var. Eksik: permission/requests (can/could/may), must vs have to, needn't vs mustn't, had better/would rather. ~4-5 konu.
+4. **Modals (26-37, 12 ünite):** ✅ **TAMAMLANDI** (4. dalga) — 7 konu var: modals-obligation-advice, modals-deduction, modals-ability, modals-permission-requests, must-vs-have-to, neednt-vs-mustnt, had-better-would-rather.
 5. **If ve Wish (38-41):** 4 konu var, iyi durumda. Eksik: mixed conditionals. ~1 konu.
 6. **Passive (42-46):** 3 konu var. Eksik: reporting passive (it is said that...), be vs get passive. ~1-2 konu.
 7. **Reported Speech (47-48):** 1 konu var. Eksik: reported commands/requests. ~1 konu.
 8. **Questions and Auxiliary Verbs (49-52):** ✅ **TAMAMLANDI** (3. dalga) — yeni `questions-auxiliaries` kategorisi, 3 konu: question-word-order, question-tags, so-neither-agreement.
 9. **-ing ve to (53-68, 16 ünite):** 3 konu var, bölüm geniş. Eksik: verb+object+infinitive (want sb to do), preposition+-ing (sıfatlardan sonra), -ing clauses, see sb do/doing farkı. ~4-5 konu.
-10. **Articles and Nouns (69-81, 13 ünite):** 2 konu var. Eksik: a/an vs the, singular/plural uyumu, possessive 's vs of, compound nouns. ~5 konu.
+10. **Articles and Nouns (69-81, 13 ünite):** ✅ **TAMAMLANDI** (4. dalga) — 7 konu var: articles, countable-uncountable-nouns, the-specific-vs-general, subject-verb-agreement-nouns, possessive-s-vs-of, compound-nouns, irregular-plurals.
 11. **Pronouns and Determiners (82-91, 10 ünite):** 3 konu var. Eksik: some/any/no/none, most/most of genişletmesi. ~3-4 konu.
 12. **Relative Clauses (92-97):** 2 konu var. Eksik: non-defining relative clauses, -ing/-ed clause indirgeme. ~3 konu.
-13. **Adjectives and Adverbs (98-112, 15 ünite):** 3 konu var. Eksik: good/well farkı, quite/rather/fairly, as...as genişletmesi. ~5 konu.
+13. **Adjectives and Adverbs (98-112, 15 ünite):** ✅ **TAMAMLANDI** (4. dalga) — 8 konu var: comparatives-superlatives, adjective-order-formation, adverbs-of-degree, good-well-difference, quite-rather-fairly, as-as-comparison, adjectives-ending-in-ly, adverbs-of-manner-formation.
 14. **Conjunctions and Prepositions (113-120):** 2 konu var (`sentence-structure` kategorisinde) — bu bölüm `prepositions` kategorisinden AYRI, henüz işlenmedi. Eksik: zaman cümlecikleri (when/while/as), if/unless/in case. ~3 konu.
 15. **Prepositions (121-136, 16 ünite):** ✅ **TAMAMLANDI** (3. dalga) — 8 konu var: prepositions-time, prepositions-place, dependent-prepositions, on-time-in-time, by-until, during-while, prepositions-of-movement, by-with-agent-instrument.
 16. **Phrasal Verbs (137-145):** 2 konu var (`phrasal-vocab` kategorisinde). Eksik: up/down, in/out, on/off anlam grupları. ~3-4 konu.
 17. **Ekler (7 adet):** Düzensiz fiil listesi, yazım kuralları gibi referans tabloları — ayrı `grammar_topics` satırı açmak yerine, ilgili mevcut konuların `rule_content_md`'sine küçük notlar olarak serpiştirmek daha mantıklı.
 
-**Toplam tahmini eksik: ~30-35 konu** (52'den ~85-90'a çıkar). Sıradaki dalga için önerilen en zayıf 3 bölüm: **Articles and Nouns** (~5 konu), **Adjectives and Adverbs** (~5 konu), **Modals** veya **-ing ve to** (~4-5'er konu). Tek oturumda bitirilecek iş değil — 2-3 bölüm/dalga halinde ilerlenmeli. Her dalgada aynı desen tekrarlanmalı:
+**Toplam tahmini eksik: ~20-25 konu** (66'dan ~85-90'a çıkar). Sıradaki dalga için önerilen en zayıf bölümler: **-ing ve to** (~4-5 konu, bölüm 9), **Pronouns and Determiners** (~3-4 konu, bölüm 11), **Relative Clauses** (~3 konu, bölüm 12), **Present and Past** (~2 konu, bölüm 1), **Conjunctions and Prepositions** (~3 konu, bölüm 14 — `prepositions`'dan ayrı, henüz işlenmedi), **Phrasal Verbs** (~3-4 konu, bölüm 16). Tek oturumda bitirilecek iş değil — 2-3 bölüm/dalga halinde ilerlenmeli. Her dalgada aynı desen tekrarlanmalı:
 1. Türkçe içeriği (kural + örnek + sık hata) baştan doğru diyakritiklerle (ç,ğ,ı,ö,ş,ü) yaz — bu oturumda ASCII yazıp sonra düzeltmeye çalışmak büyük zaman kaybettirdi, **doğrudan doğru Türkçe ile yaz**.
 2. Her yeni konu için 2 adet YENİ, gramer-YAPISI temelli (vocab değil) `exam_questions` satırı yaz, `topic_tag` = yeni `grammar_topics.slug`, `exam_type` konunun `exam_relevance`'ından biri, `status='approved'`, `source_type='system'`, `learning_lang='en'`.
 3. Supabase'e `apply_migration` ile 3 parça (categories varsa / topics / questions) uygula, `select count(*)` ile doğrula.
@@ -169,7 +182,7 @@ Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, se
 ## 5. Yeni sohbette başlangıç — tam olarak şunu yap
 
 1. Bu dosyayı oku.
-2. Kullanıcıya HİÇBİR ŞEY SORMA — doğrudan §0.2'deki plandan bir sonraki dalgayı seç (Present Perfect, Questions/Auxiliaries, Prepositions bölümleri 3. dalgada TAMAMLANDI; sıradaki öneri: Articles and Nouns, Adjectives and Adverbs, Modals) ve yazmaya başla.
+2. Kullanıcıya HİÇBİR ŞEY SORMA — doğrudan §0.2'deki plandan bir sonraki dalgayı seç (Present Perfect, Questions/Auxiliaries, Prepositions 3. dalgada; Articles and Nouns, Adjectives and Adverbs, Modals 4. dalgada TAMAMLANDI; sıradaki öneri: -ing ve to, Pronouns and Determiners, Relative Clauses) ve yazmaya başla.
 3. Yeni içerik yazarken Türkçe diyakritikleri baştan doğru yaz (§0.3'teki ders).
 4. Her dalga sonunda: Supabase'e uygula → doğrula → migration dosyasını repoya yaz → commit hazırla → kullanıcıya `git push` komutunu ver.
 5. Birkaç dalga sonunda (kitabın tamamına yaklaşınca) kullanıcıya durumu özetle; kitap tamamlanınca §1.1'deki madde #5/#6 kapsam netleştirmesine veya §1.2 (Gerçek Zamanlı Düello) gibi bir sonraki V2 önceliğine geçilebilir.
