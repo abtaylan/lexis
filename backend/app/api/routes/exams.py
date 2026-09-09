@@ -38,6 +38,8 @@ from app.core.auth import get_current_admin, get_current_admin_full, get_current
 from app.core.database import supabase_admin
 from app.schemas.exams import (
     AddWordFromQuestionResponse,
+    AIQuestionGenerateRequest,
+    AIQuestionGenerateResult,
     ExamAttemptCreate,
     ExamAttemptResponse,
     ExamFinishResponse,
@@ -52,6 +54,10 @@ from app.schemas.exams import (
     PendingExamQuestion,
 )
 from app.services.audit_log import log_admin_action
+from app.services.exam_question_generator import (
+    ExamQuestionGenerationError,
+    generate_questions,
+)
 from app.services.spaced_repetition import calculate_next_review
 from app.services.xp_service import award_xp
 
@@ -507,3 +513,56 @@ async def reject_question(question_id: str, admin=Depends(get_current_admin_full
         raise HTTPException(status_code=404, detail="Soru bulunamadı.")
     log_admin_action(admin.id, admin.email, "exam_question.reject", "exam_question", question_id)
     return ExamQuestionModerationResponse(id=question_id, status="rejected")
+
+
+# ── İstatistik & İçerik Motoru Faz 2b: AI ile soru üretimi (admin) ────
+# Üretilen sorular DOĞRUDAN havuza girmez — kullanıcı önerileriyle aynı
+# moderasyon kuyruğundan geçer (source_type='ai', status='pending').
+# get_current_admin_full zorunlu: bu bir mutasyon + ücretli AI API çağrısı.
+
+
+@router.post("/admin/questions/generate-ai", response_model=AIQuestionGenerateResult)
+async def generate_ai_questions(
+    payload: AIQuestionGenerateRequest, admin=Depends(get_current_admin_full)
+):
+    try:
+        questions = generate_questions(
+            payload.exam_type.value, payload.count, payload.topic_tag
+        )
+    except ExamQuestionGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    rows = [
+        {
+            "exam_type": payload.exam_type.value,
+            "learning_lang": "en",
+            "question_text": q["question_text"],
+            "options": q["options"],
+            "correct_option": q["correct_option"],
+            "explanation": q["explanation"],
+            "topic_tag": q["topic_tag"],
+            "source_type": "ai",
+            "status": "pending",
+            "is_active": True,
+        }
+        for q in questions
+    ]
+    result = supabase_admin.table("exam_questions").insert(rows).execute()
+    created_ids = [row["id"] for row in (result.data or [])]
+
+    log_admin_action(
+        admin.id,
+        admin.email,
+        "exam_question.generate_ai",
+        "exam_type",
+        payload.exam_type.value,
+        {
+            "requested": payload.count,
+            "created": len(created_ids),
+            "topic_tag": payload.topic_tag,
+        },
+    )
+
+    return AIQuestionGenerateResult(
+        requested=payload.count, created=len(created_ids), question_ids=created_ids
+    )

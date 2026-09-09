@@ -145,3 +145,23 @@ class PendingExamQuestion(BaseModel):
 class ExamQuestionModerationResponse(BaseModel):
     id: str
     status: str
+
+
+
+# ── İstatistik & İçerik Motoru Faz 2b: AI ile soru üretimi (admin) ─────
+
+
+class AIQuestionGenerateRequest(BaseModel):
+    """Admin panelinden tetiklenir — belirtilen sınav türü için AI'a soru
+    ürettirir. Üretilen sorular status='pending' olarak kaydedilir, kullanıcı
+    havuzuna girmeden önce admin GET/POST /admin/questions/... ile onaylar."""
+
+    exam_type: ExamType
+    count: int = Field(default=5, ge=1, le=20)
+    topic_tag: str | None = Field(default=None, max_length=100)
+
+
+class AIQuestionGenerateResult(BaseModel):
+    requested: int
+    created: int
+    question_ids: list[str]

@@ -122,6 +122,15 @@ class Settings(BaseSettings):
     # HER ZAMAN 401 döner — kazayla açık bırakılmış bir endpoint olmaz.
     CRON_SECRET: str = ""
 
+    # ── Sınav Hazırlık — İstatistik & İçerik Motoru Faz 2b: AI ile soru
+    # üretimi (admin panelinden tetiklenir, bkz. app/services/
+    # exam_question_generator.py). Boş bırakılırsa POST /admin/questions/
+    # generate-ai 500 döner ("yapılandırılmadı") — üretilen sorular her
+    # durumda status='pending' ile moderasyon kuyruğuna girer, admin onayı
+    # olmadan kullanıcıya asla gösterilmez.
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-sonnet-5"
+
     class Config:
         env_file = ".env"
         case_sensitive = True
