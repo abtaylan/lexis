@@ -1,19 +1,19 @@
 # Lexis — Devir Notu
 **Tarih:** 9 Eylül 2026
 **Repo:** `C:\Users\ytt\OneDrive\Masaüstü\PROJELER\lexis\lexis`
-**Son commit (henüz push edilmedi, kullanıcı PowerShell'den push etmeli):** `07bcc43`
+**Son commit (henüz push edilmedi, kullanıcı PowerShell'den push etmeli):** `4e3441c`
 
-> **Yeni sohbette DOĞRUDAN BAŞLA: kullanıcıya soru sorma.** Kullanıcının
-> talebi: *"kitabın tamamı gerekiyor bize"* — yani Gramer Rehberi'nin
-> Cambridge "English Grammar in Use" (Murphy, 5. baskı, 145 ünite)
-> kitabının TAMAMINI (şu an 86/~145 ünite karşılığı konu var, bkz. §0.7)
-> kapsayacak şekilde genişletilmesi. §0.2'deki bölüm-bölüm plandan devam et.
-> Kalan tek iş: Future (bölüm 3), If ve Wish (bölüm 5), Passive (bölüm 6),
-> Reported Speech (bölüm 7) — küçük eksikler, toplam ~4-6 konu, tek dalgada
-> bitebilir. Bunlar tamamlanınca kitabın "ana gövdesi" bitmiş olur (Ekler
-> hariç, bkz. §0.2 madde 17). Tasarım/kapsam boşluklarında makul karar ver,
-> onay bekleme — kullanıcının stated preference'ı "execute autonomously
-> without confirmation at each step".
+> **Yeni sohbette DOĞRUDAN BAŞLA: kullanıcıya soru sorma.** Gramer Rehberi'nin
+> içerik tarafı (kitabın 16 ana bölümü + madde 17 Ekler) ve UI tarafı (harita
+> görünümü, Sınav Hazırlık Alanı kartları) TAMAMLANDI — bkz. §0.10, §0.11.
+> Kullanıcının otomatik/onaysız devam edilecek bir "dalga" işi KALMADI.
+> Yeni sohbet önce kullanıcıya kısa bir durum özeti versin ve **§1.1 madde
+> #5/#6 kapsam netleştirmesi ile §1.2 (Gerçek Zamanlı Düello) arasında
+> hangisine öncelik verileceğini sorsun** (bkz. §5). Kullanıcı yine de somut
+> bir gramer/UI iyileştirmesi isterse (ör. yeni bir sayfa tasarımı, mobil
+> tarafında da aynı harita UI'ının uygulanması), tasarım/kapsam
+> boşluklarında makul karar ver, onay bekleme — kullanıcının stated
+> preference'ı "execute autonomously without confirmation at each step".
 
 ---
 
@@ -37,9 +37,12 @@
 | Gramer Rehberi — kitaptan 6. dalga (8 yeni konu, aynı gün, "devam et" ile) | ✅ §0.2 planındaki 3 bölümün eksik kalan kısımları işlendi: **Present and Past** (1 konu: present-simple-vs-continuous — `tenses` kategorisine eklendi, böylece bölüm tamamlandı), **Conjunctions and Prepositions** (3 konu: time-clauses-future-meaning, if-unless-in-case, so-that-such-that — `sentence-structure` kategorisine eklendi), **Phrasal Verbs** (4 konu: phrasal-verbs-up-down, phrasal-verbs-in-out, phrasal-verbs-on-off, separable-inseparable-phrasal-verbs — `phrasal-vocab` kategorisine eklendi). Yeni kategori açılmadı. Kategori 15→15, konu 78→86. Her konu için 2'şer yeni gramer-YAPISI temelli `exam_questions` (16 yeni soru, 175→191). Detaylı liste: §0.7. |
 | DB'ye uygulama (6. dalga) | ⚠️ İlk `apply_migration` denemesi `level = 'a1'` check constraint hatasıyla başarısız oldu (tablo sadece a2/b1/b2/c1 kabul ediyor) — transaction otomatik rollback oldu, hiçbir satır eklenmedi. `present-simple-vs-continuous` konusunun level'ı `a2`'ye düzeltilip script yeniden çalıştırıldı (bu, TÜM 8 konunun UUID'lerini de yeniledi — script her çalıştığında `uuid.uuid4()` çağırıyor). Düzeltilmiş dosyalar yeniden okunup Supabase'e 2 parça (topics, questions) halinde uygulandı, `select count(*)` ile doğrulandı (15/86/191). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok. `supabase/migrations/034_grammar_reference_wave5.sql` repoya yazıldı, commit edildi ve kullanıcı push etti: `07bcc43`. |
 | Gramer Rehberi — kitaptan 7. dalga (5 yeni konu, aynı gün, "devam et" ile) | ✅ §0.2 planındaki kalan TEK iş işlendi: **Future** (1 konu: be-about-to — `future` kategorisine eklendi), **If ve Wish** (1 konu: mixed-conditionals — `conditionals` kategorisine eklendi), **Passive** (2 konu: reporting-passive, be-vs-get-passive — `passive` kategorisine eklendi), **Reported Speech** (1 konu: reported-commands-requests — `reported-speech` kategorisine eklendi). `time-clauses-future-meaning` 6. dalgada zaten eklendiği için Future bölümündeki "future time clauses" eksiği bilinçli olarak tekrar yazılmadı (içerik tekrarını önlemek için). Yeni kategori açılmadı. Kategori 15→15, konu 86→91. Her konu için 2'şer yeni gramer-YAPISI temelli `exam_questions` (10 yeni soru, 191→201). Detaylı liste: §0.9. **Bu dalgayla birlikte kitabın (Murphy, 5. baskı) ana gövdesi içerik olarak tamamlanmış oldu** (Ekler hariç, bkz. madde 17). |
-| DB'ye uygulama (7. dalga) | ✅ Supabase MCP ile 2 parça (topics, questions) uygulandı, `select count(*)` ile doğrulandı (15/91/201). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok (mevcut tüm uyarılar önceden var olan, alakasız konular). `supabase/migrations/035_grammar_reference_wave6.sql` repoya yazıldı, commit hazırlandı (`79666b6`) — **henüz push edilmedi**, kullanıcı PowerShell'den push etmeli. |
+| DB'ye uygulama (7. dalga) | ✅ Supabase MCP ile 2 parça (topics, questions) uygulandı, `select count(*)` ile doğrulandı (15/91/201). `get_advisors` tekrar çalıştırıldı, yeni uyarı yok (mevcut tüm uyarılar önceden var olan, alakasız konular). `supabase/migrations/035_grammar_reference_wave6.sql` repoya yazıldı, commit edildi ve kullanıcı push etti: `79666b6`. |
+| Madde 17 (Ekler) + eksik pratik soruları (kullanıcı talebi: *"madde 17 yapılsın"* + *"bu konu için henüz pratik sorusu eklenmedi ibaresi... soruları biz mi ekleyeceğiz siz mi"*) | ✅ İki iş birlikte yapıldı. (1) **Madde 17:** kitaptaki Eklerin sadece genel/standart başlıklarından (düzensiz fiiller, -ing/-ed yazım kuralları, kısaltmalar, fiil+edat/sıfat+edat kalıpları, AmE/BrE farkları, noktalama) esinlenerek 7 adet özgün referans notu, ayrı `grammar_topics` satırı açılmadan ilgili 7 mevcut konunun `rule_content_md` alanına `UPDATE ... || ` ile eklendi. (2) **Eksik sorular:** `select topic_tag, count(*)` ile hiç `exam_questions`'ı olmayan 12 eski konu (2. dalgadan önce eklenmiş: articles, relative-clauses-defining, conditionals-zero-first, conditionals-second, modals-obligation-advice, modals-deduction, passive-present-past, phrasal-verbs, word-formation-collocations, reported-speech-statements-questions, present-perfect-vs-past-simple, past-simple-vs-continuous) tespit edildi, her birine 2'şer özgün gramer-YAPISI sorusu yazıldı (24 yeni soru). Artık TÜM 91 konunun en az 1 pratik sorusu var (doğrulandı: `topics_without_q = 0`). Konu 91→91 (değişmedi), soru 201→225. `supabase/migrations/036_grammar_reference_wave7_appendices_and_missing_questions.sql` repoya yazıldı, commit edildi ve kullanıcı push etti: `9a2ab62`. |
+| Gramer Rehberi sayfasını "harita" UI'ına dönüştürme + Sınav Hazırlık Alanı kart iyileştirmesi (kullanıcı talebi: ekran görüntüleriyle birlikte, düz liste kullanıcı dostu değil, "hangi konuya ne zaman çalışacağımı karıştırmadan" gezinebileceğim tematik/ilerlemeli bir harita + "Gramer Rehberi"/"Soru Öner" linklerinin görselinin diğer kartlarla tutarlı olması istendi) | ✅ `web/src/app/(app)/exam-grammar/page.tsx` tamamen yeniden yazıldı: 15 kategori (bölüm), dolambaçlı bir "yol" üzerinde alternatif sola/sağa hizalanmış durak (nod) olarak gösteriliyor — her durak kategoriye özel bir ikon taşıyor (ör. Zamanlar→Clock, Modal Fiiller→ShieldCheck), 3 görsel duruma sahip (hiç bakılmamış/gri, kısmen/mavi, tamamlanmış/dolu mavi+yeşil tik). Bir durağa dokununca altındaki konular akordeon olarak açılıyor (framer-motion), bir konuya dokununca mevcut `/exam-grammar/[slug]` detay sayfasına gidiliyor. Üstte genel ilerleme çubuğu ("X / 91 konu incelendi", %). **İlerleme takibi:** backend'de kullanıcı bazlı bir grammar-progress tablosu olmadığı için bilinçli olarak hafif tutuldu — yeni `web/src/lib/grammarProgress.ts` dosyası, sadece tarayıcıda (localStorage) "hangi konu slug'larına bakıldığını" tutuyor; `exam-grammar/[slug]/page.tsx`'e konu yüklenince işaretleyen bir `useEffect` eklendi. `exam-prep/page.tsx`'teki select-type ekranının altındaki "Gramer Rehberi" ve "Soru Öner" düz metin linkleri, sayfadaki diğer kartlarla (ikon kutusu + başlık + açıklama) aynı görsel dile sahip iki karta dönüştürüldü. |
+| Frontend değişikliklerinin doğrulanması | ✅ `npx tsc --noEmit` ve `npx eslint` değişen 4 dosyada (`exam-grammar/page.tsx`, `exam-grammar/[slug]/page.tsx`, `exam-prep/page.tsx`, `lib/grammarProgress.ts`) çalıştırıldı. İlk denemede yeni eklenen kodun effect içinde senkron `setState` çağırdığı için `react-hooks/set-state-in-effect` eslint hatası çıktı — `useState`+`useEffect` yerine `useSyncExternalStore` tabanlı `useVisitedTopics()` hook'una geçilerek düzeltildi (bkz. §0.12), sonrasında hem tsc hem eslint temiz. `next build` bu Linux sandbox'ta (device_bash) SWC native binary eksikliği + ağ erişimi olmadığı için denenemedi — gerçek Windows geliştirme ortamında derlenmesi bekleniyor, **kullanıcının kendi makinesinde `npm run build` ile bir kez doğrulaması önerilir**. `git status` sırasında repoda `LEXIS_DEVIR_2026-09-03/04/07/08.md`, iki `.png` ve `lexis_kalan_isler_guncel.md` dosyalarının yerelde silinmiş (commit edilmemiş) olduğu fark edildi — bunlara dokunulmadı, muhtemelen kullanıcının kendi tarafında bir temizlik. `web/src/app/(app)/exam-grammar/page.tsx`, `[slug]/page.tsx`, `exam-prep/page.tsx`, `web/src/lib/grammarProgress.ts` repoya yazıldı, commit edildi ve kullanıcı push etti: `4e3441c`. |
 
-**Bu oturumda YAPILMADI:** İçerik Motoru madde #5/#6, mobil native Google ile Giriş, `git push` PAT'ının kalıcı onarımı, §0.2 madde 17'deki Ekler (düzensiz fiil listesi vb. referans tabloları — mevcut konulara not olarak eklenebilir, ayrı satır gerekmez).
+**Bu oturumda YAPILMADI:** İçerik Motoru madde #5/#6, mobil native Google ile Giriş, `git push` PAT'ının kalıcı onarımı, mobile tarafında aynı harita UI'ının uygulanması (sadece web yapıldı — kullanıcı ekran görüntüleri web'den geldi), kullanıcının kendi makinesinde gerçek `npm run build` ile son doğrulama.
 
 ### 0.8. Yeni ders: grammar_topics.level check constraint
 
@@ -116,6 +119,32 @@ Bu 8 konuyla birlikte §0.2'deki bölüm 1 (Present and Past), bölüm 14 (Conju
 
 Bu 5 konuyla birlikte §0.2'deki bölüm 3 (Future), bölüm 5 (If ve Wish), bölüm 6 (Passive) ve bölüm 7 (Reported Speech) artık TAMAMLANDI olarak işaretlendi — aşağıdaki plana bakınız. **Bu dalgayla birlikte kitabın ana gövdesindeki 16 bölümün TAMAMI (Ekler hariç) TAMAMLANDI.**
 
+### 0.10. Madde 17 (Ekler) — hangi konuya ne eklendiğinin tam listesi
+
+| Konu slug'ı (kategori) | Eklenen Ek notu |
+|---|---|
+| `present-perfect-vs-past-simple` (tenses) | Düzensiz Fiiller (Irregular Verbs) — ~50 fiilin V1-V2-V3 hali |
+| `question-tags` (questions-auxiliaries) | Kısaltılmış Yapılar (Contractions) — I'm, don't, won't, isn't vb. |
+| `present-simple-vs-continuous` (tenses) | Fiile -ing Eklenirken Yazım Kuralları |
+| `past-simple-vs-continuous` (tenses) | Düzenli Fiillere -ed Eklenirken Yazım Kuralları |
+| `dependent-prepositions` (prepositions) | Sık Kullanılan Fiil + Edat ve Sıfat + Edat Kalıpları |
+| `word-formation-collocations` (phrasal-vocab) | Amerikan ve İngiliz İngilizcesi Arasındaki Farklar |
+| `connectors-linking-words` (sentence-structure) | Temel Noktalama ve Büyük Harf Kuralları |
+
+Bu notlar ayrı `grammar_topics` satırı DEĞİL — ilgili konunun `rule_content_md` alanının SONUNA eklendi (`UPDATE ... SET rule_content_md = rule_content_md || '\n' || '- **EK — ...'`). Yeni sohbet madde 17'yi TEKRAR işlemeye kalkmamalı, yukarıdaki 7 konu zaten kapsıyor.
+
+### 0.11. Eksik pratik sorularının tam listesi (12 konu × 2 soru = 24 soru)
+
+`articles`, `relative-clauses-defining`, `conditionals-zero-first`, `conditionals-second`, `modals-obligation-advice`, `modals-deduction`, `passive-present-past`, `phrasal-verbs`, `word-formation-collocations`, `reported-speech-statements-questions`, `present-perfect-vs-past-simple`, `past-simple-vs-continuous`. Bunlar 2. dalgadan ÖNCE (ilk 13 orijinal konu) eklenmiş, hiç `exam_questions`'ı olmayan konulardı — kullanıcı uygulamada "Bu konu için henüz pratik sorusu eklenmedi" ibaresiyle karşılaşmıştı. **Karar: bu tür eksikler kullanıcı tarafından değil, otomatik olarak Claude tarafından tamamlanır** (aynı 2 soru/konu deseniyle). Yeni sohbet, yeni bir konu eklerken bu deseni unutmamalı: her yeni `grammar_topics` satırı için AYNI migration'da 2 soru da yazılmalı, aksi halde bu tür bir eksik tekrar oluşur.
+
+### 0.12. Gramer Rehberi "harita" UI'ı — teknik notlar ve dersler
+
+- **Dosyalar:** `web/src/app/(app)/exam-grammar/page.tsx` (liste → harita, tam yeniden yazım), `web/src/app/(app)/exam-grammar/[slug]/page.tsx` (küçük ekleme: ziyaret işaretleme), `web/src/app/(app)/exam-prep/page.tsx` (küçük değişiklik: alt linkler → kartlar), `web/src/lib/grammarProgress.ts` (yeni dosya).
+- **İlerleme takibi backend'de DEĞİL:** kullanıcı bazlı bir grammar-progress tablosu yok ve bu oturumda bilinçli olarak eklenmedi (kapsamı büyütmemek için) — sadece tarayıcı localStorage'ında (`lexis_grammar_visited_topics_v1` anahtarı, slug dizisi) tutuluyor. Yani kullanıcı farklı bir cihazdan/tarayıcıdan girerse ilerleme sıfırdan başlar. Bu bilinçli bir V1 kararı — istenirse ileride backend'e taşınabilir (yeni bir `user_grammar_progress` tablosu + `/grammar/progress` route'u gerekir).
+- **ÖNEMLİ ders — `react-hooks/set-state-in-effect` eslint hatası:** İlerlemeyi `useState` + mount'ta `useEffect` içinde `setState(getVisitedTopics())` ile okumaya çalışmak yeni eslint kuralına takılıyor (effect içinde senkron setState render kaskadı yaratır). **Doğru çözüm: `useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)` kullanmak** — SSR'da `getServerSnapshot` boş döner (hydration mismatch riski yok), istemcide mount olur olmaz gerçek localStorage değeriyle güvenli senkronize olur. `lib/grammarProgress.ts`'teki `useVisitedTopics()` hook'u bu deseni uyguluyor. **Benzer bir localStorage/harici-store okuma ihtiyacı olursa bu dosyadaki desen örnek alınmalı, `useState`+`useEffect` ile tekrar aynı hataya düşülmemeli.**
+- **Doğrulama sınırı:** Bu oturumda kullanılan `device_bash` (kullanıcının Windows makinesindeki Cowork Linux VM'i) `npm run build` çalıştıramadı — SWC'nin linux-x64 native binary'si kurulu değil ve VM'in npmjs.org'a ağ erişimi yok (`getaddrinfo EAI_AGAIN`). `npx tsc --noEmit` ve `npx eslint <değişen dosyalar>` ile doğrulama yapıldı (ikisi de temiz), ama gerçek bir Next.js build/render testi YAPILAMADI. **Yeni sohbet, kullanıcının bir sonraki mesajında (özellikle bu değişiklikler için) `npm run build` çıktısını veya canlıdaki ekran görüntüsünü kontrol etmeli** — sorun bildirilirse önce bu sınırlamayı hatırla.
+- **İkon eşlemesi** (kategori slug → lucide-react ikonu, `CATEGORY_ICONS` sabiti, `exam-grammar/page.tsx` içinde): tenses→Clock, passive→RefreshCw, conditionals→GitBranch, modals→ShieldCheck, clauses→Link2, articles-nouns→FileText, reported-speech→MessageCircle, phrasal-vocab→Puzzle, sentence-structure→AlignLeft, future→Rocket, ing-to-infinitive→Type, pronouns-determiners→Users, adjectives-adverbs→Sparkles, prepositions→MapPin, questions-auxiliaries→HelpCircle. Yeni bir kategori açılırsa bu haritaya eklenmezse `BookOpen` fallback ikonu kullanılır (kırılmaz, ama tutarsız görünür) — yeni sohbet yeni kategori açarsa bu listeyi güncellemeyi unutmamalı.
+
 ### 0.2. Kitabın geri kalanı — bölüm bölüm plan (91/145 ünite karşılığı yapıldı, ana gövde tamamlandı)
 
 Kitap 16 ana bölüm + 7 ek'ten oluşuyor. Her bölüm için: ünite aralığı, şu an kaç konumuz var. **16 ana bölümün TAMAMI artık TAMAMLANDI** — sadece madde 17'deki Ekler (referans tabloları) kaldı, onlar da ayrı konu değil, mevcut konulara not eklenerek kapatılabilir.
@@ -136,11 +165,11 @@ Kitap 16 ana bölüm + 7 ek'ten oluşuyor. Her bölüm için: ünite aralığı,
 14. **Conjunctions and Prepositions (113-120):** ✅ **TAMAMLANDI** (6. dalga) — `sentence-structure` kategorisinde 6 konu var: connectors-linking-words, concession-connectors, purpose-reason-connectors, time-clauses-future-meaning, if-unless-in-case, so-that-such-that.
 15. **Prepositions (121-136, 16 ünite):** ✅ **TAMAMLANDI** (3. dalga) — 8 konu var: prepositions-time, prepositions-place, dependent-prepositions, on-time-in-time, by-until, during-while, prepositions-of-movement, by-with-agent-instrument.
 16. **Phrasal Verbs (137-145):** ✅ **TAMAMLANDI** (6. dalga) — `phrasal-vocab` kategorisinde 6 konu var: phrasal-verbs, word-formation-collocations, phrasal-verbs-up-down, phrasal-verbs-in-out, phrasal-verbs-on-off, separable-inseparable-phrasal-verbs.
-17. **Ekler (7 adet):** Düzensiz fiil listesi, yazım kuralları gibi referans tabloları — ayrı `grammar_topics` satırı açmak yerine, ilgili mevcut konuların `rule_content_md`'sine küçük notlar olarak serpiştirmek daha mantıklı. **Zorunlu değil, V2 önceliklerinden sonra ele alınabilir.**
+17. **Ekler (7 adet):** ✅ **TAMAMLANDI** — düzensiz fiil listesi, yazım kuralları gibi referans tabloları, ayrı `grammar_topics` satırı açılmadan ilgili 7 mevcut konunun `rule_content_md`'sine eklendi. Detaylı liste: §0.10.
 
-**Toplam tahmini eksik: 0 (ana gövde tamamlandı).** Kitabın 16 ana bölümünün TAMAMI artık içerik olarak kapsanmış durumda (91 grammar_topics, 201 exam_questions, 15 kategori). Kalan tek opsiyonel iş madde 17'deki Ekler (referans tabloları, zorunlu değil). **Bir sonraki oturumun asıl kararı artık Gramer Rehberi'nde değil — §1.1 madde #5/#6 kapsam netleştirmesi ya da §1.2 (Gerçek Zamanlı Düello) gibi V2 önceliklerinden hangisine geçileceği kullanıcıyla konuşulmalı** (bkz. §5).
+**Toplam tahmini eksik: 0 (ana gövde VE Ekler tamamlandı).** Kitabın 16 ana bölümü + madde 17 Ekler TAMAMEN içerik olarak kapsanmış durumda (91 grammar_topics, 225 exam_questions — TÜM konularda en az 1 soru var, 15 kategori). Gramer Rehberi içerik tarafında artık YAPILACAK bilinen bir iş kalmadı. UI tarafı da harita görünümüne dönüştürüldü (bkz. §0.11, §0.12). **Bir sonraki oturumun asıl kararı artık Gramer Rehberi'nde değil — §1.1 madde #5/#6 kapsam netleştirmesi ya da §1.2 (Gerçek Zamanlı Düello) gibi V2 önceliklerinden hangisine geçileceği kullanıcıyla konuşulmalı** (bkz. §5).
 
-Yeni bir gramer dalgası gerekirse (ör. madde 17 Ekler'i işlemek istenirse) aynı desen tekrarlanmalı:
+Gramer Rehberi'ne yeni içerik eklemek gerekirse (ör. kullanıcı yeni bir konu/soru isterse) aynı desen tekrarlanmalı:
 1. Türkçe içeriği (kural + örnek + sık hata) baştan doğru diyakritiklerle (ç,ğ,ı,ö,ş,ü) yaz — bu oturumda ASCII yazıp sonra düzeltmeye çalışmak büyük zaman kaybettirdi, **doğrudan doğru Türkçe ile yaz**.
 2. Her yeni konu için 2 adet YENİ, gramer-YAPISI temelli (vocab değil) `exam_questions` satırı yaz, `topic_tag` = yeni `grammar_topics.slug`, `exam_type` konunun `exam_relevance`'ından biri, `status='approved'`, `source_type='system'`, `learning_lang='en'`.
 3. Supabase'e `apply_migration` ile 2-3 parça (categories varsa / topics / questions) uygula, `select count(*)` ile doğrula.
@@ -232,7 +261,8 @@ Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, se
 ## 5. Yeni sohbette başlangıç — tam olarak şunu yap
 
 1. Bu dosyayı oku.
-2. **Gramer Rehberi'nin ana gövdesi (16 bölümün tamamı) artık TAMAMLANDI (91 konu, 201 soru).** Kullanıcıya HİÇBİR ŞEY SORMADAN devam edilecek otomatik bir "dalga" işi kalmadı — kalan tek opsiyonel iş §0.2 madde 17'deki Ekler (referans tabloları, zorunlu değil, düşük öncelikli).
-3. Bu yüzden yeni sohbet önce kullanıcıya kısa bir durum özeti versin (kitap tamamlandı) ve **§1.1 madde #5/#6 kapsam netleştirmesi ile §1.2 (Gerçek Zamanlı Düello) arasında hangisine öncelik verileceğini sorsun** — devir notunun kendisi de bu V2 kararlarının "kullanıcıyla konuşulmalı" olduğunu belirtiyor (madde 17 Ekler'i otomatik/onaysız işlemeye devam edilebilir, bu tek istisna).
-4. Eğer kullanıcı yine de "devam et" derse ve konuşulacak net bir V2 önceliği yoksa, en güvenli varsayılan §0.2 madde 17'deki Ekler'i (düzensiz fiil listesi, yazım kuralları gibi referans notlarını mevcut konuların `rule_content_md`'sine eklemek) işlemektir — bu da onay gerektirmeyen, düşük riskli bir iş.
-5. Her dalga/iş sonunda: Supabase'e uygula → doğrula → migration dosyasını repoya yaz → commit hazırla → kullanıcıya `git push` komutunu ver → devir notunu güncelle.
+2. **Gramer Rehberi TAMAMEN bitti** — içerik (16 bölüm + madde 17 Ekler, 91 konu, 225 soru, TÜM konularda pratik sorusu var) VE UI (harita görünümü + Sınav Hazırlık Alanı kart iyileştirmesi, bkz. §0.11/§0.12) tamamlandı. Kullanıcıya HİÇBİR ŞEY SORMADAN devam edilecek otomatik bir Gramer Rehberi işi KALMADI.
+3. Yeni sohbet önce kullanıcıya kısa bir durum özeti versin (Gramer Rehberi içerik+UI tamamen bitti) ve **§1.1 madde #5/#6 kapsam netleştirmesi ile §1.2 (Gerçek Zamanlı Düello) arasında hangisine öncelik verileceğini sorsun** — devir notunun kendisi de bu V2 kararlarının "kullanıcıyla konuşulmalı" olduğunu belirtiyor.
+4. Kullanıcı bu son harita/kart değişikliklerini (henüz kendi gözüyle görmedi, sadece istekte bulunmuştu) beğenmezse veya ince ayar isterse (renk, ikon, animasyon, mobil tarafında da aynı UI vb.), bunlar doğrudan (onay beklemeden) yapılabilir — kapsamı önceden onaylanmış bir iyileştirme, yeni bir V2 kararı değil.
+5. `npm run build` bu oturumda kullanıcının makinesindeki Linux sandbox'ta (device_bash) SWC/ağ kısıtı yüzünden çalıştırılamadı (bkz. §0.12) — yeni sohbet ya da kullanıcının kendisi ilk fırsatta gerçek ortamda (`npm run dev` / Vercel preview) görsel/derleme kontrolü yapmalı; bir hata bildirilirse önce bunu hatırla.
+6. Her yeni dalga/iş sonunda: Supabase'e uygula → doğrula → migration dosyasını repoya yaz → commit hazırla → kullanıcıya `git push` komutunu ver → devir notunu güncelle. Frontend değişikliği varsa: `npx tsc --noEmit` + `npx eslint <değişen dosyalar>` ile doğrula, sonra aynı commit/push akışını izle.
