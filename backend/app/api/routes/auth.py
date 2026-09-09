@@ -33,6 +33,9 @@ class AppleSignInRequest(BaseModel):
     id_token: str
     full_name: str | None = None
 
+class GoogleSignInRequest(BaseModel):
+    id_token: str
+
 class VerifyOtpRequest(BaseModel):
     email: EmailStr
     code: str
@@ -337,6 +340,82 @@ async def apple_sign_in(req: AppleSignInRequest):
     except Exception as e:
         print(f"APPLE_SIGNIN ERROR: {e}")
         raise HTTPException(status_code=401, detail="Apple ile giris basarisiz. Lutfen tekrar deneyin.")
+
+@router.post("/google")
+async def google_sign_in(req: GoogleSignInRequest):
+    """
+    Google ile Giris (web, Google Identity Services). apple_sign_in ile
+    BIREBIR AYNI desen: Supabase Auth'un yerlesik Google saglayicisi
+    kullaniliyor (sign_in_with_id_token), Google'in JWKS'ine karsi imzayi
+    sunucu tarafinda (Supabase GoTrue) dogruluyor. Apple'dan farkli olarak ad
+    bilgisi (full_name) ayrica istemciden istenmiyor -- Google'in id_token'i
+    standart OIDC claim'lerini (name, email) her seferinde icerir, Supabase
+    bunu user_metadata'ya otomatik yaziyor, ilk profil bootstrap'inda oradan
+    okunuyor. OTP adimi YOK: Google'in kendi hesap dogrulamasi zaten guclu
+    bir kimlik dogrulama (Apple sign_in ile ayni gerekce).
+    """
+    try:
+        temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+        result = temp_client.auth.sign_in_with_id_token({
+            "provider": "google",
+            "token": req.id_token,
+        })
+        if not result.session or not result.user:
+            raise HTTPException(status_code=401, detail="Google ile giris dogrulanamadi.")
+
+        access_token = result.session.access_token
+        refresh_token = result.session.refresh_token
+        user_id = result.user.id
+        email = result.user.email or ""
+        google_metadata = result.user.user_metadata or {}
+        full_name = (google_metadata.get("full_name") or google_metadata.get("name") or "").strip()
+
+        # Ilk giriste (trigger sadece id/display_name ekliyor -- bkz.
+        # public.handle_new_user) profili register akisiyla ayni varsayilanlarla
+        # tamamla: username hala bossa bu, bu kullanicinin ilk Google girisidir.
+        try:
+            profile = (
+                supabase_admin.table("profiles").select("username").eq("id", user_id).single().execute()
+            )
+            if not (profile.data or {}).get("username"):
+                display_name = full_name or (email.split("@")[0] if email else "Kullanıcı")
+                base_username = (email.split("@")[0] if email else user_id[:8]) or user_id[:8]
+                username = base_username
+                try:
+                    supabase_admin.table("profiles").update({
+                        "display_name": display_name,
+                        "username": username,
+                    }).eq("id", user_id).execute()
+                except Exception:
+                    # username cakismasi -- kullanici id'sinin bir parcasiyla benzersizlestir
+                    username = f"{base_username}{user_id[:6]}"
+                    supabase_admin.table("profiles").update({
+                        "display_name": display_name,
+                        "username": username,
+                    }).eq("id", user_id).execute()
+                try:
+                    await learning_languages.add_language(user_id, "en", make_active=True)
+                except Exception as e:
+                    print(f"GOOGLE_SIGNIN learning_languages warning: {e}")
+        except Exception as e:
+            print(f"GOOGLE_SIGNIN profile bootstrap warning: {e}")
+
+        payload = _decode_jwt_payload(access_token)
+        user_payload = {
+            "id": payload.get("sub", user_id),
+            "email": payload.get("email", email),
+            "display_name": (payload.get("user_metadata") or {}).get("display_name", ""),
+        }
+        return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": user_payload,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"GOOGLE_SIGNIN ERROR: {e}")
+        raise HTTPException(status_code=401, detail="Google ile giris basarisiz. Lutfen tekrar deneyin.")
 
 @router.post("/verify-otp")
 async def verify_otp(req: VerifyOtpRequest):

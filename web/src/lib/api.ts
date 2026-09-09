@@ -197,6 +197,22 @@ export const authApi = {
   deleteAccount: async (): Promise<void> => {
     await api.delete('/auth/account');
   },
+
+  // Apple ile Giriş (web) — Apple JS SDK'dan (usePopup) alınan id_token,
+  // mobil ile AYNI backend ucuna gönderiliyor (bkz. AppleSignInButton.tsx).
+  // full_name sadece kullanıcının Apple hesabıyla İLK yetkilendirmesinde
+  // gelir (Apple'ın kendi davranışı), sonraki girişlerde undefined kalır.
+  appleSignIn: async (data: { id_token: string; full_name?: string }): Promise<AuthResponse> => {
+    const res = await api.post<AuthResponse>('/auth/apple', data);
+    return res.data;
+  },
+
+  // Google ile Giriş (web) — Google Identity Services'ten alınan id_token,
+  // backend'in /auth/google ucuna gönderiliyor (bkz. GoogleSignInButton.tsx).
+  googleSignIn: async (data: { id_token: string }): Promise<AuthResponse> => {
+    const res = await api.post<AuthResponse>('/auth/google', data);
+    return res.data;
+  },
 };
 
 // ── Languages API ─────────────────────────────────────────────

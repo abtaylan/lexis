@@ -8,6 +8,9 @@ import { authApi, languagesApi } from '@/lib/api';
 import { Button, Input, Card } from '@/components/ui';
 import { useLocale, LOCALE_META } from '@/lib/i18n';
 import type { Language } from '@/types';
+import { AppleSignInButton } from '@/components/AppleSignInButton';
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import { SOCIAL_AUTH_STRINGS } from '@/lib/socialAuthStrings';
 
 // Arayüz (UI) çevirisi olmayan diller ana dil seçeneği olarak sunulmamalı —
 // aksi halde LocaleProvider sessizce Türkçe'ye düşüyor (bkz. Bug 2, Ağustos 2026).
@@ -18,6 +21,9 @@ const UI_SUPPORTED_CODES = new Set<string>(LOCALE_META.map((l) => l.code));
 export default function RegisterPage() {
   const router = useRouter();
   const { t, locale } = useLocale();
+  const st = SOCIAL_AUTH_STRINGS[locale] ?? SOCIAL_AUTH_STRINGS.tr!;
+  const [socialError, setSocialError] = useState('');
+  const handleSocialError = () => setSocialError(st.socialError);
 
   const [form, setForm] = useState({
     email: '',
@@ -242,6 +248,20 @@ export default function RegisterPage() {
           {t('createAccountBtn')}
         </Button>
       </form>
+
+      <div className="flex items-center gap-3 mt-6">
+        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+        <span className="text-xs font-medium text-slate-400">{st.orDivider}</span>
+        <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+      </div>
+
+      <div className="flex flex-col gap-2.5 mt-4">
+        <AppleSignInButton label={st.appleBtn} onError={handleSocialError} />
+        <GoogleSignInButton locale={locale} onError={handleSocialError} />
+      </div>
+      {socialError && (
+        <p className="text-center text-xs text-red-600 dark:text-red-400 mt-2.5">{socialError}</p>
+      )}
 
       <p className="text-center text-sm text-slate-400 mt-6">
         {t('haveAccountQuestion')}{' '}
