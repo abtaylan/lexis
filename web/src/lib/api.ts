@@ -36,6 +36,9 @@ import type {
   ExamQuestionModerationResult,
   AIQuestionGenerateInput,
   AIQuestionGenerateResult,
+  GrammarCategory,
+  GrammarTopicSummary,
+  GrammarTopicDetail,
   Notification,
   AdminUser,
   AdminUserDetail,
@@ -462,6 +465,25 @@ export const examsApi = {
   // Sınav Hazırlık İstatistik & İçerik Motoru Faz 2 — kullanıcı soru önerisi.
   suggestQuestion: async (data: ExamQuestionSuggestionInput): Promise<ExamQuestionSuggestionResult> => {
     const res = await api.post<ExamQuestionSuggestionResult>('/exams/questions/suggest', data);
+    return res.data;
+  },
+};
+
+// ── Gramer Rehberi API ───────────────────────────────────────
+// exams.py'den bağımsız ayrı modül (bkz. backend/app/api/routes/grammar.py
+// modül docstring'i) — telifli kaynak yerine yazılan özgün gramer
+// referans içeriğini sunar.
+export const grammarApi = {
+  listCategories: async (): Promise<GrammarCategory[]> => {
+    const res = await api.get<GrammarCategory[]>('/grammar/categories');
+    return res.data;
+  },
+  listTopics: async (): Promise<GrammarTopicSummary[]> => {
+    const res = await api.get<GrammarTopicSummary[]>('/grammar/topics');
+    return res.data;
+  },
+  getTopic: async (slug: string): Promise<GrammarTopicDetail> => {
+    const res = await api.get<GrammarTopicDetail>(`/grammar/topics/${slug}`);
     return res.data;
   },
 };

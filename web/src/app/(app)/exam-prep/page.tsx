@@ -65,6 +65,7 @@ type ExamStrings = {
   playAgainBtn: string;
   backToDashboardBtn: string;
   suggestEntryLabel: string;
+  grammarEntryLabel: string;
 };
 
 // mobile/src/i18n/examStrings.ts ile birebir aynı tr/en metinler.
@@ -105,6 +106,7 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     playAgainBtn: 'Tekrar Dene',
     backToDashboardBtn: 'Panele Dön',
     suggestEntryLabel: 'Soru Öner',
+    grammarEntryLabel: 'Gramer Rehberi',
   },
   en: {
     pageTitle: 'Exam Prep Area',
@@ -142,6 +144,7 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     playAgainBtn: 'Try Again',
     backToDashboardBtn: 'Back to Dashboard',
     suggestEntryLabel: 'Suggest a Question',
+    grammarEntryLabel: 'Grammar Guide',
   },
 };
 
@@ -369,6 +372,12 @@ export default function ExamPrepPage() {
           })}
         </div>
 
+        <button
+          onClick={() => router.push('/exam-grammar')}
+          className="mt-6 w-full text-center text-sm font-semibold text-[#378ADD] hover:text-[#2d73c4]"
+        >
+          {et.grammarEntryLabel}
+        </button>
         <button
           onClick={() => router.push('/exam-suggest')}
           className="mt-6 w-full text-center text-sm font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
