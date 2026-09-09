@@ -4,11 +4,13 @@
 // detay sayfası, web. mobile/src/app/(app)/exam-grammar-detail.tsx ile aynı
 // desen. Dinamik segment için useParams() kullanılıyor (bkz. u/[username]/page.tsx
 // ve messages/[username]/page.tsx'teki aynı yaklaşım).
+import { useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { grammarApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { markTopicVisited } from '@/lib/grammarProgress';
 
 const L: Partial<Record<Locale, Record<string, string>>> = {
   tr: {
@@ -41,6 +43,13 @@ export default function ExamGrammarDetailPage() {
     queryFn: () => grammarApi.getTopic(slug),
     enabled: !!slug,
   });
+
+  // Harita görünümünde (exam-grammar/page.tsx) ilerlemenin işaretlenebilmesi
+  // için, konu başarıyla yüklendiğinde "ziyaret edildi" olarak kaydedilir
+  // (sadece localStorage, bkz. lib/grammarProgress.ts).
+  useEffect(() => {
+    if (topic?.slug) markTopicVisited(topic.slug);
+  }, [topic?.slug]);
 
   const paragraphs = (topic?.rule_content_md ?? '')
     .split('\n')

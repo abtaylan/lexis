@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
-  BookOpen, CheckCircle2, XCircle, Clock, Plus, Loader2, GraduationCap, ChevronLeft,
+  BookOpen, CheckCircle2, XCircle, Clock, Plus, Loader2, GraduationCap, ChevronLeft, Map, Lightbulb, ChevronRight,
 } from 'lucide-react';
 import { examsApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -65,9 +65,12 @@ type ExamStrings = {
   playAgainBtn: string;
   backToDashboardBtn: string;
   suggestEntryLabel: string;
+  suggestEntryDesc: string;
   grammarEntryLabel: string;
+  grammarEntryDesc: string;
   reviewGrammarTopicTpl: string;
   practiceThisTopicBtn: string;
+  moreResourcesLabel: string;
 };
 
 // mobile/src/i18n/examStrings.ts ile birebir aynı tr/en metinler.
@@ -108,9 +111,12 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     playAgainBtn: 'Tekrar Dene',
     backToDashboardBtn: 'Panele Dön',
     suggestEntryLabel: 'Soru Öner',
+    suggestEntryDesc: 'Aklına takılan bir soruyu bize gönder',
     grammarEntryLabel: 'Gramer Rehberi',
+    grammarEntryDesc: 'Konuları haritada keşfet',
     reviewGrammarTopicTpl: '"{topic}" Konusunu İncele',
     practiceThisTopicBtn: 'Bu Konudan Pratik Yap',
+    moreResourcesLabel: 'Diğer Kaynaklar',
   },
   en: {
     pageTitle: 'Exam Prep Area',
@@ -148,9 +154,12 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     playAgainBtn: 'Try Again',
     backToDashboardBtn: 'Back to Dashboard',
     suggestEntryLabel: 'Suggest a Question',
+    suggestEntryDesc: 'Send us a question that comes to mind',
     grammarEntryLabel: 'Grammar Guide',
+    grammarEntryDesc: 'Explore topics on the map',
     reviewGrammarTopicTpl: 'Review "{topic}"',
     practiceThisTopicBtn: 'Practice This Topic',
+    moreResourcesLabel: 'More Resources',
   },
 };
 
@@ -378,18 +387,41 @@ export default function ExamPrepPage() {
           })}
         </div>
 
-        <button
-          onClick={() => router.push('/exam-grammar')}
-          className="mt-6 w-full text-center text-sm font-semibold text-[#378ADD] hover:text-[#2d73c4]"
-        >
-          {et.grammarEntryLabel}
-        </button>
-        <button
-          onClick={() => router.push('/exam-suggest')}
-          className="mt-6 w-full text-center text-sm font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200"
-        >
-          {et.suggestEntryLabel}
-        </button>
+        <p className="mt-8 text-xs font-bold uppercase tracking-wide text-gray-400 dark:text-slate-500">
+          {et.moreResourcesLabel}
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <button
+            onClick={() => router.push('/exam-grammar')}
+            className="flex flex-col items-start gap-3 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 text-left transition-all hover:shadow-md hover:border-[#378ADD]/50"
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#E6F1FB]">
+              <Map className="w-5 h-5" style={{ color: '#378ADD' }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900 dark:text-slate-100 flex items-center gap-1">
+                {et.grammarEntryLabel}
+                <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-slate-600" />
+              </p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 leading-snug">{et.grammarEntryDesc}</p>
+            </div>
+          </button>
+          <button
+            onClick={() => router.push('/exam-suggest')}
+            className="flex flex-col items-start gap-3 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 text-left transition-all hover:shadow-md hover:border-gray-300 dark:hover:border-slate-700"
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#FAEEDA]">
+              <Lightbulb className="w-5 h-5" style={{ color: '#854F0B' }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900 dark:text-slate-100 flex items-center gap-1">
+                {et.suggestEntryLabel}
+                <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-slate-600" />
+              </p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 leading-snug">{et.suggestEntryDesc}</p>
+            </div>
+          </button>
+        </div>
       </div>
     );
   }
