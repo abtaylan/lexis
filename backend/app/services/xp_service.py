@@ -33,6 +33,12 @@ XPSourceType = Literal[
     # ya da haftalık/aylık liderlik tablosu ödülleri dağıtılırken kullanılır.
     "streak_milestone",
     "leaderboard_reward",
+    # Sınav Hazırlık Alanı (V2 §1.1, 9 Eylül 2026) — exams.py'den çağrılır.
+    # "exam_question": bir sınav sorusu ilk kez doğru cevaplanınca.
+    # "exam_mock_complete": tam süreli (timed_mock) bir deneme sınavı bitirilince,
+    # soru başına verilen XP'ye ek TEK SEFERLİK tamamlama bonusu.
+    "exam_question",
+    "exam_mock_complete",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -67,6 +73,12 @@ XP_AMOUNTS: dict[str, int] = {
     # karşı güvenli bir varsayılan.
     "streak_milestone": 20,
     "leaderboard_reward": 20,
+    # Sınav Hazırlık Alanı — game_multiple_choice_definition (9) ile aynı
+    # bandın biraz üstü (sınav sorusu, oyun kelime sorusundan daha zor kabul
+    # edilir). Mock tamamlama bonusu streak/leaderboard ödülleriyle aynı
+    # büyüklükte (20) tutuldu.
+    "exam_question": 5,
+    "exam_mock_complete": 20,
 }
 
 LEVEL_BASE = 50

@@ -500,3 +500,74 @@ export interface GameFinishResult {
   word_count: number;
   correct_count: number;
 }
+
+// ── Sınav Hazırlık Alanı (Exam Prep — YDS/YÖKDİL/IELTS/TOEFL) ──────────────
+export type ExamType = 'yds' | 'yokdil' | 'ielts' | 'toefl';
+export type ExamSessionMode = 'practice' | 'timed_mock';
+
+export interface ExamTypeInfo {
+  exam_type: ExamType;
+  question_count: number;
+  available: boolean;
+}
+
+export interface ExamSession {
+  id: string;
+  exam_type: ExamType;
+  session_mode: ExamSessionMode;
+  total_questions: number;
+  time_limit_seconds: number | null;
+  score: number;
+  xp_earned: number;
+  started_at: string;
+  ended_at: string | null;
+}
+
+export interface ExamQuestionOption {
+  id: string;
+  text: string;
+}
+
+export interface NextQuestionResult {
+  finished: boolean;
+  question_id?: string | null;
+  question_text?: string | null;
+  options?: ExamQuestionOption[] | null;
+  question_index?: number | null;
+  total_questions?: number | null;
+}
+
+export interface ExamRelatedWord {
+  word: string;
+  meaning: string;
+  example?: string | null;
+}
+
+export interface ExamAttemptResult {
+  id: string;
+  is_correct: boolean;
+  correct_option: string;
+  explanation: string;
+  related_words?: ExamRelatedWord[] | null;
+  xp_awarded: number;
+  session_score: number;
+  leveled_up: boolean;
+  new_level: number | null;
+}
+
+export interface ExamFinishResult {
+  id: string;
+  exam_type: ExamType;
+  session_mode: ExamSessionMode;
+  score: number;
+  total_questions: number;
+  xp_earned: number;
+  started_at: string;
+  ended_at: string;
+  mock_bonus_xp: number;
+}
+
+export interface AddWordFromQuestionResult {
+  added_count: number;
+  already_had_count: number;
+}

@@ -10,6 +10,7 @@ import { LOCALE_META, RTL_LOCALES, type Locale } from './locales';
 import translationsJson from './translations.json';
 import { MOBILE_STRINGS, type MobileStrings } from './mobileStrings';
 import { GAME_STRINGS, type GameStrings } from './gameStrings';
+import { EXAM_STRINGS, type ExamStrings } from './examStrings';
 import { XP_LABELS, LB_LABELS, BADGE_LABELS } from './dashboardStrings';
 
 export type { Locale };
@@ -40,6 +41,8 @@ interface LocaleContextType {
   mt: (key: keyof MobileStrings, vars?: Record<string, string | number>) => string;
   /** Oyun ekranı sözlüğü. */
   gt: GameStrings;
+  /** Sınav Hazırlık Alanı sözlüğü (bkz. examStrings.ts). */
+  et: ExamStrings;
   xpLabels: (typeof XP_LABELS)['tr'];
   lbLabels: (typeof LB_LABELS)['tr'];
   badgeLabels: (typeof BADGE_LABELS)['tr'];
@@ -90,6 +93,7 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
       t: (key, vars) => interpolate(String(dict[key] ?? ''), vars),
       mt: (key, vars) => interpolate(String(mdict[key] ?? ''), vars),
       gt: GAME_STRINGS[locale] ?? GAME_STRINGS[DEFAULT_LOCALE],
+      et: EXAM_STRINGS[locale] ?? EXAM_STRINGS[DEFAULT_LOCALE] ?? EXAM_STRINGS.tr!,
       xpLabels: XP_LABELS[locale] ?? XP_LABELS[DEFAULT_LOCALE],
       lbLabels: LB_LABELS[locale] ?? LB_LABELS[DEFAULT_LOCALE],
       badgeLabels: BADGE_LABELS[locale] ?? BADGE_LABELS[DEFAULT_LOCALE],

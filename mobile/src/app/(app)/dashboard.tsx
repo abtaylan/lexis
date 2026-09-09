@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
 import { statsApi } from '@/api/stats';
@@ -40,7 +40,7 @@ interface QuickAction {
 }
 
 export default function DashboardScreen() {
-  const { t, locale } = useLocale();
+  const { t, locale, et } = useLocale();
   const c = useThemeColors();
   const { user } = useAuth();
   const fs = FRIENDS_STRINGS[locale] ?? FRIENDS_STRINGS.tr;
@@ -90,6 +90,12 @@ export default function DashboardScreen() {
     { key: 'flashcards', icon: Layers, label: t('flashcards'), route: '/(app)/flashcards', bg: 'successSoft', fg: 'success' },
     { key: 'stats', icon: BarChart3, label: t('stats'), route: '/(app)/stats', bg: 'primarySoft', fg: 'primary' },
     { key: 'friends', icon: Users, label: fs.title, route: '/(app)/friends', bg: 'accentSoft', fg: 'accent' },
+    // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı (YDS/YÖKDİL/
+    // IELTS/TOEFL). Ekranın kendisi (exam-prep.tsx) native_lang=tr +
+    // learning_lang=en dışındaki kullanıcılara nazik bir "kullanılamıyor"
+    // mesajı gösteriyor, bu yüzden burada profile göre koşullu gizleme
+    // yapılmadı (basit/tutarlı: giriş noktası her zaman görünür).
+    { key: 'examPrep', icon: GraduationCap, label: et.entryLabel, route: '/(app)/exam-prep', bg: 'warningSoft', fg: 'warning' },
   ];
 
   const greetingText = t(greetingKeyForHour(new Date().getHours()));
