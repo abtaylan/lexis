@@ -61,6 +61,14 @@ export type ExamStrings = {
   suggestSuccessTitle: string;
   suggestSuccessBody: string;
   suggestAnotherBtn: string;
+  grammarEntryLabel: string;
+  grammarListTitle: string;
+  grammarListSubtitle: string;
+  grammarEmptyState: string;
+  grammarExamplesTitle: string;
+  grammarMistakesTitle: string;
+  grammarPracticeCta: string;
+  grammarNoQuestionsYet: string;
 };
 
 export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
@@ -120,6 +128,14 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     suggestSuccessTitle: 'Teşekkürler!',
     suggestSuccessBody: 'Sorun onay kuyruğuna eklendi. Onaylandığında havuza eklenip diğer kullanıcılarla paylaşılacak.',
     suggestAnotherBtn: 'Başka Soru Öner',
+    grammarEntryLabel: 'Gramer Rehberi',
+    grammarListTitle: 'Gramer Rehberi',
+    grammarListSubtitle: 'YDS/YÖKDİL sınavlarında en sık çıkan konular — kural, örnek ve Türkçe konuşanlara özgü hatalar.',
+    grammarEmptyState: 'Bu kategoride henüz konu yok.',
+    grammarExamplesTitle: 'Örnekler',
+    grammarMistakesTitle: 'Sık Yapılan Hatalar',
+    grammarPracticeCta: 'Bu Konuyu Pratik Et',
+    grammarNoQuestionsYet: 'Bu konu için henüz pratik sorusu eklenmedi.',
   },
   en: {
     entryLabel: 'Exam Prep',
@@ -177,5 +193,13 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     suggestSuccessTitle: 'Thank you!',
     suggestSuccessBody: 'Your question was added to the review queue. Once approved, it will join the pool and be shared with other users.',
     suggestAnotherBtn: 'Suggest Another',
+    grammarEntryLabel: 'Grammar Guide',
+    grammarListTitle: 'Grammar Guide',
+    grammarListSubtitle: 'The most common topics in YDS/YÖKDİL exams — rules, examples, and mistakes specific to Turkish speakers.',
+    grammarEmptyState: 'No topics in this category yet.',
+    grammarExamplesTitle: 'Examples',
+    grammarMistakesTitle: 'Common Mistakes',
+    grammarPracticeCta: 'Practice This Topic',
+    grammarNoQuestionsYet: 'No practice questions for this topic yet.',
   },
 };

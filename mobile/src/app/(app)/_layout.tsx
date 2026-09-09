@@ -108,6 +108,8 @@ export default function AppTabsLayout() {
       <Tabs.Screen name="premium" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="exam-prep" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="exam-suggest" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="exam-grammar" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="exam-grammar-detail" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

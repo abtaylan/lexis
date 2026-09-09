@@ -232,6 +232,11 @@ export default function ExamPrepScreen() {
             );
           })}
         </View>
+        <Link href="/exam-grammar" asChild>
+          <Pressable style={{ marginTop: spacing.lg, alignSelf: 'center' }}>
+            <Text style={{ color: c.primary, fontWeight: '600', fontSize: 14 }}>{et.grammarEntryLabel}</Text>
+          </Pressable>
+        </Link>
         <Link href="/exam-suggest" asChild>
           <Pressable style={{ marginTop: spacing.lg, alignSelf: 'center' }}>
             <Text style={{ color: c.primary, fontWeight: '600', fontSize: 14 }}>{et.suggestEntryLabel}</Text>

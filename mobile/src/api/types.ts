@@ -585,3 +585,40 @@ export interface ExamQuestionSuggestionResult {
   id: string;
   status: string;
 }
+
+export interface GrammarExampleSentence {
+  en: string;
+  tr?: string | null;
+}
+
+export interface GrammarCommonMistake {
+  wrong: string;
+  correct: string;
+  note: string;
+}
+
+export interface GrammarCategory {
+  id: string;
+  slug: string;
+  name_tr: string;
+  name_en: string;
+  sort_order: number;
+}
+
+export interface GrammarTopicSummary {
+  id: string;
+  slug: string;
+  category_id: string;
+  title_tr: string;
+  summary_tr: string;
+  level: string;
+  exam_relevance: string[];
+  sort_order: number;
+  has_practice_questions: boolean;
+}
+
+export interface GrammarTopicDetail extends GrammarTopicSummary {
+  rule_content_md: string;
+  example_sentences: GrammarExampleSentence[];
+  common_mistakes: GrammarCommonMistake[];
+}
