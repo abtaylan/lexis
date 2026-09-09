@@ -42,6 +42,17 @@ export function GoogleSignInButton({ locale, onError }: GoogleSignInButtonProps)
   const { login: loginToStore } = useAuth();
   const containerRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
+
+  // Reklam/izleyici engelleyiciler (uBlock, AdGuard, Brave vb.) accounts.google.com'u
+  // sıkça engelliyor — bu durumda next/script'in onLoad'ı hiç tetiklenmez ve buton
+  // konteyneri sonsuza dek boş kalırdı, kullanıcı hiçbir şey görmezdi. 6 saniyede
+  // hâlâ yüklenmediyse kullanıcıya bunun neden çalışmadığını açıkça göster.
+  useEffect(() => {
+    if (ready) return;
+    const timer = setTimeout(() => setUnavailable(true), 6000);
+    return () => clearTimeout(timer);
+  }, [ready]);
 
   useEffect(() => {
     if (!ready || typeof window === 'undefined' || !window.google || !containerRef.current) return;
@@ -77,8 +88,14 @@ export function GoogleSignInButton({ locale, onError }: GoogleSignInButtonProps)
         src={`https://accounts.google.com/gsi/client?hl=${locale}`}
         strategy="afterInteractive"
         onLoad={() => setReady(true)}
+        onError={() => setUnavailable(true)}
       />
       <div ref={containerRef} className="w-full flex justify-center [&>div]:w-full [&_iframe]:!w-full" />
+      {unavailable && !ready && (
+        <p className="text-[11px] text-slate-400 text-center -mt-1">
+          Google ile giriş yüklenemedi — tarayıcı eklentisi (reklam/izleyici engelleyici) engelliyor olabilir.
+        </p>
+      )}
     </>
   );
 }

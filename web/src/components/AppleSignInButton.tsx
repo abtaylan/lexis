@@ -37,6 +37,7 @@ export function AppleSignInButton({ label, onError }: AppleSignInButtonProps) {
   const router = useRouter();
   const { login: loginToStore } = useAuth();
   const [ready, setReady] = useState(false);
+  const [unavailable, setUnavailable] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -47,6 +48,16 @@ export function AppleSignInButton({ label, onError }: AppleSignInButtonProps) {
       redirectURI: `${window.location.origin}/auth/apple/callback`,
       usePopup: true,
     });
+  }, [ready]);
+
+  // Reklam/izleyici engelleyiciler (uBlock, AdGuard, Brave vb.) appleid.cdn-apple.com'u
+  // sıkça engelliyor — bu durumda next/script'in onLoad'ı hiç tetiklenmez ve buton
+  // sonsuza dek "pasif" görünür kalırdı. 6 saniyede hâlâ yüklenmediyse kullanıcıya
+  // bunun neden çalışmadığını açıkça göster (bkz. GoogleSignInButton.tsx — aynı desen).
+  useEffect(() => {
+    if (ready) return;
+    const timer = setTimeout(() => setUnavailable(true), 6000);
+    return () => clearTimeout(timer);
   }, [ready]);
 
   useEffect(() => {
@@ -92,6 +103,7 @@ export function AppleSignInButton({ label, onError }: AppleSignInButtonProps) {
         src="https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js"
         strategy="afterInteractive"
         onLoad={() => setReady(true)}
+        onError={() => setUnavailable(true)}
       />
       <button
         type="button"
@@ -102,6 +114,11 @@ export function AppleSignInButton({ label, onError }: AppleSignInButtonProps) {
         <AppleLogo />
         {label}
       </button>
+      {unavailable && !ready && (
+        <p className="text-[11px] text-slate-400 text-center mt-1">
+          Apple ile giriş yüklenemedi — tarayıcı eklentisi (reklam/izleyici engelleyici) engelliyor olabilir.
+        </p>
+      )}
     </>
   );
 }
