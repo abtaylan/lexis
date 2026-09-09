@@ -1,19 +1,24 @@
 # Lexis — Devir Notu
 **Tarih:** 9 Eylül 2026
 **Repo:** `C:\Users\ytt\OneDrive\Masaüstü\PROJELER\lexis\lexis`
-**Son commit (henüz push edilmedi, kullanıcı PowerShell'den push etmeli):** `4e3441c`
+**Son commit (henüz push edilmedi, kullanıcı PowerShell'den push etmeli):** `6dd4f93`
 
-> **Yeni sohbette DOĞRUDAN BAŞLA: kullanıcıya soru sorma.** Gramer Rehberi'nin
-> içerik tarafı (kitabın 16 ana bölümü + madde 17 Ekler) ve UI tarafı (harita
-> görünümü, Sınav Hazırlık Alanı kartları) TAMAMLANDI — bkz. §0.10, §0.11.
-> Kullanıcının otomatik/onaysız devam edilecek bir "dalga" işi KALMADI.
-> Yeni sohbet önce kullanıcıya kısa bir durum özeti versin ve **§1.1 madde
-> #5/#6 kapsam netleştirmesi ile §1.2 (Gerçek Zamanlı Düello) arasında
-> hangisine öncelik verileceğini sorsun** (bkz. §5). Kullanıcı yine de somut
-> bir gramer/UI iyileştirmesi isterse (ör. yeni bir sayfa tasarımı, mobil
-> tarafında da aynı harita UI'ının uygulanması), tasarım/kapsam
-> boşluklarında makul karar ver, onay bekleme — kullanıcının stated
-> preference'ı "execute autonomously without confirmation at each step".
+> **Yeni sohbette DOĞRUDAN BAŞLA: kullanıcıya soru sorma.** Gramer Rehberi
+> (içerik+UI) TAMAMLANDI. Kullanıcı V2 Yol Haritası için 4 net karar verdi
+> (bkz. §6 başı): (1) Sınav Hazırlık alanı dil kısıtı GENELLEŞTİRİLECEK —
+> **madde #5 bu oturumda backend'de yapıldı** (bkz. §0.13); (2) zayıf-konu
+> istatistiği kelime/oyun tarafına da taşınacak (**madde #6 — Faz 2, henüz
+> YAPILMADI**, plan: §6.2); (3) Gerçek Zamanlı Düello, lig/terfi-düşme,
+> görev haritası ve B2B kurumsal ligler TEK bir genişletilmiş vizyon olarak
+> inşa edilecek (**Faz 3, henüz YAPILMADI**, plan: §6.3); (4) bunlar
+> bitince Referans Programı + B2B paket + SADECE Korece/Çince dilleri
+> eklenecek (**Faz 4, henüz YAPILMADI**, plan: §6.4). **Yeni sohbet
+> kullanıcıya soru sormadan Faz 2'ye (madde #6) başlasın** — kapsam zaten
+> netleşti, §6.2'deki plan izlenmeli. Faz 3 çok büyük olduğu için önce
+> §6.3'teki alt-fazlara (3a→3f) bölünmüş plan okunmalı, 3a (şema tasarımı)
+> ile başlanmalı. Tasarım/kapsam boşluklarında makul karar ver, onay
+> bekleme — kullanıcının stated preference'ı "execute autonomously without
+> confirmation at each step".
 
 ---
 
@@ -41,8 +46,10 @@
 | Madde 17 (Ekler) + eksik pratik soruları (kullanıcı talebi: *"madde 17 yapılsın"* + *"bu konu için henüz pratik sorusu eklenmedi ibaresi... soruları biz mi ekleyeceğiz siz mi"*) | ✅ İki iş birlikte yapıldı. (1) **Madde 17:** kitaptaki Eklerin sadece genel/standart başlıklarından (düzensiz fiiller, -ing/-ed yazım kuralları, kısaltmalar, fiil+edat/sıfat+edat kalıpları, AmE/BrE farkları, noktalama) esinlenerek 7 adet özgün referans notu, ayrı `grammar_topics` satırı açılmadan ilgili 7 mevcut konunun `rule_content_md` alanına `UPDATE ... || ` ile eklendi. (2) **Eksik sorular:** `select topic_tag, count(*)` ile hiç `exam_questions`'ı olmayan 12 eski konu (2. dalgadan önce eklenmiş: articles, relative-clauses-defining, conditionals-zero-first, conditionals-second, modals-obligation-advice, modals-deduction, passive-present-past, phrasal-verbs, word-formation-collocations, reported-speech-statements-questions, present-perfect-vs-past-simple, past-simple-vs-continuous) tespit edildi, her birine 2'şer özgün gramer-YAPISI sorusu yazıldı (24 yeni soru). Artık TÜM 91 konunun en az 1 pratik sorusu var (doğrulandı: `topics_without_q = 0`). Konu 91→91 (değişmedi), soru 201→225. `supabase/migrations/036_grammar_reference_wave7_appendices_and_missing_questions.sql` repoya yazıldı, commit edildi ve kullanıcı push etti: `9a2ab62`. |
 | Gramer Rehberi sayfasını "harita" UI'ına dönüştürme + Sınav Hazırlık Alanı kart iyileştirmesi (kullanıcı talebi: ekran görüntüleriyle birlikte, düz liste kullanıcı dostu değil, "hangi konuya ne zaman çalışacağımı karıştırmadan" gezinebileceğim tematik/ilerlemeli bir harita + "Gramer Rehberi"/"Soru Öner" linklerinin görselinin diğer kartlarla tutarlı olması istendi) | ✅ `web/src/app/(app)/exam-grammar/page.tsx` tamamen yeniden yazıldı: 15 kategori (bölüm), dolambaçlı bir "yol" üzerinde alternatif sola/sağa hizalanmış durak (nod) olarak gösteriliyor — her durak kategoriye özel bir ikon taşıyor (ör. Zamanlar→Clock, Modal Fiiller→ShieldCheck), 3 görsel duruma sahip (hiç bakılmamış/gri, kısmen/mavi, tamamlanmış/dolu mavi+yeşil tik). Bir durağa dokununca altındaki konular akordeon olarak açılıyor (framer-motion), bir konuya dokununca mevcut `/exam-grammar/[slug]` detay sayfasına gidiliyor. Üstte genel ilerleme çubuğu ("X / 91 konu incelendi", %). **İlerleme takibi:** backend'de kullanıcı bazlı bir grammar-progress tablosu olmadığı için bilinçli olarak hafif tutuldu — yeni `web/src/lib/grammarProgress.ts` dosyası, sadece tarayıcıda (localStorage) "hangi konu slug'larına bakıldığını" tutuyor; `exam-grammar/[slug]/page.tsx`'e konu yüklenince işaretleyen bir `useEffect` eklendi. `exam-prep/page.tsx`'teki select-type ekranının altındaki "Gramer Rehberi" ve "Soru Öner" düz metin linkleri, sayfadaki diğer kartlarla (ikon kutusu + başlık + açıklama) aynı görsel dile sahip iki karta dönüştürüldü. |
 | Frontend değişikliklerinin doğrulanması | ✅ `npx tsc --noEmit` ve `npx eslint` değişen 4 dosyada (`exam-grammar/page.tsx`, `exam-grammar/[slug]/page.tsx`, `exam-prep/page.tsx`, `lib/grammarProgress.ts`) çalıştırıldı. İlk denemede yeni eklenen kodun effect içinde senkron `setState` çağırdığı için `react-hooks/set-state-in-effect` eslint hatası çıktı — `useState`+`useEffect` yerine `useSyncExternalStore` tabanlı `useVisitedTopics()` hook'una geçilerek düzeltildi (bkz. §0.12), sonrasında hem tsc hem eslint temiz. `next build` bu Linux sandbox'ta (device_bash) SWC native binary eksikliği + ağ erişimi olmadığı için denenemedi — gerçek Windows geliştirme ortamında derlenmesi bekleniyor, **kullanıcının kendi makinesinde `npm run build` ile bir kez doğrulaması önerilir**. `git status` sırasında repoda `LEXIS_DEVIR_2026-09-03/04/07/08.md`, iki `.png` ve `lexis_kalan_isler_guncel.md` dosyalarının yerelde silinmiş (commit edilmemiş) olduğu fark edildi — bunlara dokunulmadı, muhtemelen kullanıcının kendi tarafında bir temizlik. `web/src/app/(app)/exam-grammar/page.tsx`, `[slug]/page.tsx`, `exam-prep/page.tsx`, `web/src/lib/grammarProgress.ts` repoya yazıldı, commit edildi ve kullanıcı push etti: `4e3441c`. |
+| **V2 Yol Haritası — kullanıcı 4 net karar verdi** (madde #5 genelleştirilecek, madde #6 kelime/oyuna taşınacak, Düello+Lig+Görev Haritası+B2B TEK vizyon olarak inşa edilecek, kalan V2 maddeleri bunlardan sonra + SADECE Korece/Çince) | ✅ Kod tabanı keşfedildi: `exams.py`/`grammar.py` gate mantığı, `exam_questions`/`grammar_topics`'in zaten `learning_lang` sütunu taşıdığı (çok-dil için şema hazır) görüldü, `languages` tablosunda 10 dil olduğu (ko/zh henüz yok) doğrulandı, lig/düello için yeniden kullanılabilecek mevcut tablolar (`challenges` boş, `friendships`, `follows`, `social_posts`, `badges`/`user_badges`, `subscriptions`) incelendi. Sonuç: fazlı bir mühendislik planı yazıldı (bkz. §6). |
+| **Madde #5 — Sınav Hazırlık alanı dil kısıtı genelleştirildi (Faz 1)** | ✅ `exams.py::_exam_area_enabled` ve `grammar.py::_grammar_area_enabled` artık `native_lang=='tr' and learning_lang=='en'` diye SABİT kontrol etmiyor — bunun yerine hangi `learning_lang` için ONAYLI içerik VARSA (yeni `_exam_content_learning_langs()` / `_grammar_content_learning_langs()` fonksiyonları, `exam_questions`/`grammar_topics` tablolarından canlı sorgulanıyor) o kullanıcılara açık. `native_lang` kısıtı TAMAMEN kaldırıldı — artık Türkçe olmayan ana dilli ama İngilizce öğrenen kullanıcılar da Sınav Hazırlık/Gramer Rehberi'ni görebilir. Ayrıca `list_exam_types`, `next_question`, `practice_questions_by_topic`, `list_topics`, `get_topic` sorgularına eksik olan `learning_lang` filtresi eklendi (öncesinde bu sorgular `learning_lang` filtrelemiyordu — bugün tüm içerik `en` olduğu için sorun yaratmıyordu ama ileride başka bir dile içerik eklenince bir kullanıcının başka dildeki soruları görmesi riski vardı, bu risk kapatıldı). Hata mesajlarından "ana dili Türkçe olan" ibaresi kaldırıldı. **İçerik hâlâ sadece `learning_lang='en'` için dolu** (Türkçe açıklamalı) — bu SADECE mimari/kapı (gate) genellemesi, yeni dil için soru/konu İÇERİĞİ eklenmedi (bu Faz 4'ün işi, bkz. §6.4). Detay: §0.13. `backend/app/api/routes/exams.py` + `backend/app/api/routes/grammar.py` repoya yazıldı, commit edildi: `6dd4f93`. DB migration'ı YOK — şema zaten `learning_lang` sütununu taşıyordu, sadece kod değişti. |
 
-**Bu oturumda YAPILMADI:** İçerik Motoru madde #5/#6, mobil native Google ile Giriş, `git push` PAT'ının kalıcı onarımı, mobile tarafında aynı harita UI'ının uygulanması (sadece web yapıldı — kullanıcı ekran görüntüleri web'den geldi), kullanıcının kendi makinesinde gerçek `npm run build` ile son doğrulama.
+**Bu oturumda YAPILMADI:** Madde #6 (istatistik kelime/oyuna taşıma — Faz 2, plan hazır ama kod yazılmadı), Gerçek Zamanlı Düello + Lig + Görev Haritası + B2B (Faz 3 — sadece plan yazıldı), Korece/Çince ekleme (Faz 4 — sadece plan yazıldı), mobil native Google ile Giriş, `git push` PAT'ının kalıcı onarımı, mobile tarafında Gramer Rehberi harita UI'ının uygulanması, kullanıcının kendi makinesinde gerçek `npm run build` ile son doğrulama.
 
 ### 0.8. Yeni ders: grammar_topics.level check constraint
 
@@ -145,6 +152,15 @@ Bu notlar ayrı `grammar_topics` satırı DEĞİL — ilgili konunun `rule_conte
 - **Doğrulama sınırı:** Bu oturumda kullanılan `device_bash` (kullanıcının Windows makinesindeki Cowork Linux VM'i) `npm run build` çalıştıramadı — SWC'nin linux-x64 native binary'si kurulu değil ve VM'in npmjs.org'a ağ erişimi yok (`getaddrinfo EAI_AGAIN`). `npx tsc --noEmit` ve `npx eslint <değişen dosyalar>` ile doğrulama yapıldı (ikisi de temiz), ama gerçek bir Next.js build/render testi YAPILAMADI. **Yeni sohbet, kullanıcının bir sonraki mesajında (özellikle bu değişiklikler için) `npm run build` çıktısını veya canlıdaki ekran görüntüsünü kontrol etmeli** — sorun bildirilirse önce bu sınırlamayı hatırla.
 - **İkon eşlemesi** (kategori slug → lucide-react ikonu, `CATEGORY_ICONS` sabiti, `exam-grammar/page.tsx` içinde): tenses→Clock, passive→RefreshCw, conditionals→GitBranch, modals→ShieldCheck, clauses→Link2, articles-nouns→FileText, reported-speech→MessageCircle, phrasal-vocab→Puzzle, sentence-structure→AlignLeft, future→Rocket, ing-to-infinitive→Type, pronouns-determiners→Users, adjectives-adverbs→Sparkles, prepositions→MapPin, questions-auxiliaries→HelpCircle. Yeni bir kategori açılırsa bu haritaya eklenmezse `BookOpen` fallback ikonu kullanılır (kırılmaz, ama tutarsız görünür) — yeni sohbet yeni kategori açarsa bu listeyi güncellemeyi unutmamalı.
 
+### 0.13. Madde #5 — dil kısıtı genellemesi, teknik notlar
+
+- **Değişen dosyalar:** `backend/app/api/routes/exams.py`, `backend/app/api/routes/grammar.py` — sadece bu iki dosya, DB migration YOK (şema zaten `exam_questions.learning_lang` ve `grammar_topics.learning_lang` sütunlarını taşıyordu, 9 Eylül'den önceki bir tarihte eklenmiş, hiç kullanılmıyordu).
+- **Eski mantık:** `_exam_area_enabled`/`_grammar_area_enabled` kullanıcının `profiles.native_lang=='tr'` VE `profiles.learning_lang=='en'` olmasını şart koşuyordu — yani sadece Türkçe ana dilli, İngilizce öğrenen kullanıcılar görebiliyordu.
+- **Yeni mantık:** `native_lang` kontrolü TAMAMEN kaldırıldı. Bunun yerine `_exam_content_learning_langs()` (exams.py) ve `_grammar_content_learning_langs()` (grammar.py) fonksiyonları, sırasıyla `exam_questions` (status=approved) ve `grammar_topics` (status=published) tablolarından `DISTINCT learning_lang` çekiyor — kullanıcının `learning_lang`'i bu kümede VARSA alan açık. Bugün bu küme sadece `{'en'}` (tüm içerik İngilizce-öğrenimi için), yani PRATİKTE şu an açılan tek şey: **ana dili Türkçe OLMAYAN ama İngilizce öğrenen kullanıcılar** artık Sınav Hazırlık Alanı'nı ve Gramer Rehberi'ni görebiliyor (önceden göremiyorlardı). İçerik hâlâ Türkçe açıklamalı (`title_tr`, `summary_tr`, `rule_content_md` alan adları) — bu, ana dili Türkçe olmayan bir kullanıcının Türkçe açıklama görmesi anlamına gelir, BİLİNÇLİ bir sınırlama (içerik çeviri işi bu fazın kapsamında değil, gerekirse ayrı bir V2 maddesi olarak ele alınmalı).
+- **Yeni bir dil için içerik eklenince ne olur:** İleride (Faz 4, §6.4) `learning_lang='ko'` ile `exam_questions`/`grammar_topics` satırları eklenirse, `_exam_content_learning_langs()`/`_grammar_content_learning_langs()` bunu OTOMATİK olarak görür ve o dili öğrenen kullanıcılara alan otomatik açılır — **kapı fonksiyonlarında kod değişikliği gerekmez**, sadece içerik migration'ı yeterli.
+- **Ayrıca düzeltilen bir potansiyel hata:** `list_exam_types`, `next_question`, `practice_questions_by_topic`, `list_topics`, `get_topic` sorguları öncesinde `learning_lang` filtrelemiyordu (sadece `exam_type`/`status`/`is_active`/`slug` filtreliyordu). Bugün tüm içerik `en` olduğu için bu bir hataya yol açmıyordu, ama yeni bir dil eklenince (Faz 4) bu sorgular filtre olmadan YANLIŞ dildeki soru/konuyu kullanıcıya gösterebilirdi. Bu oturumda hepsine `.eq("learning_lang", learning_lang)` eklendi — bir sonraki dil eklendiğinde bu riskin baştan kapatılmış olması için.
+- **Test/doğrulama:** Bu oturumda `device_bash`'in Windows/Linux VM ortamında backend testleri çalıştırılamadı (pytest kurulu değil / kontrol edilmedi) — sadece `python3 -m py_compile` ile sözdizimi doğrulandı. **Yeni sohbet ya da kullanıcı, bu değişikliği Railway'e deploy olduktan sonra gerçek bir profilde (`native_lang != 'tr'`, `learning_lang='en'`) `/exams/exam-types` ve `/grammar/topics` endpoint'lerini deneyerek doğrulamalı** — bu oturumda canlı bir API çağrısıyla test edilemedi, sadece kod okunarak doğrulandı.
+
 ### 0.2. Kitabın geri kalanı — bölüm bölüm plan (91/145 ünite karşılığı yapıldı, ana gövde tamamlandı)
 
 Kitap 16 ana bölüm + 7 ek'ten oluşuyor. Her bölüm için: ünite aralığı, şu an kaç konumuz var. **16 ana bölümün TAMAMI artık TAMAMLANDI** — sadece madde 17'deki Ekler (referans tabloları) kaldı, onlar da ayrı konu değil, mevcut konulara not eklenerek kapatılabilir.
@@ -187,16 +203,21 @@ Gramer Rehberi'ne yeni içerik eklemek gerekirse (ör. kullanıcı yeni bir konu
 
 ## 1. V2 Yol Haritası — diğer bekleyen büyük başlıklar (önceki devir notlarından taşındı, DEĞİŞMEDİ)
 
-Bu oturum tamamen §0'daki Gramer Rehberi/soru havuzu işine odaklandı, aşağıdakilere hiç dokunulmadı.
+Bu oturumda kullanıcı 4 net V2 kararı verdi (bkz. §6 başı) ve madde #5 (§1.1) uygulandı — diğer maddelere kod olarak dokunulmadı, sadece §6'da fazlı bir plan yazıldı.
 
 ### 1.1. YDS / YÖKDİL / IELTS / TOEFL Sınav Hazırlık Alanı — ÖNCELİK #1
 
-Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, session/attempt akışı, `timed_mock` modu (şemada `ExamSessionMode.timed_mock` mevcut), Gramer Rehberi (artık 91 konu, kitabın ana gövdesi tamamlandı), cevap sonrası kişisel öneri (ilgili konuyu incele / bu konudan pratik yap / haftalık zayıf konu özeti), dashboard widget'ları. **Gramer Rehberi'nin ana gövdesi bitti — kalan iş sadece opsiyonel Ekler (§0.2 madde 17).** Madde #5 (çoklu dil/sınav genellemesi — IELTS/TOEFL şu an sadece learning_lang=en'e mi özel kalacak, başka dil çiftlerine mi genellenecek) ve madde #6 (istatistiği tüm uygulamaya yayma — şu an sadece Sınav Hazırlık alanında olan zayıf-konu/performans mantığının kelime/oyun tarafına da taşınması) kapsamı hâlâ netleşmedi, **kullanıcıyla konuşulmalı**.
+Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, session/attempt akışı, `timed_mock` modu (şemada `ExamSessionMode.timed_mock` mevcut), Gramer Rehberi (91 konu, kitabın ana gövdesi + Ekler tamamlandı), cevap sonrası kişisel öneri (ilgili konuyu incele / bu konudan pratik yap / haftalık zayıf konu özeti), dashboard widget'ları.
+
+**Madde #5 — KARARLAŞTIRILDI ve UYGULANDI (9 Eylül 2026, bu oturum):** kullanıcı "genelleştirilecek" dedi. Backend'de `_exam_area_enabled`/`_grammar_area_enabled` artık `native_lang=='tr'` şartını aramıyor, hangi `learning_lang` için içerik varsa o açık (bkz. §0.13, §6.1). Ek dil İÇERİĞİ eklenmedi, sadece kapı/mimari genellendi.
+
+**Madde #6 — KARARLAŞTIRILDI ama HENÜZ KODLANMADI:** kullanıcı "kelime/oyun tarafına da taşınacak" dedi. Şu an sadece `exams.py::weak_topics` var (exam_attempts + exam_questions.topic_tag üzerinden). Kelime (words/quiz_results) ve oyun (game_sessions/game_attempts) tarafı için benzer bir "zayıf alan" istatistiği YOK — bu **Faz 2**'nin işi, somut plan: §6.2.
 
 ### 1.2. Gerçek Zamanlı Düello — ÖNCELİK #2
 
 - Anlık eşleşmeli, canlı kelime düellosu (Kahoot tarzı). **Backend'de websocket/realtime altyapısı yok, sıfırdan inşa gerekiyor** (Supabase Realtime channels önerilir).
 - Genişletilmiş vizyon (kullanıcının kendi tarifi): özel/uluslararası grup+lig sistemi, ilk 3 üst lige çıkar/son 3 alt lige düşer, Duolingo tarzı görev haritası + ilerleme görselleştirmesi, kurumlara özel ligler (B2B potansiyeli). Bu bölüm kullanıcı tarafından "çok önemli" olarak vurgulandı.
+- **KARAR (9 Eylül 2026, kullanıcı):** genişletilmiş vizyon AŞAMALI/MVP-önce DEĞİL, düello ile BİRLİKTE TEK seferde inşa edilecek — "Burada Genişletilmiş vizyon direk uygulanacak, Kahoot tarzı düello ile birlikte burayı yap." Yani düello + lig/terfi-düşme + görev haritası + B2B kurumsal ligler tek bir **Faz 3** olarak ele alınıyor (kod olarak henüz başlanmadı — kapsam çok büyük olduğu için önce alt-fazlara bölünmüş bir mühendislik planı yazıldı, bkz. §6.3). Yeni sohbet Faz 3'e girmeden önce §6.3'ü baştan sona okumalı.
 
 ### 1.3. Referans / Davet Programı — ÖNCELİK #3
 
@@ -204,7 +225,8 @@ Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, se
 
 ### 1.4. Yeni Diller — ÖNCELİK #4
 
-- Kesinleşen: Korece (ko), Çince (zh). Ek öneri: Hollandaca (nl), Azerice (az), Farsça (fa).
+- **KARAR (9 Eylül 2026, kullanıcı):** SADECE Korece (ko) ve Çince (zh) eklenecek. Önceki oturumlarda öneri olarak geçen Hollandaca (nl), Azerice (az), Farsça (fa) kullanıcı tarafından AÇIKÇA REDDEDİLDİ — "Diğer dillere gerek yok." Yeni sohbet bu üç dili (nl/az/fa) bir daha önermemeli/eklememeli.
+- **Sıralama kararı (kullanıcı):** Bu madde (ve §1.3 Referans/Davet Programı, §1.5 B2B Paket) ancak madde #5 (bitti), madde #6 (Faz 2) ve Gerçek Zamanlı Düello+Lig+B2B-lig (Faz 3) TAMAMLANDIKTAN SONRA ele alınacak — "V2 de kalan diğer maddeleri ... bu üç madde yapılınca yapacağız." Yani şu an bu maddeye kod olarak BAŞLANMAMALI, sadece plan hazır tutulmalı (bkz. §6.4).
 
 ### 1.5. Kurumsal / Dershane (B2B) Paketi — ÖNCELİK #5
 
@@ -262,7 +284,96 @@ Büyük ölçüde tamamlandı: soru bankası + moderasyon + AI soru üretimi, se
 
 1. Bu dosyayı oku.
 2. **Gramer Rehberi TAMAMEN bitti** — içerik (16 bölüm + madde 17 Ekler, 91 konu, 225 soru, TÜM konularda pratik sorusu var) VE UI (harita görünümü + Sınav Hazırlık Alanı kart iyileştirmesi, bkz. §0.11/§0.12) tamamlandı. Kullanıcıya HİÇBİR ŞEY SORMADAN devam edilecek otomatik bir Gramer Rehberi işi KALMADI.
-3. Yeni sohbet önce kullanıcıya kısa bir durum özeti versin (Gramer Rehberi içerik+UI tamamen bitti) ve **§1.1 madde #5/#6 kapsam netleştirmesi ile §1.2 (Gerçek Zamanlı Düello) arasında hangisine öncelik verileceğini sorsun** — devir notunun kendisi de bu V2 kararlarının "kullanıcıyla konuşulmalı" olduğunu belirtiyor.
-4. Kullanıcı bu son harita/kart değişikliklerini (henüz kendi gözüyle görmedi, sadece istekte bulunmuştu) beğenmezse veya ince ayar isterse (renk, ikon, animasyon, mobil tarafında da aynı UI vb.), bunlar doğrudan (onay beklemeden) yapılabilir — kapsamı önceden onaylanmış bir iyileştirme, yeni bir V2 kararı değil.
-5. `npm run build` bu oturumda kullanıcının makinesindeki Linux sandbox'ta (device_bash) SWC/ağ kısıtı yüzünden çalıştırılamadı (bkz. §0.12) — yeni sohbet ya da kullanıcının kendisi ilk fırsatta gerçek ortamda (`npm run dev` / Vercel preview) görsel/derleme kontrolü yapmalı; bir hata bildirilirse önce bunu hatırla.
-6. Her yeni dalga/iş sonunda: Supabase'e uygula → doğrula → migration dosyasını repoya yaz → commit hazırla → kullanıcıya `git push` komutunu ver → devir notunu güncelle. Frontend değişikliği varsa: `npx tsc --noEmit` + `npx eslint <değişen dosyalar>` ile doğrula, sonra aynı commit/push akışını izle.
+3. **V2 Yol Haritası netleşti — kullanıcı 4 net karar verdi (bkz. §6 başı).** Madde #5 bu oturumda YAPILDI (§0.13, §6.1). Yeni sohbet kullanıcıya HİÇBİR ŞEY SORMADAN doğrudan **Faz 2'ye (madde #6 — zayıf-alan istatistiğini kelime/oyun tarafına taşıma)** başlasın — somut plan §6.2'de hazır, ilk adım `general_word_pool` şemasını incelemek ve `words.word_type` değerlerinin gerçek dağılımına bakmak.
+4. Faz 2 bitince sıradaki iş **Faz 3** (§6.3 — Gerçek Zamanlı Düello + Lig + Görev Haritası + B2B, genişletilmiş vizyonla TEK inşa). **Bu ÇOK BÜYÜK bir iş — TEK oturumda bitirilmeye ÇALIŞILMAMALI**, Gramer Rehberi'nin 7 dalgalık deseni gibi alt-fazlara (3a→3f, §6.3'te tanımlı) bölünerek ilerlenmeli, 3a (şema tasarımı) ile başlanmalı.
+5. Faz 3 bitince **Faz 4** (§6.4 — Referans/Davet Programı + B2B Paket + SADECE Korece/Çince). Bu dillerin dışında (Hollandaca/Azerice/Farsça dahil) başka dil ÖNERİLMEMELİ/EKLENMEMELİ — kullanıcı açıkça reddetti.
+6. Kullanıcı Gramer Rehberi harita/kart değişikliklerini (bir önceki oturumda istekte bulunmuştu) beğenmezse veya ince ayar isterse (renk, ikon, animasyon, mobil tarafında da aynı UI vb.), bunlar doğrudan (onay beklemeden) yapılabilir — kapsamı önceden onaylanmış bir iyileştirme, yeni bir V2 kararı değil.
+7. `npm run build` bu oturumda da dahil olmak üzere kullanıcının makinesindeki Linux sandbox'ta (device_bash) SWC/ağ kısıtı yüzünden çalıştırılamıyor (bkz. §0.12) — yeni sohbet ya da kullanıcının kendisi ilk fırsatta gerçek ortamda (`npm run dev` / Vercel preview) görsel/derleme kontrolü yapmalı; bir hata bildirilirse önce bunu hatırla. Backend tarafında da gerçek pytest/canlı API testi bu ortamda yapılamıyor (bkz. §0.13) — sadece `py_compile` ile sözdizimi doğrulanabiliyor.
+8. Her yeni dalga/faz/alt-faz sonunda: (varsa) Supabase'e uygula → doğrula → migration dosyasını repoya yaz → commit hazırla → kullanıcıya `git push` komutunu ver → devir notunun §0 tablosuna satır ekle VE ilgili §6.x alt maddesini "✅ TAMAMLANDI" olarak işaretle. Frontend değişikliği varsa: `npx tsc --noEmit` + `npx eslint <değişen dosyalar>` ile doğrula, sonra aynı commit/push akışını izle.
+
+## 6. V2 Yol Haritası — Fazlı Mühendislik Planı (9 Eylül 2026)
+
+Kullanıcının bu oturumda verdiği 4 net karar (V2 Yol Haritası mesajı, özetle):
+1. Sınav Hazırlık alanı madde #5 (dil kısıtı) — GENELLEŞTİRİLECEK.
+2. Madde #6 (zayıf-konu istatistiği) — kelime/oyun tarafına da taşınacak.
+3. Gerçek Zamanlı Düello — genişletilmiş vizyon (lig/terfi-düşme, görev haritası, B2B kurumsal ligler) düello ile BİRLİKTE TEK seferde inşa edilecek, aşamalı/MVP-önce değil.
+4. Kalan V2 maddeleri (Referans/Davet Programı, Yeni Diller, B2B Paket) bu üç madde bitince yapılacak; yeni dil olarak SADECE Korece (ko) ve Çince (zh) eklenecek, başka dil yok.
+
+Bu karara göre 4 faz tanımlandı, Gramer Rehberi'nde kullanılan "dalga" desenine benzer şekilde her faz somut adımlara bölündü. Faz sırası kullanıcının kendi sırasıyla aynı: 1 → 2 → 3 → 4.
+
+### 6.1. Faz 1 — Madde #5: dil kısıtı genellemesi — ✅ TAMAMLANDI (bu oturum)
+
+Özet: `_exam_area_enabled`/`_grammar_area_enabled` artık `native_lang=='tr'` şartını aramıyor, hangi `learning_lang` için onaylı/yayında içerik varsa o açık. Detay: §0.13.
+
+### 6.2. Faz 2 — Madde #6: zayıf-alan istatistiğini kelime + oyun tarafına taşı — ⬜ YAPILMADI, plan hazır
+
+Hedef: `exams.py::weak_topics`'teki "son N günde en çok yanlış yapılan konu" mantığının bir benzerini kelime tekrarı (words/quiz_results) ve oyun (game_sessions/game_attempts) tarafında da sun.
+
+Mevcut durum keşfi (bu oturumda yapıldı):
+- `quiz_results` (session_id, word_id, is_correct, answered_at) — kelime tekrar oturumlarında hangi kelimenin doğru/yanlış cevaplandığını tutuyor, `study_sessions`'a bağlı.
+- `words` tablosunda `word_type` sütunu var (noun/verb/adjective vb, muhtemelen serbest metin) — gramer konularındaki topic_tag'in kelime tarafındaki en yakın analogu.
+- `game_attempts` (session_id, word_id, general_word_id, is_correct) — `word_id` kullanıcının kendi kelimesi, `general_word_id` genel kelime havuzundan (general_word_pool, 27270 satır); hangisinin dolu olacağı oyun moduna göre değişiyor.
+- `general_word_pool` şeması bu oturumda İNCELENMEDİ — Faz 2'nin ilk adımı bu tablonun word_type/kategori benzeri bir sütunu olup olmadığını kontrol etmek olmalı.
+
+Önerilen tasarım:
+1. `word_type`'ı ortak "zayıf alan" boyutu olarak kullan (gramer tarafındaki topic_tag'in analogu).
+2. `backend/app/api/routes/words.py` içine `GET /words/stats/weak-word-types` — `exams.py::weak_topics` ile AYNI desen: son N gün, quiz_results join words.word_type, en çok yanlışın olduğu word_type'lar.
+3. `backend/app/api/routes/games.py` içine `GET /games/stats/weak-word-types` — aynı desen, game_attempts join words/general_word_pool (word_id doluysa words, general_word_id doluysa general_word_pool).
+4. Cross-cutting bir modül YERİNE her domain kendi router'ında kendi endpoint'ini barındırsın (mevcut kod tabanının deseni — bkz. exams.py/grammar.py modül docstring'leri, bilinçli kod tekrarı).
+5. Frontend: dashboard'daki mevcut "zayıf konular" kartının yanına aynı görsel dilde yeni kart(lar) — "Zayıf Kelime Türleri" / "Oyunda Zorlandığın Kelime Türleri". `web/src/app/(app)/dashboard/page.tsx`'teki mevcut weakTopics deseni (satır ~152-157) örnek alınmalı.
+6. XP/rozet entegrasyonu gerekmiyor — sadece bilgilendirici bir istatistik widget'ı.
+
+Riskler/açık sorular: `words.word_type` değerlerinin tutarlılığı bilinmiyor (serbest metin olabilir, önce `select distinct word_type, count(*) from words group by word_type` ile gerçek değerlere bakılmalı); `general_word_pool` şeması henüz incelenmedi.
+
+### 6.3. Faz 3 — Gerçek Zamanlı Düello + Lig + Görev Haritası + B2B (genişletilmiş vizyon, TEK inşa) — ⬜ YAPILMADI, plan hazır
+
+BU, ŞİMDİYE KADARKİ EN BÜYÜK V2 MADDESİ — Gramer Rehberi'nin 7 dalgasından çok daha büyük. TEK oturumda bitirilmeye ÇALIŞILMAMALI. Aşağıdaki 6 alt-faza (3a → 3f) bölündü, sırayla ilerlenmeli, her alt-faz kendi commit'i ile kapatılmalı.
+
+3a. Realtime altyapı + şema temeli
+- Supabase Realtime (broadcast + presence channels) aktif mi kontrol edilmeli.
+- Yeni tablolar (taslak, şema tasarımı bu alt-fazın asıl işi):
+  - duels (id, mode, status: waiting/active/finished, league_id nullable, created_at, ended_at)
+  - duel_participants (duel_id, user_id, score, joined_at, left_at)
+  - duel_rounds (duel_id, round_index, general_word_id veya question içeriği, correct_answer, started_at, ends_at)
+  - duel_answers (duel_round_id, user_id, selected_option, is_correct, time_taken_ms)
+- Mevcut `challenges` tablosu (0 satır, boş) yeniden kullanılabilir mi incelenmeli — şeması (challenger_id/challenged_id/mode/status/winner_id) 1v1 arkadaş-daveti modeline benziyor, çok-kişili canlı oda/Kahoot modeline direkt uymayabilir. Önerilen karar: challenges 1v1 özel davet akışı için kalsın, çok-kişili canlı düello için YENİ tablolar açılsın — ama bu şema tasarımı sırasında netleştirilmeli.
+- Backend: yeni `backend/app/api/routes/duels.py` — REST katmanı (oda oluştur/katıl/durum), gerçek zamanlı yayın Supabase Realtime broadcast ile (FastAPI sadece state/skor kalıcılığını ve XP ödülünü yönetir).
+- Matchmaking: basit kuyruk (bekleyen kullanıcı havuzu), ileride lig/seviye yakınlığına göre eşleştirme.
+
+3b. Lig sistemi (terfi/düşme)
+- Yeni tablolar: leagues (id, tier_order, name, capacity, organization_id nullable — B2B için), league_seasons (id, league_id, starts_at, ends_at), league_memberships (season_id, user_id, league_id, points, rank).
+- Puanlama: düello galibiyeti + katılım XP'si (mevcut award_xp servisiyle tutarlı yeni source_type değerleri: duel_win, duel_participation).
+- Sezon sonu cron job (Railway native cron, mevcut cron_job_runs tablosu deseniyle tutarlı): en üst N terfi eder, en alt N düşer.
+
+3c. Görev haritası (quest map) — SUNUCU taraflı ilerleme
+- Gramer Rehberi'nin harita UI'ı (bkz. §0.12, exam-grammar/page.tsx) görsel/etkileşim deseni olarak yeniden kullanılabilir — AMA bu sefer ilerleme SUNUCUDA tutulmalı (rekabet/lig bağlamı olduğu için localStorage YETERSİZ).
+- Yeni tablo: user_quest_progress (user_id, quest_node_id, status, completed_at) — ya da xp_events/daily_progress üzerinden türetilmiş bir görünüm, şema tasarımı aşamasında karar verilmeli.
+- Görev düğümleri: günlük/haftalık hedefler, düello galibiyetleri, lig hedefleri — içerik tasarımı ayrı bir alt-adım.
+
+3d. B2B / kurumsal ligler
+- Yeni tablolar: organizations (id, name, plan), organization_members (org_id, user_id, role).
+- leagues.organization_id nullable — null ise genel/herkese açık lig, doluysa kurum-scope'lu özel lig.
+- Kurum yöneticisi paneli: üye davet/yönetim, kurum-içi liderlik tablosu (admin.py'deki mevcut RBAC desenine benzer).
+- NOT: Bu, §1.5'teki "Kurumsal/Dershane B2B Paketi" (toplu lisans SATIŞI) ile KARIŞTIRILMAMALI — burada bahsedilen kurumsal lig, düello ÖZELLİĞİNİN B2B versiyonu. İkisi ileride ticari olarak birleşebilir ama şema/kapsam ayrı ele alınmalı.
+
+3e. Frontend (web + mobile)
+- Yeni "Düello" sekmesi/sayfası: bekleme odası UI'ı, canlı soru gösterimi + sayaç, sonuç ekranı.
+- Lig sıralama tablosu sayfası.
+- Görev haritası sayfası (Gramer Rehberi harita UI'ının bir varyasyonu).
+- Mobile tarafı web ile PARALEL geliştirilmeli (Gramer Rehberi'nin harita UI'ında mobile atlanmıştı — Faz 3'te bu boşluk tekrarlanmamalı).
+
+3f. XP/ödül entegrasyonu
+- award_xp servisine yeni source_type değerleri: duel_win, duel_participation, league_promotion vb.
+
+Önerilen çalışma sırası: 3a (şema+backend state machine) → 3f (temel XP) → 3e (temel düello UI'ı, lig olmadan test edilebilir) → 3b (lig) → 3c (görev haritası) → 3d (B2B, en son).
+
+### 6.4. Faz 4 — Referans/Davet Programı + B2B Paket + SADECE Korece/Çince — ⬜ YAPILMADI, plan hazır (Faz 1-3 bitmeden BAŞLANMAYACAK)
+
+- Diller: `languages` tablosuna `ko` (Korece) ve `zh` (Çince) satırları eklenir (is_active=true) — mevcut 10 satırla aynı desende (en/tr/de/fr/es/it/ja/ar/ru/pt).
+  - İçerik: general_word_pool/words şemasındaki source_lang/target_lang zaten serbest metin (herhangi bir dil kodu kabul ediyor, kod değişikliği gerekmez) — yeni dil için kelime havuzu SEED edilmeli (AI destekli bir üretim script'i gerekebilir, mevcut olup olmadığı incelenmedi).
+  - Hangul/Hanzi (Latin olmayan alfabe) UI'da özel render sorunu yaratır mı kontrol edilmeli; romanizasyon/transliterasyon gösterimi gerekip gerekmediği ayrı bir ürün kararı.
+  - Sınav Hazırlık Alanı bu iki dil için AÇILMAYACAK (YDS/YÖKDİL/IELTS/TOEFL İngilizce-spesifik sınavlar) — sadece kelime/oyun/genel öğrenim akışları için.
+- Referans/Davet Programı (§1.3): mevcut social.py/friendships/follows altyapısı üzerine oturur.
+- B2B Paket (§1.5): hedef segment + 5 adımlık outreach önceki oturumda hazırlanmıştı — Faz 3d'deki kurumsal lig altyapısıyla mümkünse birleştirilmeli (aynı organizations/organization_members tabloları kullanılabilir).
+
+---
