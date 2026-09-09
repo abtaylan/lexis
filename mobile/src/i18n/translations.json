@@ -283,7 +283,10 @@
     "premiumFeature3": "Haftalık/aylık lider tablosu ödüllerine katılım önceliği",
     "premiumFeature4": "Tüm günlük aktivite modüllerine sınırsız erişim",
     "premiumNoAdsNegative": "Premium olmayan hesaplarda kenar reklamları gösterilir",
-    "quickActions": "Hızlı İşlemler"
+    "quickActions": "Hızlı İşlemler",
+    "todayScheduleTitle": "Bugünün Programı",
+    "todayScheduleEmpty": "Bugün için planlanmış bir etkinlik yok",
+    "todayScheduleViewAll": "Tüm Programı Gör"
   },
   "en": {
     "dashboard": "Dashboard",
@@ -569,7 +572,10 @@
     "premiumFeature3": "Priority for weekly/monthly leaderboard rewards",
     "premiumFeature4": "Unlimited access to all daily activity modules",
     "premiumNoAdsNegative": "Side ads are shown on non-premium accounts",
-    "quickActions": "Quick Actions"
+    "quickActions": "Quick Actions",
+    "todayScheduleTitle": "Today's Schedule",
+    "todayScheduleEmpty": "No activity planned for today",
+    "todayScheduleViewAll": "View Full Schedule"
   },
   "ar": {
     "dashboard": "لوحة التحكم",
@@ -855,7 +861,10 @@
     "premiumFeature3": "أولوية في جوائز لوحة المتصدرين الأسبوعية/الشهرية",
     "premiumFeature4": "وصول غير محدود إلى جميع وحدات النشاط اليومي",
     "premiumNoAdsNegative": "تُعرض إعلانات جانبية في الحسابات غير المميزة",
-    "quickActions": "إجراءات سريعة"
+    "quickActions": "إجراءات سريعة",
+    "todayScheduleTitle": "برنامج اليوم",
+    "todayScheduleEmpty": "لا يوجد نشاط مخطط لهذا اليوم",
+    "todayScheduleViewAll": "عرض البرنامج الكامل"
   },
   "ru": {
     "dashboard": "Панель",
@@ -1141,7 +1150,10 @@
     "premiumFeature3": "Приоритет в еженедельных/ежемесячных наградах таблицы лидеров",
     "premiumFeature4": "Неограниченный доступ ко всем ежедневным модулям активности",
     "premiumNoAdsNegative": "На аккаунтах без Premium показывается боковая реклама",
-    "quickActions": "Быстрые действия"
+    "quickActions": "Быстрые действия",
+    "todayScheduleTitle": "Расписание на сегодня",
+    "todayScheduleEmpty": "На сегодня ничего не запланировано",
+    "todayScheduleViewAll": "Смотреть всё расписание"
   },
   "de": {
     "dashboard": "Dashboard",
@@ -1427,7 +1439,10 @@
     "premiumFeature3": "Vorrang bei wöchentlichen/monatlichen Bestenlisten-Belohnungen",
     "premiumFeature4": "Unbegrenzter Zugriff auf alle täglichen Aktivitätsmodule",
     "premiumNoAdsNegative": "Bei Nicht-Premium-Konten wird Seitenwerbung angezeigt",
-    "quickActions": "Schnellzugriff"
+    "quickActions": "Schnellzugriff",
+    "todayScheduleTitle": "Heutiger Plan",
+    "todayScheduleEmpty": "Für heute ist keine Aktivität geplant",
+    "todayScheduleViewAll": "Gesamten Plan ansehen"
   },
   "fr": {
     "dashboard": "Tableau de bord",
@@ -1713,7 +1728,10 @@
     "premiumFeature3": "Priorité pour les récompenses du classement hebdomadaire/mensuel",
     "premiumFeature4": "Accès illimité à tous les modules d’activité quotidiens",
     "premiumNoAdsNegative": "Des publicités latérales sont affichées sur les comptes non premium",
-    "quickActions": "Actions rapides"
+    "quickActions": "Actions rapides",
+    "todayScheduleTitle": "Programme du jour",
+    "todayScheduleEmpty": "Aucune activité prévue aujourd'hui",
+    "todayScheduleViewAll": "Voir tout le programme"
   },
   "es": {
     "dashboard": "Panel",
@@ -1999,7 +2017,10 @@
     "premiumFeature3": "Prioridad en las recompensas de la clasificación semanal/mensual",
     "premiumFeature4": "Acceso ilimitado a todos los módulos de actividad diaria",
     "premiumNoAdsNegative": "Se muestran anuncios laterales en las cuentas no premium",
-    "quickActions": "Acciones rápidas"
+    "quickActions": "Acciones rápidas",
+    "todayScheduleTitle": "Programa de hoy",
+    "todayScheduleEmpty": "No hay actividad planificada para hoy",
+    "todayScheduleViewAll": "Ver programa completo"
   },
   "it": {
     "dashboard": "Dashboard",
@@ -2285,7 +2306,10 @@
     "premiumFeature3": "Priorità per i premi della classifica settimanale/mensile",
     "premiumFeature4": "Accesso illimitato a tutti i moduli di attività giornaliera",
     "premiumNoAdsNegative": "Sugli account non premium vengono mostrati annunci laterali",
-    "quickActions": "Azioni rapide"
+    "quickActions": "Azioni rapide",
+    "todayScheduleTitle": "Programma di oggi",
+    "todayScheduleEmpty": "Nessuna attività pianificata per oggi",
+    "todayScheduleViewAll": "Vedi programma completo"
   },
   "ja": {
     "dashboard": "ダッシュボード",
@@ -2571,7 +2595,10 @@
     "premiumFeature3": "週間/月間ランキング報酬への参加優先権",
     "premiumFeature4": "すべての毎日のアクティビティモジュールへの無制限アクセス",
     "premiumNoAdsNegative": "プレミアム未加入のアカウントにはサイド広告が表示されます",
-    "quickActions": "クイックアクション"
+    "quickActions": "クイックアクション",
+    "todayScheduleTitle": "今日の予定",
+    "todayScheduleEmpty": "今日の予定はありません",
+    "todayScheduleViewAll": "すべての予定を見る"
   },
   "pt": {
     "dashboard": "Painel",
@@ -2857,6 +2884,9 @@
     "premiumFeature3": "Prioridade nas recompensas da tabela classificativa semanal/mensal",
     "premiumFeature4": "Acesso ilimitado a todos os módulos de atividade diária",
     "premiumNoAdsNegative": "São mostrados anúncios laterais nas contas não premium",
-    "quickActions": "Ações Rápidas"
+    "quickActions": "Ações Rápidas",
+    "todayScheduleTitle": "Programa de hoje",
+    "todayScheduleEmpty": "Nenhuma atividade planejada para hoje",
+    "todayScheduleViewAll": "Ver programa completo"
   }
 }

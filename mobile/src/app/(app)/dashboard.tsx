@@ -2,10 +2,11 @@ import React, { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
 import { statsApi } from '@/api/stats';
+import { scheduleApi } from '@/api/schedule';
 import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
@@ -49,6 +50,20 @@ export default function DashboardScreen() {
     queryKey: ['stats-summary'],
     queryFn: statsApi.getSummary,
   });
+
+  // Kullanıcı isteği (9 Eylül 2026): "ana ekrana bu sınav programı için bir
+  // bölüm eklenecek mi" — Çalışma Programı zaten kendi alt-sekmesinde
+  // (CalendarDays ikonu) her zaman erişilebilir durumda, ama dashboard'da
+  // "bugün ne çalışmalıyım" sorusuna tek bakışta cevap veren bir özet yoktu.
+  // day_of_week backend şemasında 0=Pazar..6=Cumartesi — JS Date.getDay() ile
+  // birebir aynı, dönüşüm gerekmiyor (bkz. schedule.tsx DISPLAY_ORDER yorumu).
+  const { data: scheduleItems } = useQuery({
+    queryKey: ['schedule'],
+    queryFn: scheduleApi.getAll,
+  });
+  const todayItems = (scheduleItems ?? [])
+    .filter((it) => it.day_of_week === new Date().getDay())
+    .sort((a, b) => a.time_slot.localeCompare(b.time_slot));
 
   // Kullanıcı geri bildirimi: kelime ekleyip/tekrar edip Dashboard'a geri
   // dönünce "Tekrar Bekleyen"/"Bugün Eklenen" sayıları güncellenmiyordu —
@@ -109,6 +124,38 @@ export default function DashboardScreen() {
             <StatTile icon={Clock} label={t('dueReview')} value={String(stats.learning)} bg="accentSoft" fg="accent" color={c} />
           </View>
         )}
+
+        <Pressable
+          onPress={() => router.push('/(app)/schedule')}
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+        >
+          <Card style={{ paddingVertical: spacing.md, paddingHorizontal: spacing.md, gap: 0 }}>
+            <View style={styles.todayHeaderRow}>
+              <View style={styles.todayHeaderLeft}>
+                <CalendarDays color={c.primary} size={17} />
+                <Text style={[styles.todayTitle, { color: c.text }]}>{t('todayScheduleTitle')}</Text>
+              </View>
+              <View style={styles.todayHeaderLeft}>
+                <Text style={[styles.todayViewAll, { color: c.primary }]}>{t('todayScheduleViewAll')}</Text>
+                <ChevronRight color={c.primary} size={13} />
+              </View>
+            </View>
+            {todayItems.length === 0 ? (
+              <Text style={[styles.todayEmpty, { color: c.textMuted }]}>{t('todayScheduleEmpty')}</Text>
+            ) : (
+              <View style={{ gap: 6, marginTop: spacing.sm }}>
+                {todayItems.map((it) => (
+                  <View key={it.id} style={styles.todayItemRow}>
+                    <Text style={[styles.todayItemTime, { color: c.primary }]}>{it.time_slot}</Text>
+                    <Text style={[styles.todayItemActivity, { color: c.text }]} numberOfLines={1}>
+                      {it.activity}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Card>
+        </Pressable>
 
         {/* V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı artık ayrı,
             öne çıkan bir banner olarak gösteriliyor (kullanıcı isteği: küçük
@@ -245,4 +292,12 @@ const styles = StyleSheet.create({
   examBannerSubtitle: { fontSize: 12, marginTop: 2, lineHeight: 16 },
   examBannerCtaRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: spacing.xs },
   examBannerCta: { fontSize: 12.5, fontWeight: '700' },
+  todayHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  todayHeaderLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  todayTitle: { fontSize: 14, fontWeight: '700' },
+  todayViewAll: { fontSize: 11.5, fontWeight: '600' },
+  todayEmpty: { fontSize: 12.5, marginTop: spacing.sm },
+  todayItemRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  todayItemTime: { fontSize: 12, fontWeight: '700', width: 42 },
+  todayItemActivity: { fontSize: 12.5, fontWeight: '500', flex: 1 },
 });
