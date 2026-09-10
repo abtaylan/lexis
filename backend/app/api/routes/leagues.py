@@ -39,6 +39,8 @@ havuzundan (profiles.is_bot, migration 046) otomatik dolgu yapılıyor —
 artık hiçbir lig grubu boş/tek kişilik başlamıyor.
 """
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_user
@@ -47,6 +49,21 @@ from app.schemas.leagues import LeagueMemberItem, LeagueStatusResponse
 from pydantic import BaseModel
 
 router = APIRouter()
+
+_TR_OFFSET = timezone(timedelta(hours=3))
+
+
+def _current_week_start_iso() -> str:
+    """Turkiye yerel saatine (+3, DST yok) gore bu haftanin Pazartesi
+    00:00'i -- SQL tarafindaki (migration 047/051/052) 'date_trunc(week,
+    now() + interval 3 hours) - interval 3 hours' hesabinin Python
+    esdegeri. /overview'de SADECE bu haftanin aktif gruplarini gostermek
+    icin (eski test/gecmis hafta artigi gruplar liste kirletmesin diye)."""
+    now_tr = datetime.now(timezone.utc).astimezone(_TR_OFFSET)
+    monday_tr = (now_tr - timedelta(days=now_tr.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    return monday_tr.astimezone(timezone.utc).isoformat()
 
 
 def _get_tier(tier_slug: str) -> dict:
@@ -236,13 +253,31 @@ class LeagueOverviewResponse(BaseModel):
 
 @router.get("/overview", response_model=LeagueOverviewResponse)
 async def get_league_overview(current_user=Depends(get_current_user)):
+    # Faz 3 devami (10 Eylul 2026 -- "sistemde olabilecek tum ligleri ekle,
+    # 1000 kisi kullaniyormus gibi dusun"): terfi/dusme henuz yok, bu yuzden
+    # yeni bir kademe grubu SADECE gercek bir kullanici o kademeye
+    # ulasinca aciliyordu (Gumus+ hep bos kaliyordu). seed_tier_leagues
+    # (migration 052) her kademede bot havuzundan EN AZ 2 grup acik olmasini
+    # garantiler -- idempotent, zaten dolu kademelere dokunmaz. Overview her
+    # cagrildiginda calisiyor ki gelecek haftalar da otomatik dolsun.
+    supabase_admin.rpc("seed_tier_leagues", {"p_target_groups_per_tier": 2}).execute()
+
     tiers = {
         t["slug"]: t
         for t in (supabase_admin.table("league_tiers").select("*").execute().data or [])
     }
 
+    # Sadece BU HAFTANIN aktif gruplari -- terfi/dusme + haftalik kapanis
+    # (rollover) henuz yok (bkz. modul docstring'i), bu yuzden gecmis
+    # haftalardan kalma eski gruplar 'active' olarak birikebiliyordu ve
+    # listeyi (ozellikle Bronz'da) gereksiz kalabalıklastiriyordu.
     leagues = (
-        supabase_admin.table("leagues").select("*").eq("status", "active").execute().data
+        supabase_admin.table("leagues")
+        .select("*")
+        .eq("status", "active")
+        .gte("week_start", _current_week_start_iso())
+        .execute()
+        .data
     ) or []
     leagues.sort(key=lambda l: (tiers.get(l["tier_slug"], {}).get("tier_index", 0), l["created_at"]))
 

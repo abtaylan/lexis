@@ -30,7 +30,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: 'Henüz bir lig grubuna atanmadın.', emptySub: 'XP kazanmaya başladığında otomatik olarak eklenirsin.',
     promoteHint: 'Terfi bölgesi', demoteHint: 'Düşme bölgesi',
     allLeaguesTitle: 'Tüm Ligler', membersSuffix: 'üye', groupLabel: 'Grup', yourGroupBadge: 'Senin Ligin',
-    backBtn: 'Lige Dön', detailError: 'Bu lig grubu bulunamadı.',
+    backBtn: 'Lige Dön', detailError: 'Bu lig grubu bulunamadı.', prevLeagueLabel: 'Alt Lig', nextLeagueLabel: 'Üst Lig',
   },
   en: {
     title: 'League', subtitleWeek: 'week',
@@ -39,7 +39,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: "You haven't been placed in a league group yet.", emptySub: "You'll be added automatically once you start earning XP.",
     promoteHint: 'Promotion zone', demoteHint: 'Relegation zone',
     allLeaguesTitle: 'All Leagues', membersSuffix: 'members', groupLabel: 'Group', yourGroupBadge: 'Your League',
-    backBtn: 'Back to League', detailError: 'This league group could not be found.',
+    backBtn: 'Back to League', detailError: 'This league group could not be found.', prevLeagueLabel: 'Lower League', nextLeagueLabel: 'Upper League',
   },
   de: {
     title: 'Liga', subtitleWeek: 'Woche',
@@ -48,7 +48,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: 'Du wurdest noch keiner Ligagruppe zugewiesen.', emptySub: 'Du wirst automatisch hinzugefügt, sobald du XP sammelst.',
     promoteHint: 'Aufstiegszone', demoteHint: 'Abstiegszone',
     allLeaguesTitle: 'Alle Ligen', membersSuffix: 'Mitglieder', groupLabel: 'Gruppe', yourGroupBadge: 'Deine Liga',
-    backBtn: 'Zurück zur Liga', detailError: 'Diese Ligagruppe wurde nicht gefunden.',
+    backBtn: 'Zurück zur Liga', detailError: 'Diese Ligagruppe wurde nicht gefunden.', prevLeagueLabel: 'Niedrigere Liga', nextLeagueLabel: 'Höhere Liga',
   },
   fr: {
     title: 'Ligue', subtitleWeek: 'semaine',
@@ -57,7 +57,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: "Tu n'as pas encore été placé dans un groupe de ligue.", emptySub: 'Tu seras ajouté automatiquement dès que tu gagneras des XP.',
     promoteHint: 'Zone de promotion', demoteHint: 'Zone de relégation',
     allLeaguesTitle: 'Toutes les Ligues', membersSuffix: 'membres', groupLabel: 'Groupe', yourGroupBadge: 'Ta Ligue',
-    backBtn: 'Retour à la ligue', detailError: "Ce groupe de ligue est introuvable.",
+    backBtn: 'Retour à la ligue', detailError: "Ce groupe de ligue est introuvable.", prevLeagueLabel: 'Ligue inférieure', nextLeagueLabel: 'Ligue supérieure',
   },
   es: {
     title: 'Liga', subtitleWeek: 'semana',
@@ -66,7 +66,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: 'Todavía no te han asignado a un grupo de liga.', emptySub: 'Se te añadirá automáticamente en cuanto empieces a ganar XP.',
     promoteHint: 'Zona de ascenso', demoteHint: 'Zona de descenso',
     allLeaguesTitle: 'Todas las Ligas', membersSuffix: 'miembros', groupLabel: 'Grupo', yourGroupBadge: 'Tu Liga',
-    backBtn: 'Volver a la liga', detailError: 'No se encontró este grupo de liga.',
+    backBtn: 'Volver a la liga', detailError: 'No se encontró este grupo de liga.', prevLeagueLabel: 'Liga inferior', nextLeagueLabel: 'Liga superior',
   },
   it: {
     title: 'Lega', subtitleWeek: 'settimana',
@@ -75,7 +75,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: 'Non sei ancora stato assegnato a un gruppo di lega.', emptySub: 'Sarai aggiunto automaticamente non appena inizierai a guadagnare XP.',
     promoteHint: 'Zona promozione', demoteHint: 'Zona retrocessione',
     allLeaguesTitle: 'Tutte le Leghe', membersSuffix: 'membri', groupLabel: 'Gruppo', yourGroupBadge: 'La Tua Lega',
-    backBtn: 'Torna alla lega', detailError: 'Questo gruppo di lega non è stato trovato.',
+    backBtn: 'Torna alla lega', detailError: 'Questo gruppo di lega non è stato trovato.', prevLeagueLabel: 'Lega inferiore', nextLeagueLabel: 'Lega superiore',
   },
   ar: {
     title: 'الدوري', subtitleWeek: 'أسبوع',
@@ -84,7 +84,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: 'لم يتم تعيينك بعد إلى مجموعة دوري.', emptySub: 'سيتم إضافتك تلقائياً بمجرد أن تبدأ بكسب نقاط الخبرة.',
     promoteHint: 'منطقة الترقية', demoteHint: 'منطقة الهبوط',
     allLeaguesTitle: 'كل الدوريات', membersSuffix: 'عضو', groupLabel: 'مجموعة', yourGroupBadge: 'دوريك',
-    backBtn: 'العودة إلى الدوري', detailError: 'لم يتم العثور على مجموعة الدوري هذه.',
+    backBtn: 'العودة إلى الدوري', detailError: 'لم يتم العثور على مجموعة الدوري هذه.', prevLeagueLabel: 'الدوري الأدنى', nextLeagueLabel: 'الدوري الأعلى',
   },
   ru: {
     title: 'Лига', subtitleWeek: 'неделя',
@@ -93,7 +93,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: 'Ты ещё не попал в группу лиги.', emptySub: 'Ты будешь добавлен автоматически, как только начнёшь получать XP.',
     promoteHint: 'Зона повышения', demoteHint: 'Зона понижения',
     allLeaguesTitle: 'Все Лиги', membersSuffix: 'участников', groupLabel: 'Группа', yourGroupBadge: 'Твоя Лига',
-    backBtn: 'Назад к лиге', detailError: 'Эта группа лиги не найдена.',
+    backBtn: 'Назад к лиге', detailError: 'Эта группа лиги не найдена.', prevLeagueLabel: 'Лига ниже', nextLeagueLabel: 'Лига выше',
   },
   ja: {
     title: 'リーグ', subtitleWeek: '週',
@@ -102,7 +102,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: 'まだリーググループに配属されていません。', emptySub: 'XPを獲得し始めると自動的に追加されます。',
     promoteHint: '昇格ゾーン', demoteHint: '降格ゾーン',
     allLeaguesTitle: 'すべてのリーグ', membersSuffix: '人', groupLabel: 'グループ', yourGroupBadge: 'あなたのリーグ',
-    backBtn: 'リーグに戻る', detailError: 'このリーググループは見つかりませんでした。',
+    backBtn: 'リーグに戻る', detailError: 'このリーググループは見つかりませんでした。', prevLeagueLabel: '下位リーグ', nextLeagueLabel: '上位リーグ',
   },
   pt: {
     title: 'Liga', subtitleWeek: 'semana',
@@ -111,7 +111,7 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
     empty: 'Você ainda não foi colocado em um grupo de liga.', emptySub: 'Você será adicionado automaticamente assim que começar a ganhar XP.',
     promoteHint: 'Zona de promoção', demoteHint: 'Zona de rebaixamento',
     allLeaguesTitle: 'Todas as Ligas', membersSuffix: 'membros', groupLabel: 'Grupo', yourGroupBadge: 'Sua Liga',
-    backBtn: 'Voltar à liga', detailError: 'Este grupo de liga não foi encontrado.',
+    backBtn: 'Voltar à liga', detailError: 'Este grupo de liga não foi encontrado.', prevLeagueLabel: 'Liga inferior', nextLeagueLabel: 'Liga superior',
   },
 };
 

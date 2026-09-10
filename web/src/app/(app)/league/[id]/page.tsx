@@ -7,15 +7,15 @@
 // tablosu — kullanıcının o gruba üye olması şart değil (salt-okunur
 // gözat). Backend: GET /api/v1/leagues/{league_id}.
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
-import { Trophy, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Trophy, ArrowLeft, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
 import { leaguesApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { LEAGUE_L, TIER_NAMES, formatDateRange } from '@/lib/leagueLocale';
 import { LeagueTable } from '@/components/league/LeagueTable';
-import type { LeagueStatusResponse } from '@/types';
+import type { LeagueStatusResponse, LeagueOverviewGroup } from '@/types';
 
 function errorDetail(err: unknown): string | undefined {
   if (err instanceof AxiosError) {
@@ -34,14 +34,23 @@ export default function LeagueDetailPage() {
   const [status, setStatus] = useState<LeagueStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Faz 3 devami (10 Eylul 2026 -- "buradan bu liglere tiklayarak gecis
+  // saglansin"): bir alt/bir ust kademenin bu haftaki ILK grubuna hizli
+  // gecis -- overview zaten tier_index sonra created_at'e gore sirali
+  // dondugu icin ilgili kademedeki ilk grubu almak yeterli.
+  const [overviewGroups, setOverviewGroups] = useState<LeagueOverviewGroup[]>([]);
 
   const load = useCallback(async () => {
     if (!params.id) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await leaguesApi.getDetail(params.id);
+      const [res, overview] = await Promise.all([
+        leaguesApi.getDetail(params.id),
+        leaguesApi.getOverview().catch(() => null),
+      ]);
       setStatus(res);
+      if (overview) setOverviewGroups(overview.groups);
     } catch (err) {
       setError(errorDetail(err) || t.detailError);
     } finally {
@@ -55,6 +64,15 @@ export default function LeagueDetailPage() {
   }, [load]);
 
   const tierLabel = status ? (tierNames[status.tier_slug] ?? status.tier_slug) : '';
+
+  const prevTierGroup = useMemo(
+    () => (status ? overviewGroups.find((g) => g.tier_index === status.tier_index - 1) : undefined),
+    [overviewGroups, status],
+  );
+  const nextTierGroup = useMemo(
+    () => (status ? overviewGroups.find((g) => g.tier_index === status.tier_index + 1) : undefined),
+    [overviewGroups, status],
+  );
 
   return (
     <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-6">
@@ -108,6 +126,39 @@ export default function LeagueDetailPage() {
             <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
             {t.demoteHint}
           </span>
+        </div>
+      )}
+
+      {!loading && !error && status && (prevTierGroup || nextTierGroup) && (
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            disabled={!prevTierGroup}
+            onClick={() => prevTierGroup && router.push(`/league/${prevTierGroup.league_id}`)}
+            className="flex items-center gap-2 rounded-2xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 text-left shadow-sm transition-colors enabled:hover:bg-gray-50 dark:enabled:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <ChevronDown className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-slate-500">{t.prevLeagueLabel}</div>
+              <div className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">
+                {prevTierGroup ? (tierNames[prevTierGroup.tier_slug] ?? prevTierGroup.tier_slug) : '—'}
+              </div>
+            </div>
+          </button>
+          <button
+            type="button"
+            disabled={!nextTierGroup}
+            onClick={() => nextTierGroup && router.push(`/league/${nextTierGroup.league_id}`)}
+            className="flex items-center justify-end gap-2 rounded-2xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 text-right shadow-sm transition-colors enabled:hover:bg-gray-50 dark:enabled:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <div className="min-w-0">
+              <div className="text-[11px] uppercase tracking-wide text-gray-400 dark:text-slate-500">{t.nextLeagueLabel}</div>
+              <div className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">
+                {nextTierGroup ? (tierNames[nextTierGroup.tier_slug] ?? nextTierGroup.tier_slug) : '—'}
+              </div>
+            </div>
+            <ChevronUp className="w-4 h-4 text-gray-400 dark:text-slate-500 shrink-0" />
+          </button>
         </div>
       )}
     </div>

@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, RefreshCw, Trophy } from 'lucide-react-native';
+import { ArrowLeft, ChevronDown, ChevronUp, RefreshCw, Trophy } from 'lucide-react-native';
 import { leaguesApi } from '@/api/leagues';
-import type { LeagueStatusResponse } from '@/api/types';
+import type { LeagueOverviewGroup, LeagueStatusResponse } from '@/api/types';
 import { LEAGUE_STRINGS, LEAGUE_TIER_NAMES } from '@/i18n/leagueStrings';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -49,14 +49,22 @@ export default function LeagueDetailScreen() {
   const [status, setStatus] = useState<LeagueStatusResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Faz 3 devami (10 Eylul 2026 -- "buradan bu liglere tiklayarak gecis
+  // saglansin"): bir alt/bir ust kademenin bu haftaki ILK grubuna hizli
+  // gecis -- overview zaten tier_index sonra created_at'e gore sirali.
+  const [overviewGroups, setOverviewGroups] = useState<LeagueOverviewGroup[]>([]);
 
   const load = useCallback(async () => {
     if (!leagueId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await leaguesApi.getDetail(leagueId);
+      const [res, overview] = await Promise.all([
+        leaguesApi.getDetail(leagueId),
+        leaguesApi.getOverview().catch(() => null),
+      ]);
       setStatus(res);
+      if (overview) setOverviewGroups(overview.groups);
     } catch (err) {
       setError(errorDetail(err) || t.detailError);
     } finally {
@@ -69,6 +77,17 @@ export default function LeagueDetailScreen() {
   }, [load]);
 
   const tierLabel = status ? (tierNames[status.tier_slug] ?? status.tier_slug) : '';
+
+  const prevTierGroup = useMemo(
+    () => (status ? overviewGroups.find((g) => g.tier_index === status.tier_index - 1) : undefined),
+    [overviewGroups, status],
+  );
+  const nextTierGroup = useMemo(
+    () => (status ? overviewGroups.find((g) => g.tier_index === status.tier_index + 1) : undefined),
+    [overviewGroups, status],
+  );
+  const goToGroup = (g: LeagueOverviewGroup) =>
+    router.push({ pathname: '/(app)/league-detail', params: { id: g.league_id } });
 
   return (
     <ScreenContainer refreshing={false} onRefresh={load}>
@@ -122,6 +141,47 @@ export default function LeagueDetailScreen() {
           </View>
         </View>
       )}
+
+      {!loading && !error && status && (prevTierGroup || nextTierGroup) && (
+        <View style={styles.tierNavRow}>
+          <Pressable
+            disabled={!prevTierGroup}
+            onPress={() => prevTierGroup && goToGroup(prevTierGroup)}
+            style={({ pressed }) => [
+              styles.tierNavCard,
+              { borderColor: c.border, backgroundColor: c.surface },
+              !prevTierGroup ? { opacity: 0.4 } : null,
+              pressed && prevTierGroup ? { backgroundColor: c.background } : null,
+            ]}
+          >
+            <ChevronDown color={c.textMuted} size={14} />
+            <View style={{ minWidth: 0 }}>
+              <Text style={{ color: c.textMuted, fontSize: 9, fontWeight: '700', textTransform: 'uppercase' }}>{t.prevLeagueLabel}</Text>
+              <Text style={{ color: c.text, fontSize: 13, fontWeight: '700' }} numberOfLines={1}>
+                {prevTierGroup ? (tierNames[prevTierGroup.tier_slug] ?? prevTierGroup.tier_slug) : '—'}
+              </Text>
+            </View>
+          </Pressable>
+          <Pressable
+            disabled={!nextTierGroup}
+            onPress={() => nextTierGroup && goToGroup(nextTierGroup)}
+            style={({ pressed }) => [
+              styles.tierNavCard,
+              { borderColor: c.border, backgroundColor: c.surface, justifyContent: 'flex-end' },
+              !nextTierGroup ? { opacity: 0.4 } : null,
+              pressed && nextTierGroup ? { backgroundColor: c.background } : null,
+            ]}
+          >
+            <View style={{ minWidth: 0, alignItems: 'flex-end' }}>
+              <Text style={{ color: c.textMuted, fontSize: 9, fontWeight: '700', textTransform: 'uppercase' }}>{t.nextLeagueLabel}</Text>
+              <Text style={{ color: c.text, fontSize: 13, fontWeight: '700' }} numberOfLines={1}>
+                {nextTierGroup ? (tierNames[nextTierGroup.tier_slug] ?? nextTierGroup.tier_slug) : '—'}
+              </Text>
+            </View>
+            <ChevronUp color={c.textMuted} size={14} />
+          </Pressable>
+        </View>
+      )}
     </ScreenContainer>
   );
 }
@@ -135,4 +195,6 @@ const styles = StyleSheet.create({
   legendRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginTop: spacing.md },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 7, height: 7, borderRadius: 4 },
+  tierNavRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+  tierNavCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, borderWidth: 1, borderRadius: radius.md, padding: spacing.sm + 2 },
 });
