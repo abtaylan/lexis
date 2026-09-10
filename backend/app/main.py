@@ -15,6 +15,7 @@ from app.api.routes import (
     games,
     grammar,
     languages,
+    leagues,
     notifications,
     push_tokens,
     schedule,
@@ -61,9 +62,8 @@ app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(admin_platform.router, prefix="/api/v1/admin", tags=["Admin Platform"])
 app.include_router(languages.router, prefix="/api/v1/languages", tags=["Languages"])
 app.include_router(games.router, prefix="/api/v1/games", tags=["Games"])
-# V2 madde #6/#7 Faz 3a -- Gercek Zamanli Duello, oda yasam dongusu (bkz.
-# duels.py modul docstring'i -- round-servis uclari henuz yok, sonraki
-# alt-fazda eklenecek).
+# V2 madde #6/#7 Faz 3a+3e -- Gercek Zamanli Duello (oda yasam dongusu +
+# round-servis uclari, bkz. duels.py modul docstring'i).
 app.include_router(duels.router, prefix="/api/v1/duels", tags=["Duels"])
 app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["Subscription"])
 app.include_router(user_languages.router, prefix="/api/v1/me/languages", tags=["User Languages"])
@@ -75,6 +75,9 @@ app.include_router(push_tokens.router, prefix="/api/v1/me", tags=["Push Tokens"]
 app.include_router(exam_reminders.router, prefix="/api/v1/exam-reminders", tags=["Exam Reminders"])
 app.include_router(exams.router, prefix="/api/v1/exams", tags=["Exams"])
 app.include_router(grammar.router, prefix="/api/v1/grammar", tags=["Grammar"])
+# V2 Faz 3b — haftalık kademe ligleri (bkz. leagues.py modül docstring'i;
+# haftalık kapanış/terfi-düşme burada DEĞİL, Claude scheduled task ile).
+app.include_router(leagues.router, prefix="/api/v1/leagues", tags=["Leagues"])
 # Vercel Cron / GitHub Actions'tan secret-korumalı tetikleme — bkz. app/api/routes/cron.py
 app.include_router(cron.router, prefix="/internal/cron", tags=["Internal Cron"])
 
