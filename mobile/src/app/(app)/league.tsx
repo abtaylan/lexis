@@ -3,7 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Trophy, User as UserIcon } from 'lucide-react-native';
 import { leaguesApi } from '@/api/leagues';
-import type { LeagueMemberItem } from '@/api/types';
+import type { LeagueMemberItem, LeagueOverviewGroup } from '@/api/types';
 import { LEAGUE_STRINGS, LEAGUE_TIER_NAMES } from '@/i18n/leagueStrings';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -38,6 +38,8 @@ export default function LeagueScreen() {
 
   const query = useQuery({ queryKey: ['league-me'], queryFn: leaguesApi.getMyLeague });
   const status = query.data;
+  const overviewQuery = useQuery({ queryKey: ['league-overview'], queryFn: leaguesApi.getOverview });
+  const overview = overviewQuery.data?.groups ?? [];
 
   const tierLabel = status ? (tierNames[status.tier_slug] ?? status.tier_slug) : '';
   const memberCount = status?.members.length ?? 0;
@@ -124,6 +126,40 @@ export default function LeagueScreen() {
           </View>
         </View>
       )}
+
+      {overview.length > 0 && (
+        <View style={{ marginTop: spacing.lg }}>
+          <Text style={{ color: c.textMuted, fontSize: 13, fontWeight: '700', marginBottom: spacing.sm }}>
+            {t.otherLeaguesTitle}
+          </Text>
+          {overview.map((g: LeagueOverviewGroup) => (
+            <Card
+              key={g.league_id}
+              style={[
+                styles.overviewCard,
+                g.is_mine ? { borderColor: c.primary, borderWidth: 1 } : null,
+              ]}
+            >
+              <View style={styles.overviewHeaderRow}>
+                <Text style={{ color: c.text, fontSize: 13, fontWeight: '700' }}>
+                  {tierNames[g.tier_slug] ?? g.tier_slug}
+                </Text>
+                <Text style={{ color: c.textMuted, fontSize: 11 }}>
+                  {g.member_count} {t.membersSuffix}
+                </Text>
+              </View>
+              {g.top_members.map((m, idx: number) => (
+                <View key={m.user_id} style={styles.overviewMemberRow}>
+                  <Text style={{ color: c.textMuted, fontSize: 12 }} numberOfLines={1}>
+                    {idx + 1}. {m.username || '—'}
+                  </Text>
+                  <Text style={{ color: c.textMuted, fontSize: 12 }}>{m.xp} {t.xpLabel}</Text>
+                </View>
+              ))}
+            </Card>
+          ))}
+        </View>
+      )}
     </ScreenContainer>
   );
 }
@@ -137,4 +173,7 @@ const styles = StyleSheet.create({
   legendRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginTop: spacing.md },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 7, height: 7, borderRadius: 4 },
+  overviewCard: { marginBottom: spacing.sm, gap: 4 },
+  overviewHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
+  overviewMemberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });

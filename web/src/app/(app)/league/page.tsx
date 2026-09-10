@@ -13,7 +13,7 @@ import { AxiosError } from 'axios';
 import { Trophy, RefreshCw, User as UserIcon } from 'lucide-react';
 import { leaguesApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
-import type { LeagueStatusResponse } from '@/types';
+import type { LeagueStatusResponse, LeagueOverviewGroup } from '@/types';
 
 function errorDetail(err: unknown): string | undefined {
   if (err instanceof AxiosError) {
@@ -45,6 +45,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'sen', xpLabel: 'XP', rankLabel: 'Sıra',
     empty: 'Henüz bir lig grubuna atanmadın.', emptySub: 'XP kazanmaya başladığında otomatik olarak eklenirsin.',
     promoteHint: 'İlk 3 → terfi', demoteHint: 'Son 3 → düşüş',
+    otherLeaguesTitle: 'Diğer Ligler', membersSuffix: 'üye',
   },
   en: {
     title: 'League', subtitleWeek: 'week',
@@ -52,6 +53,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'you', xpLabel: 'XP', rankLabel: 'Rank',
     empty: "You haven't been placed in a league group yet.", emptySub: "You'll be added automatically once you start earning XP.",
     promoteHint: 'Top 3 → promote', demoteHint: 'Bottom 3 → demote',
+    otherLeaguesTitle: 'Other Leagues', membersSuffix: 'members',
   },
   de: {
     title: 'Liga', subtitleWeek: 'Woche',
@@ -59,6 +61,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'du', xpLabel: 'XP', rankLabel: 'Rang',
     empty: 'Du wurdest noch keiner Ligagruppe zugewiesen.', emptySub: 'Du wirst automatisch hinzugefügt, sobald du XP sammelst.',
     promoteHint: 'Top 3 → Aufstieg', demoteHint: 'Letzte 3 → Abstieg',
+    otherLeaguesTitle: 'Andere Ligen', membersSuffix: 'Mitglieder',
   },
   fr: {
     title: 'Ligue', subtitleWeek: 'semaine',
@@ -66,6 +69,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'toi', xpLabel: 'XP', rankLabel: 'Rang',
     empty: "Tu n'as pas encore été placé dans un groupe de ligue.", emptySub: 'Tu seras ajouté automatiquement dès que tu gagneras des XP.',
     promoteHint: 'Top 3 → promotion', demoteHint: 'Derniers 3 → relégation',
+    otherLeaguesTitle: 'Autres Ligues', membersSuffix: 'membres',
   },
   es: {
     title: 'Liga', subtitleWeek: 'semana',
@@ -73,6 +77,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'tú', xpLabel: 'XP', rankLabel: 'Puesto',
     empty: 'Todavía no te han asignado a un grupo de liga.', emptySub: 'Se te añadirá automáticamente en cuanto empieces a ganar XP.',
     promoteHint: 'Top 3 → ascenso', demoteHint: 'Últimos 3 → descenso',
+    otherLeaguesTitle: 'Otras Ligas', membersSuffix: 'miembros',
   },
   it: {
     title: 'Lega', subtitleWeek: 'settimana',
@@ -80,6 +85,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'tu', xpLabel: 'XP', rankLabel: 'Posizione',
     empty: 'Non sei ancora stato assegnato a un gruppo di lega.', emptySub: 'Sarai aggiunto automaticamente non appena inizierai a guadagnare XP.',
     promoteHint: 'Top 3 → promozione', demoteHint: 'Ultimi 3 → retrocessione',
+    otherLeaguesTitle: 'Altre Leghe', membersSuffix: 'membri',
   },
   ar: {
     title: 'الدوري', subtitleWeek: 'أسبوع',
@@ -87,6 +93,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'أنت', xpLabel: 'XP', rankLabel: 'الترتيب',
     empty: 'لم يتم تعيينك بعد إلى مجموعة دوري.', emptySub: 'سيتم إضافتك تلقائياً بمجرد أن تبدأ بكسب نقاط الخبرة.',
     promoteHint: 'أفضل 3 → ترقية', demoteHint: 'آخر 3 → هبوط',
+    otherLeaguesTitle: 'دوريات أخرى', membersSuffix: 'عضو',
   },
   ru: {
     title: 'Лига', subtitleWeek: 'неделя',
@@ -94,6 +101,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'ты', xpLabel: 'XP', rankLabel: 'Место',
     empty: 'Ты ещё не попал в группу лиги.', emptySub: 'Ты будешь добавлен автоматически, как только начнёшь получать XP.',
     promoteHint: 'Топ-3 → повышение', demoteHint: 'Последние 3 → понижение',
+    otherLeaguesTitle: 'Другие Лиги', membersSuffix: 'участников',
   },
   ja: {
     title: 'リーグ', subtitleWeek: '週',
@@ -101,6 +109,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'あなた', xpLabel: 'XP', rankLabel: '順位',
     empty: 'まだリーググループに配属されていません。', emptySub: 'XPを獲得し始めると自動的に追加されます。',
     promoteHint: '上位3人 → 昇格', demoteHint: '下位3人 → 降格',
+    otherLeaguesTitle: '他のリーグ', membersSuffix: '人',
   },
   pt: {
     title: 'Liga', subtitleWeek: 'semana',
@@ -108,6 +117,7 @@ const L: Record<Locale, Record<string, string>> = {
     youLabel: 'você', xpLabel: 'XP', rankLabel: 'Posição',
     empty: 'Você ainda não foi colocado em um grupo de liga.', emptySub: 'Você será adicionado automaticamente assim que começar a ganhar XP.',
     promoteHint: 'Top 3 → promoção', demoteHint: 'Últimos 3 → rebaixamento',
+    otherLeaguesTitle: 'Outras Ligas', membersSuffix: 'membros',
   },
 };
 
@@ -128,6 +138,7 @@ export default function LeaguePage() {
   const tierNames = TIER_NAMES[locale];
 
   const [status, setStatus] = useState<LeagueStatusResponse | null>(null);
+  const [overview, setOverview] = useState<LeagueOverviewGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -135,8 +146,9 @@ export default function LeaguePage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await leaguesApi.getMyLeague();
+      const [res, overviewRes] = await Promise.all([leaguesApi.getMyLeague(), leaguesApi.getOverview()]);
       setStatus(res);
+      setOverview(overviewRes.groups);
     } catch (err) {
       setError(errorDetail(err) || t.error);
     } finally {
@@ -250,6 +262,41 @@ export default function LeaguePage() {
             <span className="w-2 h-2 rounded-full bg-red-500 inline-block" />
             {t.demoteHint}
           </span>
+        </div>
+      )}
+
+      {!loading && !error && overview.length > 0 && (
+        <div className="space-y-3">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-slate-400">{t.otherLeaguesTitle}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {overview.map((g) => (
+              <div
+                key={g.league_id}
+                className={`bg-white dark:bg-slate-900 rounded-xl border p-3.5 ${
+                  g.is_mine ? 'border-blue-200 dark:border-blue-500/30 ring-1 ring-blue-100 dark:ring-blue-500/20' : 'border-gray-100 dark:border-slate-800'
+                }`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">
+                    {tierNames[g.tier_slug] ?? g.tier_slug}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500">
+                    {g.member_count} {t.membersSuffix}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  {g.top_members.map((m, idx) => (
+                    <div key={m.user_id} className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500 dark:text-slate-400 truncate">
+                        {idx + 1}. {m.username || '—'}
+                      </span>
+                      <span className="text-gray-400 dark:text-slate-500 shrink-0 ml-2">{m.xp} {t.xpLabel}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>

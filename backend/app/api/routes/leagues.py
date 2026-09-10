@@ -199,3 +199,107 @@ async def get_league_stats(current_user=Depends(get_current_user)):
         counts[r["current_league_tier"]] = counts.get(r["current_league_tier"], 0) + 1
     tier_distribution = [LeagueTierCount(tier_slug=k, count=v) for k, v in counts.items()]
     return LeagueStatsResponse(total_real_players=len(tier_rows), tier_distribution=tier_distribution)
+
+
+# ------------------------------------------------------------
+# Faz 3f (kullanici geri bildirimi, 10 Eylul 2026 -- "diger ligler
+# gorunmuyor, onlari da gorebilmek lazim") -- SADECE kendi ligini degil,
+# o hafta AKTIF olan TUM lig gruplarini (her kademede -- Bronz'dan
+# Usta'ya -- kapasite dolunca birden fazla grup acilabilir, bkz.
+# ensure_active_league_membership) ozet halinde doner: her grup icin
+# uye sayisi + en iyi 3 kisi. Kullanicinin KENDI grubu is_mine=true ile
+# isaretlenir. Salt-okunur bir "gozat" ucu -- baska bir gruba KATILMA
+# YOK (o zaten otomatik/tek yoldan yonetiliyor, bkz. modul docstring'i).
+# ------------------------------------------------------------
+class LeagueOverviewGroup(BaseModel):
+    league_id: str
+    tier_slug: str
+    tier_index: int
+    tier_name_tr: str
+    tier_name_en: str
+    member_count: int
+    top_members: list[LeagueMemberItem]
+    is_mine: bool
+
+
+class LeagueOverviewResponse(BaseModel):
+    groups: list[LeagueOverviewGroup]
+
+
+@router.get("/overview", response_model=LeagueOverviewResponse)
+async def get_league_overview(current_user=Depends(get_current_user)):
+    tiers = {
+        t["slug"]: t
+        for t in (supabase_admin.table("league_tiers").select("*").execute().data or [])
+    }
+
+    leagues = (
+        supabase_admin.table("leagues").select("*").eq("status", "active").execute().data
+    ) or []
+    leagues.sort(key=lambda l: (tiers.get(l["tier_slug"], {}).get("tier_index", 0), l["created_at"]))
+
+    my_league_ids = {
+        m["league_id"]
+        for m in (
+            supabase_admin.table("league_memberships")
+            .select("league_id")
+            .eq("user_id", current_user.id)
+            .execute()
+            .data
+            or []
+        )
+    }
+
+    groups: list[LeagueOverviewGroup] = []
+    for league in leagues:
+        member_rows = (
+            supabase_admin.table("league_memberships")
+            .select("user_id")
+            .eq("league_id", league["id"])
+            .execute()
+            .data
+        ) or []
+        user_ids = [m["user_id"] for m in member_rows]
+        if not user_ids:
+            continue
+
+        profile_rows = (
+            supabase_admin.table("profiles")
+            .select("id, username, avatar_url")
+            .in_("id", user_ids)
+            .execute()
+            .data
+        ) or []
+        profiles_by_id = {p["id"]: p for p in profile_rows}
+
+        xp_by_user = _weekly_xp_by_user(user_ids, league["week_start"], league["week_end"])
+        ranked = sorted(
+            (
+                LeagueMemberItem(
+                    user_id=uid,
+                    username=profiles_by_id.get(uid, {}).get("username"),
+                    avatar_url=profiles_by_id.get(uid, {}).get("avatar_url"),
+                    xp=xp_by_user.get(uid, 0),
+                    is_me=(uid == current_user.id),
+                )
+                for uid in user_ids
+            ),
+            key=lambda m: m.xp,
+            reverse=True,
+        )
+
+        tier = tiers.get(league["tier_slug"], {})
+        groups.append(
+            LeagueOverviewGroup(
+                league_id=league["id"],
+                tier_slug=league["tier_slug"],
+                tier_index=tier.get("tier_index", 0),
+                tier_name_tr=tier.get("name_tr", league["tier_slug"]),
+                tier_name_en=tier.get("name_en", league["tier_slug"]),
+                member_count=len(user_ids),
+                top_members=ranked[:3],
+                is_mine=(league["id"] in my_league_ids),
+            )
+        )
+
+    return LeagueOverviewResponse(groups=groups)

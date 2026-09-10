@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.schemas.social import UserCard
+
 
 class DuelCreate(BaseModel):
     """POST /duels gövdesi. learning_lang verilmezse kullanıcının profilindeki
@@ -78,3 +80,35 @@ class DuelAnswerResponse(BaseModel):
     is_correct: bool
     correct_option: str
     score: int
+# ============================================================
+# Faz 3f (10 Eylul 2026 kullanici istegi -- "arkadasa davet gonderme ekle")
+# -- ozel (is_private) bir duello odasina arkadas daveti. challenges
+# (016) ile AYNI ilke (sadece arkadaslar, notify_user bildirimi) ama
+# challenges'in ASENKRON skor-karsilastirma modelini DEGIL, dogrudan
+# mevcut CANLI duels/duel_participants akisini kullanir -- bkz.
+# 050_duel_invites.sql migration yorumu.
+# ============================================================
+class DuelInviteCreate(BaseModel):
+    """POST /duels/invite govdesi -- hedef kullanici adi + (opsiyonel)
+    oda ayarlari. max_players varsayilan 2 (1'e 1 davet) ama daha
+    kalabalik bir ozel oda icin yukseltilebilir (orn. birden fazla
+    arkadasi ayni davetle degil, ayri davetlerle ayni duel_id'ye davet
+    etmek -- accept sirasinda oda dolu degilse eklenir)."""
+
+    username: str
+    max_players: int = Field(default=2, ge=2, le=8)
+    round_count: int = Field(default=10, ge=1, le=50)
+
+
+class DuelInviteItem(BaseModel):
+    id: str
+    duel_id: str
+    status: str
+    is_inviter: bool
+    other_user: UserCard | None = None
+    created_at: datetime
+    responded_at: datetime | None = None
+
+
+class DuelInvitesListResponse(BaseModel):
+    items: list[DuelInviteItem]

@@ -12,6 +12,8 @@ export type LeagueStrings = {
   emptySub: string;
   promoteHint: string;
   demoteHint: string;
+  otherLeaguesTitle: string;
+  membersSuffix: string;
 };
 
 export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
@@ -20,60 +22,70 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     youLabel: 'sen', xpLabel: 'XP',
     empty: 'Henüz bir lig grubuna atanmadın.', emptySub: 'XP kazanmaya başladığında otomatik olarak eklenirsin.',
     promoteHint: 'İlk 3 → terfi', demoteHint: 'Son 3 → düşüş',
+    otherLeaguesTitle: 'Diğer Ligler', membersSuffix: 'üye',
   },
   en: {
     title: 'League', error: 'Something went wrong.',
     youLabel: 'you', xpLabel: 'XP',
     empty: "You haven't been placed in a league group yet.", emptySub: "You'll be added automatically once you start earning XP.",
     promoteHint: 'Top 3 → promote', demoteHint: 'Bottom 3 → demote',
+    otherLeaguesTitle: 'Other Leagues', membersSuffix: 'members',
   },
   de: {
     title: 'Liga', error: 'Etwas ist schiefgelaufen.',
     youLabel: 'du', xpLabel: 'XP',
     empty: 'Du wurdest noch keiner Ligagruppe zugewiesen.', emptySub: 'Du wirst automatisch hinzugefügt, sobald du XP sammelst.',
     promoteHint: 'Top 3 → Aufstieg', demoteHint: 'Letzte 3 → Abstieg',
+    otherLeaguesTitle: 'Andere Ligen', membersSuffix: 'Mitglieder',
   },
   fr: {
     title: 'Ligue', error: "Une erreur s'est produite.",
     youLabel: 'toi', xpLabel: 'XP',
     empty: "Tu n'as pas encore été placé dans un groupe de ligue.", emptySub: 'Tu seras ajouté automatiquement dès que tu gagneras des XP.',
     promoteHint: 'Top 3 → promotion', demoteHint: 'Derniers 3 → relégation',
+    otherLeaguesTitle: 'Autres Ligues', membersSuffix: 'membres',
   },
   es: {
     title: 'Liga', error: 'Algo salió mal.',
     youLabel: 'tú', xpLabel: 'XP',
     empty: 'Todavía no te han asignado a un grupo de liga.', emptySub: 'Se te añadirá automáticamente en cuanto empieces a ganar XP.',
     promoteHint: 'Top 3 → ascenso', demoteHint: 'Últimos 3 → descenso',
+    otherLeaguesTitle: 'Otras Ligas', membersSuffix: 'miembros',
   },
   it: {
     title: 'Lega', error: 'Qualcosa è andato storto.',
     youLabel: 'tu', xpLabel: 'XP',
     empty: 'Non sei ancora stato assegnato a un gruppo di lega.', emptySub: 'Sarai aggiunto automaticamente non appena inizierai a guadagnare XP.',
     promoteHint: 'Top 3 → promozione', demoteHint: 'Ultimi 3 → retrocessione',
+    otherLeaguesTitle: 'Altre Leghe', membersSuffix: 'membri',
   },
   ar: {
     title: 'الدوري', error: 'حدث خطأ ما.',
     youLabel: 'أنت', xpLabel: 'XP',
     empty: 'لم يتم تعيينك بعد إلى مجموعة دوري.', emptySub: 'سيتم إضافتك تلقائياً بمجرد أن تبدأ بكسب نقاط الخبرة.',
     promoteHint: 'أفضل 3 → ترقية', demoteHint: 'آخر 3 → هبوط',
+    otherLeaguesTitle: 'دوريات أخرى', membersSuffix: 'عضو',
   },
   ru: {
     title: 'Лига', error: 'Что-то пошло не так.',
     youLabel: 'ты', xpLabel: 'XP',
     empty: 'Ты ещё не попал в группу лиги.', emptySub: 'Ты будешь добавлен автоматически, как только начнёшь получать XP.',
     promoteHint: 'Топ-3 → повышение', demoteHint: 'Последние 3 → понижение',
+    otherLeaguesTitle: 'Другие Лиги', membersSuffix: 'участников',
   },
   ja: {
     title: 'リーグ', error: '問題が発生しました。',
     youLabel: 'あなた', xpLabel: 'XP',
     empty: 'まだリーググループに配属されていません。', emptySub: 'XPを獲得し始めると自動的に追加されます。',
     promoteHint: '上位3人 → 昇格', demoteHint: '下位3人 → 降格',
+    otherLeaguesTitle: '他のリーグ', membersSuffix: '人',
   },
   pt: {
     title: 'Liga', error: 'Algo deu errado.',
     youLabel: 'você', xpLabel: 'XP',
     empty: 'Você ainda não foi colocado em um grupo de liga.', emptySub: 'Você será adicionado automaticamente assim que começar a ganhar XP.',
     promoteHint: 'Top 3 → promoção', demoteHint: 'Últimos 3 → rebaixamento',
+    otherLeaguesTitle: 'Outras Ligas', membersSuffix: 'membros',
   },
 };
 

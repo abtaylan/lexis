@@ -737,6 +737,20 @@ export interface DuelAnswerResponse {
   score: number;
 }
 
+export interface DuelInviteItem {
+  id: string;
+  duel_id: string;
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  is_inviter: boolean;
+  other_user: UserCard | null;
+  created_at: string;
+  responded_at?: string | null;
+}
+
+export interface DuelInvitesListResponse {
+  items: DuelInviteItem[];
+}
+
 export interface LeagueMemberItem {
   user_id: string;
   username?: string | null;
@@ -752,6 +766,21 @@ export interface LeagueStatusResponse {
   week_start: string;
   week_end: string;
   members: LeagueMemberItem[];
+}
+
+export interface LeagueOverviewGroup {
+  league_id: string;
+  tier_slug: string;
+  tier_index: number;
+  tier_name_tr: string;
+  tier_name_en: string;
+  member_count: number;
+  top_members: LeagueMemberItem[];
+  is_mine: boolean;
+}
+
+export interface LeagueOverviewResponse {
+  groups: LeagueOverviewGroup[];
 }
 
 export interface QuestNodeItem {

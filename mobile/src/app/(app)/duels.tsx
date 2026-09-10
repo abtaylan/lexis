@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Swords, Plus, Users } from 'lucide-react-native';
+import { Swords, Plus, Users, UserPlus, Check, X, Clock } from 'lucide-react-native';
 import { duelsApi } from '@/api/duels';
-import type { DuelResponse } from '@/api/types';
+import { socialApi } from '@/api/social';
+import type { DuelResponse, DuelInviteItem, FriendshipItem } from '@/api/types';
 import { DUELS_STRINGS } from '@/i18n/duelsStrings';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -19,7 +20,13 @@ import { EmptyState } from '@/components/ui/EmptyState';
 // başındaki not — expo-router bu projede [id].tsx dinamik segmentleri
 // DEĞİL, user-profile.tsx/message-thread.tsx'teki gibi düz rota dosyası +
 // useLocalSearchParams deseni kullanıyor, o yüzden "/duels/[id]" değil
-// "/duel-room?id=..." ). Backend: /api/v1/duels/* ──
+// "/duel-room?id=..." ). Backend: /api/v1/duels/*
+//
+// Faz 3f (10 Eylül 2026 kullanıcı isteği — "düello isteği yollama ekranını
+// göremedim" → "Evet, arkadaşa davet gönderme ekle"): "Arkadaşını Davet Et"
+// (arkadaş çipi seç + gönder) ve "Bekleyen Davetler" (gelen: kabul/reddet,
+// giden: iptal) bölümleri eklendi — web'deki AYNI /duels/invite* uçları
+// (bkz. duels.py invite_friend_to_duel/list_my_duel_invites/accept_duel_invite).
 
 export default function DuelsLobbyScreen() {
   const { locale } = useLocale();
@@ -27,7 +34,13 @@ export default function DuelsLobbyScreen() {
   const qc = useQueryClient();
   const ds = DUELS_STRINGS[locale] ?? DUELS_STRINGS.tr;
 
+  const [selectedFriendUsername, setSelectedFriendUsername] = useState<string | null>(null);
+
   const duelsQuery = useQuery({ queryKey: ['duels-list'], queryFn: duelsApi.list });
+  const friendsQuery = useQuery({ queryKey: ['friends-list'], queryFn: socialApi.getFriends });
+  const invitesQuery = useQuery({ queryKey: ['duel-invites'], queryFn: duelsApi.listInvites });
+  const friends = (friendsQuery.data ?? []).filter((f: FriendshipItem) => f.status === 'accepted');
+  const invites = invitesQuery.data?.items ?? [];
 
   const createMutation = useMutation({
     mutationFn: duelsApi.create,
@@ -42,6 +55,31 @@ export default function DuelsLobbyScreen() {
     onSuccess: (duel) => {
       router.push({ pathname: '/(app)/duel-room', params: { id: duel.id } });
     },
+  });
+
+  const inviteMutation = useMutation({
+    mutationFn: (username: string) => duelsApi.invite(username),
+    onSuccess: () => {
+      setSelectedFriendUsername(null);
+      qc.invalidateQueries({ queryKey: ['duel-invites'] });
+    },
+  });
+
+  const acceptInviteMutation = useMutation({
+    mutationFn: (inviteId: string) => duelsApi.acceptInvite(inviteId),
+    onSuccess: (duel) => {
+      router.push({ pathname: '/(app)/duel-room', params: { id: duel.id } });
+    },
+  });
+
+  const declineInviteMutation = useMutation({
+    mutationFn: (inviteId: string) => duelsApi.declineInvite(inviteId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['duel-invites'] }),
+  });
+
+  const cancelInviteMutation = useMutation({
+    mutationFn: (inviteId: string) => duelsApi.cancelInvite(inviteId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['duel-invites'] }),
   });
 
   return (
@@ -73,6 +111,107 @@ export default function DuelsLobbyScreen() {
         )}
         <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{ds.createBtn}</Text>
       </Pressable>
+
+      {/* Arkadaşını Davet Et (Faz 3f) */}
+      <Card style={{ marginBottom: spacing.md }}>
+        <View style={styles.sectionTitleRow}>
+          <UserPlus color={c.primary} size={16} />
+          <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{ds.inviteSectionTitle}</Text>
+        </View>
+        {friends.length === 0 ? (
+          <Text style={{ color: c.textMuted, fontSize: 12 }}>{ds.noFriendsForInvite}</Text>
+        ) : (
+          <>
+            <View style={styles.chipsWrap}>
+              {friends.map((f: FriendshipItem) => {
+                const selected = selectedFriendUsername === f.user.username;
+                return (
+                  <Pressable
+                    key={f.id}
+                    onPress={() => setSelectedFriendUsername(f.user.username ?? null)}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: selected ? c.primary : c.primarySoft,
+                        borderColor: selected ? c.primary : 'transparent',
+                      },
+                    ]}
+                  >
+                    <Text style={{ color: selected ? '#fff' : c.primary, fontSize: 12, fontWeight: '600' }}>
+                      {f.user.display_name || f.user.username}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Pressable
+              onPress={() => selectedFriendUsername && inviteMutation.mutate(selectedFriendUsername)}
+              disabled={!selectedFriendUsername || inviteMutation.isPending}
+              style={[
+                styles.sendInviteBtn,
+                { backgroundColor: c.primarySoft, opacity: !selectedFriendUsername || inviteMutation.isPending ? 0.5 : 1 },
+              ]}
+            >
+              {inviteMutation.isPending ? (
+                <ActivityIndicator color={c.primary} size="small" />
+              ) : (
+                <UserPlus color={c.primary} size={14} />
+              )}
+              <Text style={{ color: c.primary, fontWeight: '700', fontSize: 12 }}>{ds.sendInviteBtn}</Text>
+            </Pressable>
+          </>
+        )}
+      </Card>
+
+      {/* Bekleyen Davetler (Faz 3f) */}
+      {invites.length > 0 && (
+        <Card style={{ marginBottom: spacing.md }}>
+          <View style={styles.sectionTitleRow}>
+            <Clock color="#f59e0b" size={16} />
+            <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{ds.pendingInvitesTitle}</Text>
+          </View>
+          {invites.map((inv: DuelInviteItem) => (
+            <View key={inv.id} style={styles.inviteRow}>
+              <Text style={{ color: c.text, fontSize: 13, flex: 1 }} numberOfLines={1}>
+                <Text style={{ fontWeight: '700' }}>
+                  {inv.other_user?.display_name || inv.other_user?.username || '—'}
+                </Text>{' '}
+                {inv.is_inviter ? ds.outgoingInviteLabel : ds.incomingInviteLabel}
+              </Text>
+              {inv.is_inviter ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <Text style={{ color: c.textMuted, fontSize: 11 }}>{ds.waitingBadge}</Text>
+                  <Pressable
+                    onPress={() => cancelInviteMutation.mutate(inv.id)}
+                    disabled={cancelInviteMutation.isPending}
+                    style={styles.iconBtn}
+                  >
+                    <X color={c.textMuted} size={16} />
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                  <Pressable
+                    onPress={() => acceptInviteMutation.mutate(inv.id)}
+                    disabled={acceptInviteMutation.isPending}
+                    style={[styles.acceptBtn, { backgroundColor: c.successSoft }]}
+                  >
+                    <Check color={c.success} size={14} />
+                    <Text style={{ color: c.success, fontWeight: '700', fontSize: 11 }}>{ds.acceptBtn}</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => declineInviteMutation.mutate(inv.id)}
+                    disabled={declineInviteMutation.isPending}
+                    style={styles.iconBtn}
+                  >
+                    <X color={c.textMuted} size={16} />
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          ))}
+        </Card>
+      )}
 
       {duelsQuery.isLoading && (
         <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
@@ -139,6 +278,20 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
     marginBottom: spacing.md,
   },
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.sm },
+  chip: { paddingHorizontal: spacing.sm + 2, paddingVertical: spacing.xs + 2, borderRadius: radius.full, borderWidth: 1 },
+  sendInviteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+  },
+  inviteRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, paddingVertical: spacing.xs + 2 },
+  iconBtn: { padding: spacing.xs },
+  acceptBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs, borderRadius: radius.full },
   rowCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, marginBottom: spacing.sm, paddingVertical: spacing.md },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1 },
   avatar: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },

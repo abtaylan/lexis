@@ -15,6 +15,20 @@ export type DuelsStrings = {
   playersLabel: string;
   joinBtn: string;
 
+  // ── Arkadasa davet (Faz 3f) ──
+  inviteSectionTitle: string;
+  inviteFriendPlaceholder: string;
+  noFriendsForInvite: string;
+  sendInviteBtn: string;
+  pendingInvitesTitle: string;
+  noPendingInvites: string;
+  incomingInviteLabel: string;
+  outgoingInviteLabel: string;
+  acceptBtn: string;
+  declineBtn: string;
+  cancelInviteBtn: string;
+  waitingBadge: string;
+
   // ── Oda — bekleme (duel-room.tsx) ──
   waitingTitle: string;
   waitingSub: string;
@@ -46,6 +60,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'Yeni Oda Aç', error: 'Bir şeyler ters gitti.',
     empty: 'Şu an bekleyen oda yok.', emptySub: 'İlk odayı sen aç!',
     playersLabel: 'oyuncu', joinBtn: 'Katıl',
+    inviteSectionTitle: 'Arkadaşını Davet Et', inviteFriendPlaceholder: 'Bir arkadaş seç',
+    noFriendsForInvite: 'Davet edebileceğin arkadaşın yok.', sendInviteBtn: 'Davet Gönder',
+    pendingInvitesTitle: 'Bekleyen Davetler', noPendingInvites: 'Bekleyen davet yok.',
+    incomingInviteLabel: 'seni davet etti', outgoingInviteLabel: 'davet edildi',
+    acceptBtn: 'Kabul Et', declineBtn: 'Reddet', cancelInviteBtn: 'İptal Et', waitingBadge: 'Bekliyor',
     waitingTitle: 'Bekleme Odası', waitingSub: 'Diğer oyuncular bekleniyor…',
     startBtn: 'Başlat', needMoreLabel: 'Başlamak için en az 2 oyuncu gerekiyor.',
     leaveBtn: 'Odadan Ayrıl', hostOnlyLabel: 'Sadece oda sahibi başlatabilir.',
@@ -60,6 +79,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'Create Room', error: 'Something went wrong.',
     empty: 'No waiting rooms right now.', emptySub: 'Be the first to open one!',
     playersLabel: 'players', joinBtn: 'Join',
+    inviteSectionTitle: 'Invite a Friend', inviteFriendPlaceholder: 'Choose a friend',
+    noFriendsForInvite: "You don't have any friends to invite.", sendInviteBtn: 'Send Invite',
+    pendingInvitesTitle: 'Pending Invites', noPendingInvites: 'No pending invites.',
+    incomingInviteLabel: 'invited you', outgoingInviteLabel: 'invited',
+    acceptBtn: 'Accept', declineBtn: 'Decline', cancelInviteBtn: 'Cancel', waitingBadge: 'Waiting',
     waitingTitle: 'Waiting Room', waitingSub: 'Waiting for other players…',
     startBtn: 'Start', needMoreLabel: 'At least 2 players are needed to start.',
     leaveBtn: 'Leave Room', hostOnlyLabel: 'Only the host can start.',
@@ -74,6 +98,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'Raum erstellen', error: 'Etwas ist schiefgelaufen.',
     empty: 'Gerade keine wartenden Räume.', emptySub: 'Eröffne den ersten Raum!',
     playersLabel: 'Spieler', joinBtn: 'Beitreten',
+    inviteSectionTitle: 'Freund einladen', inviteFriendPlaceholder: 'Freund auswählen',
+    noFriendsForInvite: 'Du hast keine Freunde zum Einladen.', sendInviteBtn: 'Einladung senden',
+    pendingInvitesTitle: 'Ausstehende Einladungen', noPendingInvites: 'Keine ausstehenden Einladungen.',
+    incomingInviteLabel: 'hat dich eingeladen', outgoingInviteLabel: 'eingeladen',
+    acceptBtn: 'Annehmen', declineBtn: 'Ablehnen', cancelInviteBtn: 'Abbrechen', waitingBadge: 'Wartet',
     waitingTitle: 'Warteraum', waitingSub: 'Warten auf weitere Spieler…',
     startBtn: 'Starten', needMoreLabel: 'Es werden mindestens 2 Spieler benötigt.',
     leaveBtn: 'Raum verlassen', hostOnlyLabel: 'Nur der Gastgeber kann starten.',
@@ -88,6 +117,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'Créer une salle', error: "Une erreur s'est produite.",
     empty: "Aucune salle en attente pour l'instant.", emptySub: 'Sois le premier à en ouvrir une !',
     playersLabel: 'joueurs', joinBtn: 'Rejoindre',
+    inviteSectionTitle: 'Inviter un ami', inviteFriendPlaceholder: 'Choisir un ami',
+    noFriendsForInvite: "Tu n'as aucun ami à inviter.", sendInviteBtn: 'Envoyer l’invitation',
+    pendingInvitesTitle: 'Invitations en attente', noPendingInvites: 'Aucune invitation en attente.',
+    incomingInviteLabel: "t'a invité", outgoingInviteLabel: 'invité',
+    acceptBtn: 'Accepter', declineBtn: 'Refuser', cancelInviteBtn: 'Annuler', waitingBadge: 'En attente',
     waitingTitle: "Salle d'attente", waitingSub: "En attente d'autres joueurs…",
     startBtn: 'Démarrer', needMoreLabel: 'Au moins 2 joueurs sont nécessaires pour démarrer.',
     leaveBtn: 'Quitter la salle', hostOnlyLabel: "Seul l'hôte peut démarrer.",
@@ -102,6 +136,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'Crear sala', error: 'Algo salió mal.',
     empty: 'No hay salas en espera ahora mismo.', emptySub: '¡Sé el primero en abrir una!',
     playersLabel: 'jugadores', joinBtn: 'Unirse',
+    inviteSectionTitle: 'Invitar a un amigo', inviteFriendPlaceholder: 'Elige un amigo',
+    noFriendsForInvite: 'No tienes amigos para invitar.', sendInviteBtn: 'Enviar invitación',
+    pendingInvitesTitle: 'Invitaciones pendientes', noPendingInvites: 'No hay invitaciones pendientes.',
+    incomingInviteLabel: 'te invitó', outgoingInviteLabel: 'invitado',
+    acceptBtn: 'Aceptar', declineBtn: 'Rechazar', cancelInviteBtn: 'Cancelar', waitingBadge: 'Esperando',
     waitingTitle: 'Sala de espera', waitingSub: 'Esperando a otros jugadores…',
     startBtn: 'Comenzar', needMoreLabel: 'Se necesitan al menos 2 jugadores para comenzar.',
     leaveBtn: 'Salir de la sala', hostOnlyLabel: 'Solo el anfitrión puede comenzar.',
@@ -116,6 +155,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'Crea stanza', error: 'Qualcosa è andato storto.',
     empty: 'Nessuna stanza in attesa al momento.', emptySub: 'Sii il primo ad aprirne una!',
     playersLabel: 'giocatori', joinBtn: 'Partecipa',
+    inviteSectionTitle: 'Invita un amico', inviteFriendPlaceholder: 'Scegli un amico',
+    noFriendsForInvite: 'Non hai amici da invitare.', sendInviteBtn: 'Invia invito',
+    pendingInvitesTitle: 'Inviti in sospeso', noPendingInvites: 'Nessun invito in sospeso.',
+    incomingInviteLabel: 'ti ha invitato', outgoingInviteLabel: 'invitato',
+    acceptBtn: 'Accetta', declineBtn: 'Rifiuta', cancelInviteBtn: 'Annulla', waitingBadge: 'In attesa',
     waitingTitle: "Sala d'attesa", waitingSub: 'In attesa di altri giocatori…',
     startBtn: 'Inizia', needMoreLabel: 'Servono almeno 2 giocatori per iniziare.',
     leaveBtn: 'Esci dalla stanza', hostOnlyLabel: "Solo l'host può iniziare.",
@@ -130,6 +174,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'إنشاء غرفة', error: 'حدث خطأ ما.',
     empty: 'لا توجد غرف بانتظار حالياً.', emptySub: 'كن أول من يفتح غرفة!',
     playersLabel: 'لاعبين', joinBtn: 'انضمام',
+    inviteSectionTitle: 'دعوة صديق', inviteFriendPlaceholder: 'اختر صديقاً',
+    noFriendsForInvite: 'ليس لديك أصدقاء لدعوتهم.', sendInviteBtn: 'إرسال الدعوة',
+    pendingInvitesTitle: 'الدعوات المعلقة', noPendingInvites: 'لا توجد دعوات معلقة.',
+    incomingInviteLabel: 'دعاك', outgoingInviteLabel: 'مدعو',
+    acceptBtn: 'قبول', declineBtn: 'رفض', cancelInviteBtn: 'إلغاء', waitingBadge: 'قيد الانتظار',
     waitingTitle: 'غرفة الانتظار', waitingSub: 'في انتظار لاعبين آخرين…',
     startBtn: 'ابدأ', needMoreLabel: 'يلزم لاعبان على الأقل للبدء.',
     leaveBtn: 'مغادرة الغرفة', hostOnlyLabel: 'فقط صاحب الغرفة يمكنه البدء.',
@@ -144,6 +193,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'Создать комнату', error: 'Что-то пошло не так.',
     empty: 'Сейчас нет ожидающих комнат.', emptySub: 'Открой первую комнату!',
     playersLabel: 'игроков', joinBtn: 'Присоединиться',
+    inviteSectionTitle: 'Пригласить друга', inviteFriendPlaceholder: 'Выбери друга',
+    noFriendsForInvite: 'У тебя нет друзей для приглашения.', sendInviteBtn: 'Отправить приглашение',
+    pendingInvitesTitle: 'Ожидающие приглашения', noPendingInvites: 'Нет ожидающих приглашений.',
+    incomingInviteLabel: 'пригласил(а) тебя', outgoingInviteLabel: 'приглашён',
+    acceptBtn: 'Принять', declineBtn: 'Отклонить', cancelInviteBtn: 'Отменить', waitingBadge: 'Ожидание',
     waitingTitle: 'Комната ожидания', waitingSub: 'Ожидание других игроков…',
     startBtn: 'Начать', needMoreLabel: 'Для начала нужно как минимум 2 игрока.',
     leaveBtn: 'Покинуть комнату', hostOnlyLabel: 'Начать может только хозяин комнаты.',
@@ -158,6 +212,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'ルームを作成', error: '問題が発生しました。',
     empty: '現在待機中のルームはありません。', emptySub: '最初のルームを開いてみましょう!',
     playersLabel: '人', joinBtn: '参加',
+    inviteSectionTitle: '友達を招待', inviteFriendPlaceholder: '友達を選択',
+    noFriendsForInvite: '招待できる友達がいません。', sendInviteBtn: '招待を送る',
+    pendingInvitesTitle: '保留中の招待', noPendingInvites: '保留中の招待はありません。',
+    incomingInviteLabel: 'があなたを招待しました', outgoingInviteLabel: '招待済み',
+    acceptBtn: '承認', declineBtn: '拒否', cancelInviteBtn: 'キャンセル', waitingBadge: '待機中',
     waitingTitle: '待機ルーム', waitingSub: '他のプレイヤーを待っています…',
     startBtn: '開始', needMoreLabel: '開始するには2人以上のプレイヤーが必要です。',
     leaveBtn: 'ルームを退出', hostOnlyLabel: 'ホストのみ開始できます。',
@@ -172,6 +231,11 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     createBtn: 'Criar Sala', error: 'Algo deu errado.',
     empty: 'Nenhuma sala aguardando no momento.', emptySub: 'Seja o primeiro a abrir uma!',
     playersLabel: 'jogadores', joinBtn: 'Entrar',
+    inviteSectionTitle: 'Convidar amigo', inviteFriendPlaceholder: 'Escolha um amigo',
+    noFriendsForInvite: 'Você não tem amigos para convidar.', sendInviteBtn: 'Enviar convite',
+    pendingInvitesTitle: 'Convites pendentes', noPendingInvites: 'Nenhum convite pendente.',
+    incomingInviteLabel: 'convidou você', outgoingInviteLabel: 'convidado',
+    acceptBtn: 'Aceitar', declineBtn: 'Recusar', cancelInviteBtn: 'Cancelar', waitingBadge: 'Aguardando',
     waitingTitle: 'Sala de Espera', waitingSub: 'Aguardando outros jogadores…',
     startBtn: 'Iniciar', needMoreLabel: 'São necessários pelo menos 2 jogadores para iniciar.',
     leaveBtn: 'Sair da Sala', hostOnlyLabel: 'Somente o anfitrião pode iniciar.',

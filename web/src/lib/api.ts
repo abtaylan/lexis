@@ -78,7 +78,10 @@ import type {
   DuelStatusResponse,
   DuelRoundPublic,
   DuelAnswerResponse,
+  DuelInviteItem,
+  DuelInvitesListResponse,
   LeagueStatusResponse,
+  LeagueOverviewResponse,
   QuestListResponse,
 } from '@/types';
 
@@ -976,12 +979,35 @@ export const duelsApi = {
     const res = await api.post<DuelStatusResponse>(`/duels/${duelId}/rounds/advance`);
     return res.data;
   },
+  // -- Arkadasa davet (Faz 3f, 10 Eylul 2026 -- "arkadasa davet gonderme") --
+  invite: async (username: string, max_players = 2, round_count = 10): Promise<DuelInviteItem> => {
+    const res = await api.post<DuelInviteItem>('/duels/invite', { username, max_players, round_count });
+    return res.data;
+  },
+  listInvites: async (): Promise<DuelInvitesListResponse> => {
+    const res = await api.get<DuelInvitesListResponse>('/duels/invites/mine');
+    return res.data;
+  },
+  acceptInvite: async (inviteId: string): Promise<DuelResponse> => {
+    const res = await api.post<DuelResponse>(`/duels/invites/${inviteId}/accept`);
+    return res.data;
+  },
+  declineInvite: async (inviteId: string): Promise<void> => {
+    await api.post(`/duels/invites/${inviteId}/decline`);
+  },
+  cancelInvite: async (inviteId: string): Promise<void> => {
+    await api.post(`/duels/invites/${inviteId}/cancel`);
+  },
 };
 
 // ── Lig API (V2 §6.3 Faz 3b — haftalık kademe ligleri) ──
 export const leaguesApi = {
   getMyLeague: async (): Promise<LeagueStatusResponse> => {
     const res = await api.get<LeagueStatusResponse>('/leagues/me');
+    return res.data;
+  },
+  getOverview: async (): Promise<LeagueOverviewResponse> => {
+    const res = await api.get<LeagueOverviewResponse>('/leagues/overview');
     return res.data;
   },
 };

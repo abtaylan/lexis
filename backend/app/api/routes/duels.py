@@ -36,13 +36,19 @@ from app.schemas.duels import (
     DuelAnswerRequest,
     DuelAnswerResponse,
     DuelCreate,
+    DuelInviteCreate,
+    DuelInviteItem,
+    DuelInvitesListResponse,
     DuelListResponse,
     DuelParticipantItem,
     DuelResponse,
     DuelRoundPublic,
     DuelStatusResponse,
 )
+from app.schemas.social import UserCard
 from app.services import badge_service
+from app.services.friends_service import friendship_status_map
+from app.services.notify import notify_user
 from app.services.xp_service import award_xp
 from pydantic import BaseModel
 
@@ -96,6 +102,53 @@ def _participant_count(duel_id: str) -> int:
         .execute()
     )
     return result.count or 0
+
+
+def _profile_card(user_id: str) -> UserCard | None:
+    row = (
+        supabase_admin.table("profiles")
+        .select("id, username, display_name, avatar_url, level")
+        .eq("id", user_id)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not row:
+        return None
+    p = row[0]
+    return UserCard(
+        id=p["id"],
+        username=p.get("username"),
+        display_name=p.get("display_name"),
+        avatar_url=p.get("avatar_url"),
+        level=p.get("level", 1),
+    )
+
+
+def _add_participant(duel_id: str, user_id: str) -> None:
+    """join_duel VE davet kabul akisinin ORTAK katilimci-ekleme mantigi
+    (Faz 3f oncesi sadece join_duel icindeydi, tekrar kullanim icin
+    ayrildi) -- zaten katilimciysa (ayrilmissa) left_at'i temizler,
+    degilse yeni satir ekler. Kapasite kontrolu CAGIRANIN
+    sorumlulugunda (join_duel ve accept_duel_invite ayri ayri, farkli
+    hata mesajlariyla kontrol ediyor)."""
+    existing = (
+        supabase_admin.table("duel_participants")
+        .select("user_id, left_at")
+        .eq("duel_id", duel_id)
+        .eq("user_id", user_id)
+        .execute()
+        .data
+    )
+    if existing:
+        if existing[0].get("left_at"):
+            supabase_admin.table("duel_participants").update(
+                {"left_at": None}
+            ).eq("duel_id", duel_id).eq("user_id", user_id).execute()
+        return
+    supabase_admin.table("duel_participants").insert(
+        {"duel_id": duel_id, "user_id": user_id}
+    ).execute()
 
 
 def _to_duel_response(duel: dict) -> DuelResponse:
@@ -474,6 +527,7 @@ async def list_duels(
         .select("*")
         .eq("status", "waiting")
         .eq("learning_lang", active_lang)
+        .eq("is_private", False)
         .order("created_at", desc=True)
         .limit(50)
         .execute()
@@ -541,27 +595,10 @@ async def join_duel(
     if duel["status"] != "waiting":
         raise HTTPException(status_code=400, detail="Bu odaya artık katılınamaz.")
 
-    existing = (
-        supabase_admin.table("duel_participants")
-        .select("user_id, left_at")
-        .eq("duel_id", duel_id)
-        .eq("user_id", current_user.id)
-        .execute()
-        .data
-    )
-    if existing:
-        if existing[0].get("left_at"):
-            supabase_admin.table("duel_participants").update(
-                {"left_at": None}
-            ).eq("duel_id", duel_id).eq("user_id", current_user.id).execute()
-        return _to_duel_response(duel)
-
     if _participant_count(duel_id) >= duel["max_players"]:
         raise HTTPException(status_code=400, detail="Oda dolu.")
 
-    supabase_admin.table("duel_participants").insert(
-        {"duel_id": duel_id, "user_id": current_user.id}
-    ).execute()
+    _add_participant(duel_id, current_user.id)
 
     return _to_duel_response(duel)
 
@@ -950,3 +987,180 @@ async def get_my_duel_stats(current_user=Depends(get_current_user)):
         win_rate=win_rate,
         perfect_wins=perfect_wins,
     )
+# ------------------------------------------------------------
+# Faz 3f (10 Eylul 2026 kullanici istegi -- "Evet, arkadasa davet
+# gonderme ekle") -- arkadasa OZEL duello daveti. Yeni, kucuk bir
+# duel_invites tablosu (050) + arka planda is_private=true bir duels
+# odasi -- bkz. o migration'in ve bu bolumun ust docstring yorumlari.
+# challenge_service.py'deki (016/social.py) AYNI ilke: sadece
+# arkadaslar davet edebilir, notify_user ile bildirim.
+# ------------------------------------------------------------
+def _get_invite_or_404(invite_id: str) -> dict:
+    row = (
+        supabase_admin.table("duel_invites")
+        .select("*")
+        .eq("id", invite_id)
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Duello daveti bulunamadi.")
+    return row[0]
+
+
+def _to_invite_item(row: dict, current_user_id: str) -> DuelInviteItem:
+    is_inviter = row["inviter_id"] == current_user_id
+    other_id = row["invitee_id"] if is_inviter else row["inviter_id"]
+    return DuelInviteItem(
+        id=row["id"],
+        duel_id=row["duel_id"],
+        status=row["status"],
+        is_inviter=is_inviter,
+        other_user=_profile_card(other_id),
+        created_at=row["created_at"],
+        responded_at=row.get("responded_at"),
+    )
+
+
+@router.post("/invite", response_model=DuelInviteItem, status_code=201)
+async def invite_friend_to_duel(
+    invite_in: DuelInviteCreate,
+    current_user=Depends(get_current_user),
+):
+    """Arkadasi, sadece ikinizin (veya davet edilen ek kisilerin) gorebilecegi
+    OZEL bir duello odasina davet eder -- normal lobi listesinde (GET /duels)
+    gorunmez (bkz. list_duels'in is_private filtresi)."""
+    target = (
+        supabase_admin.table("profiles")
+        .select("id, username")
+        .eq("username", invite_in.username.strip())
+        .limit(1)
+        .execute()
+        .data
+    )
+    if not target:
+        raise HTTPException(status_code=404, detail="Bu kullanici adiyla bir kullanici bulunamadi.")
+    other = target[0]
+    if other["id"] == current_user.id:
+        raise HTTPException(status_code=400, detail="Kendine davet gonderemezsin.")
+
+    rel = friendship_status_map(current_user.id).get(other["id"])
+    if not rel or rel["status"] != "friends":
+        raise HTTPException(status_code=403, detail="Sadece arkadaslarini duelloya davet edebilirsin.")
+
+    learning_lang = _get_learning_lang(current_user.id)
+    duel_result = (
+        supabase_admin.table("duels")
+        .insert(
+            {
+                "learning_lang": learning_lang,
+                "created_by": current_user.id,
+                "max_players": invite_in.max_players,
+                "round_count": invite_in.round_count,
+                "is_private": True,
+            }
+        )
+        .execute()
+    )
+    if not duel_result.data:
+        raise HTTPException(status_code=500, detail="Duello odasi olusturulamadi.")
+    duel = duel_result.data[0]
+    _add_participant(duel["id"], current_user.id)
+
+    invite_row = (
+        supabase_admin.table("duel_invites")
+        .insert(
+            {
+                "duel_id": duel["id"],
+                "inviter_id": current_user.id,
+                "invitee_id": other["id"],
+                "status": "pending",
+            }
+        )
+        .execute()
+    ).data[0]
+
+    inviter = _profile_card(current_user.id)
+    inviter_name = (inviter.display_name if inviter else None) or (inviter.username if inviter else None) or "Bir kullanici"
+    notify_user(
+        other["id"],
+        "duel_invite",
+        "Yeni duello daveti",
+        f"{inviter_name} seni bir duelloya davet etti.",
+    )
+
+    return _to_invite_item(invite_row, current_user.id)
+
+
+@router.get("/invites/mine", response_model=DuelInvitesListResponse)
+async def list_my_duel_invites(current_user=Depends(get_current_user)):
+    """Bekleyen (pending) davetler -- hem bana gelenler hem gonderdiklerim,
+    en yeni once. Yanitlanmis (accepted/declined/cancelled) davetler
+    bilincli olarak burada YOK -- davet ekrani sadece "aksiyon bekleyen"
+    listesi, gecmis icin ayri bir uc simdilik gerekmiyor."""
+    rows = (
+        supabase_admin.table("duel_invites")
+        .select("*")
+        .eq("status", "pending")
+        .or_(f"inviter_id.eq.{current_user.id},invitee_id.eq.{current_user.id}")
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    ) or []
+    return DuelInvitesListResponse(items=[_to_invite_item(row, current_user.id) for row in rows])
+
+
+@router.post("/invites/{invite_id}/accept", response_model=DuelResponse)
+async def accept_duel_invite(invite_id: str, current_user=Depends(get_current_user)):
+    row = _get_invite_or_404(invite_id)
+    if row["invitee_id"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu daveti yalnizca davet edilen yanitlayabilir.")
+    if row["status"] != "pending":
+        raise HTTPException(status_code=409, detail="Bu davet zaten yanitlanmis.")
+
+    duel = _get_duel_or_404(row["duel_id"])
+    if duel["status"] != "waiting":
+        raise HTTPException(status_code=400, detail="Bu odaya artik katilinamaz.")
+    if _participant_count(duel["id"]) >= duel["max_players"]:
+        raise HTTPException(status_code=400, detail="Oda dolu.")
+
+    _add_participant(duel["id"], current_user.id)
+    supabase_admin.table("duel_invites").update(
+        {"status": "accepted", "responded_at": datetime.now(UTC).isoformat()}
+    ).eq("id", invite_id).execute()
+
+    accepter = _profile_card(current_user.id)
+    accepter_name = (accepter.display_name if accepter else None) or (accepter.username if accepter else None) or "Bir kullanici"
+    notify_user(
+        row["inviter_id"],
+        "duel_invite_accept",
+        "Duello daveti kabul edildi",
+        f"{accepter_name} duello davetini kabul etti -- oda hazir!",
+    )
+
+    return _to_duel_response(duel)
+
+
+@router.post("/invites/{invite_id}/decline", status_code=204)
+async def decline_duel_invite(invite_id: str, current_user=Depends(get_current_user)):
+    row = _get_invite_or_404(invite_id)
+    if row["invitee_id"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu daveti yalnizca davet edilen yanitlayabilir.")
+    if row["status"] != "pending":
+        raise HTTPException(status_code=409, detail="Bu davet zaten yanitlanmis.")
+    supabase_admin.table("duel_invites").update(
+        {"status": "declined", "responded_at": datetime.now(UTC).isoformat()}
+    ).eq("id", invite_id).execute()
+
+
+@router.post("/invites/{invite_id}/cancel", status_code=204)
+async def cancel_duel_invite(invite_id: str, current_user=Depends(get_current_user)):
+    row = _get_invite_or_404(invite_id)
+    if row["inviter_id"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Bu daveti yalnizca gonderen iptal edebilir.")
+    if row["status"] != "pending":
+        raise HTTPException(status_code=409, detail="Sadece bekleyen bir davet iptal edilebilir.")
+    supabase_admin.table("duel_invites").update(
+        {"status": "cancelled", "responded_at": datetime.now(UTC).isoformat()}
+    ).eq("id", invite_id).execute()
