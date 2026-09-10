@@ -342,10 +342,10 @@ async def get_league_overview(current_user=Depends(get_current_user)):
     # 1000 kisi kullaniyormus gibi dusun"): terfi/dusme henuz yok, bu yuzden
     # yeni bir kademe grubu SADECE gercek bir kullanici o kademeye
     # ulasinca aciliyordu (Gumus+ hep bos kaliyordu). seed_tier_leagues
-    # (migration 052) her kademede bot havuzundan EN AZ 2 grup acik olmasini
-    # garantiler -- idempotent, zaten dolu kademelere dokunmaz, simulate_
-    # bot_activity.py cron'unda (3 saatte bir) calisiyor, istek yolunda
-    # DEGIL (10 Eylul 2026, "lig sayfasi yavas aciliyor" geri bildirimi).
+    # (migration 055) artik HER kademede TAM 4 grup (A/B/C/D) aciyor --
+    # idempotent, zaten dolu kademelere dokunmaz, simulate_bot_activity.py
+    # cron'unda (3 saatte bir) calisiyor, istek yolunda DEGIL (10 Eylul
+    # 2026, "lig sayfasi yavas aciliyor" geri bildirimi).
     #
     # PERFORMANS (ayni geri bildirim): eskiden her lig grubu icin AYRI AYRI
     # (uyelik + profil + xp_events) 3 sorgu atiliyordu -- 36 grup x 3 =
@@ -450,8 +450,19 @@ async def get_league_overview(current_user=Depends(get_current_user)):
     groups: list[LeagueOverviewGroup] = []
     for league in leagues:
         user_ids = user_ids_by_league.get(league["id"], [])
-        if not user_ids:
-            continue
+        # Faz 3 devami -- son geri bildirim (10 Eylul 2026 -- "her lig
+        # A-B-C-D olacak, birinde 4 parca varken digerinde A-B olmayacak,
+        # hepsi A-B-C-D olacak"): eskiden UYESI OLMAYAN gruplar burada
+        # atlaniyordu (bkz. asagidaki eski "if not user_ids: continue"),
+        # bu da botu az/hic olmayan ust kademelerin (Demir, Zumrut, Yakut,
+        # Ustat, Sampiyon, Efsane) seritte eksik grup gostermesine yol
+        # acıyordu. Artik BOS gruplar da (0 uyeli) listeye dahil --
+        # seed_tier_leagues (migration 055) zaten her kademede tam 4 grup
+        # ACIYOR, burada onlari FILTRELEMEMEK yeterli. Bu ayrica grup
+        # harfi (A/B/C/D) numaralandirmasini da _group_name_for_league
+        # (detay ucu) ile TUTARLI hale getiriyor -- eskiden bu sayac
+        # SADECE dolu gruplarda artiyordu, bu da overview ile detay
+        # ucunun AYNI grup icin FARKLI harf gostermesine yol acabiliyordu.
 
         ranked = sorted(
             (
