@@ -48,3 +48,33 @@ class DuelStatusResponse(DuelResponse):
     eklenecek."""
 
     participants: list[DuelParticipantItem]
+
+
+class DuelRoundPublic(BaseModel):
+    """Round-servis uçlarının (Faz 3e) döndürdüğü İÇERİK — SADECE
+    seçenekler, doğru cevap (correct_option) BİLİNÇLİ OLARAK burada YOK
+    (bkz. duels.py round-servis uçları docstring'i / migration 037'nin
+    RLS güvenlik notu ile aynı ilke: doğru cevap istemciye asla
+    round bitmeden gönderilmez).
+
+    Faz 3e ürün kararı (10 Eylül 2026): oda içindeki katılımcıların ana
+    dili (native_lang) farklı olabileceği için sorular SADECE hedef
+    dilde (games.py'deki "definition_to_word" yönüyle aynı desen: tanım
+    gösterilir, doğru kelime 4 seçenekten bulunur) — ana dile hiç
+    referans verilmiyor, matchmaking learning_lang'e göre kalıyor."""
+
+    round_index: int
+    definition: str
+    options: list[str]
+    started_at: datetime | None = None
+    ends_at: datetime | None = None
+
+
+class DuelAnswerRequest(BaseModel):
+    selected_option: str
+
+
+class DuelAnswerResponse(BaseModel):
+    is_correct: bool
+    correct_option: str
+    score: int
