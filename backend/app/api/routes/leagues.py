@@ -50,6 +50,23 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
+# Faz 3 devami (10 Eylul 2026 -- "Bronz gruplari cok fazla olmus, hepsi
+# ayni isimde gozukmesin"): 27+ Bronz grubunun hepsi sadece "Bronz Grup 1,
+# Grup 2... Grup 27" diye numaralanınca tekdüze/ayirt edilemez gorunuyordu.
+# Her gruba, tier icindeki olusturulma sirasina gore SABIT (deterministik)
+# bir dogatema takma ad veriliyor -- "Bronz Kartal", "Bronz Sahin" gibi.
+_GROUP_NICKNAMES = [
+    "Kartal", "Sahin", "Aslan", "Kaplan", "Kurt", "Ayi", "Boga", "Atmaca",
+    "Puma", "Panter", "Cita", "Yilan", "Akrep", "Baykus", "Tilki", "Karga",
+    "Dogan", "Zumrut", "Yakut", "Safir", "Inci", "Mercan", "Volkan", "Firtina",
+    "Simsek", "Ruzgar", "Deniz", "Dalga", "Kasirga", "Yildiz", "Ay", "Gunes",
+    "Kutup", "Orman", "Dag", "Nehir", "Selale", "Vadi", "Meteor", "Komet",
+]
+
+
+def _group_nickname(index0: int) -> str:
+    return _GROUP_NICKNAMES[index0 % len(_GROUP_NICKNAMES)]
+
 _TR_OFFSET = timezone(timedelta(hours=3))
 
 
@@ -121,6 +138,25 @@ def _weekly_xp_by_user(user_ids: list[str], week_start: str, week_end: str) -> d
     return totals
 
 
+def _group_name_for_league(league: dict) -> str:
+    """Bu ligin AYNI kademe + AYNI hafta icindeki siralamasina (created_at)
+    gore sabit bir takma ad dondurur -- overview'deki sirayla AYNI mantik."""
+    siblings = (
+        supabase_admin.table("leagues")
+        .select("id, created_at")
+        .eq("tier_slug", league["tier_slug"])
+        .eq("week_start", league["week_start"])
+        .eq("status", "active")
+        .order("created_at")
+        .execute()
+        .data
+    ) or [league]
+    for idx, sib in enumerate(siblings):
+        if sib["id"] == league["id"]:
+            return _group_nickname(idx)
+    return _group_nickname(0)
+
+
 def _build_league_status(league: dict, tier: dict, current_user_id: str) -> LeagueStatusResponse:
     """/me VE /{league_id} ortak govdesi (Faz 3f, 10 Eylul 2026 --
     "lige tıklayınca o ligin icindeki user'ları sıralamayı puan
@@ -167,6 +203,7 @@ def _build_league_status(league: dict, tier: dict, current_user_id: str) -> Leag
         league_id=league["id"],
         tier_slug=tier["slug"],
         tier_index=tier["tier_index"],
+        group_name=_group_name_for_league(league),
         week_start=league["week_start"],
         week_end=league["week_end"],
         members=members,
@@ -242,6 +279,7 @@ class LeagueOverviewGroup(BaseModel):
     tier_index: int
     tier_name_tr: str
     tier_name_en: str
+    group_name: str
     member_count: int
     top_members: list[LeagueMemberItem]
     is_mine: bool
@@ -258,10 +296,16 @@ async def get_league_overview(current_user=Depends(get_current_user)):
     # yeni bir kademe grubu SADECE gercek bir kullanici o kademeye
     # ulasinca aciliyordu (Gumus+ hep bos kaliyordu). seed_tier_leagues
     # (migration 052) her kademede bot havuzundan EN AZ 2 grup acik olmasini
-    # garantiler -- idempotent, zaten dolu kademelere dokunmaz. Overview her
-    # cagrildiginda calisiyor ki gelecek haftalar da otomatik dolsun.
-    supabase_admin.rpc("seed_tier_leagues", {"p_target_groups_per_tier": 2}).execute()
-
+    # garantiler -- idempotent, zaten dolu kademelere dokunmaz, simulate_
+    # bot_activity.py cron'unda (3 saatte bir) calisiyor, istek yolunda
+    # DEGIL (10 Eylul 2026, "lig sayfasi yavas aciliyor" geri bildirimi).
+    #
+    # PERFORMANS (ayni geri bildirim): eskiden her lig grubu icin AYRI AYRI
+    # (uyelik + profil + xp_events) 3 sorgu atiliyordu -- 36 grup x 3 =
+    # 100+ ardisik HTTP round-trip, asil yavasligin kaynagi buydu. Artik
+    # TUMU toplu (batch) cekiliyor: uyelikler tek sorguda, profiller tek
+    # sorguda, xp_events tek sorguda -- grup sayisi ne olursa olsun sabit
+    # ~4 sorgu.
     tiers = {
         t["slug"]: t
         for t in (supabase_admin.table("league_tiers").select("*").execute().data or [])
@@ -281,6 +325,11 @@ async def get_league_overview(current_user=Depends(get_current_user)):
     ) or []
     leagues.sort(key=lambda l: (tiers.get(l["tier_slug"], {}).get("tier_index", 0), l["created_at"]))
 
+    if not leagues:
+        return LeagueOverviewResponse(groups=[])
+
+    league_ids = [l["id"] for l in leagues]
+
     my_league_ids = {
         m["league_id"]
         for m in (
@@ -293,29 +342,57 @@ async def get_league_overview(current_user=Depends(get_current_user)):
         )
     }
 
-    groups: list[LeagueOverviewGroup] = []
-    for league in leagues:
-        member_rows = (
-            supabase_admin.table("league_memberships")
-            .select("user_id")
-            .eq("league_id", league["id"])
-            .execute()
-            .data
-        ) or []
-        user_ids = [m["user_id"] for m in member_rows]
-        if not user_ids:
-            continue
+    # ── Toplu uyelik cekimi: tum gruplarin uyeleri TEK sorguda ──
+    all_membership_rows = (
+        supabase_admin.table("league_memberships")
+        .select("league_id, user_id")
+        .in_("league_id", league_ids)
+        .execute()
+        .data
+    ) or []
+    user_ids_by_league: dict[str, list[str]] = {}
+    all_user_ids: set[str] = set()
+    for row in all_membership_rows:
+        user_ids_by_league.setdefault(row["league_id"], []).append(row["user_id"])
+        all_user_ids.add(row["user_id"])
 
+    # ── Toplu profil cekimi: tum benzersiz kullanicilar TEK sorguda ──
+    profiles_by_id: dict[str, dict] = {}
+    if all_user_ids:
         profile_rows = (
             supabase_admin.table("profiles")
             .select("id, username, avatar_url")
-            .in_("id", user_ids)
+            .in_("id", list(all_user_ids))
             .execute()
             .data
         ) or []
         profiles_by_id = {p["id"]: p for p in profile_rows}
 
-        xp_by_user = _weekly_xp_by_user(user_ids, league["week_start"], league["week_end"])
+    # ── Toplu XP cekimi: bu hafta TEK sorguda (tum aktif gruplarin hepsi
+    # zaten ayni haftaya ait, cunku yukarida week_start filtrelendi) ──
+    week_start_iso = _current_week_start_iso()
+    xp_by_user: dict[str, int] = {uid: 0 for uid in all_user_ids}
+    if all_user_ids:
+        xp_rows = (
+            supabase_admin.table("xp_events")
+            .select("user_id, amount")
+            .in_("user_id", list(all_user_ids))
+            .gte("created_at", week_start_iso)
+            .execute()
+            .data
+        ) or []
+        for row in xp_rows:
+            xp_by_user[row["user_id"]] = xp_by_user.get(row["user_id"], 0) + row["amount"]
+
+    # ── Grup takma adlari: her kademe icinde olusturulma sirasina gore ──
+    tier_group_counter: dict[str, int] = {}
+
+    groups: list[LeagueOverviewGroup] = []
+    for league in leagues:
+        user_ids = user_ids_by_league.get(league["id"], [])
+        if not user_ids:
+            continue
+
         ranked = sorted(
             (
                 LeagueMemberItem(
@@ -332,6 +409,9 @@ async def get_league_overview(current_user=Depends(get_current_user)):
         )
 
         tier = tiers.get(league["tier_slug"], {})
+        idx0 = tier_group_counter.get(league["tier_slug"], 0)
+        tier_group_counter[league["tier_slug"]] = idx0 + 1
+
         groups.append(
             LeagueOverviewGroup(
                 league_id=league["id"],
@@ -339,6 +419,7 @@ async def get_league_overview(current_user=Depends(get_current_user)):
                 tier_index=tier.get("tier_index", 0),
                 tier_name_tr=tier.get("name_tr", league["tier_slug"]),
                 tier_name_en=tier.get("name_en", league["tier_slug"]),
+                group_name=_group_nickname(idx0),
                 member_count=len(user_ids),
                 top_members=ranked[:3],
                 is_mine=(league["id"] in my_league_ids),

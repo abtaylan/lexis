@@ -15,6 +15,7 @@ import { leaguesApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { LEAGUE_L, TIER_NAMES, formatDateRange } from '@/lib/leagueLocale';
 import { LeagueTable } from '@/components/league/LeagueTable';
+import { LeagueGroupStrip } from '@/components/league/LeagueGroupStrip';
 import type { LeagueStatusResponse, LeagueOverviewGroup } from '@/types';
 
 function errorDetail(err: unknown): string | undefined {
@@ -93,7 +94,7 @@ export default function LeagueDetailPage() {
             <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">{status ? tierLabel : t.title}</h1>
             {status && (
               <p className="text-sm text-gray-400 dark:text-slate-500">
-                {formatDateRange(status.week_start, status.week_end, locale)}
+                {status.group_name} · {formatDateRange(status.week_start, status.week_end, locale)}
               </p>
             )}
           </div>
@@ -108,11 +109,21 @@ export default function LeagueDetailPage() {
         </button>
       </div>
 
+      {overviewGroups.length > 0 && (
+        <LeagueGroupStrip
+          groups={overviewGroups}
+          tierNames={tierNames}
+          currentLeagueId={status?.league_id}
+          youLabel={t.youLabel}
+          onSelect={(id) => router.push(`/league/${id}`)}
+        />
+      )}
+
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
         {loading && <p className="text-sm text-gray-400 dark:text-slate-500 py-8 text-center">{t.loading}</p>}
         {!loading && error && <p className="text-sm text-red-400 dark:text-red-300 py-8 text-center">{error}</p>}
         {!loading && !error && status && status.members.length > 0 && (
-          <LeagueTable members={status.members} rankLabel={t.rankLabel} userLabel={t.userLabel} xpLabel={t.xpLabel} youLabel={t.youLabel} />
+          <LeagueTable members={status.members} rankLabel={t.rankLabel} userLabel={t.userLabel} xpLabel={t.xpLabel} youLabel={t.youLabel} weekEndIso={status.week_end} locale={locale} />
         )}
       </div>
 

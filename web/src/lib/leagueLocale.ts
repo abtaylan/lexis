@@ -115,6 +115,27 @@ export const LEAGUE_L: Record<Locale, Record<string, string>> = {
   },
 };
 
+// Faz 3 devamı (10 Eylül 2026 — "ligden çıkma ve düşme sıralaması...
+// neye göre çıkıp düşecekler, süre mi ölçüt olacak"): haftanın ne
+// kadar süre sonra kapanacağını (ve terfi/düşmenin işleneceğini)
+// lokalize, insan-okunur şekilde gösterir. Gerçek kapanış mantığı
+// bkz. backend/league_weekly_rollover.py (saatlik cron).
+export function formatTimeRemaining(endIso: string, locale: Locale): string {
+  try {
+    const diffMs = new Date(endIso).getTime() - Date.now();
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    if (diffMs <= 0) return rtf.format(0, 'hour');
+    const diffMinutes = Math.round(diffMs / 60000);
+    if (diffMinutes < 60) return rtf.format(diffMinutes, 'minute');
+    const diffHours = Math.round(diffMs / 3600000);
+    if (diffHours < 24) return rtf.format(diffHours, 'hour');
+    const diffDays = Math.round(diffMs / 86400000);
+    return rtf.format(diffDays, 'day');
+  } catch {
+    return '';
+  }
+}
+
 export function formatDateRange(startIso: string, endIso: string, locale: Locale): string {
   try {
     const start = new Date(startIso);

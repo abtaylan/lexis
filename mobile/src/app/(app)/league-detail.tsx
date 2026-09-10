@@ -11,6 +11,7 @@ import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Card } from '@/components/ui/Card';
 import { LeagueTable } from '@/components/LeagueTable';
+import { LeagueGroupStrip } from '@/components/LeagueGroupStrip';
 
 // ── src/app/(app)/league-detail.tsx — Faz 3f (10 Eylül 2026 kullanıcı
 // isteği: "lige tıklayınca o ligin içindeki user'ları sıralamayı puan
@@ -104,8 +105,8 @@ export default function LeagueDetailScreen() {
               {status ? tierLabel : t.title}
             </Text>
             {status && (
-              <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 1 }}>
-                {formatDateRange(status.week_start, status.week_end, locale)}
+              <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 1 }} numberOfLines={1}>
+                {status.group_name} · {formatDateRange(status.week_start, status.week_end, locale)}
               </Text>
             )}
           </View>
@@ -114,6 +115,18 @@ export default function LeagueDetailScreen() {
           <RefreshCw color={c.textMuted} size={16} />
         </Pressable>
       </View>
+
+      {overviewGroups.length > 0 && (
+        <View style={{ marginBottom: spacing.md }}>
+          <LeagueGroupStrip
+            groups={overviewGroups}
+            tierNames={tierNames}
+            currentLeagueId={status?.league_id}
+            youLabel={t.youLabel}
+            onSelect={(id) => router.push({ pathname: '/(app)/league-detail', params: { id } })}
+          />
+        </View>
+      )}
 
       {loading && (
         <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
@@ -126,7 +139,7 @@ export default function LeagueDetailScreen() {
         </Card>
       )}
       {!loading && !error && status && status.members.length > 0 && (
-        <LeagueTable members={status.members} rankLabel={t.rankLabel} userLabel={t.userLabel} xpLabel={t.xpLabel} youLabel={t.youLabel} />
+        <LeagueTable members={status.members} rankLabel={t.rankLabel} userLabel={t.userLabel} xpLabel={t.xpLabel} youLabel={t.youLabel} weekEndIso={status.week_end} locale={locale} />
       )}
 
       {!loading && !error && status && status.members.length > 6 && (

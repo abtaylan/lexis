@@ -32,6 +32,7 @@ class LeagueStatusResponse(BaseModel):
     league_id: str
     tier_slug: str
     tier_index: int
+    group_name: str
     week_start: datetime
     week_end: datetime
     members: list[LeagueMemberItem]

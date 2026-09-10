@@ -763,6 +763,7 @@ export interface LeagueStatusResponse {
   league_id: string;
   tier_slug: string;
   tier_index: number;
+  group_name: string;
   week_start: string;
   week_end: string;
   members: LeagueMemberItem[];
@@ -774,6 +775,7 @@ export interface LeagueOverviewGroup {
   tier_index: number;
   tier_name_tr: string;
   tier_name_en: string;
+  group_name: string;
   member_count: number;
   top_members: LeagueMemberItem[];
   is_mine: boolean;

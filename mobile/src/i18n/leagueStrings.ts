@@ -107,6 +107,27 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
   },
 };
 
+// Faz 3 devamı (10 Eylül 2026 — "ligden çıkma ve düşme sıralaması...
+// süre mi ölçüt olacak"): haftanın ne kadar süre sonra kapanacağını
+// lokalize, insan-okunur şekilde gösterir. Hermes (RN 0.86 / Expo 57)
+// tam ICU ile geliyor, Intl.RelativeTimeFormat ek kütüphane gerektirmez.
+// Gerçek kapanış mantığı bkz. backend/league_weekly_rollover.py.
+export function formatTimeRemaining(endIso: string, locale: Locale): string {
+  try {
+    const diffMs = new Date(endIso).getTime() - Date.now();
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' });
+    if (diffMs <= 0) return rtf.format(0, 'hour');
+    const diffMinutes = Math.round(diffMs / 60000);
+    if (diffMinutes < 60) return rtf.format(diffMinutes, 'minute');
+    const diffHours = Math.round(diffMs / 3600000);
+    if (diffHours < 24) return rtf.format(diffHours, 'hour');
+    const diffDays = Math.round(diffMs / 86400000);
+    return rtf.format(diffDays, 'day');
+  } catch {
+    return '';
+  }
+}
+
 // migration 041_leagues_schema.sql'deki 6 sabit kademeyle birebir eşleşir
 // (slug -> tier_index: bronze=0 ... master=5). Yeni bir kademe eklenirse
 // HEM o migration'a HEM buraya (HEM web'deki aynı adlı tabloya) eklenmeli.
