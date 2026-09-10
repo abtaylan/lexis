@@ -14,6 +14,17 @@ import { XPBar } from '@/components/layout/XPBar';
 import { Leaderboard } from '@/components/layout/Leaderboard';
 import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem } from '@/types';
 
+// Kullanici geri bildirimi (10 Eylul 2026 -- "bir dashboard'a bu saate
+// gunaydin yaziyor, mobildeki gibi hallet"): mobile/src/app/(app)/
+// dashboard.tsx'teki greetingKeyForHour() ile BIREBIR ayni saat
+// araliklari -- iki platform arasinda tutarli bir selamlama olsun diye.
+function greetingKeyForHour(hour: number): 'greeting' | 'greetingAfternoon' | 'greetingEvening' | 'greetingNight' {
+  if (hour >= 5 && hour < 12) return 'greeting';
+  if (hour >= 12 && hour < 18) return 'greetingAfternoon';
+  if (hour >= 18 && hour < 22) return 'greetingEvening';
+  return 'greetingNight';
+}
+
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı dashboard
 // banner'ı. mobile/src/i18n/examStrings.ts'teki pageTitle/pageSubtitle/
 // bannerCta ile birebir aynı tr/en metinler (bu alan sadece native_lang=tr +
@@ -332,6 +343,12 @@ export default function DashboardPage() {
   const newPct = Math.round((newCount / total) * 100);
 
   const activeLangCode = userLangs.find((l) => l.is_active)?.learning_lang ?? '';
+  // Kullanici geri bildirimi (10 Eylul 2026 -- "bir dashboard'da bu
+  // saate gunaydin yaziyor, mobildeki gibi hallet"): web'de {t('greeting')}
+  // her zaman sabit "Gunaydin" ceviriyordu -- mobilin dashboard.tsx'teki
+  // greetingKeyForHour() ile BIREBIR ayni saat araliklari (mobile: 05-12
+  // sabah, 12-18 ogleden sonra, 18-22 aksam, 22-05 gece).
+  const greetingText = t(greetingKeyForHour(new Date().getHours()));
 
   return (
     <div className="p-6 space-y-4 max-w-5xl">
@@ -340,7 +357,7 @@ export default function DashboardPage() {
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
           <p className="text-lg font-medium text-gray-900 dark:text-slate-100">
-            {t('greeting')}{username ? `, ${username}` : ''}
+            {greetingText}{username ? `, ${username}` : ''}
           </p>
           <p className="text-sm text-gray-400 dark:text-slate-500">{t('dailySummarySubtitle')}</p>
         </div>

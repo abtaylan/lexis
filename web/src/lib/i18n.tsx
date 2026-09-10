@@ -24,7 +24,7 @@ export const LOCALE_META: { code: Locale; label: string; flag: string }[] = [
 type TranslationKey =
 | 'dashboard' | 'words' | 'flashcards' | 'quiz' | 'schedule' | 'stats' | 'profile'
 | 'premiumGet' | 'premiumActive' | 'adminPanel' | 'logout' | 'loading' | 'loadingError'
-| 'greeting' | 'dailySummarySubtitle' | 'streakActive' | 'streakEncourage' | 'totalWords'
+| 'greeting' | 'greetingAfternoon' | 'greetingEvening' | 'greetingNight' | 'dailySummarySubtitle' | 'streakActive' | 'streakEncourage' | 'totalWords'
 | 'thisWeekLabel' | 'addedToday' | 'goalLabel' | 'dueReview' | 'wordsInQueue' | 'dailyGoal'
 | 'wordsUnit' | 'remainingLabel' | 'weeklyProgress' | 'todayAbbr' | 'thisWeekColon' | 'lastWeekColon'
 | 'flashcardPractice' | 'cardsWaitingLabel' | 'startQuiz' | 'testKnowledge' | 'addWord' | 'expandList'
@@ -80,7 +80,7 @@ const dictionaries: Record<Locale, Dictionary> = {
 tr: {
 dashboard: 'Dashboard', words: 'Kelimeler', flashcards: 'Flashcards', quiz: 'Quiz', schedule: 'Program', stats: 'İstatistik', profile: 'Profil',
 premiumGet: 'Premium’a Geç', premiumActive: 'Premium Üyesin', adminPanel: 'Yönetim Paneli', logout: 'Çıkış Yap',
-loading: 'Yükleniyor…', loadingError: 'Veriler yüklenemedi.', greeting: 'Günaydın', dailySummarySubtitle: 'İşte günlük öğrenme özetin.',
+loading: 'Yükleniyor…', loadingError: 'Veriler yüklenemedi.', greeting: 'Günaydın', greetingAfternoon: 'İyi günler', greetingEvening: 'İyi akşamlar', greetingNight: 'İyi geceler', dailySummarySubtitle: 'İşte günlük öğrenme özetin.',
 streakActive: 'günlük seri devam ediyor!', streakEncourage: 'Bugün de çalışarak serinizi koruyun', totalWords: 'Toplam kelime',
 thisWeekLabel: 'bu hafta', addedToday: 'Bugün eklendi', goalLabel: 'Hedef', dueReview: 'Tekrar bekleyen', wordsInQueue: 'kelime sırada',
 dailyGoal: 'Günlük hedef', wordsUnit: 'kelime', remainingLabel: 'kaldı', weeklyProgress: 'Haftalık ilerleme', todayAbbr: 'Bug.',
@@ -170,7 +170,7 @@ premiumFeature4: 'Tüm günlük aktivite modüllerine sınırsız erişim', prem
 en: {
 dashboard: 'Dashboard', words: 'Words', flashcards: 'Flashcards', quiz: 'Quiz', schedule: 'Schedule', stats: 'Statistics', profile: 'Profile',
 premiumGet: 'Go Premium', premiumActive: 'Premium Member', adminPanel: 'Admin Panel', logout: 'Log Out',
-loading: 'Loading…', loadingError: 'Failed to load data.', greeting: 'Good morning', dailySummarySubtitle: 'Here’s your daily learning summary.',
+loading: 'Loading…', loadingError: 'Failed to load data.', greeting: 'Good morning', greetingAfternoon: 'Good afternoon', greetingEvening: 'Good evening', greetingNight: 'Good night', dailySummarySubtitle: 'Here’s your daily learning summary.',
 streakActive: 'day streak going!', streakEncourage: 'Keep your streak alive by studying today', totalWords: 'Total words',
 thisWeekLabel: 'this week', addedToday: 'Added today', goalLabel: 'Goal', dueReview: 'Due for review', wordsInQueue: 'words in queue',
 dailyGoal: 'Daily goal', wordsUnit: 'words', remainingLabel: 'left', weeklyProgress: 'Weekly progress', todayAbbr: 'Today',
@@ -260,7 +260,7 @@ premiumFeature4: 'Unlimited access to all daily activity modules', premiumNoAdsN
 ar: {
 dashboard: 'لوحة التحكم', words: 'الكلمات', flashcards: 'البطاقات التعليمية', quiz: 'اختبار', schedule: 'البرنامج', stats: 'الإحصائيات', profile: 'الملف الشخصي',
 premiumGet: 'الترقية إلى بريميوم', premiumActive: 'عضو بريميوم', adminPanel: 'لوحة الإدارة', logout: 'تسجيل الخروج',
-loading: 'جارٍ التحميل…', loadingError: 'تعذر تحميل البيانات.', greeting: 'صباح الخير', dailySummarySubtitle: 'إليك ملخص تعلمك اليومي.',
+loading: 'جارٍ التحميل…', loadingError: 'تعذر تحميل البيانات.', greeting: 'صباح الخير', greetingAfternoon: 'مساء الخير', greetingEvening: 'مساء الخير', greetingNight: 'ليلة سعيدة', dailySummarySubtitle: 'إليك ملخص تعلمك اليومي.',
 streakActive: 'يوم متتالٍ مستمر!', streakEncourage: 'حافظ على تتابعك بالتعلم اليوم', totalWords: 'إجمالي الكلمات',
 thisWeekLabel: 'هذا الأسبوع', addedToday: 'أُضيف اليوم', goalLabel: 'الهدف', dueReview: 'بانتظار المراجعة', wordsInQueue: 'كلمة في الانتظار',
 dailyGoal: 'الهدف اليومي', wordsUnit: 'كلمة', remainingLabel: 'متبقٍ', weeklyProgress: 'التقدم الأسبوعي', todayAbbr: 'اليوم',
@@ -350,7 +350,7 @@ premiumFeature4: 'وصول غير محدود إلى جميع وحدات النش
 ru: {
 dashboard: 'Панель', words: 'Слова', flashcards: 'Карточки', quiz: 'Тест', schedule: 'Расписание', stats: 'Статистика', profile: 'Профиль',
 premiumGet: 'Перейти на Premium', premiumActive: 'Premium активен', adminPanel: 'Панель администратора', logout: 'Выйти',
-loading: 'Загрузка…', loadingError: 'Не удалось загрузить данные.', greeting: 'Доброе утро', dailySummarySubtitle: 'Вот сводка твоего обучения за день.',
+loading: 'Загрузка…', loadingError: 'Не удалось загрузить данные.', greeting: 'Доброе утро', greetingAfternoon: 'Добрый день', greetingEvening: 'Добрый вечер', greetingNight: 'Спокойной ночи', dailySummarySubtitle: 'Вот сводка твоего обучения за день.',
 streakActive: 'дней подряд!', streakEncourage: 'Позанимайся сегодня, чтобы не прерывать серию', totalWords: 'Всего слов',
 thisWeekLabel: 'на этой неделе', addedToday: 'Добавлено сегодня', goalLabel: 'Цель', dueReview: 'Ждут повторения', wordsInQueue: 'слов в очереди',
 dailyGoal: 'Дневная цель', wordsUnit: 'слов', remainingLabel: 'осталось', weeklyProgress: 'Прогресс за неделю', todayAbbr: 'Сег.',
@@ -440,7 +440,7 @@ premiumFeature4: 'Неограниченный доступ ко всем еже
 de: {
 dashboard: 'Dashboard', words: 'Wörter', flashcards: 'Karteikarten', quiz: 'Quiz', schedule: 'Zeitplan', stats: 'Statistik', profile: 'Profil',
 premiumGet: 'Premium werden', premiumActive: 'Premium-Mitglied', adminPanel: 'Admin-Bereich', logout: 'Abmelden',
-loading: 'Wird geladen…', loadingError: 'Daten konnten nicht geladen werden.', greeting: 'Guten Morgen', dailySummarySubtitle: 'Hier ist deine tägliche Lernübersicht.',
+loading: 'Wird geladen…', loadingError: 'Daten konnten nicht geladen werden.', greeting: 'Guten Morgen', greetingAfternoon: 'Guten Tag', greetingEvening: 'Guten Abend', greetingNight: 'Gute Nacht', dailySummarySubtitle: 'Hier ist deine tägliche Lernübersicht.',
 streakActive: 'Tage in Folge!', streakEncourage: 'Lerne heute weiter, um deine Serie zu halten', totalWords: 'Wörter insgesamt',
 thisWeekLabel: 'diese Woche', addedToday: 'Heute hinzugefügt', goalLabel: 'Ziel', dueReview: 'Zur Wiederholung fällig', wordsInQueue: 'Wörter in der Warteschlange',
 dailyGoal: 'Tagesziel', wordsUnit: 'Wörter', remainingLabel: 'übrig', weeklyProgress: 'Wochenfortschritt', todayAbbr: 'Heute',
@@ -530,7 +530,7 @@ premiumFeature4: 'Unbegrenzter Zugriff auf alle täglichen Aktivitätsmodule', p
 fr: {
 dashboard: 'Tableau de bord', words: 'Mots', flashcards: 'Cartes mémo', quiz: 'Quiz', schedule: 'Programme', stats: 'Statistiques', profile: 'Profil',
 premiumGet: 'Passer à Premium', premiumActive: 'Membre Premium', adminPanel: "Panneau d'administration", logout: 'Déconnexion',
-loading: 'Chargement…', loadingError: 'Impossible de charger les données.', greeting: 'Bonjour', dailySummarySubtitle: "Voici ton résumé d'apprentissage du jour.",
+loading: 'Chargement…', loadingError: 'Impossible de charger les données.', greeting: 'Bonjour', greetingAfternoon: 'Bon après-midi', greetingEvening: 'Bonsoir', greetingNight: 'Bonne nuit', dailySummarySubtitle: "Voici ton résumé d'apprentissage du jour.",
 streakActive: 'jours de suite !', streakEncourage: "Continue aujourd'hui pour garder ta série", totalWords: 'Total des mots',
 thisWeekLabel: 'cette semaine', addedToday: "Ajoutés aujourd'hui", goalLabel: 'Objectif', dueReview: 'À réviser', wordsInQueue: 'mots en attente',
 dailyGoal: 'Objectif quotidien', wordsUnit: 'mots', remainingLabel: 'restants', weeklyProgress: 'Progression hebdomadaire', todayAbbr: "Aujourd'hui",
@@ -620,7 +620,7 @@ premiumFeature4: 'Accès illimité à tous les modules d’activité quotidiens'
 es: {
 dashboard: 'Panel', words: 'Palabras', flashcards: 'Tarjetas', quiz: 'Cuestionario', schedule: 'Horario', stats: 'Estadísticas', profile: 'Perfil',
 premiumGet: 'Hazte Premium', premiumActive: 'Miembro Premium', adminPanel: 'Panel de administración', logout: 'Cerrar sesión',
-loading: 'Cargando…', loadingError: 'No se pudieron cargar los datos.', greeting: 'Buenos días', dailySummarySubtitle: 'Aquí tienes tu resumen diario de aprendizaje.',
+loading: 'Cargando…', loadingError: 'No se pudieron cargar los datos.', greeting: 'Buenos días', greetingAfternoon: 'Buenas tardes', greetingEvening: 'Buenas noches', greetingNight: 'Buenas noches', dailySummarySubtitle: 'Aquí tienes tu resumen diario de aprendizaje.',
 streakActive: '¡días seguidos!', streakEncourage: 'Estudia hoy para mantener tu racha', totalWords: 'Total de palabras',
 thisWeekLabel: 'esta semana', addedToday: 'Añadidas hoy', goalLabel: 'Meta', dueReview: 'Pendientes de repaso', wordsInQueue: 'palabras en cola',
 dailyGoal: 'Meta diaria', wordsUnit: 'palabras', remainingLabel: 'restantes', weeklyProgress: 'Progreso semanal', todayAbbr: 'Hoy',
@@ -710,7 +710,7 @@ premiumFeature4: 'Acceso ilimitado a todos los módulos de actividad diaria', pr
 it: {
 dashboard: 'Dashboard', words: 'Parole', flashcards: 'Flashcard', quiz: 'Quiz', schedule: 'Programma', stats: 'Statistiche', profile: 'Profilo',
 premiumGet: 'Passa a Premium', premiumActive: 'Membro Premium', adminPanel: 'Pannello admin', logout: 'Esci',
-loading: 'Caricamento…', loadingError: 'Impossibile caricare i dati.', greeting: 'Buongiorno', dailySummarySubtitle: 'Ecco il tuo riepilogo di apprendimento giornaliero.',
+loading: 'Caricamento…', loadingError: 'Impossibile caricare i dati.', greeting: 'Buongiorno', greetingAfternoon: 'Buon pomeriggio', greetingEvening: 'Buonasera', greetingNight: 'Buonanotte', dailySummarySubtitle: 'Ecco il tuo riepilogo di apprendimento giornaliero.',
 streakActive: 'giorni di fila!', streakEncourage: 'Continua oggi per mantenere la tua serie', totalWords: 'Parole totali',
 thisWeekLabel: 'questa settimana', addedToday: 'Aggiunte oggi', goalLabel: 'Obiettivo', dueReview: 'Da ripassare', wordsInQueue: 'parole in coda',
 dailyGoal: 'Obiettivo giornaliero', wordsUnit: 'parole', remainingLabel: 'rimanenti', weeklyProgress: 'Progresso settimanale', todayAbbr: 'Oggi',
@@ -800,7 +800,7 @@ premiumFeature4: 'Accesso illimitato a tutti i moduli di attività giornaliera',
 ja: {
 dashboard: 'ダッシュボード', words: '単語', flashcards: 'フラッシュカード', quiz: 'クイズ', schedule: 'スケジュール', stats: '統計', profile: 'プロフィール',
 premiumGet: 'プレミアムに登録', premiumActive: 'プレミアム会員', adminPanel: '管理パネル', logout: 'ログアウト',
-loading: '読み込み中…', loadingError: 'データを読み込めませんでした。', greeting: 'おはようございます', dailySummarySubtitle: '今日の学習サマリーです。',
+loading: '読み込み中…', loadingError: 'データを読み込めませんでした。', greeting: 'おはようございます', greetingAfternoon: 'こんにちは', greetingEvening: 'こんばんは', greetingNight: 'おやすみなさい', dailySummarySubtitle: '今日の学習サマリーです。',
 streakActive: '日連続達成中！', streakEncourage: '今日も学習して連続記録を継続しよう', totalWords: '総単語数',
 thisWeekLabel: '今週', addedToday: '今日追加', goalLabel: '目標', dueReview: '復習待ち', wordsInQueue: '語が待機中',
 dailyGoal: '1日の目標', wordsUnit: '単語', remainingLabel: '残り', weeklyProgress: '週間の進捗', todayAbbr: '今日',
@@ -890,7 +890,7 @@ premiumFeature4: 'すべての毎日のアクティビティモジュールへ�
 pt: {
 dashboard: 'Painel', words: 'Palavras', flashcards: 'Cartões', quiz: 'Questionário', schedule: 'Horário', stats: 'Estatísticas',
 profile: 'Perfil', premiumGet: 'Tornar-me Premium', premiumActive: 'Membro Premium', adminPanel: 'Painel de Administração',
-logout: 'Terminar Sessão', loading: 'A carregar…', loadingError: 'Não foi possível carregar os dados.', greeting: 'Bom dia',
+logout: 'Terminar Sessão', loading: 'A carregar…', loadingError: 'Não foi possível carregar os dados.', greeting: 'Bom dia', greetingAfternoon: 'Boa tarde', greetingEvening: 'Boa noite', greetingNight: 'Boa noite',
 dailySummarySubtitle: 'Aqui está o teu resumo diário de aprendizagem.', streakActive: 'dias seguidos!', streakEncourage: 'Estuda hoje para manteres a tua sequência',
 totalWords: 'Total de palavras', thisWeekLabel: 'esta semana', addedToday: 'Adicionadas hoje', goalLabel: 'Meta', dueReview: 'Prontas para rever',
 wordsInQueue: 'palavras na fila', dailyGoal: 'Meta diária', wordsUnit: 'palavras', remainingLabel: 'restantes', weeklyProgress: 'Progresso semanal',
