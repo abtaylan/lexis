@@ -171,6 +171,15 @@ function AddWordModal({
   const [word, setWord] = useState('');
   const [meaning, setMeaning] = useState('');
   const [example, setExample] = useState('');
+  // Sözlük aramasından gelen kelime türü (noun/verb/adj vb.) — ★ 10 Eylül 2026
+  // bug fix: bu state hiç yoktu, handleLookup sonucu hiçbir yerde tutulmuyor
+  // ve wordsApi.create çağrısına word_type/word_type_native hiç gönderilmiyordu
+  // (web tarafında bu alan doğru gönderiliyordu). Sonuç: mobilden eklenen
+  // TÜM kelimelerde word_type veritabanında NULL kalıyordu — bu da hem
+  // "Kelime Türü" filtresini/istatistiğini hem de V2 madde #6'daki
+  // "zayıf kelime türleri" özelliğini işlevsiz bırakıyordu.
+  const [wordType, setWordType] = useState('');
+  const [wordTypeNative, setWordTypeNative] = useState('');
   const [error, setError] = useState('');
   const [looking, setLooking] = useState(false);
   const [lookupMsg, setLookupMsg] = useState('');
@@ -188,6 +197,8 @@ function AddWordModal({
       setWord('');
       setMeaning('');
       setExample('');
+      setWordType('');
+      setWordTypeNative('');
       setError('');
       setLookupMsg('');
     }
@@ -200,12 +211,16 @@ function AddWordModal({
         meaning: meaning.trim() || word.trim(),
         meaning_native: meaning.trim() || undefined,
         example: example.trim() || undefined,
+        word_type: wordType.trim() || undefined,
+        word_type_native: wordTypeNative.trim() || undefined,
         list_type: 'active',
       }),
     onSuccess: () => {
       setWord('');
       setMeaning('');
       setExample('');
+      setWordType('');
+      setWordTypeNative('');
       onCreated();
     },
     onError: (e) => setError(getErrorMessage(e, t('saveFailed'))),
@@ -220,6 +235,8 @@ function AddWordModal({
       if (res.meanings.length > 0) {
         setMeaning(res.meanings[0].meaning_native || res.meanings[0].meaning_target);
         if (res.meanings[0].examples?.length) setExample(res.meanings[0].examples[0]);
+        setWordType(res.meanings[0].word_type || '');
+        setWordTypeNative(res.meanings[0].word_type_native || '');
       } else {
         // Web'deki eşdeğeri: sonuç boşsa görünür bir uyarı göster,
         // kullanıcı butonun bozuk olmadığını anlasın ve elle girebilsin.
