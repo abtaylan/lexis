@@ -110,6 +110,13 @@ export default function AppTabsLayout() {
       <Tabs.Screen name="exam-suggest" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="exam-grammar" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="exam-grammar-detail" options={{ href: null, headerShown: false }} />
+      {/* V2 §6.3 Faz 3 (10 Eylül 2026) — Düello/Lig/Görev Haritası, friends
+          ile aynı desen: kendi sekmesi yok, dashboard'daki kısayoldan
+          açılıyor (bkz. dashboard.tsx). */}
+      <Tabs.Screen name="duels" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="duel-room" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="league" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="quests" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

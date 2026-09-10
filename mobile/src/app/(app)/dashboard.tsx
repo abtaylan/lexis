@@ -2,9 +2,12 @@ import React, { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
+import { DUELS_STRINGS } from '@/i18n/duelsStrings';
+import { LEAGUE_STRINGS } from '@/i18n/leagueStrings';
+import { QUESTS_STRINGS } from '@/i18n/questsStrings';
 import { statsApi } from '@/api/stats';
 import { scheduleApi } from '@/api/schedule';
 import { examsApi } from '@/api/exams';
@@ -82,10 +85,13 @@ const WEAK_DIFFICULTY_STRINGS: Record<'tr' | 'en', { title: string; subtitle: st
 };
 
 export default function DashboardScreen() {
-  const { t, locale, et } = useLocale();
+  const { t, mt, locale, et } = useLocale();
   const c = useThemeColors();
   const { user } = useAuth();
   const fs = FRIENDS_STRINGS[locale] ?? FRIENDS_STRINGS.tr;
+  const ds = DUELS_STRINGS[locale] ?? DUELS_STRINGS.tr;
+  const lgs = LEAGUE_STRINGS[locale] ?? LEAGUE_STRINGS.tr;
+  const qs = QUESTS_STRINGS[locale] ?? QUESTS_STRINGS.tr;
 
   const { data: stats, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['stats-summary'],
@@ -368,7 +374,17 @@ export default function DashboardScreen() {
 
         {/* Sıralama (leaderboard) artık burada değil, kendi alt-sekmesinde
             (bkz. (app)/leaderboard.tsx, (app)/_layout.tsx) — 31 Ağustos 2026
-            kullanıcı talebi. Burada açılan boşluk başka eklentilere ayrılabilir. */}
+            kullanıcı talebi. Burada açılan boşluk V2 §6.3 Faz 3'e (10 Eylül
+            2026): Düello/Lig/Görev Haritası kısayolları — friends.tsx'teki
+            gibi kendi alt-sekmeleri yok, buradan açılıyorlar. */}
+        <View>
+          <Text style={[styles.sectionLabel, { color: c.textMuted }]}>{mt('phase3SectionLabel')}</Text>
+          <View style={styles.actionsGrid}>
+            <ActionTile icon={Swords} label={ds.title} onPress={() => router.push('/(app)/duels')} bg={c.primarySoft} fg={c.primary} />
+            <ActionTile icon={Trophy} label={lgs.title} onPress={() => router.push('/(app)/league')} bg={c.warningSoft} fg={c.warning} />
+            <ActionTile icon={Map} label={qs.title} onPress={() => router.push('/(app)/quests')} bg={c.accentSoft} fg={c.accent} />
+          </View>
+        </View>
 
         <AdBanner style={{ marginTop: spacing.sm }} />
       </View>

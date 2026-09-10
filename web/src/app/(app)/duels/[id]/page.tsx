@@ -146,6 +146,18 @@ export default function DuelRoomPage() {
   const [now, setNow] = useState(() => Date.now());
 
   const lastRoundIndex = useRef<number | null>(null);
+  // "En güncel" ref deseni — aşağıdaki tick() closure'ının answerResult'ı
+  // HER ZAMAN taze okuması için (bkz. altındaki not: tick eskiden
+  // [duelId, answerResult]'a bağlıydı ama interval efekti SADECE [duelId]'e
+  // bağlıydı, bu yüzden answerResult her zaman mount anındaki null değerini
+  // görüyordu — "herkes cevapladıysa hemen ilerlet" dalı hiç çalışmıyordu,
+  // sadece süre dolumu ilerletiyordu. Bu ref, tick'i answerResult'tan
+  // BAĞIMSIZ (kararlı) hale getirip interval efektinin de doğru şekilde
+  // tick'e bağlı olmasını sağlıyor).
+  const answerResultRef = useRef<{ is_correct: boolean; correct_option: string } | null>(null);
+  useEffect(() => {
+    answerResultRef.current = answerResult;
+  }, [answerResult]);
 
   const tick = useCallback(async () => {
     try {
@@ -166,7 +178,7 @@ export default function DuelRoomPage() {
         } else {
           setRound(r);
           const ended = r.ends_at ? new Date(r.ends_at).getTime() <= Date.now() : false;
-          if (ended || answerResult) {
+          if (ended || answerResultRef.current) {
             duelsApi.advanceRound(duelId).catch(() => {});
           }
         }
@@ -178,16 +190,14 @@ export default function DuelRoomPage() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duelId, answerResult]);
+  }, [duelId, t.error]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
     tick();
     const interval = setInterval(tick, POLL_MS);
     return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [duelId]);
+  }, [tick]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 500);

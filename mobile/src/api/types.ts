@@ -685,3 +685,93 @@ export interface GrammarTopicDetail extends GrammarTopicSummary {
   example_sentences: GrammarExampleSentence[];
   common_mistakes: GrammarCommonMistake[];
 }
+
+// ── V2 §6.3 Faz 3 — Düello, Lig, Görev Haritası ──
+// web/src/types/index.ts'teki aynı adlı tiplerle birebir (backend Pydantic
+// şemalarına karşılık gelir, bkz. backend/app/schemas/duels.py|leagues.py|quests.py).
+
+export type DuelStatus = 'waiting' | 'active' | 'finished' | 'cancelled';
+
+export interface DuelParticipantItem {
+  user_id: string;
+  username?: string | null;
+  avatar_url?: string | null;
+  score: number;
+  joined_at: string;
+  left_at?: string | null;
+}
+
+export interface DuelResponse {
+  id: string;
+  mode: string;
+  status: DuelStatus;
+  learning_lang: string;
+  created_by: string;
+  max_players: number;
+  round_count: number;
+  created_at: string;
+  started_at?: string | null;
+  ended_at?: string | null;
+  participant_count: number;
+}
+
+export interface DuelListResponse {
+  items: DuelResponse[];
+}
+
+export interface DuelStatusResponse extends DuelResponse {
+  participants: DuelParticipantItem[];
+}
+
+export interface DuelRoundPublic {
+  round_index: number;
+  definition: string;
+  options: string[];
+  started_at: string;
+  ends_at: string;
+}
+
+export interface DuelAnswerResponse {
+  is_correct: boolean;
+  correct_option: string;
+  score: number;
+}
+
+export interface LeagueMemberItem {
+  user_id: string;
+  username?: string | null;
+  avatar_url?: string | null;
+  xp: number;
+  is_me: boolean;
+}
+
+export interface LeagueStatusResponse {
+  league_id: string;
+  tier_slug: string;
+  tier_index: number;
+  week_start: string;
+  week_end: string;
+  members: LeagueMemberItem[];
+}
+
+export interface QuestNodeItem {
+  id: string;
+  slug: string;
+  title_tr: string;
+  title_en: string;
+  description_tr?: string | null;
+  description_en?: string | null;
+  requirement_type: string;
+  requirement_count: number;
+  reward_xp: number;
+  reward_badge_code?: string | null;
+  order_index: number;
+  current_value: number;
+  is_completed: boolean;
+  is_unlocked: boolean;
+  completed_at?: string | null;
+}
+
+export interface QuestListResponse {
+  items: QuestNodeItem[];
+}

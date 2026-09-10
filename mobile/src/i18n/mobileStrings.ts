@@ -42,6 +42,9 @@ export interface MobileStrings {
   gameTabLabel: string;
   logoutConfirmMsg: string;
   logoutConfirmYes: string;
+
+  // V2 §6.3 Faz 3 (10 Eylül 2026) — dashboard'daki Düello/Lig/Görev Haritası kısayol bölümü başlığı.
+  phase3SectionLabel: string;
   confirmYesDestructive: string;
 
   // Hesap silme (Google Play / Apple hesap silme politikası — bkz. profile.tsx)
@@ -91,6 +94,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'Oyun',
     logoutConfirmMsg: 'Çıkış yapmak istediğine emin misin?',
     logoutConfirmYes: 'Çıkış Yap',
+    phase3SectionLabel: 'Sosyal & Rekabet',
     confirmYesDestructive: 'Evet, Sil',
     deleteAccountBtn: 'Hesabımı Sil',
     deleteAccountConfirmMsg: 'Bu işlem geri alınamaz. Hesabın ve tüm verilerin (kelimeler, ilerleme, mesajlar) kalıcı olarak silinecek.',
@@ -134,6 +138,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'Game',
     logoutConfirmMsg: 'Are you sure you want to log out?',
     logoutConfirmYes: 'Log Out',
+    phase3SectionLabel: 'Social & Competition',
     confirmYesDestructive: 'Yes, Delete',
     deleteAccountBtn: 'Delete My Account',
     deleteAccountConfirmMsg: 'This action cannot be undone. Your account and all your data (words, progress, messages) will be permanently deleted.',
@@ -177,6 +182,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'اللعبة',
     logoutConfirmMsg: 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
     logoutConfirmYes: 'تسجيل الخروج',
+    phase3SectionLabel: 'اجتماعي ومنافسة',
     confirmYesDestructive: 'نعم، احذف',
     deleteAccountBtn: 'حذف حسابي',
     deleteAccountConfirmMsg: 'لا يمكن التراجع عن هذا الإجراء. سيتم حذف حسابك وجميع بياناتك (الكلمات، التقدم، الرسائل) نهائيًا.',
@@ -220,6 +226,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'Игра',
     logoutConfirmMsg: 'Вы уверены, что хотите выйти?',
     logoutConfirmYes: 'Выйти',
+    phase3SectionLabel: 'Социум и соревнование',
     confirmYesDestructive: 'Да, удалить',
     deleteAccountBtn: 'Удалить аккаунт',
     deleteAccountConfirmMsg: 'Это действие нельзя отменить. Ваш аккаунт и все данные (слова, прогресс, сообщения) будут удалены безвозвратно.',
@@ -263,6 +270,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'Spiel',
     logoutConfirmMsg: 'Möchtest du dich wirklich abmelden?',
     logoutConfirmYes: 'Abmelden',
+    phase3SectionLabel: 'Sozial & Wettbewerb',
     confirmYesDestructive: 'Ja, löschen',
     deleteAccountBtn: 'Konto löschen',
     deleteAccountConfirmMsg: 'Diese Aktion kann nicht rückgängig gemacht werden. Dein Konto und alle deine Daten (Wörter, Fortschritt, Nachrichten) werden dauerhaft gelöscht.',
@@ -306,6 +314,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'Jeu',
     logoutConfirmMsg: 'Veux-tu vraiment te déconnecter ?',
     logoutConfirmYes: 'Déconnexion',
+    phase3SectionLabel: 'Social & Compétition',
     confirmYesDestructive: 'Oui, supprimer',
     deleteAccountBtn: 'Supprimer mon compte',
     deleteAccountConfirmMsg: 'Cette action est irréversible. Ton compte et toutes tes données (mots, progression, messages) seront définitivement supprimés.',
@@ -349,6 +358,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'Juego',
     logoutConfirmMsg: '¿Seguro que quieres cerrar sesión?',
     logoutConfirmYes: 'Cerrar sesión',
+    phase3SectionLabel: 'Social y Competencia',
     confirmYesDestructive: 'Sí, eliminar',
     deleteAccountBtn: 'Eliminar mi cuenta',
     deleteAccountConfirmMsg: 'Esta acción no se puede deshacer. Tu cuenta y todos tus datos (palabras, progreso, mensajes) se eliminarán permanentemente.',
@@ -392,6 +402,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'Gioco',
     logoutConfirmMsg: 'Sei sicuro di voler uscire?',
     logoutConfirmYes: 'Esci',
+    phase3SectionLabel: 'Sociale e Competizione',
     confirmYesDestructive: 'Sì, elimina',
     deleteAccountBtn: 'Elimina il mio account',
     deleteAccountConfirmMsg: 'Questa azione non può essere annullata. Il tuo account e tutti i tuoi dati (parole, progressi, messaggi) verranno eliminati permanentemente.',
@@ -435,6 +446,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'ゲーム',
     logoutConfirmMsg: 'ログアウトしてもよろしいですか?',
     logoutConfirmYes: 'ログアウト',
+    phase3SectionLabel: 'ソーシャル＆対戦',
     confirmYesDestructive: 'はい、削除します',
     deleteAccountBtn: 'アカウントを削除',
     deleteAccountConfirmMsg: 'この操作は取り消せません。アカウントとすべてのデータ(単語、進捗、メッセージ)が完全に削除されます。',
@@ -478,6 +490,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     gameTabLabel: 'Jogo',
     logoutConfirmMsg: 'Tens a certeza de que queres terminar sessão?',
     logoutConfirmYes: 'Terminar Sessão',
+    phase3SectionLabel: 'Social e Competição',
     confirmYesDestructive: 'Sim, eliminar',
     deleteAccountBtn: 'Eliminar a Minha Conta',
     deleteAccountConfirmMsg: 'Esta ação não pode ser desfeita. A tua conta e todos os teus dados (palavras, progresso, mensagens) serão eliminados permanentemente.',
