@@ -39,6 +39,14 @@ XPSourceType = Literal[
     # soru başına verilen XP'ye ek TEK SEFERLİK tamamlama bonusu.
     "exam_question",
     "exam_mock_complete",
+    # Gerçek Zamanlı Düello (V2 §6.3 Faz 3) — round-servis uçları henüz
+    # bağlanmadı (bkz. duels.py modül docstring'i, alt-faz 3e), ama
+    # flashcard_review/schedule_complete/daily_goal_bonus emsaliyle
+    # tutarlı şekilde önceden tanımlanıyor: "duel_participation" düello
+    # bitince TÜM katılımcılara, "duel_win" ise sadece kazanana ekstra
+    # verilecek.
+    "duel_participation",
+    "duel_win",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -79,6 +87,11 @@ XP_AMOUNTS: dict[str, int] = {
     # büyüklükte (20) tutuldu.
     "exam_question": 5,
     "exam_mock_complete": 20,
+    # Düello — katılım bonusu game_sprint (4) ile game_wordle (15) arası bir
+    # canlı-oyun ödülü; kazanma bonusu leaderboard_reward (20) ile aynı
+    # büyüklükte. Round-servis uçları bağlandığında (3e) kullanılacak.
+    "duel_participation": 8,
+    "duel_win": 20,
 }
 
 LEVEL_BASE = 50
