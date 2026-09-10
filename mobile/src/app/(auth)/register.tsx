@@ -12,6 +12,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { AppleSignInButton } from '@/components/AppleSignInButton';
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { ChipSelect } from '@/components/ui/ChipSelect';
 
 export default function RegisterScreen() {
@@ -115,6 +116,11 @@ export default function RegisterScreen() {
             <View style={[styles.dividerLine, { backgroundColor: c.border }]} />
           </View>
           <AppleSignInButton
+            onError={setError}
+            onStart={() => setLoading(true)}
+            onFinish={() => setLoading(false)}
+          />
+          <GoogleSignInButton
             onError={setError}
             onStart={() => setLoading(true)}
             onFinish={() => setLoading(false)}

@@ -32,6 +32,15 @@ export const authApi = {
     return res.data;
   },
 
+  // Google ile Giris (native, @react-native-google-signin/google-signin) --
+  // apple_sign_in ile AYNI desen: backend zaten hem web hem native icin
+  // ayni /auth/google ucunu kullaniyor (sadece id_token bekliyor), bkz.
+  // backend/app/api/routes/auth.py::google_sign_in.
+  googleSignIn: async (data: { id_token: string }): Promise<AuthResponse> => {
+    const res = await api.post<AuthResponse>('/auth/google', data);
+    return res.data;
+  },
+
   verifyOtp: async (data: {
     email: string;
     code: string;

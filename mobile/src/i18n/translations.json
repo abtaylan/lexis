@@ -286,7 +286,9 @@
     "quickActions": "Hızlı İşlemler",
     "todayScheduleTitle": "Bugünün Programı",
     "todayScheduleEmpty": "Bugün için planlanmış bir etkinlik yok",
-    "todayScheduleViewAll": "Tüm Programı Gör"
+    "todayScheduleViewAll": "Tüm Programı Gör",
+    "googleSignInFailedMsg": "Google ile giriş başarısız. Lütfen tekrar deneyin.",
+    "continueWithGoogleBtn": "Google ile devam et"
   },
   "en": {
     "dashboard": "Dashboard",
@@ -575,7 +577,9 @@
     "quickActions": "Quick Actions",
     "todayScheduleTitle": "Today's Schedule",
     "todayScheduleEmpty": "No activity planned for today",
-    "todayScheduleViewAll": "View Full Schedule"
+    "todayScheduleViewAll": "View Full Schedule",
+    "googleSignInFailedMsg": "Google sign-in failed. Please try again.",
+    "continueWithGoogleBtn": "Continue with Google"
   },
   "ar": {
     "dashboard": "لوحة التحكم",
@@ -864,7 +868,9 @@
     "quickActions": "إجراءات سريعة",
     "todayScheduleTitle": "برنامج اليوم",
     "todayScheduleEmpty": "لا يوجد نشاط مخطط لهذا اليوم",
-    "todayScheduleViewAll": "عرض البرنامج الكامل"
+    "todayScheduleViewAll": "عرض البرنامج الكامل",
+    "googleSignInFailedMsg": "فشل تسجيل الدخول عبر Google. حاول مرة أخرى.",
+    "continueWithGoogleBtn": "المتابعة عبر Google"
   },
   "ru": {
     "dashboard": "Панель",
@@ -1153,7 +1159,9 @@
     "quickActions": "Быстрые действия",
     "todayScheduleTitle": "Расписание на сегодня",
     "todayScheduleEmpty": "На сегодня ничего не запланировано",
-    "todayScheduleViewAll": "Смотреть всё расписание"
+    "todayScheduleViewAll": "Смотреть всё расписание",
+    "googleSignInFailedMsg": "Не удалось войти через Google. Попробуйте снова.",
+    "continueWithGoogleBtn": "Продолжить с Google"
   },
   "de": {
     "dashboard": "Dashboard",
@@ -1442,7 +1450,9 @@
     "quickActions": "Schnellzugriff",
     "todayScheduleTitle": "Heutiger Plan",
     "todayScheduleEmpty": "Für heute ist keine Aktivität geplant",
-    "todayScheduleViewAll": "Gesamten Plan ansehen"
+    "todayScheduleViewAll": "Gesamten Plan ansehen",
+    "googleSignInFailedMsg": "Anmeldung mit Google fehlgeschlagen. Bitte erneut versuchen.",
+    "continueWithGoogleBtn": "Mit Google fortfahren"
   },
   "fr": {
     "dashboard": "Tableau de bord",
@@ -1731,7 +1741,9 @@
     "quickActions": "Actions rapides",
     "todayScheduleTitle": "Programme du jour",
     "todayScheduleEmpty": "Aucune activité prévue aujourd'hui",
-    "todayScheduleViewAll": "Voir tout le programme"
+    "todayScheduleViewAll": "Voir tout le programme",
+    "googleSignInFailedMsg": "Échec de la connexion avec Google. Veuillez réessayer.",
+    "continueWithGoogleBtn": "Continuer avec Google"
   },
   "es": {
     "dashboard": "Panel",
@@ -2020,7 +2032,9 @@
     "quickActions": "Acciones rápidas",
     "todayScheduleTitle": "Programa de hoy",
     "todayScheduleEmpty": "No hay actividad planificada para hoy",
-    "todayScheduleViewAll": "Ver programa completo"
+    "todayScheduleViewAll": "Ver programa completo",
+    "googleSignInFailedMsg": "Error al iniciar sesión con Google. Inténtalo de nuevo.",
+    "continueWithGoogleBtn": "Continuar con Google"
   },
   "it": {
     "dashboard": "Dashboard",
@@ -2309,7 +2323,9 @@
     "quickActions": "Azioni rapide",
     "todayScheduleTitle": "Programma di oggi",
     "todayScheduleEmpty": "Nessuna attività pianificata per oggi",
-    "todayScheduleViewAll": "Vedi programma completo"
+    "todayScheduleViewAll": "Vedi programma completo",
+    "googleSignInFailedMsg": "Accesso con Google non riuscito. Riprova.",
+    "continueWithGoogleBtn": "Continua con Google"
   },
   "ja": {
     "dashboard": "ダッシュボード",
@@ -2598,7 +2614,9 @@
     "quickActions": "クイックアクション",
     "todayScheduleTitle": "今日の予定",
     "todayScheduleEmpty": "今日の予定はありません",
-    "todayScheduleViewAll": "すべての予定を見る"
+    "todayScheduleViewAll": "すべての予定を見る",
+    "googleSignInFailedMsg": "Googleサインインに失敗しました。もう一度お試しください。",
+    "continueWithGoogleBtn": "Googleで続ける"
   },
   "pt": {
     "dashboard": "Painel",
@@ -2887,6 +2905,8 @@
     "quickActions": "Ações Rápidas",
     "todayScheduleTitle": "Programa de hoje",
     "todayScheduleEmpty": "Nenhuma atividade planejada para hoje",
-    "todayScheduleViewAll": "Ver programa completo"
+    "todayScheduleViewAll": "Ver programa completo",
+    "googleSignInFailedMsg": "Falha ao iniciar sessão com a Google. Tenta novamente.",
+    "continueWithGoogleBtn": "Continuar com o Google"
   }
 }

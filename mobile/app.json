@@ -45,6 +45,12 @@
       "expo-iap",
       "expo-apple-authentication",
       [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.TODO-REPLACE-WITH-IOS-REVERSED-CLIENT-ID"
+        }
+      ],
+      [
         "react-native-google-mobile-ads",
         {
           "androidAppId": "ca-app-pub-7117270113356521~9256221644",

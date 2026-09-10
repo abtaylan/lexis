@@ -22,32 +22,31 @@ rewards.py ile AYNI desen: gerçek dış ağ gerekmediği için (sadece
 Supabase yazıyor) bir Claude scheduled task + Supabase MCP SQL ile
 çalıştırılıyor (bkz. supabase/migrations/041 yorumu ve bu özelliğin
 devir notundaki "Lig rollover" script'i).
-"""
 
-from datetime import UTC, datetime, timedelta
+FAZ 3F GÜNCELLEMESİ (10 Eylül 2026 kullanıcı isteği — "tüm kişiler
+otomatik olarak en düşük lige dahil edilmeli" + "user eksikliği
+noktasında bot'lar"): "bul ya da oluştur" mantığı artık BU MODÜLDE
+DEĞİL, bir Postgres fonksiyonunda (public.ensure_active_league_membership,
+bkz. migration 047). Neden: aynı mantığı HEM burada (lazy — kullanıcı
+ekranı açtığında) HEM yeni kullanıcı kaydında (DB trigger,
+sinyal kaynağından bağımsız: e-posta/OTP, Apple, ileride Google) tek
+kaynaktan çalıştırmak gerekiyordu — iki ayrı Python/SQL kopyası
+birbirinden kopabilirdi (bkz. yukarıdaki xp_source_type uyarısı, AYNI
+sınıf risk). _ensure_active_membership burada artık sadece o
+fonksiyonu RPC ile çağıran ince bir sarmalayıcı. Yeni bir grup İLK kez
+açıldığında (hem trigger hem bu RPC üzerinden) o kademedeki bot
+havuzundan (profiles.is_bot, migration 046) otomatik dolgu yapılıyor —
+artık hiçbir lig grubu boş/tek kişilik başlamıyor.
+"""
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.schemas.leagues import LeagueMemberItem, LeagueStatusResponse
+from pydantic import BaseModel
 
 router = APIRouter()
-
-DEFAULT_MAX_MEMBERS = 30
-
-
-def _current_week_bounds() -> tuple[datetime, datetime]:
-    """distribute_leaderboard_rewards.py'nin SQL karşılığındaki
-    (`date_trunc('week', now() + interval '3 hours')`) ile AYNI sınır:
-    Türkiye yerel saatine (+3, DST yok) göre Pazartesi 00:00 - Pazartesi 00:00."""
-    now_local = datetime.now(UTC) + timedelta(hours=3)
-    week_start_local = (now_local - timedelta(days=now_local.weekday())).replace(
-        hour=0, minute=0, second=0, microsecond=0
-    )
-    week_start = week_start_local - timedelta(hours=3)
-    week_end = week_start + timedelta(days=7)
-    return week_start, week_end
 
 
 def _get_tier(tier_slug: str) -> dict:
@@ -63,85 +62,26 @@ def _get_tier(tier_slug: str) -> dict:
     return row.data
 
 
-def _find_active_league_for_user(user_id: str) -> dict | None:
-    membership_rows = (
-        supabase_admin.table("league_memberships")
-        .select("league_id")
-        .eq("user_id", user_id)
-        .execute()
-        .data
-    ) or []
-    league_ids = [m["league_id"] for m in membership_rows]
-    if not league_ids:
-        return None
-    league_rows = (
-        supabase_admin.table("leagues")
-        .select("*")
-        .in_("id", league_ids)
-        .eq("status", "active")
-        .execute()
-        .data
-    ) or []
-    # Değişmez kural: bir kullanıcının aynı anda EN FAZLA bir aktif lig
-    # üyeliği olur (yeni hafta grupları sadece _ensure_active_membership
-    # üzerinden, kullanıcının aktif üyeliği yoksa açılır/katılır).
-    return league_rows[0] if league_rows else None
-
-
 def _ensure_active_membership(user_id: str, tier_slug: str) -> dict:
     """Kullanıcının bu haftaki aktif lig üyeliğini döndürür — yoksa,
+    public.ensure_active_league_membership (migration 047) çağrılır:
     tier_slug'daki dolu olmayan bir gruba katılır ya da (hiç yoksa/hepsi
-    doluysa) yeni bir grup açar."""
-    existing = _find_active_league_for_user(user_id)
-    if existing:
-        return existing
-
-    week_start, week_end = _current_week_bounds()
-
-    candidate_leagues = (
+    doluysa) bot dolgulu yeni bir grup açar."""
+    result = supabase_admin.rpc(
+        "ensure_active_league_membership",
+        {"p_user_id": user_id, "p_tier_slug": tier_slug},
+    ).execute()
+    league_id = result.data
+    league = (
         supabase_admin.table("leagues")
         .select("*")
-        .eq("tier_slug", tier_slug)
-        .eq("status", "active")
-        .eq("week_start", week_start.isoformat())
-        .order("created_at")
-        .execute()
-        .data
-    ) or []
-
-    for league in candidate_leagues:
-        member_count = (
-            supabase_admin.table("league_memberships")
-            .select("user_id", count="exact")
-            .eq("league_id", league["id"])
-            .execute()
-            .count
-            or 0
-        )
-        if member_count < league["max_members"]:
-            supabase_admin.table("league_memberships").insert(
-                {"league_id": league["id"], "user_id": user_id}
-            ).execute()
-            return league
-
-    # Uygun (dolu olmayan) grup yok — yeni bir grup aç.
-    result = (
-        supabase_admin.table("leagues")
-        .insert(
-            {
-                "tier_slug": tier_slug,
-                "week_start": week_start.isoformat(),
-                "week_end": week_end.isoformat(),
-                "max_members": DEFAULT_MAX_MEMBERS,
-            }
-        )
+        .eq("id", league_id)
+        .single()
         .execute()
     )
-    league = result.data[0]
-    supabase_admin.table("league_memberships").insert(
-        {"league_id": league["id"], "user_id": user_id}
-    ).execute()
-    return league
+    if not league.data:
+        raise HTTPException(status_code=500, detail="Lig grubu oluşturulamadı.")
+    return league.data
 
 
 def _weekly_xp_by_user(user_ids: list[str], week_start: str, week_end: str) -> dict[str, int]:
@@ -168,7 +108,10 @@ def _weekly_xp_by_user(user_ids: list[str], week_start: str, week_end: str) -> d
 async def get_my_league(current_user=Depends(get_current_user)):
     """Kullanıcının bu haftaki lig grubunu döndürür — hiç yoksa (ilk kez
     çağrılıyorsa ya da geçen hafta kapanmışsa) otomatik olarak
-    profiles.current_league_tier'daki kademede bir gruba yerleştirir."""
+    profiles.current_league_tier'daki kademede bir gruba yerleştirir.
+    Bot katılımcılar (is_bot=true) sıradan katılımcılar gibi döner —
+    istemci tarafında ayırt edilmiyor (bilinçli — gerçek bir rakip gibi
+    görünmeleri isteniyor)."""
     profile = (
         supabase_admin.table("profiles")
         .select("current_league_tier")
@@ -226,3 +169,33 @@ async def get_my_league(current_user=Depends(get_current_user)):
         week_end=league["week_end"],
         members=members,
     )
+
+
+# ------------------------------------------------------------
+# Faz 3f -- genel lig istatistikleri (bot'lar HARIC -- gercek kullanici
+# sayisini/dagilimini yansitsin diye, bkz. migration 046/047).
+# ------------------------------------------------------------
+class LeagueTierCount(BaseModel):
+    tier_slug: str
+    count: int
+
+
+class LeagueStatsResponse(BaseModel):
+    total_real_players: int
+    tier_distribution: list[LeagueTierCount]
+
+
+@router.get("/stats", response_model=LeagueStatsResponse)
+async def get_league_stats(current_user=Depends(get_current_user)):
+    tier_rows = (
+        supabase_admin.table("profiles")
+        .select("current_league_tier")
+        .eq("is_bot", False)
+        .execute()
+        .data
+    ) or []
+    counts: dict[str, int] = {}
+    for r in tier_rows:
+        counts[r["current_league_tier"]] = counts.get(r["current_league_tier"], 0) + 1
+    tier_distribution = [LeagueTierCount(tier_slug=k, count=v) for k, v in counts.items()]
+    return LeagueStatsResponse(total_real_players=len(tier_rows), tier_distribution=tier_distribution)

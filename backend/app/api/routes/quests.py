@@ -29,6 +29,7 @@ from app.core.database import supabase_admin
 from app.schemas.quests import QuestListResponse, QuestNodeItem
 from app.services import badge_service
 from app.services.xp_service import award_xp
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -116,6 +117,19 @@ async def list_quests(current_user=Depends(get_current_user)):
                     )
                 if node.get("reward_badge_code"):
                     await badge_service.award_badge(current_user.id, node["reward_badge_code"])
+
+                # Faz 3f (migration 048) -- genel ilerleme rozetleri:
+                # ilk tamamlanan HERHANGI bir gorev + haritadaki TUM
+                # aktif gorevler bitince "harita ustasi".
+                await badge_service.award_badge(current_user.id, "first_quest_complete")
+                completed_count_result = (
+                    supabase_admin.table("user_quest_progress")
+                    .select("quest_node_id", count="exact")
+                    .eq("user_id", current_user.id)
+                    .execute()
+                )
+                if (completed_count_result.count or 0) >= len(nodes):
+                    await badge_service.award_badge(current_user.id, "quest_map_complete")
         elif is_completed:
             current_value = node["requirement_count"]
 
@@ -141,3 +155,36 @@ async def list_quests(current_user=Depends(get_current_user)):
         previous_completed = is_completed
 
     return QuestListResponse(items=items)
+
+
+# ------------------------------------------------------------
+# Faz 3f -- kullanici bazli gorev haritasi istatistigi.
+# ------------------------------------------------------------
+class QuestStatsResponse(BaseModel):
+    completed_count: int
+    total_count: int
+    completion_pct: float
+
+
+@router.get("/stats/me", response_model=QuestStatsResponse)
+async def get_my_quest_stats(current_user=Depends(get_current_user)):
+    total_count = (
+        supabase_admin.table("quest_nodes")
+        .select("id", count="exact")
+        .eq("is_active", True)
+        .execute()
+        .count
+        or 0
+    )
+    completed_count = (
+        supabase_admin.table("user_quest_progress")
+        .select("quest_node_id", count="exact")
+        .eq("user_id", current_user.id)
+        .execute()
+        .count
+        or 0
+    )
+    completion_pct = round((completed_count / total_count) * 100, 1) if total_count else 0.0
+    return QuestStatsResponse(
+        completed_count=completed_count, total_count=total_count, completion_pct=completion_pct
+    )

@@ -44,6 +44,7 @@ from app.schemas.duels import (
 )
 from app.services import badge_service
 from app.services.xp_service import award_xp
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -52,6 +53,14 @@ router = APIRouter()
 ROUND_CANDIDATE_FETCH_LIMIT = 300
 ROUND_DURATION_SECONDS = 15
 ANSWER_SCORE_POINTS = 10
+
+# Faz 3f (10 Eylul 2026 kullanici istegi -- "rakip bulunamiyor") -- bekleyen
+# odaya rakip yoksa bot otomatik katilir, ve turlarda cevap vermeyen bot
+# katilimcilar icin otomatik cevap uretilir (bkz. asagidaki yardimcilar).
+BOT_FILL_INITIAL_DELAY_SECONDS = 10
+BOT_FILL_INTERVAL_SECONDS = 20
+BOT_FILL_MAX_TOTAL = 4
+BOT_ANSWER_ACCURACY = {"kolay": 0.5, "orta": 0.7, "zor": 0.85, "usta": 0.95}
 
 
 def _get_learning_lang(user_id: str) -> str:
@@ -281,6 +290,142 @@ def _definition_for_round(round_row: dict) -> str:
     return (row.data or {}).get("definition") or ""
 
 
+def _bot_profile_ids() -> set[str]:
+    """Tum bot (is_bot=true) profil id'lerini doner -- oda doldurma ve
+    katilimci filtreleme icin kucuk, sik cagrilan bir yardimci (bot
+    havuzu ~30 kisi, maliyeti onemsiz)."""
+    rows = (
+        supabase_admin.table("profiles").select("id").eq("is_bot", True).execute().data
+    ) or []
+    return {r["id"] for r in rows}
+
+
+def _fill_duel_with_bot_if_needed(duel: dict) -> None:
+    """Bekleyen (status='waiting') bir odada rakip bulunamiyorsa (kullanici
+    sorusu, 10 Eylul 2026) zaman icinde bot ekler. Ilk BOT_FILL_INITIAL_
+    DELAY_SECONDS saniye gercek bir rakip icin beklenir; sonra kademeli
+    olarak (BOT_FILL_INTERVAL_SECONDS'ta bir +1) en fazla
+    min(max_players, BOT_FILL_MAX_TOTAL) toplam katilimciya kadar bot
+    eklenir -- 8 kisilik bos bir odanin aninda 7 bot ile dolmasi yerine,
+    gercekci bir "eslesme" hissi icin."""
+    if duel["status"] != "waiting":
+        return
+    try:
+        created_at = datetime.fromisoformat(duel["created_at"].replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return
+    elapsed = (datetime.now(UTC) - created_at).total_seconds()
+    if elapsed < BOT_FILL_INITIAL_DELAY_SECONDS:
+        return
+
+    target_total = min(duel["max_players"], BOT_FILL_MAX_TOTAL)
+    allowed_bots = min(
+        target_total - 1,
+        1 + int((elapsed - BOT_FILL_INITIAL_DELAY_SECONDS) // BOT_FILL_INTERVAL_SECONDS),
+    )
+    if allowed_bots <= 0:
+        return
+
+    participant_rows = (
+        supabase_admin.table("duel_participants")
+        .select("user_id")
+        .eq("duel_id", duel["id"])
+        .is_("left_at", "null")
+        .execute()
+        .data
+    ) or []
+    current_ids = {p["user_id"] for p in participant_rows}
+    if len(current_ids) >= duel["max_players"]:
+        return
+
+    bot_ids = _bot_profile_ids()
+    current_bot_count = len(current_ids & bot_ids)
+    if current_bot_count >= allowed_bots:
+        return
+
+    available_bots = list(bot_ids - current_ids)
+    if not available_bots:
+        return
+
+    chosen = random.choice(available_bots)
+    supabase_admin.table("duel_participants").insert(
+        {"duel_id": duel["id"], "user_id": chosen}
+    ).execute()
+
+
+def _submit_bot_answer(duel_id: str, round_row: dict, bot_id: str, difficulty: str) -> None:
+    """Bir bot katilimci icin bu tura otomatik cevap uretir -- gercek
+    submit_round_answer ile AYNI skor/kayit mantigi (kasitli kod
+    tekrari: bot'lar current_user bagimliligi olmadan, sunucu ic
+    cagrisiyla cevapliyor). Dogruluk orani BOT_ANSWER_ACCURACY'den
+    zorluga gore gelir."""
+    accuracy = BOT_ANSWER_ACCURACY.get(difficulty, BOT_ANSWER_ACCURACY["orta"])
+    is_correct = random.random() < accuracy
+    if is_correct:
+        selected_option = round_row["correct_option"]
+    else:
+        wrong_options = [o for o in round_row["options"] if o != round_row["correct_option"]]
+        selected_option = random.choice(wrong_options) if wrong_options else round_row["correct_option"]
+
+    supabase_admin.table("duel_answers").insert(
+        {
+            "duel_round_id": round_row["id"],
+            "user_id": bot_id,
+            "selected_option": selected_option,
+            "is_correct": is_correct,
+        }
+    ).execute()
+
+    if is_correct:
+        participant = (
+            supabase_admin.table("duel_participants")
+            .select("score")
+            .eq("duel_id", duel_id)
+            .eq("user_id", bot_id)
+            .single()
+            .execute()
+        )
+        new_score = (participant.data or {}).get("score", 0) + ANSWER_SCORE_POINTS
+        supabase_admin.table("duel_participants").update({"score": new_score}).eq(
+            "duel_id", duel_id
+        ).eq("user_id", bot_id).execute()
+
+
+def _auto_answer_bots(duel_id: str, round_row: dict, active_ids: list[str]) -> None:
+    """active_ids icindeki bot katilimcilardan bu turu HENUZ cevaplamamis
+    olanlara otomatik cevap urettirir -- advance_round'un basinda
+    cagrilir, boylece bot'lar gercek kullanicinin cevabini "beklemis"
+    gibi gorunur (cagrinin kendisi genelde bir insan cevap verip
+    advance_round'u tetikledikten hemen sonra gelir, bkz. mobil/web
+    tick() -- stale-closure duzeltmesi sonrasi)."""
+    if not active_ids:
+        return
+    bot_rows = (
+        supabase_admin.table("profiles")
+        .select("id, bot_difficulty")
+        .in_("id", active_ids)
+        .eq("is_bot", True)
+        .execute()
+        .data
+    ) or []
+    if not bot_rows:
+        return
+
+    answered_rows = (
+        supabase_admin.table("duel_answers")
+        .select("user_id")
+        .eq("duel_round_id", round_row["id"])
+        .execute()
+        .data
+    ) or []
+    already_answered = {r["user_id"] for r in answered_rows}
+
+    for bot in bot_rows:
+        if bot["id"] in already_answered:
+            continue
+        _submit_bot_answer(duel_id, round_row, bot["id"], bot.get("bot_difficulty") or "orta")
+
+
 @router.post("", response_model=DuelResponse, status_code=201)
 async def create_duel(
     duel_in: DuelCreate,
@@ -343,8 +488,12 @@ async def get_duel_status(
     current_user=Depends(get_current_user),
 ):
     """Oda durumu + katılımcı listesi (canlı skor tablosu). Round içeriği
-    (soru/doğru cevap) bilinçli olarak burada yok — bkz. modül docstring'i."""
+    (soru/doğru cevap) bilinçli olarak burada yok — bkz. modül docstring'i.
+    Faz 3f: rakip bulunamayan bekleyen odalara burada bot eklenir (bkz.
+    _fill_duel_with_bot_if_needed) — istemciler zaten bu ucu polling ile
+    surekli cagiriyor, ayri bir arka plan gorevi gerekmiyor."""
     duel = _get_duel_or_404(duel_id)
+    _fill_duel_with_bot_if_needed(duel)
 
     participant_rows = (
         supabase_admin.table("duel_participants")
@@ -608,6 +757,10 @@ async def advance_round(
     round_row = _get_round_or_404(duel_id, duel["current_round_index"])
 
     active_ids = _active_participant_ids(duel_id)
+    # Faz 3f: bu turu henuz cevaplamamis bot katilimcilar icin otomatik
+    # cevap uret -- boylece sadece gercek kullanicilar cevaplayinca degil,
+    # bot'lar da "cevaplamis" sayilinca tur ilerleyebilir.
+    _auto_answer_bots(duel_id, round_row, active_ids)
     answered_count = (
         supabase_admin.table("duel_answers")
         .select("user_id", count="exact")
@@ -659,12 +812,32 @@ async def advance_round(
         ) or []
         if participant_rows:
             top_score = max(p["score"] for p in participant_rows)
+            # Faz 3f (migration 048) -- "kusursuz duello" rozeti icin bu
+            # oda GERCEKTEN kac tur urettiyse (havuz yetersizse
+            # duel.round_count'tan az olabilir, bkz. _generate_rounds) o
+            # sayi baz alinir -- istenen round_count degil.
+            generated_rounds_result = (
+                supabase_admin.table("duel_rounds")
+                .select("id", count="exact")
+                .eq("duel_id", duel_id)
+                .execute()
+            )
+            max_possible_score = (generated_rounds_result.count or 0) * ANSWER_SCORE_POINTS
             for p in participant_rows:
                 await award_xp(
                     user_id=p["user_id"],
                     source_type="duel_participation",
                     source_id=duel_id,
                 )
+                participation_count_result = (
+                    supabase_admin.table("xp_events")
+                    .select("id", count="exact")
+                    .eq("user_id", p["user_id"])
+                    .eq("source_type", "duel_participation")
+                    .execute()
+                )
+                if (participation_count_result.count or 0) >= 25:
+                    await badge_service.award_badge(p["user_id"], "duel_veteran_25")
                 if p["score"] == top_score and top_score > 0:
                     await award_xp(
                         user_id=p["user_id"], source_type="duel_win", source_id=duel_id
@@ -689,6 +862,8 @@ async def advance_round(
                         await badge_service.award_badge(p["user_id"], "duel_win_50")
                     elif win_count >= 10:
                         await badge_service.award_badge(p["user_id"], "duel_win_10")
+                    if max_possible_score > 0 and top_score == max_possible_score:
+                        await badge_service.award_badge(p["user_id"], "perfect_duel")
 
     participant_rows = (
         supabase_admin.table("duel_participants")
@@ -722,3 +897,56 @@ async def advance_round(
     ]
     base = _to_duel_response(duel)
     return DuelStatusResponse(**base.model_dump(), participants=participants)
+
+
+# ------------------------------------------------------------
+# Faz 3f (10 Eylul 2026 kullanici istegi -- "genel istatistik ile
+# user bazli istatistikler de olmali") -- kullanici bazli duello
+# istatistikleri. xp_events'teki duel_participation/duel_win
+# kayitlarindan sayiliyor (bkz. advance_round -- her duello sonunda
+# yaziliyor), ayri bir sayac tablosu YOK (leagues.py'deki AYNI
+# "tek kaynak" tercihi).
+# ------------------------------------------------------------
+class DuelStatsResponse(BaseModel):
+    total_participations: int
+    total_wins: int
+    win_rate: float
+    perfect_wins: int
+
+
+@router.get("/stats/me", response_model=DuelStatsResponse)
+async def get_my_duel_stats(current_user=Depends(get_current_user)):
+    participations = (
+        supabase_admin.table("xp_events")
+        .select("id", count="exact")
+        .eq("user_id", current_user.id)
+        .eq("source_type", "duel_participation")
+        .execute()
+        .count
+        or 0
+    )
+    wins = (
+        supabase_admin.table("xp_events")
+        .select("id", count="exact")
+        .eq("user_id", current_user.id)
+        .eq("source_type", "duel_win")
+        .execute()
+        .count
+        or 0
+    )
+    perfect_wins = (
+        supabase_admin.table("user_badges")
+        .select("id", count="exact")
+        .eq("user_id", current_user.id)
+        .eq("badge_code", "perfect_duel")
+        .execute()
+        .count
+        or 0
+    )
+    win_rate = round((wins / participations) * 100, 1) if participations else 0.0
+    return DuelStatsResponse(
+        total_participations=participations,
+        total_wins=wins,
+        win_rate=win_rate,
+        perfect_wins=perfect_wins,
+    )
