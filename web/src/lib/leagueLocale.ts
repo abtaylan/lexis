@@ -10,16 +10,16 @@ import type { Locale } from '@/lib/i18n';
 // (slug -> tier_index: bronze=0 ... master=5). Yeni bir kademe eklenirse
 // HEM o migration'a HEM buraya eklenmeli.
 export const TIER_NAMES: Record<Locale, Record<string, string>> = {
-  tr: { bronze: 'Bronz', silver: 'Gümüş', gold: 'Altın', platinum: 'Platin', diamond: 'Elmas', master: 'Usta' },
-  en: { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', diamond: 'Diamond', master: 'Master' },
-  de: { bronze: 'Bronze', silver: 'Silber', gold: 'Gold', platinum: 'Platin', diamond: 'Diamant', master: 'Meister' },
-  fr: { bronze: 'Bronze', silver: 'Argent', gold: 'Or', platinum: 'Platine', diamond: 'Diamant', master: 'Maître' },
-  es: { bronze: 'Bronce', silver: 'Plata', gold: 'Oro', platinum: 'Platino', diamond: 'Diamante', master: 'Maestro' },
-  it: { bronze: 'Bronzo', silver: 'Argento', gold: 'Oro', platinum: 'Platino', diamond: 'Diamante', master: 'Maestro' },
-  ar: { bronze: 'برونزي', silver: 'فضي', gold: 'ذهبي', platinum: 'بلاتيني', diamond: 'ماسي', master: 'أستاذ' },
-  ru: { bronze: 'Бронза', silver: 'Серебро', gold: 'Золото', platinum: 'Платина', diamond: 'Алмаз', master: 'Мастер' },
-  ja: { bronze: 'ブロンズ', silver: 'シルバー', gold: 'ゴールド', platinum: 'プラチナ', diamond: 'ダイヤモンド', master: 'マスター' },
-  pt: { bronze: 'Bronze', silver: 'Prata', gold: 'Ouro', platinum: 'Platina', diamond: 'Diamante', master: 'Mestre' },
+  tr: { bronze: 'Bronz', silver: 'Gümüş', gold: 'Altın', platinum: 'Platin', diamond: 'Elmas', master: 'Usta', iron: 'Demir', emerald: 'Zümrüt', ruby: 'Yakut', grandmaster: 'Üstat', champion: 'Şampiyon', legend: 'Efsane' },
+  en: { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', diamond: 'Diamond', master: 'Master', iron: 'Iron', emerald: 'Emerald', ruby: 'Ruby', grandmaster: 'Grandmaster', champion: 'Champion', legend: 'Legend' },
+  de: { bronze: 'Bronze', silver: 'Silber', gold: 'Gold', platinum: 'Platin', diamond: 'Diamant', master: 'Meister', iron: 'Eisen', emerald: 'Smaragd', ruby: 'Rubin', grandmaster: 'Großmeister', champion: 'Champion', legend: 'Legende' },
+  fr: { bronze: 'Bronze', silver: 'Argent', gold: 'Or', platinum: 'Platine', diamond: 'Diamant', master: 'Maître', iron: 'Fer', emerald: 'Émeraude', ruby: 'Rubis', grandmaster: 'Grand Maître', champion: 'Champion', legend: 'Légende' },
+  es: { bronze: 'Bronce', silver: 'Plata', gold: 'Oro', platinum: 'Platino', diamond: 'Diamante', master: 'Maestro', iron: 'Hierro', emerald: 'Esmeralda', ruby: 'Rubí', grandmaster: 'Gran Maestro', champion: 'Campeón', legend: 'Leyenda' },
+  it: { bronze: 'Bronzo', silver: 'Argento', gold: 'Oro', platinum: 'Platino', diamond: 'Diamante', master: 'Maestro', iron: 'Ferro', emerald: 'Smeraldo', ruby: 'Rubino', grandmaster: 'Gran Maestro', champion: 'Campione', legend: 'Leggenda' },
+  ar: { bronze: 'برونزي', silver: 'فضي', gold: 'ذهبي', platinum: 'بلاتيني', diamond: 'ماسي', master: 'أستاذ', iron: 'حديدي', emerald: 'زمردي', ruby: 'ياقوتي', grandmaster: 'أستاذ كبير', champion: 'بطل', legend: 'أسطورة' },
+  ru: { bronze: 'Бронза', silver: 'Серебро', gold: 'Золото', platinum: 'Платина', diamond: 'Алмаз', master: 'Мастер', iron: 'Железо', emerald: 'Изумруд', ruby: 'Рубин', grandmaster: 'Грандмастер', champion: 'Чемпион', legend: 'Легенда' },
+  ja: { bronze: 'ブロンズ', silver: 'シルバー', gold: 'ゴールド', platinum: 'プラチナ', diamond: 'ダイヤモンド', master: 'マスター', iron: 'アイアン', emerald: 'エメラルド', ruby: 'ルビー', grandmaster: 'グランドマスター', champion: 'チャンピオン', legend: 'レジェンド' },
+  pt: { bronze: 'Bronze', silver: 'Prata', gold: 'Ouro', platinum: 'Platina', diamond: 'Diamante', master: 'Mestre', iron: 'Ferro', emerald: 'Esmeralda', ruby: 'Rubi', grandmaster: 'Grão-Mestre', champion: 'Campeão', legend: 'Lenda' },
 };
 
 export const LEAGUE_L: Record<Locale, Record<string, string>> = {

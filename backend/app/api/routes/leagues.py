@@ -3,8 +3,8 @@ backend/app/api/routes/leagues.py
 
 V2 Yol Haritası §6.3 (Faz 3b) — Lig sistemi (haftalık kademe ligleri).
 
-Duolingo tarzı model: her kullanıcı bir kademede (league_tiers: bronze..
-master), o kademedeki ~30 kişilik bir "leagues" grubunda (o haftaya özel,
+Duolingo tarzı model: her kullanıcı bir kademede (league_tiers: iron..
+legend -- 12 kademe, bkz. migration 054), o kademedeki ~30 kişilik bir "leagues" grubunda (o haftaya özel,
 tier_slug + week_start ile eşsiz olması hedeflenir — grup dolarsa YENİ bir
 grup açılır, bkz. _ensure_active_membership), o hafta KAZANDIĞI XP'ye göre
 sıralanır. Sıralama league_memberships'te AYRI bir sayaçla TUTULMUYOR —

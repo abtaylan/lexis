@@ -33,7 +33,7 @@ NE YAPAR (grup basina):
      current_league_tier'i TASARIM GEREGI SABIT, bkz. modul docstring'i
      leagues.py'de + migration 052 yorumu, dikkatlice olcek-lendirilmis
      bot havuzunu bosaltmamak icin -- profiles.current_league_tier'i
-     terfi/dusme yonunde 1 kademe kaydirir (bronze<->master sinirinda
+     terfi/dusme yonunde 1 kademe kaydirir (iron<->legend sinirinda
      tasma YOK, sinirdaki kullanici sadece "stayed" sayilir cunku
      GERCEKTE kademesi degismiyor).
   4. leagues.status = 'completed' yapar.
@@ -67,11 +67,16 @@ except ImportError:
     def job_run(_name):
         yield None
 
-# migration 041_leagues_schema.sql'deki 6 sabit kademeyle birebir eslesir
-# (slug -> tier_index: bronze=0 ... master=5). Yeni bir kademe eklenirse
-# HEM o migration'a HEM buraya (HEM leagues.py/leagueLocale.ts/
-# leagueStrings.ts'teki ayni adli sozluklere) eklenmeli.
-_TIER_SLUGS_BY_INDEX = ["bronze", "silver", "gold", "platinum", "diamond", "master"]
+# migration 054_expand_league_tiers.sql'deki 12 kademeyle birebir eslesir
+# (slug -> tier_index: iron=0 ... legend=11). Yeni bir kademe eklenirse
+# HEM o migration'a (ve league_tiers tablosuna) HEM buraya (HEM
+# leagueLocale.ts/leagueStrings.ts'teki TIER_NAMES sozluklerine)
+# eklenmeli -- burasi DB'den DEGIL sabit bir listeden okuyor (script
+# bagimsiz calisiyor), o yuzden DB ile senkron tutulmasi ELZEM.
+_TIER_SLUGS_BY_INDEX = [
+    "iron", "bronze", "silver", "gold", "platinum", "emerald",
+    "diamond", "ruby", "master", "grandmaster", "champion", "legend",
+]
 
 
 def _weekly_stats_by_user(user_ids: list[str], week_start: str, week_end: str) -> dict[str, dict[str, int]]:
@@ -193,8 +198,8 @@ async def main() -> None:
                 elif new_tier_index < tier_index:
                     outcome = "demoted"
                 else:
-                    # Zon icinde olsa bile sinirda (bronze'da dusme /
-                    # master'da terfi) GERCEKTE kademe degismiyor --
+                    # Zon icinde olsa bile sinirda (iron'da dusme /
+                    # legend'da terfi) GERCEKTE kademe degismiyor --
                     # yanlis "promoted/demoted" etiketi gostermeyelim.
                     outcome = "stayed"
 
