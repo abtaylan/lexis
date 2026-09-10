@@ -30,6 +30,8 @@ import type {
   ExamAttemptResult,
   ExamPracticeQuestionsResult,
   WeakTopicsResult,
+  WeakWordTypesResult,
+  WeakDifficultyResult,
   ExamFinishResult,
   AddWordFromQuestionResult,
   ExamQuestionSuggestionInput,
@@ -293,6 +295,14 @@ export const wordsApi = {
   getDue: async (): Promise<Word[]> => {
     const res = await api.get('/words/due/today');
     return res.data.items;
+  },
+
+  // V2 madde #6 (Faz 2) -- zayif kelime turu ozeti (dashboard widget'i icin).
+  weakWordTypes: async (days = 30, limit = 5): Promise<WeakWordTypesResult> => {
+    const res = await api.get<WeakWordTypesResult>('/words/stats/weak-word-types', {
+      params: { days, limit },
+    });
+    return res.data;
   },
 
   review: async (id: string, data: WordReview): Promise<Word> => {
@@ -777,6 +787,14 @@ export const gamesApi = {
 
   finishSession: async (sessionId: string): Promise<GameFinishResult> => {
     const res = await api.post<GameFinishResult>(`/games/sessions/${sessionId}/finish`);
+    return res.data;
+  },
+
+  // V2 madde #6 (Faz 2) -- zayif zorluk seviyesi ozeti (dashboard widget'i icin).
+  weakDifficulty: async (days = 30, limit = 5): Promise<WeakDifficultyResult> => {
+    const res = await api.get<WeakDifficultyResult>('/games/stats/weak-difficulty', {
+      params: { days, limit },
+    });
     return res.data;
   },
 };

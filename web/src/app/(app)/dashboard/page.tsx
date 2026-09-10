@@ -7,12 +7,12 @@ import {
   BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, MessageCircle, Sun, Moon,
   GraduationCap, ChevronRight,
 } from 'lucide-react';
-import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi, socialApi, examsApi } from '@/lib/api';
+import { statsApi, wordsApi, gamesApi, languagesApi, userLanguagesApi, notificationsApi, socialApi, examsApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
 import { Leaderboard } from '@/components/layout/Leaderboard';
-import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem } from '@/types';
+import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem } from '@/types';
 
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı dashboard
 // banner'ı. mobile/src/i18n/examStrings.ts'teki pageTitle/pageSubtitle/
@@ -36,6 +36,36 @@ const WEAK_TOPICS_STRINGS: Partial<Record<Locale, { title: string; subtitle: str
     accuracyTpl: 'Accuracy: {percent}%',
     reviewBtn: 'Review',
     practiceBtn: 'Practice',
+  },
+};
+
+// V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan ozetleri. Ayni
+// "soft-disable" deseni: backend bos liste donerse widget hic gosterilmez.
+const WEAK_WORD_TYPES_STRINGS: Partial<Record<Locale, { title: string; subtitle: string; cta: string }>> = {
+  tr: {
+    title: 'Zayıf Kelime Türlerin',
+    subtitle: 'Tekrarlarında en çok zorlandığın kelime türleri',
+    cta: 'Kelimelerime Git',
+  },
+  en: {
+    title: 'Your Weak Word Types',
+    subtitle: 'Word types you struggle with most in reviews',
+    cta: 'Go to My Words',
+  },
+};
+
+const WEAK_DIFFICULTY_STRINGS: Partial<Record<Locale, { title: string; subtitle: string; cta: string; levelLabels: Record<string, string> }>> = {
+  tr: {
+    title: 'Zayıf Zorluk Seviyen',
+    subtitle: 'Oyunlarda en çok yanlış yaptığın zorluk seviyeleri',
+    cta: 'Oyun Oyna',
+    levelLabels: { beginner: 'Başlangıç', intermediate: 'Orta', advanced: 'İleri' },
+  },
+  en: {
+    title: 'Your Weak Difficulty Level',
+    subtitle: 'Difficulty levels you miss most in games',
+    cta: 'Play a Game',
+    levelLabels: { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' },
   },
 };
 
@@ -150,6 +180,9 @@ export default function DashboardPage() {
 
   // ── Madde #3c: zayıf konu özeti (dashboard widget'ı) ──
   const [weakTopics, setWeakTopics] = useState<WeakTopicItem[]>([]);
+  // V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan widget'lari.
+  const [weakWordTypes, setWeakWordTypes] = useState<WeakWordTypeItem[]>([]);
+  const [weakDifficulty, setWeakDifficulty] = useState<WeakDifficultyItem[]>([]);
 
   useEffect(() => {
     examsApi
@@ -157,6 +190,18 @@ export default function DashboardPage() {
       .then((res) => setWeakTopics(res.items))
       .catch(() => {
         /* soft-disable: uygun olmayan kullanıcı/hata durumunda widget hiç gösterilmez */
+      });
+    wordsApi
+      .weakWordTypes(30, 3)
+      .then((res) => setWeakWordTypes(res.items))
+      .catch(() => {
+        /* veri yoksa (henüz hiç tekrar edilmemiş kelime) widget gösterilmez */
+      });
+    gamesApi
+      .weakDifficulty(30, 3)
+      .then((res) => setWeakDifficulty(res.items))
+      .catch(() => {
+        /* veri yoksa (henüz oyun oynanmamış) widget gösterilmez */
       });
   }, []);
 
@@ -568,6 +613,76 @@ export default function DashboardPage() {
                     {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.practiceBtn}
                   </button>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* V2 madde #6 (Faz 2): zayıf kelime türü özeti */}
+      {weakWordTypes.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
+            {(WEAK_WORD_TYPES_STRINGS[locale] ?? WEAK_WORD_TYPES_STRINGS.tr)!.title}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+            {(WEAK_WORD_TYPES_STRINGS[locale] ?? WEAK_WORD_TYPES_STRINGS.tr)!.subtitle}
+          </p>
+          <div className="flex flex-col gap-2 mt-3">
+            {weakWordTypes.map((item) => (
+              <div
+                key={item.word_type}
+                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 dark:border-slate-800 p-3"
+              >
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate capitalize">
+                  {item.word_type}
+                </p>
+                <button
+                  onClick={() => router.push('/words')}
+                  className="text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors shrink-0"
+                  style={{ borderColor: '#378ADD', color: '#378ADD' }}
+                >
+                  {(WEAK_WORD_TYPES_STRINGS[locale] ?? WEAK_WORD_TYPES_STRINGS.tr)!.cta}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* V2 madde #6 (Faz 2): zayıf zorluk seviyesi özeti */}
+      {weakDifficulty.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
+            {(WEAK_DIFFICULTY_STRINGS[locale] ?? WEAK_DIFFICULTY_STRINGS.tr)!.title}
+          </p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+            {(WEAK_DIFFICULTY_STRINGS[locale] ?? WEAK_DIFFICULTY_STRINGS.tr)!.subtitle}
+          </p>
+          <div className="flex flex-col gap-2 mt-3">
+            {weakDifficulty.map((item) => (
+              <div
+                key={item.difficulty_level}
+                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 dark:border-slate-800 p-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate">
+                    {(WEAK_DIFFICULTY_STRINGS[locale] ?? WEAK_DIFFICULTY_STRINGS.tr)!.levelLabels[item.difficulty_level] ?? item.difficulty_level}
+                  </p>
+                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                    {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.accuracyTpl.replace(
+                      '{percent}',
+                      String(Math.round(item.accuracy_ratio * 100))
+                    )}
+                  </p>
+                </div>
+                <button
+                  onClick={() => router.push('/game')}
+                  className="text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors shrink-0"
+                  style={{ borderColor: '#854F0B', color: '#854F0B' }}
+                >
+                  {(WEAK_DIFFICULTY_STRINGS[locale] ?? WEAK_DIFFICULTY_STRINGS.tr)!.cta}
+                </button>
               </div>
             ))}
           </div>

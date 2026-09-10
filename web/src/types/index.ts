@@ -349,6 +349,31 @@ export interface WeakTopicsResult {
   items: WeakTopicItem[];
 }
 
+// V2 madde #6 (Faz 2) -- kelime tarafi zayif alan istatistigi.
+export interface WeakWordTypeItem {
+  word_type: string;
+  word_count: number;
+  avg_ease_factor: number;
+}
+
+export interface WeakWordTypesResult {
+  period_days: number;
+  items: WeakWordTypeItem[];
+}
+
+// V2 madde #6 (Faz 2) -- oyun tarafi zayif alan istatistigi.
+export interface WeakDifficultyItem {
+  difficulty_level: string;
+  total_count: number;
+  wrong_count: number;
+  accuracy_ratio: number;
+}
+
+export interface WeakDifficultyResult {
+  period_days: number;
+  items: WeakDifficultyItem[];
+}
+
 export interface ExamFinishResult {
   id: string;
   exam_type: ExamType;
