@@ -30,6 +30,10 @@ export const customLeaguesApi = {
   leave: async (leagueId: string): Promise<void> => {
     await api.post(`/custom-leagues/${leagueId}/leave`);
   },
+  transferOwnership: async (leagueId: string, newOwnerUserId: string): Promise<CustomLeagueItem> => {
+    const res = await api.post<CustomLeagueItem>(`/custom-leagues/${leagueId}/transfer-ownership`, { new_owner_user_id: newOwnerUserId });
+    return res.data;
+  },
   invite: async (leagueId: string, username: string): Promise<CustomLeagueInviteItem> => {
     const res = await api.post<CustomLeagueInviteItem>(`/custom-leagues/${leagueId}/invite`, { username });
     return res.data;

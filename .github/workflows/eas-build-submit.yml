@@ -1,0 +1,44 @@
+name: EAS Build + Submit (production)
+
+# BILINCLI OLARAK otomatik (push) DEGIL -- native build+store submit
+# (App Store/Play Store'a gonderim) para/inceleme maliyeti olan geri
+# donulmez bir islem, bu yuzden sadece elle (workflow_dispatch)
+# tetiklenir. Native kod/bagimlilik degisen HER commit'ten sonra bunu
+# calistirmayi unutma -- aksi halde eas-update.yml'nin OTA'lari
+# eski runtimeVersion'daki build'lere ulasamaz (bkz. o dosyanin
+# ustundeki not).
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Build + submit edilecek platform"
+        required: true
+        type: choice
+        options: [all, ios, android]
+        default: all
+
+jobs:
+  build_and_submit:
+    name: Build + submit (${{ inputs.platform }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+
+      - name: EAS build + auto-submit
+        run: eas build --platform ${{ inputs.platform }} --profile production --non-interactive --auto-submit --no-wait

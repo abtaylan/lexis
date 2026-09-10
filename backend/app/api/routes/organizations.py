@@ -17,9 +17,10 @@ alt-adım (kurum liglerinin genel liglerle nasıl bir arada matchmaking
 yapacağı netleşmeden eklenmedi).
 
 Kullanıcı davet etme, e-postayla arama gerektiriyor ama profiles.email
-YOK (e-posta sadece Supabase auth.users'ta) — admin_platform.py'deki
-TEK emsal desen kullanıldı: supabase_admin.auth.admin.list_users() ile
-tüm kullanıcılar çekilip e-postaya göre eşleştiriliyor. NOT: bu O(kullanıcı
+YOK (e-posta sadece Supabase auth.users'ta) — app.services.auth_users.
+list_all_auth_users() ortak yardımcısı kullanılıyor (10 Eylül 2026'da
+admin.py'de bulunan sayfalama bug'ı — tek sayfa/50 kullanıcı sınırı —
+yüzünden tüm çağrı yerleri buraya taşındı). NOT: bu yine de O(kullanıcı
 sayısı) bir tarama — şu anki (küçük) kullanıcı tabanında sorun değil,
 kullanıcı sayısı büyürse gerçek bir "e-postaya göre tek kullanıcı getir"
 admin API çağrısına geçilmeli (bkz. Supabase GoTrue admin API'sinin daha
@@ -30,6 +31,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
+from app.services.auth_users import list_all_auth_users
 from app.schemas.organizations import (
     OrganizationCreate,
     OrganizationInviteRequest,
@@ -66,8 +68,7 @@ def _require_manage_role(org_id: str, user_id: str) -> None:
 
 def _find_user_id_by_email(email: str) -> str | None:
     try:
-        page = supabase_admin.auth.admin.list_users()
-        users = page if isinstance(page, list) else getattr(page, "users", [])
+        users = list_all_auth_users()
         for u in users:
             if (u.email or "").lower() == email.lower():
                 return u.id
@@ -163,8 +164,7 @@ async def list_organization_members(org_id: str, current_user=Depends(get_curren
 
     email_by_id: dict[str, str] = {}
     try:
-        page = supabase_admin.auth.admin.list_users()
-        users = page if isinstance(page, list) else getattr(page, "users", [])
+        users = list_all_auth_users()
         for u in users:
             if u.id in profiles_by_id:
                 email_by_id[u.id] = u.email

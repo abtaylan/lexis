@@ -38,6 +38,7 @@ from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from app.core.database import supabase_admin
+from app.services.auth_users import list_all_auth_users
 from app.services.email_service import send_schedule_reminder_email
 from app.services.job_log import job_run
 from app.services.push_service import send_push_batch
@@ -120,8 +121,7 @@ def main() -> int:
     # E-posta auth.users'da tutuluyor — admin.py'deki aynı desenle eşleştir.
     email_map = {}
     try:
-        page = supabase_admin.auth.admin.list_users()
-        users = page if isinstance(page, list) else getattr(page, "users", [])
+        users = list_all_auth_users()
         for u in users:
             email_map[u.id] = u.email
     except Exception as e:

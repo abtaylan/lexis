@@ -15,7 +15,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
-import { Users2, ArrowLeft, Loader2, RefreshCw, UserPlus, Trash2, LogOut, Search, Crown } from 'lucide-react';
+import { Users2, ArrowLeft, Loader2, RefreshCw, UserPlus, Trash2, LogOut, Search, Crown, ArrowRightLeft } from 'lucide-react';
 import { customLeaguesApi, socialApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useAuth } from '@/store/auth';
@@ -39,6 +39,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: 'Aranıyor…', noResults: 'Sonuç bulunamadı.', inviteBtn: 'Davet Et',
     inviteSent: 'Davet gönderildi.', deleteLeagueBtn: 'Ligi Sil', leaveLeagueBtn: 'Ligden Ayrıl',
     creatorCannotLeave: 'Kurucu ligden ayrılamaz, ligi silebilir.', membersFull: 'Lig dolu.',
+    transferSectionTitle: 'Kurucuyu Devret', transferBtn: 'Devret', transferSuccess: 'Kurucu devredildi.',
   },
   en: {
     back: 'Custom Leagues', loading: 'Loading…', error: 'Something went wrong.',
@@ -49,6 +50,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: 'Searching…', noResults: 'No results found.', inviteBtn: 'Invite',
     inviteSent: 'Invite sent.', deleteLeagueBtn: 'Delete League', leaveLeagueBtn: 'Leave League',
     creatorCannotLeave: 'The owner cannot leave — delete the league instead.', membersFull: 'League is full.',
+    transferSectionTitle: 'Transfer Ownership', transferBtn: 'Transfer', transferSuccess: 'Ownership transferred.',
   },
   de: {
     back: 'Eigene Ligen', loading: 'Wird geladen…', error: 'Etwas ist schiefgelaufen.',
@@ -59,6 +61,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: 'Suche läuft…', noResults: 'Keine Ergebnisse gefunden.', inviteBtn: 'Einladen',
     inviteSent: 'Einladung gesendet.', deleteLeagueBtn: 'Liga löschen', leaveLeagueBtn: 'Liga verlassen',
     creatorCannotLeave: 'Der Besitzer kann nicht austreten — lösche stattdessen die Liga.', membersFull: 'Liga ist voll.',
+    transferSectionTitle: 'Besitz übertragen', transferBtn: 'Übertragen', transferSuccess: 'Besitz übertragen.',
   },
   fr: {
     back: 'Ligues personnalisées', loading: 'Chargement…', error: "Une erreur s'est produite.",
@@ -69,6 +72,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: 'Recherche…', noResults: 'Aucun résultat trouvé.', inviteBtn: 'Inviter',
     inviteSent: 'Invitation envoyée.', deleteLeagueBtn: 'Supprimer la ligue', leaveLeagueBtn: 'Quitter la ligue',
     creatorCannotLeave: 'Le propriétaire ne peut pas partir — supprime la ligue à la place.', membersFull: 'La ligue est complète.',
+    transferSectionTitle: 'Transférer la propriété', transferBtn: 'Transférer', transferSuccess: 'Propriété transférée.',
   },
   es: {
     back: 'Ligas personalizadas', loading: 'Cargando…', error: 'Algo salió mal.',
@@ -79,6 +83,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: 'Buscando…', noResults: 'No se encontraron resultados.', inviteBtn: 'Invitar',
     inviteSent: 'Invitación enviada.', deleteLeagueBtn: 'Eliminar liga', leaveLeagueBtn: 'Salir de la liga',
     creatorCannotLeave: 'El propietario no puede salir — elimina la liga en su lugar.', membersFull: 'La liga está llena.',
+    transferSectionTitle: 'Transferir propiedad', transferBtn: 'Transferir', transferSuccess: 'Propiedad transferida.',
   },
   it: {
     back: 'Leghe personalizzate', loading: 'Caricamento…', error: 'Qualcosa è andato storto.',
@@ -89,6 +94,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: 'Ricerca…', noResults: 'Nessun risultato trovato.', inviteBtn: 'Invita',
     inviteSent: 'Invito inviato.', deleteLeagueBtn: 'Elimina lega', leaveLeagueBtn: 'Lascia la lega',
     creatorCannotLeave: 'Il proprietario non può uscire — elimina la lega invece.', membersFull: 'La lega è piena.',
+    transferSectionTitle: 'Trasferisci proprietà', transferBtn: 'Trasferisci', transferSuccess: 'Proprietà trasferita.',
   },
   ar: {
     back: 'دوريات خاصة', loading: 'جارٍ التحميل…', error: 'حدث خطأ ما.',
@@ -99,6 +105,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: 'جارٍ البحث…', noResults: 'لم يتم العثور على نتائج.', inviteBtn: 'دعوة',
     inviteSent: 'تم إرسال الدعوة.', deleteLeagueBtn: 'حذف الدوري', leaveLeagueBtn: 'مغادرة الدوري',
     creatorCannotLeave: 'لا يمكن للمالك المغادرة — احذف الدوري بدلاً من ذلك.', membersFull: 'الدوري ممتلئ.',
+    transferSectionTitle: 'نقل الملكية', transferBtn: 'نقل', transferSuccess: 'تم نقل الملكية.',
   },
   ru: {
     back: 'Свои лиги', loading: 'Загрузка…', error: 'Что-то пошло не так.',
@@ -109,6 +116,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: 'Поиск…', noResults: 'Результатов не найдено.', inviteBtn: 'Пригласить',
     inviteSent: 'Приглашение отправлено.', deleteLeagueBtn: 'Удалить лигу', leaveLeagueBtn: 'Покинуть лигу',
     creatorCannotLeave: 'Владелец не может покинуть лигу — удали её вместо этого.', membersFull: 'Лига заполнена.',
+    transferSectionTitle: 'Передать права владельца', transferBtn: 'Передать', transferSuccess: 'Права владельца переданы.',
   },
   ja: {
     back: 'カスタムリーグ', loading: '読み込み中…', error: '問題が発生しました。',
@@ -119,6 +127,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: '検索中…', noResults: '結果が見つかりません。', inviteBtn: '招待',
     inviteSent: '招待を送信しました。', deleteLeagueBtn: 'リーグを削除', leaveLeagueBtn: 'リーグを退出',
     creatorCannotLeave: 'オーナーは退出できません — 代わりにリーグを削除してください。', membersFull: 'リーグは満員です。',
+    transferSectionTitle: 'オーナー権限を譲渡', transferBtn: '譲渡', transferSuccess: 'オーナー権限を譲渡しました。',
   },
   pt: {
     back: 'Ligas personalizadas', loading: 'Carregando…', error: 'Algo deu errado.',
@@ -129,6 +138,7 @@ const L: Record<Locale, Record<string, string>> = {
     searching: 'Buscando…', noResults: 'Nenhum resultado encontrado.', inviteBtn: 'Convidar',
     inviteSent: 'Convite enviado.', deleteLeagueBtn: 'Excluir liga', leaveLeagueBtn: 'Sair da liga',
     creatorCannotLeave: 'O proprietário não pode sair — exclua a liga.', membersFull: 'A liga está cheia.',
+    transferSectionTitle: 'Transferir propriedade', transferBtn: 'Transferir', transferSuccess: 'Propriedade transferida.',
   },
 };
 
@@ -154,6 +164,8 @@ export default function CustomLeagueDetailPage() {
 
   const [leaving, setLeaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [transferringId, setTransferringId] = useState<string | null>(null);
+  const [transferMsg, setTransferMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -236,6 +248,20 @@ export default function CustomLeagueDetailPage() {
     } catch (err) {
       setError(errorDetail(err) || t.error);
       setDeleting(false);
+    }
+  };
+
+  const handleTransfer = async (userId: string) => {
+    setTransferringId(userId);
+    setTransferMsg(null);
+    try {
+      await customLeaguesApi.transferOwnership(leagueId, userId);
+      setTransferMsg(t.transferSuccess);
+      await load();
+    } catch (err) {
+      setError(errorDetail(err) || t.error);
+    } finally {
+      setTransferringId(null);
     }
   };
 
@@ -371,6 +397,47 @@ export default function CustomLeagueDetailPage() {
               </>
             )}
           </div>
+
+          {isCreator && league.members.length > 1 && (
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <ArrowRightLeft className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+                <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{t.transferSectionTitle}</h2>
+              </div>
+              {transferMsg && <p className="text-xs text-green-600 dark:text-green-400">{transferMsg}</p>}
+              <div className="space-y-1 max-h-64 overflow-y-auto">
+                {league.members.filter((m) => !m.is_me).map((m) => (
+                  <div
+                    key={m.user_id}
+                    className="flex items-center justify-between gap-3 px-2 py-1.5 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-gray-100 dark:bg-slate-800 flex items-center justify-center shrink-0 overflow-hidden">
+                        {m.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- dış kaynaklı avatar URL'i, diğer sayfalarla aynı desen
+                          <img src={m.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <Users2 className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-900 dark:text-slate-100 truncate">
+                        {m.display_name || m.username}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={transferringId === m.user_id}
+                      onClick={() => handleTransfer(m.user_id)}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:hover:bg-purple-500/20 dark:text-purple-400 text-xs font-medium disabled:opacity-50 shrink-0"
+                    >
+                      {transferringId === m.user_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRightLeft className="w-3.5 h-3.5" />}
+                      {t.transferBtn}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
             <LeagueTable

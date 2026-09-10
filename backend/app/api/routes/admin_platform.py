@@ -30,6 +30,7 @@ from pydantic import BaseModel
 from app.core.auth import get_current_admin, get_current_admin_full
 from app.core.config import settings
 from app.core.database import supabase_admin
+from app.services.auth_users import list_all_auth_users
 from app.core.runtime import START_TIME
 from app.services.audit_log import log_admin_action
 
@@ -215,8 +216,7 @@ async def list_payments(
 
     email_map = {}
     try:
-        page = supabase_admin.auth.admin.list_users()
-        users = page if isinstance(page, list) else getattr(page, "users", [])
+        users = list_all_auth_users()
         for u in users:
             email_map[u.id] = u.email
     except Exception as e:

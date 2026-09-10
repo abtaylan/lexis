@@ -9,6 +9,7 @@ from supabase import create_client
 from app.core.auth import get_current_user
 from app.core.config import settings
 from app.core.database import supabase_admin
+from app.services.auth_users import list_all_auth_users
 from app.services import learning_languages, otp_service
 
 router = APIRouter()
@@ -108,8 +109,7 @@ def _find_auth_user_by_email(email: str):
     sayfalama/filtre destekleyen bir yöntemi çıkarsa buraya taşınmalı.
     """
     email = email.strip().lower()
-    result = supabase_admin.auth.admin.list_users()
-    for u in result:
+    for u in list_all_auth_users():
         if (u.email or "").strip().lower() == email:
             return u
     return None

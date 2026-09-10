@@ -67,6 +67,10 @@ class CustomLeagueInviteCreate(BaseModel):
     username: str
 
 
+class CustomLeagueTransferOwnership(BaseModel):
+    new_owner_user_id: str
+
+
 class CustomLeagueInviteItem(BaseModel):
     id: str
     league_id: str

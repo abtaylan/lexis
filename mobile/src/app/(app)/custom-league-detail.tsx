@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Users2, RefreshCw, UserPlus, Trash2, LogOut, Search, Crown } from 'lucide-react-native';
+import { ArrowLeft, Users2, RefreshCw, UserPlus, Trash2, LogOut, Search, Crown, ArrowRightLeft } from 'lucide-react-native';
 import { customLeaguesApi } from '@/api/customLeagues';
 import { socialApi } from '@/api/social';
 import type { UserCard } from '@/api/types';
@@ -100,6 +100,15 @@ export default function CustomLeagueDetailScreen() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['custom-leagues-mine'] });
       router.back();
+    },
+  });
+
+  const [transferMsg, setTransferMsg] = useState<string | null>(null);
+  const transferMutation = useMutation({
+    mutationFn: (userId: string) => customLeaguesApi.transferOwnership(leagueId, userId),
+    onSuccess: () => {
+      setTransferMsg(t.transferSuccess);
+      qc.invalidateQueries({ queryKey: ['custom-league-detail', leagueId] });
     },
   });
 
@@ -230,6 +239,40 @@ export default function CustomLeagueDetailScreen() {
               </>
             )}
           </Card>
+
+          {isCreator && league.members.length > 1 && (
+            <Card style={{ marginBottom: spacing.md }}>
+              <View style={styles.sectionTitleRow}>
+                <ArrowRightLeft color={c.accent} size={16} />
+                <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{t.transferSectionTitle}</Text>
+              </View>
+              {!!transferMsg && <Text style={{ color: c.success, fontSize: 11, marginBottom: spacing.xs }}>{transferMsg}</Text>}
+              {league.members.filter((m) => !m.is_me).map((m) => (
+                <View key={m.user_id} style={styles.resultRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, flex: 1, minWidth: 0 }}>
+                    <View style={[styles.smallAvatar, { backgroundColor: c.background }]}>
+                      <Users2 color={c.textMuted} size={12} />
+                    </View>
+                    <Text style={{ color: c.text, fontSize: 13, flexShrink: 1 }} numberOfLines={1}>
+                      {m.display_name || m.username}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => transferMutation.mutate(m.user_id)}
+                    disabled={transferMutation.isPending}
+                    style={[styles.inviteResultBtn, { backgroundColor: c.accentSoft }]}
+                  >
+                    {transferMutation.isPending && transferMutation.variables === m.user_id ? (
+                      <ActivityIndicator color={c.accent} size="small" />
+                    ) : (
+                      <ArrowRightLeft color={c.accent} size={13} />
+                    )}
+                    <Text style={{ color: c.accent, fontWeight: '700', fontSize: 11 }}>{t.transferBtn}</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </Card>
+          )}
 
           <LeagueTable
             members={league.members}

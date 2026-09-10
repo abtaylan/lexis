@@ -38,6 +38,7 @@ from app.schemas.custom_leagues import (
     CustomLeagueItem,
     CustomLeagueListResponse,
     CustomLeagueMemberItem,
+    CustomLeagueTransferOwnership,
 )
 from app.services.notify import notify_user
 
@@ -292,9 +293,11 @@ async def get_custom_league_detail(league_id: str, current_user=Depends(get_curr
 
 @router.delete("/{league_id}", status_code=204)
 async def delete_custom_league(league_id: str, current_user=Depends(get_current_user)):
-    """Ozel ligi tamamen sil -- SADECE kurucu yapabilir (uyeler yerine
-    "sahiplik devri" gibi bir karmasiklik BILINCLI OLARAK eklenmedi,
-    bkz. leave_custom_league'deki ayni kisitlama)."""
+    """Ozel ligi tamamen sil -- SADECE kurucu yapabilir. Kurucu ligden
+    ayrilmak istiyorsa artik once transfer_custom_league_ownership ile
+    kurucugu baska bir uyeye devredip SONRA leave cagirabilir (10 Eylul
+    2026'da eklendi -- oncesinde "kurucu ayrilamaz, silmeli" tek secenekti,
+    bkz. LEXIS_DEVIR_2026-09-10.md §4)."""
     league = _get_league_or_404(league_id)
     if league["created_by"] != current_user.id:
         raise HTTPException(status_code=403, detail="Bu ozel ligi sadece kurucusu silebilir.")
@@ -307,13 +310,75 @@ async def leave_custom_league(league_id: str, current_user=Depends(get_current_u
     if league["created_by"] == current_user.id:
         raise HTTPException(
             status_code=400,
-            detail="Kurucu ozel ligden ayrilamaz -- ligi tamamen silmek icin DELETE kullan.",
+            detail="Kurucu ozel ligden ayrilamaz -- once kurucugu baska bir uyeye devret "
+            "(POST /{league_id}/transfer-ownership) ya da ligi tamamen silmek icin DELETE kullan.",
         )
     if not _is_member(league_id, current_user.id):
         raise HTTPException(status_code=404, detail="Bu ozel ligin uyesi degilsin.")
     supabase_admin.table("custom_league_members").delete().eq("league_id", league_id).eq(
         "user_id", current_user.id
     ).execute()
+
+
+@router.post("/{league_id}/transfer-ownership", response_model=CustomLeagueItem)
+async def transfer_custom_league_ownership(
+    league_id: str,
+    transfer_in: CustomLeagueTransferOwnership,
+    current_user=Depends(get_current_user),
+):
+    """Ozel ligin kurucusunu (created_by) baska bir uyeye devret -- SADECE
+    mevcut kurucu cagirabilir, hedef MUTLAKA ligin mevcut bir uyesi olmali
+    (yeni bir kullanici otomatik uye yapilmiyor -- once invite/accept ile
+    uye olmasi gerekiyor). Devirden sonra ESKI kurucu sade bir uye olarak
+    ligde KALIR -- isterse ayrica leave cagirabilir (artik kurucu
+    olmadigi icin bu sefer engellenmez). 10 Eylul 2026'da eklendi (bkz.
+    LEXIS_DEVIR_2026-09-10.md §4 -- delete_custom_league/leave_custom_league'
+    deki "ownership transfer henuz yok" kisitlamasinin giderilmesi)."""
+    league = _get_league_or_404(league_id)
+    if league["created_by"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Kurucu devrini sadece mevcut kurucu yapabilir.")
+
+    new_owner_id = transfer_in.new_owner_user_id
+    if new_owner_id == current_user.id:
+        raise HTTPException(status_code=400, detail="Zaten bu ligin kurucususun.")
+    if not _is_member(league_id, new_owner_id):
+        raise HTTPException(status_code=400, detail="Kurucu devri sadece ligin mevcut bir uyesine yapilabilir.")
+
+    updated = (
+        supabase_admin.table("custom_leagues")
+        .update({"created_by": new_owner_id})
+        .eq("id", league_id)
+        .execute()
+    ).data[0]
+
+    new_owner = (
+        supabase_admin.table("profiles")
+        .select("username, display_name")
+        .eq("id", new_owner_id)
+        .limit(1)
+        .execute()
+        .data
+    )
+    new_owner_name = (
+        (new_owner[0].get("display_name") if new_owner else None)
+        or (new_owner[0].get("username") if new_owner else None)
+        or "Bir uye"
+    )
+    notify_user(
+        new_owner_id,
+        "custom_league_ownership_transfer",
+        "Ozel lig kurucusu oldun",
+        f"\"{league['name']}\" ozel liginin kurucusu artik sensin.",
+    )
+    # eski kurucuya da bilgi ver -- devrin gerceklestigini teyit etsin
+    notify_user(
+        current_user.id,
+        "custom_league_ownership_transfer_confirm",
+        "Kurucu devri tamamlandi",
+        f"\"{league['name']}\" ozel liginin kurucusunu {new_owner_name} kullanicisina devrettin.",
+    )
+
+    return _to_league_item(updated, current_user.id)
 
 
 @router.post("/{league_id}/invite", response_model=CustomLeagueInviteItem, status_code=201)

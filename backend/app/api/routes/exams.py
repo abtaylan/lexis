@@ -36,6 +36,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_admin, get_current_admin_full, get_current_user
 from app.core.database import supabase_admin
+from app.services.auth_users import list_all_auth_users
 from app.schemas.exams import (
     AddWordFromQuestionResponse,
     AIQuestionGenerateRequest,
@@ -545,8 +546,7 @@ async def list_pending_questions(admin=Depends(get_current_admin)):
     submitter_ids = {r["submitted_by"] for r in rows if r.get("submitted_by")}
     if submitter_ids:
         try:
-            page = supabase_admin.auth.admin.list_users()
-            users = page if isinstance(page, list) else getattr(page, "users", [])
+            users = list_all_auth_users()
             for u in users:
                 if u.id in submitter_ids:
                     email_map[u.id] = u.email

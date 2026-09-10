@@ -45,6 +45,9 @@ export type CustomLeagueStrings = {
   deleteLeagueBtn: string;
   leaveLeagueBtn: string;
   membersFull: string;
+  transferSectionTitle: string;
+  transferBtn: string;
+  transferSuccess: string;
 };
 
 export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
@@ -65,6 +68,7 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: 'Aranıyor…', noResults: 'Sonuç bulunamadı.', inviteBtn: 'Davet Et',
     inviteSent: 'Davet gönderildi.', deleteLeagueBtn: 'Ligi Sil', leaveLeagueBtn: 'Ligden Ayrıl',
     membersFull: 'Lig dolu.',
+    transferSectionTitle: 'Kurucuyu Devret', transferBtn: 'Devret', transferSuccess: 'Kurucu devredildi.',
   },
   en: {
     title: 'Custom Leagues', subtitle: 'Build your own league with friends and anyone else you invite.',
@@ -83,6 +87,7 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: 'Searching…', noResults: 'No results found.', inviteBtn: 'Invite',
     inviteSent: 'Invite sent.', deleteLeagueBtn: 'Delete League', leaveLeagueBtn: 'Leave League',
     membersFull: 'League is full.',
+    transferSectionTitle: 'Transfer Ownership', transferBtn: 'Transfer', transferSuccess: 'Ownership transferred.',
   },
   de: {
     title: 'Eigene Ligen', subtitle: 'Gründe deine eigene Liga mit Freunden und anderen Nutzern.',
@@ -101,6 +106,7 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: 'Suche läuft…', noResults: 'Keine Ergebnisse gefunden.', inviteBtn: 'Einladen',
     inviteSent: 'Einladung gesendet.', deleteLeagueBtn: 'Liga löschen', leaveLeagueBtn: 'Liga verlassen',
     membersFull: 'Liga ist voll.',
+    transferSectionTitle: 'Besitz übertragen', transferBtn: 'Übertragen', transferSuccess: 'Besitz übertragen.',
   },
   fr: {
     title: 'Ligues personnalisées', subtitle: 'Crée ta propre ligue avec des amis et d’autres utilisateurs.',
@@ -119,6 +125,7 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: 'Recherche…', noResults: 'Aucun résultat trouvé.', inviteBtn: 'Inviter',
     inviteSent: 'Invitation envoyée.', deleteLeagueBtn: 'Supprimer la ligue', leaveLeagueBtn: 'Quitter la ligue',
     membersFull: 'La ligue est complète.',
+    transferSectionTitle: 'Transférer la propriété', transferBtn: 'Transférer', transferSuccess: 'Propriété transférée.',
   },
   es: {
     title: 'Ligas personalizadas', subtitle: 'Crea tu propia liga con amigos y otros usuarios.',
@@ -137,6 +144,7 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: 'Buscando…', noResults: 'No se encontraron resultados.', inviteBtn: 'Invitar',
     inviteSent: 'Invitación enviada.', deleteLeagueBtn: 'Eliminar liga', leaveLeagueBtn: 'Salir de la liga',
     membersFull: 'La liga está llena.',
+    transferSectionTitle: 'Transferir propiedad', transferBtn: 'Transferir', transferSuccess: 'Propiedad transferida.',
   },
   it: {
     title: 'Leghe personalizzate', subtitle: 'Crea la tua lega con amici e altri utenti.',
@@ -155,6 +163,7 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: 'Ricerca…', noResults: 'Nessun risultato trovato.', inviteBtn: 'Invita',
     inviteSent: 'Invito inviato.', deleteLeagueBtn: 'Elimina lega', leaveLeagueBtn: 'Lascia la lega',
     membersFull: 'La lega è piena.',
+    transferSectionTitle: 'Trasferisci proprietà', transferBtn: 'Trasferisci', transferSuccess: 'Proprietà trasferita.',
   },
   ar: {
     title: 'دوريات خاصة', subtitle: 'أنشئ دوريتك الخاصة مع أصدقائك وأي مستخدم آخر.',
@@ -173,6 +182,7 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: 'جارٍ البحث…', noResults: 'لم يتم العثور على نتائج.', inviteBtn: 'دعوة',
     inviteSent: 'تم إرسال الدعوة.', deleteLeagueBtn: 'حذف الدوري', leaveLeagueBtn: 'مغادرة الدوري',
     membersFull: 'الدوري ممتلئ.',
+    transferSectionTitle: 'نقل الملكية', transferBtn: 'نقل', transferSuccess: 'تم نقل الملكية.',
   },
   ru: {
     title: 'Свои лиги', subtitle: 'Создай собственную лигу с друзьями и другими пользователями.',
@@ -191,6 +201,7 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: 'Поиск…', noResults: 'Результатов не найдено.', inviteBtn: 'Пригласить',
     inviteSent: 'Приглашение отправлено.', deleteLeagueBtn: 'Удалить лигу', leaveLeagueBtn: 'Покинуть лигу',
     membersFull: 'Лига заполнена.',
+    transferSectionTitle: 'Передать права владельца', transferBtn: 'Передать', transferSuccess: 'Права владельца переданы.',
   },
   ja: {
     title: 'カスタムリーグ', subtitle: '友達や他のユーザーと自分だけのリーグを作ろう。',
@@ -209,6 +220,7 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: '検索中…', noResults: '結果が見つかりません。', inviteBtn: '招待',
     inviteSent: '招待を送信しました。', deleteLeagueBtn: 'リーグを削除', leaveLeagueBtn: 'リーグを退出',
     membersFull: 'リーグは満員です。',
+    transferSectionTitle: 'オーナー権限を譲渡', transferBtn: '譲渡', transferSuccess: 'オーナー権限を譲渡しました。',
   },
   pt: {
     title: 'Ligas personalizadas', subtitle: 'Crie sua própria liga com amigos e outros usuários.',
@@ -227,5 +239,6 @@ export const CUSTOM_LEAGUE_STRINGS: Record<Locale, CustomLeagueStrings> = {
     searching: 'Buscando…', noResults: 'Nenhum resultado encontrado.', inviteBtn: 'Convidar',
     inviteSent: 'Convite enviado.', deleteLeagueBtn: 'Excluir liga', leaveLeagueBtn: 'Sair da liga',
     membersFull: 'A liga está cheia.',
+    transferSectionTitle: 'Transferir propriedade', transferBtn: 'Transferir', transferSuccess: 'Propriedade transferida.',
   },
 };

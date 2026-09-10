@@ -68,6 +68,7 @@ from collections import defaultdict
 from datetime import UTC, datetime
 
 from app.core.database import supabase_admin
+from app.services.auth_users import list_all_auth_users
 from app.services.email_service import send_daily_word_email
 from app.services.job_log import job_run
 
@@ -186,8 +187,7 @@ def main() -> dict:
     # E-posta auth.users'da tutuluyor — send_schedule_reminders.py ile aynı desen.
     email_map: dict[str, str] = {}
     try:
-        page = supabase_admin.auth.admin.list_users()
-        users = page if isinstance(page, list) else getattr(page, "users", [])
+        users = list_all_auth_users()
         for u in users:
             if u.id in all_eligible_ids and u.email:
                 email_map[u.id] = u.email
