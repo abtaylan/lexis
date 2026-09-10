@@ -1,0 +1,15 @@
+name: Production OTA update
+
+jobs:
+  publish_android_update:
+    name: Publish Android update
+    type: update
+    params:
+      branch: production
+      platform: android
+  publish_ios_update:
+    name: Publish iOS update
+    type: update
+    params:
+      branch: production
+      platform: ios
