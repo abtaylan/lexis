@@ -30,6 +30,7 @@ import {
   FileQuestion, Timer, Swords, Flag, ChevronRight,
 } from 'lucide-react';
 import { questsApi } from '@/lib/api';
+import { playQuestClick, playQuestComplete, playQuestBadge } from '@/lib/questSounds';
 import { useLocale, type Locale } from '@/lib/i18n';
 import type { QuestNodeItem } from '@/types';
 
@@ -313,11 +314,26 @@ export default function QuestsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Onceki yuklemeye gore YENI tamamlanan gorevleri tespit edip ses calmak
+  // icin (bkz. skill game-asset-pipeline) -- ilk yuklemede (prev === null)
+  // ses calinmiyor, sadece sonraki fetch'lerde (yenile / sayfaya donus).
+  const prevItemsRef = useRef<QuestNodeItem[] | null>(null);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const res = await questsApi.list();
+      const prev = prevItemsRef.current;
+      if (prev) {
+        const prevCompletedIds = new Set(prev.filter((n) => n.is_completed).map((n) => n.id));
+        const newlyCompleted = res.items.filter((n) => n.is_completed && !prevCompletedIds.has(n.id));
+        if (newlyCompleted.length > 0) {
+          if (newlyCompleted.some((n) => n.reward_badge_code)) playQuestBadge();
+          else playQuestComplete();
+        }
+      }
+      prevItemsRef.current = res.items;
       setItems(res.items);
     } catch (err) {
       setError(errorDetail(err) || t.error);
@@ -358,7 +374,10 @@ export default function QuestsPage() {
   function handleOpen(node: QuestNodeItem) {
     if (!node.is_unlocked) return;
     const href = resolveHref(node);
-    if (href) router.push(href);
+    if (href) {
+      playQuestClick();
+      router.push(href);
+    }
   }
 
   return (

@@ -7,6 +7,7 @@ import {
   Map, Check, Lock, Star, Award, Gamepad2, Layers, BookOpen, FileQuestion, Timer, Swords, Flag, ChevronRight,
 } from 'lucide-react-native';
 import { questsApi } from '@/api/quests';
+import { playQuestClick, playQuestComplete, playQuestBadge } from '@/lib/questSounds';
 import type { QuestNodeItem } from '@/api/types';
 import { QUESTS_STRINGS } from '@/i18n/questsStrings';
 import { useLocale, type Locale } from '@/i18n';
@@ -51,6 +52,7 @@ const CONTENT_ICONS: Record<string, typeof Star> = {
 // ile aynı sözleşme; her hedef zaten var olan bir derin-bağlantı parametresi
 // kullanıyor — game.tsx'teki mode, exam-prep.tsx'teki examType/sessionMode).
 function openNode(node: QuestNodeItem) {
+  playQuestClick();
   const ref = node.content_ref ?? {};
   switch (node.content_type) {
     case 'game':
@@ -215,6 +217,24 @@ export default function QuestsScreen() {
   const query = useQuery({ queryKey: ['quests-list'], queryFn: questsApi.list });
   const items = query.data?.items ?? [];
   const worlds = useMemo(() => groupByWorldAndPart(items, locale), [items, locale]);
+
+  // Onceki yuklemeye gore YENI tamamlanan gorevleri tespit edip ses calmak
+  // icin (bkz. web/quests/page.tsx'teki ayni desen) -- ilk yuklemede
+  // (prev === null) ses calinmiyor, sadece sonraki fetch'lerde.
+  const prevItemsRef = useRef<QuestNodeItem[] | null>(null);
+  useEffect(() => {
+    if (!query.data) return;
+    const prev = prevItemsRef.current;
+    if (prev) {
+      const prevCompletedIds = new Set(prev.filter((n) => n.is_completed).map((n) => n.id));
+      const newlyCompleted = items.filter((n) => n.is_completed && !prevCompletedIds.has(n.id));
+      if (newlyCompleted.length > 0) {
+        if (newlyCompleted.some((n) => n.reward_badge_code)) playQuestBadge();
+        else playQuestComplete();
+      }
+    }
+    prevItemsRef.current = items;
+  }, [items, query.data]);
 
   const worldsWithLayout = useMemo(
     () => worlds.map((world, i) => ({
