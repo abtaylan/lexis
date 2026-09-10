@@ -18,6 +18,7 @@ from app.api.routes import (
     leagues,
     notifications,
     push_tokens,
+    quests,
     schedule,
     social,
     stats,
@@ -78,6 +79,8 @@ app.include_router(grammar.router, prefix="/api/v1/grammar", tags=["Grammar"])
 # V2 Faz 3b — haftalık kademe ligleri (bkz. leagues.py modül docstring'i;
 # haftalık kapanış/terfi-düşme burada DEĞİL, Claude scheduled task ile).
 app.include_router(leagues.router, prefix="/api/v1/leagues", tags=["Leagues"])
+# V2 Faz 3c — görev haritası, sunucu taraflı ilerleme (bkz. quests.py modül docstring'i).
+app.include_router(quests.router, prefix="/api/v1/quests", tags=["Quests"])
 # Vercel Cron / GitHub Actions'tan secret-korumalı tetikleme — bkz. app/api/routes/cron.py
 app.include_router(cron.router, prefix="/internal/cron", tags=["Internal Cron"])
 
