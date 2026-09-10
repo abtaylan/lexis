@@ -759,10 +759,14 @@ export interface LeagueMemberItem {
   is_me: boolean;
   // Faz 3 devami (10 Eylul 2026 -- "kazanilan oyun, kazanilan duello gibi
   // sayisal degerler eklenmeli, ayni puanda olanlar bunlara gore
-  // siralanacak"): bu hafta xp_events'ten sayilan iki ek sayac -- backend
-  // esitlikte siralamayi ONCE duels_won SONRA games_won'a gore kirar.
+  // siralanacak"): bu hafta xp_events'ten sayilan sayaclar -- backend
+  // esitlikte siralamayi ONCE duels_won SONRA games_won SONRA
+  // flashcards_reviewed'a gore kirar. flashcards_reviewed: ucuncu geri
+  // bildirim (10 Eylul 2026 -- "quizlet ve flashcards basarilari da
+  // eklensin") -- "quizlet" tarzi oyunlar zaten games_won icinde.
   games_won: number;
   duels_won: number;
+  flashcards_reviewed: number;
 }
 
 export interface LeagueStatusResponse {

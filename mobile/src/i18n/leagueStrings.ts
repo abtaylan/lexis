@@ -24,6 +24,7 @@ export type LeagueStrings = {
   nextLeagueLabel: string;
   gamesWonLabel: string;
   duelsWonLabel: string;
+  flashcardsLabel: string;
 };
 
 export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
@@ -34,7 +35,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Terfi bölgesi', demoteHint: 'Düşme bölgesi',
     allLeaguesTitle: 'Tüm Ligler', membersSuffix: 'üye', groupLabel: 'Grup', yourGroupBadge: 'Senin Ligin',
     backBtn: 'Lige Dön', detailError: 'Bu lig grubu bulunamadı.', prevLeagueLabel: 'Alt Lig', nextLeagueLabel: 'Üst Lig',
-    gamesWonLabel: 'Oyun', duelsWonLabel: 'Düello',
+    gamesWonLabel: 'Oyun', duelsWonLabel: 'Düello', flashcardsLabel: 'Kartlar',
   },
   en: {
     title: 'League', error: 'Something went wrong.',
@@ -43,7 +44,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Promotion zone', demoteHint: 'Relegation zone',
     allLeaguesTitle: 'All Leagues', membersSuffix: 'members', groupLabel: 'Group', yourGroupBadge: 'Your League',
     backBtn: 'Back to League', detailError: 'This league group could not be found.', prevLeagueLabel: 'Lower League', nextLeagueLabel: 'Upper League',
-    gamesWonLabel: 'Games', duelsWonLabel: 'Duels',
+    gamesWonLabel: 'Games', duelsWonLabel: 'Duels', flashcardsLabel: 'Cards',
   },
   de: {
     title: 'Liga', error: 'Etwas ist schiefgelaufen.',
@@ -52,7 +53,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Aufstiegszone', demoteHint: 'Abstiegszone',
     allLeaguesTitle: 'Alle Ligen', membersSuffix: 'Mitglieder', groupLabel: 'Gruppe', yourGroupBadge: 'Deine Liga',
     backBtn: 'Zurück zur Liga', detailError: 'Diese Ligagruppe wurde nicht gefunden.', prevLeagueLabel: 'Niedrigere Liga', nextLeagueLabel: 'Höhere Liga',
-    gamesWonLabel: 'Spiele', duelsWonLabel: 'Duelle',
+    gamesWonLabel: 'Spiele', duelsWonLabel: 'Duelle', flashcardsLabel: 'Karten',
   },
   fr: {
     title: 'Ligue', error: "Une erreur s'est produite.",
@@ -61,7 +62,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Zone de promotion', demoteHint: 'Zone de relégation',
     allLeaguesTitle: 'Toutes les Ligues', membersSuffix: 'membres', groupLabel: 'Groupe', yourGroupBadge: 'Ta Ligue',
     backBtn: 'Retour à la ligue', detailError: 'Ce groupe de ligue est introuvable.', prevLeagueLabel: 'Ligue inférieure', nextLeagueLabel: 'Ligue supérieure',
-    gamesWonLabel: 'Jeux', duelsWonLabel: 'Duels',
+    gamesWonLabel: 'Jeux', duelsWonLabel: 'Duels', flashcardsLabel: 'Cartes',
   },
   es: {
     title: 'Liga', error: 'Algo salió mal.',
@@ -70,7 +71,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Zona de ascenso', demoteHint: 'Zona de descenso',
     allLeaguesTitle: 'Todas las Ligas', membersSuffix: 'miembros', groupLabel: 'Grupo', yourGroupBadge: 'Tu Liga',
     backBtn: 'Volver a la liga', detailError: 'No se encontró este grupo de liga.', prevLeagueLabel: 'Liga inferior', nextLeagueLabel: 'Liga superior',
-    gamesWonLabel: 'Juegos', duelsWonLabel: 'Duelos',
+    gamesWonLabel: 'Juegos', duelsWonLabel: 'Duelos', flashcardsLabel: 'Tarjetas',
   },
   it: {
     title: 'Lega', error: 'Qualcosa è andato storto.',
@@ -79,7 +80,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Zona promozione', demoteHint: 'Zona retrocessione',
     allLeaguesTitle: 'Tutte le Leghe', membersSuffix: 'membri', groupLabel: 'Gruppo', yourGroupBadge: 'La Tua Lega',
     backBtn: 'Torna alla lega', detailError: 'Questo gruppo di lega non è stato trovato.', prevLeagueLabel: 'Lega inferiore', nextLeagueLabel: 'Lega superiore',
-    gamesWonLabel: 'Giochi', duelsWonLabel: 'Duelli',
+    gamesWonLabel: 'Giochi', duelsWonLabel: 'Duelli', flashcardsLabel: 'Schede',
   },
   ar: {
     title: 'الدوري', error: 'حدث خطأ ما.',
@@ -88,7 +89,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'منطقة الترقية', demoteHint: 'منطقة الهبوط',
     allLeaguesTitle: 'كل الدوريات', membersSuffix: 'عضو', groupLabel: 'مجموعة', yourGroupBadge: 'دوريك',
     backBtn: 'العودة إلى الدوري', detailError: 'لم يتم العثور على مجموعة الدوري هذه.', prevLeagueLabel: 'الدوري الأدنى', nextLeagueLabel: 'الدوري الأعلى',
-    gamesWonLabel: 'الألعاب', duelsWonLabel: 'المبارزات',
+    gamesWonLabel: 'الألعاب', duelsWonLabel: 'المبارزات', flashcardsLabel: 'البطاقات',
   },
   ru: {
     title: 'Лига', error: 'Что-то пошло не так.',
@@ -97,7 +98,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Зона повышения', demoteHint: 'Зона понижения',
     allLeaguesTitle: 'Все Лиги', membersSuffix: 'участников', groupLabel: 'Группа', yourGroupBadge: 'Твоя Лига',
     backBtn: 'Назад к лиге', detailError: 'Эта группа лиги не найдена.', prevLeagueLabel: 'Лига ниже', nextLeagueLabel: 'Лига выше',
-    gamesWonLabel: 'Игры', duelsWonLabel: 'Дуэли',
+    gamesWonLabel: 'Игры', duelsWonLabel: 'Дуэли', flashcardsLabel: 'Карточки',
   },
   ja: {
     title: 'リーグ', error: '問題が発生しました。',
@@ -106,7 +107,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: '昇格ゾーン', demoteHint: '降格ゾーン',
     allLeaguesTitle: 'すべてのリーグ', membersSuffix: '人', groupLabel: 'グループ', yourGroupBadge: 'あなたのリーグ',
     backBtn: 'リーグに戻る', detailError: 'このリーググループは見つかりませんでした。', prevLeagueLabel: '下位リーグ', nextLeagueLabel: '上位リーグ',
-    gamesWonLabel: 'ゲーム', duelsWonLabel: 'デュエル',
+    gamesWonLabel: 'ゲーム', duelsWonLabel: 'デュエル', flashcardsLabel: 'カード',
   },
   pt: {
     title: 'Liga', error: 'Algo deu errado.',
@@ -115,7 +116,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Zona de promoção', demoteHint: 'Zona de rebaixamento',
     allLeaguesTitle: 'Todas as Ligas', membersSuffix: 'membros', groupLabel: 'Grupo', yourGroupBadge: 'Sua Liga',
     backBtn: 'Voltar à liga', detailError: 'Este grupo de liga não foi encontrado.', prevLeagueLabel: 'Liga inferior', nextLeagueLabel: 'Liga superior',
-    gamesWonLabel: 'Jogos', duelsWonLabel: 'Duelos',
+    gamesWonLabel: 'Jogos', duelsWonLabel: 'Duelos', flashcardsLabel: 'Cartões',
   },
 };
 

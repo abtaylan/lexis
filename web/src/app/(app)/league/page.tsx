@@ -152,6 +152,7 @@ export default function LeaguePage() {
             youLabel={t.youLabel}
             gamesWonLabel={t.gamesWonLabel}
             duelsWonLabel={t.duelsWonLabel}
+            flashcardsLabel={t.flashcardsLabel}
             weekStartIso={status.week_start}
             weekEndIso={status.week_end}
             locale={locale}

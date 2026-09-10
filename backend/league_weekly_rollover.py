@@ -94,21 +94,29 @@ def _weekly_stats_by_user(user_ids: list[str], week_start: str, week_end: str) -
         .data
     ) or []
     stats: dict[str, dict[str, int]] = {
-        uid: {"xp": 0, "games_won": 0, "duels_won": 0} for uid in user_ids
+        uid: {"xp": 0, "games_won": 0, "duels_won": 0, "flashcards_reviewed": 0} for uid in user_ids
     }
     for row in rows:
-        entry = stats.setdefault(row["user_id"], {"xp": 0, "games_won": 0, "duels_won": 0})
+        entry = stats.setdefault(
+            row["user_id"], {"xp": 0, "games_won": 0, "duels_won": 0, "flashcards_reviewed": 0}
+        )
         entry["xp"] += row["amount"]
         source_type = row.get("source_type") or ""
         if source_type.startswith("game_"):
             entry["games_won"] += 1
         elif source_type == "duel_win":
             entry["duels_won"] += 1
+        elif source_type == "flashcard_review":
+            entry["flashcards_reviewed"] += 1
     return stats
 
 
-def _rank_key(stats: dict[str, int]) -> tuple[int, int, int]:
-    return (stats["xp"], stats["duels_won"], stats["games_won"])
+def _rank_key(stats: dict[str, int]) -> tuple[int, int, int, int]:
+    # Faz 3 devami -- ucuncu geri bildirim (10 Eylul 2026 -- "quizlet ve
+    # flashcards basarilari da eklensin"): leagues.py _rank_key ile
+    # BIREBIR ayni siralama -- xp -> duels_won -> games_won ->
+    # flashcards_reviewed.
+    return (stats["xp"], stats["duels_won"], stats["games_won"], stats["flashcards_reviewed"])
 
 
 async def main() -> None:
@@ -152,7 +160,11 @@ async def main() -> None:
             stats_by_user = _weekly_stats_by_user(user_ids, league["week_start"], league["week_end"])
             ranked = sorted(
                 user_ids,
-                key=lambda uid: _rank_key(stats_by_user.get(uid, {"xp": 0, "games_won": 0, "duels_won": 0})),
+                key=lambda uid: _rank_key(
+                    stats_by_user.get(
+                        uid, {"xp": 0, "games_won": 0, "duels_won": 0, "flashcards_reviewed": 0}
+                    )
+                ),
                 reverse=True,
             )
             member_count = len(ranked)

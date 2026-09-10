@@ -28,7 +28,7 @@
 // her zaman görünür kalır.
 
 import type { ReactNode } from 'react';
-import { User as UserIcon, ChevronUp, ChevronDown, Clock, Gamepad2, Swords } from 'lucide-react';
+import { User as UserIcon, ChevronUp, ChevronDown, Clock, Gamepad2, Swords, Layers } from 'lucide-react';
 import type { LeagueMemberItem } from '@/types';
 import type { Locale } from '@/lib/i18n';
 import { formatTimeRemaining, formatDateRange } from '@/lib/leagueLocale';
@@ -41,6 +41,7 @@ interface Props {
   youLabel: string;
   gamesWonLabel: string;
   duelsWonLabel: string;
+  flashcardsLabel: string;
   // Opsiyonel: ikisi de verilirse tablonun üstünde "6 Eyl – 13 Eyl · 3
   // gün sonra bitiyor" gibi net tarih aralığı + göreli sayaç gösterilir.
   weekStartIso?: string;
@@ -51,7 +52,7 @@ interface Props {
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export function LeagueTable({
-  members, rankLabel, userLabel, xpLabel, youLabel, gamesWonLabel, duelsWonLabel,
+  members, rankLabel, userLabel, xpLabel, youLabel, gamesWonLabel, duelsWonLabel, flashcardsLabel,
   weekStartIso, weekEndIso, locale,
 }: Props) {
   const memberCount = members.length;
@@ -87,6 +88,9 @@ export function LeagueTable({
               </th>
               <th className="hidden sm:table-cell text-right font-semibold py-2 px-1.5 w-12" title={duelsWonLabel}>
                 <Swords className="w-3.5 h-3.5 inline-block" />
+              </th>
+              <th className="hidden sm:table-cell text-right font-semibold py-2 px-1.5 w-12" title={flashcardsLabel}>
+                <Layers className="w-3.5 h-3.5 inline-block" />
               </th>
               <th className="text-right font-semibold py-2 pl-2 pr-3">{xpLabel}</th>
             </tr>
@@ -156,9 +160,9 @@ export function LeagueTable({
                       {/* Dar ekranda Games/Duels sütunları gizlendiği için (bkz. yukarısı)
                           değerleri kullanıcı adının altına küçük bir satırda taşıyoruz --
                           bilgi kaybolmasın diye, sadece daha kompakt gösteriliyor. */}
-                      {(m.games_won > 0 || m.duels_won > 0) && (
+                      {(m.games_won > 0 || m.duels_won > 0 || m.flashcards_reviewed > 0) && (
                         <span className="sm:hidden shrink-0 text-[10px] text-gray-400 dark:text-slate-500 tabular-nums">
-                          🎮{m.games_won} ⚔{m.duels_won}
+                          🎮{m.games_won} ⚔{m.duels_won} 🗂{m.flashcards_reviewed}
                         </span>
                       )}
                     </div>
@@ -168,6 +172,9 @@ export function LeagueTable({
                   </td>
                   <td className="hidden sm:table-cell text-right py-2.5 px-1.5 text-gray-500 dark:text-slate-400 tabular-nums">
                     {m.duels_won}
+                  </td>
+                  <td className="hidden sm:table-cell text-right py-2.5 px-1.5 text-gray-500 dark:text-slate-400 tabular-nums">
+                    {m.flashcards_reviewed}
                   </td>
                   <td className="py-2.5 pl-2 pr-3 text-right">
                     <div className="flex flex-col items-end">

@@ -32,6 +32,15 @@ class LeagueMemberItem(BaseModel):
     # siralama once duels_won sonra games_won'a gore kirilir.
     games_won: int = 0
     duels_won: int = 0
+    # Faz 3 devami -- ucuncu geri bildirim (10 Eylul 2026 kullanici
+    # istegi -- "kazanilan oyun/duello sayaclarina quizlet ve
+    # flashcards basarilari da eklensin"): flashcard tekrarlari
+    # (source_type='flashcard_review', bkz. flashcards.py) -- "quizlet"
+    # tarzi coktan secmeli/eslestirme oyunlari zaten games_won icinde
+    # (source_type 'game_' ile basliyor, bkz. _weekly_stats_by_user).
+    # Siralama esitligi artik xp -> duels_won -> games_won ->
+    # flashcards_reviewed sirasiyla kirilir.
+    flashcards_reviewed: int = 0
 
 
 class LeagueStatusResponse(BaseModel):

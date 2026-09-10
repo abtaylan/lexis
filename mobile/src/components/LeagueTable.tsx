@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { User as UserIcon, ChevronUp, ChevronDown, Clock, Gamepad2, Swords } from 'lucide-react-native';
+import { User as UserIcon, ChevronUp, ChevronDown, Clock, Gamepad2, Swords, Layers } from 'lucide-react-native';
 import type { LeagueMemberItem } from '@/api/types';
 import type { Locale } from '@/i18n/locales';
 import { formatTimeRemaining, formatDateRange } from '@/i18n/leagueStrings';
@@ -119,12 +119,14 @@ export function LeagueTable({
                     {m.username || '—'}
                     {m.is_me ? <Text style={{ color: c.primary, fontWeight: '500', fontSize: 11 }}> ({youLabel})</Text> : null}
                   </Text>
-                  {(m.games_won > 0 || m.duels_won > 0) && (
+                  {(m.games_won > 0 || m.duels_won > 0 || m.flashcards_reviewed > 0) && (
                     <View style={styles.miniStatsRow}>
                       <Gamepad2 color={c.textMuted} size={9} />
                       <Text style={{ color: c.textMuted, fontSize: 9 }}>{m.games_won}</Text>
                       <Swords color={c.textMuted} size={9} />
                       <Text style={{ color: c.textMuted, fontSize: 9 }}>{m.duels_won}</Text>
+                      <Layers color={c.textMuted} size={9} />
+                      <Text style={{ color: c.textMuted, fontSize: 9 }}>{m.flashcards_reviewed}</Text>
                     </View>
                   )}
                 </View>

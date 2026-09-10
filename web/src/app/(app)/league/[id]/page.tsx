@@ -123,7 +123,7 @@ export default function LeagueDetailPage() {
         {loading && <p className="text-sm text-gray-400 dark:text-slate-500 py-8 text-center">{t.loading}</p>}
         {!loading && error && <p className="text-sm text-red-400 dark:text-red-300 py-8 text-center">{error}</p>}
         {!loading && !error && status && status.members.length > 0 && (
-          <LeagueTable members={status.members} rankLabel={t.rankLabel} userLabel={t.userLabel} xpLabel={t.xpLabel} youLabel={t.youLabel} gamesWonLabel={t.gamesWonLabel} duelsWonLabel={t.duelsWonLabel} weekStartIso={status.week_start} weekEndIso={status.week_end} locale={locale} />
+          <LeagueTable members={status.members} rankLabel={t.rankLabel} userLabel={t.userLabel} xpLabel={t.xpLabel} youLabel={t.youLabel} gamesWonLabel={t.gamesWonLabel} duelsWonLabel={t.duelsWonLabel} flashcardsLabel={t.flashcardsLabel} weekStartIso={status.week_start} weekEndIso={status.week_end} locale={locale} />
         )}
       </div>
 

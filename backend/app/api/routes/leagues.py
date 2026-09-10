@@ -122,16 +122,23 @@ def _ensure_active_membership(user_id: str, tier_slug: str) -> dict:
 
 
 def _weekly_stats_by_user(user_ids: list[str], week_start: str, week_end: str) -> dict[str, dict[str, int]]:
-    """Verilen kullanıcılar için bu haftaki xp/games_won/duels_won'u
-    xp_events'ten TEK sorguda CANLI toplar (bkz. modül docstring'i — ayrı
-    bir sayaç tutulmuyor). Faz 3 devami (10 Eylul 2026 -- "kazanilan oyun,
-    kazanilan duello gibi sayisal degerler eklenmeli, ayni puanda olanlar
-    bunlara gore siralanacak"): games_won = bu hafta tamamlanan (source_type
-    'game_' ile baslayan) oyun sayisi, duels_won = 'duel_win' sayisi (bkz.
-    duels.py advance_round — kazanan katilimciya bu source_type ile XP
-    veriliyor). Botlarin source_type'i HER ZAMAN 'bot_activity' oldugundan
-    (bkz. simulate_bot_activity.py) bu iki sayac botlar icin dogal olarak
-    0 kalir — esit XP'de gercekten oynayan/duello kazanan kullanicilar
+    """Verilen kullanicilar icin bu haftaki xp/games_won/duels_won/
+    flashcards_reviewed'i xp_events'ten TEK sorguda CANLI toplar (bkz.
+    modul docstring'i -- ayri bir sayac tutulmuyor). Faz 3 devami (10
+    Eylul 2026 -- "kazanilan oyun, kazanilan duello gibi sayisal
+    degerler eklenmeli, ayni puanda olanlar bunlara gore siralanacak"):
+    games_won = bu hafta tamamlanan (source_type 'game_' ile baslayan)
+    oyun sayisi, duels_won = 'duel_win' sayisi (bkz. duels.py
+    advance_round -- kazanan katilimciya bu source_type ile XP
+    veriliyor). Faz 3 devami -- ucuncu geri bildirim (10 Eylul 2026 --
+    "quizlet ve flashcards basarilari da eklensin"): flashcards_reviewed
+    = bu hafta tamamlanan flashcard tekrari sayisi
+    (source_type='flashcard_review', bkz. flashcards.py) -- "quizlet"
+    tarzi coktan secmeli/eslestirme oyunlari zaten games_won icinde
+    sayiliyor (source_type 'game_' ile basliyor). Botlarin source_type'i
+    HER ZAMAN 'bot_activity' oldugundan (bkz. simulate_bot_activity.py)
+    bu ucuncu sayac da botlar icin dogal olarak 0 kalir -- esit XP'de
+    gercekten oynayan/duello kazanan/flashcard tekrar eden kullanicilar
     botlara karsi ON PLANA cikar."""
     if not user_ids:
         return {}
@@ -145,24 +152,29 @@ def _weekly_stats_by_user(user_ids: list[str], week_start: str, week_end: str) -
         .data
     ) or []
     stats: dict[str, dict[str, int]] = {
-        uid: {"xp": 0, "games_won": 0, "duels_won": 0} for uid in user_ids
+        uid: {"xp": 0, "games_won": 0, "duels_won": 0, "flashcards_reviewed": 0} for uid in user_ids
     }
     for row in rows:
-        entry = stats.setdefault(row["user_id"], {"xp": 0, "games_won": 0, "duels_won": 0})
+        entry = stats.setdefault(
+            row["user_id"], {"xp": 0, "games_won": 0, "duels_won": 0, "flashcards_reviewed": 0}
+        )
         entry["xp"] += row["amount"]
         source_type = row.get("source_type") or ""
         if source_type.startswith("game_"):
             entry["games_won"] += 1
         elif source_type == "duel_win":
             entry["duels_won"] += 1
+        elif source_type == "flashcard_review":
+            entry["flashcards_reviewed"] += 1
     return stats
 
 
-def _rank_key(stats: dict[str, int]) -> tuple[int, int, int]:
+def _rank_key(stats: dict[str, int]) -> tuple[int, int, int, int]:
     """Siralama anahtari: once XP, esitlikte once duello galibiyeti,
-    sonra oyun sayisi (bkz. _weekly_stats_by_user yorumu). Tumu azalan
-    (reverse=True ile kullanilir)."""
-    return (stats["xp"], stats["duels_won"], stats["games_won"])
+    sonra oyun sayisi, sonra flashcard tekrar sayisi (bkz.
+    _weekly_stats_by_user yorumu). Tumu azalan (reverse=True ile
+    kullanilir)."""
+    return (stats["xp"], stats["duels_won"], stats["games_won"], stats["flashcards_reviewed"])
 
 
 def _group_name_for_league(league: dict) -> str:
@@ -220,11 +232,17 @@ def _build_league_status(league: dict, tier: dict, current_user_id: str) -> Leag
                 xp=stats_by_user.get(uid, {}).get("xp", 0),
                 games_won=stats_by_user.get(uid, {}).get("games_won", 0),
                 duels_won=stats_by_user.get(uid, {}).get("duels_won", 0),
+                flashcards_reviewed=stats_by_user.get(uid, {}).get("flashcards_reviewed", 0),
                 is_me=(uid == current_user_id),
             )
             for uid in user_ids
         ),
-        key=lambda m: _rank_key({"xp": m.xp, "games_won": m.games_won, "duels_won": m.duels_won}),
+        key=lambda m: _rank_key({
+            "xp": m.xp,
+            "games_won": m.games_won,
+            "duels_won": m.duels_won,
+            "flashcards_reviewed": m.flashcards_reviewed,
+        }),
         reverse=True,
     )
 
@@ -402,7 +420,7 @@ async def get_league_overview(current_user=Depends(get_current_user)):
     # week_start filtrelendi) ──
     week_start_iso = _current_week_start_iso()
     stats_by_user: dict[str, dict[str, int]] = {
-        uid: {"xp": 0, "games_won": 0, "duels_won": 0} for uid in all_user_ids
+        uid: {"xp": 0, "games_won": 0, "duels_won": 0, "flashcards_reviewed": 0} for uid in all_user_ids
     }
     if all_user_ids:
         xp_rows = (
@@ -414,13 +432,17 @@ async def get_league_overview(current_user=Depends(get_current_user)):
             .data
         ) or []
         for row in xp_rows:
-            entry = stats_by_user.setdefault(row["user_id"], {"xp": 0, "games_won": 0, "duels_won": 0})
+            entry = stats_by_user.setdefault(
+                row["user_id"], {"xp": 0, "games_won": 0, "duels_won": 0, "flashcards_reviewed": 0}
+            )
             entry["xp"] += row["amount"]
             source_type = row.get("source_type") or ""
             if source_type.startswith("game_"):
                 entry["games_won"] += 1
             elif source_type == "duel_win":
                 entry["duels_won"] += 1
+            elif source_type == "flashcard_review":
+                entry["flashcards_reviewed"] += 1
 
     # ── Grup takma adlari: her kademe icinde olusturulma sirasina gore ──
     tier_group_counter: dict[str, int] = {}
@@ -440,11 +462,17 @@ async def get_league_overview(current_user=Depends(get_current_user)):
                     xp=stats_by_user.get(uid, {}).get("xp", 0),
                     games_won=stats_by_user.get(uid, {}).get("games_won", 0),
                     duels_won=stats_by_user.get(uid, {}).get("duels_won", 0),
+                    flashcards_reviewed=stats_by_user.get(uid, {}).get("flashcards_reviewed", 0),
                     is_me=(uid == current_user.id),
                 )
                 for uid in user_ids
             ),
-            key=lambda m: _rank_key({"xp": m.xp, "games_won": m.games_won, "duels_won": m.duels_won}),
+            key=lambda m: _rank_key({
+                "xp": m.xp,
+                "games_won": m.games_won,
+                "duels_won": m.duels_won,
+                "flashcards_reviewed": m.flashcards_reviewed,
+            }),
             reverse=True,
         )
 
