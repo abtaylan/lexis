@@ -104,26 +104,11 @@ def _weekly_xp_by_user(user_ids: list[str], week_start: str, week_end: str) -> d
     return totals
 
 
-@router.get("/me", response_model=LeagueStatusResponse)
-async def get_my_league(current_user=Depends(get_current_user)):
-    """Kullanıcının bu haftaki lig grubunu döndürür — hiç yoksa (ilk kez
-    çağrılıyorsa ya da geçen hafta kapanmışsa) otomatik olarak
-    profiles.current_league_tier'daki kademede bir gruba yerleştirir.
-    Bot katılımcılar (is_bot=true) sıradan katılımcılar gibi döner —
-    istemci tarafında ayırt edilmiyor (bilinçli — gerçek bir rakip gibi
-    görünmeleri isteniyor)."""
-    profile = (
-        supabase_admin.table("profiles")
-        .select("current_league_tier")
-        .eq("id", current_user.id)
-        .single()
-        .execute()
-    )
-    tier_slug = (profile.data or {}).get("current_league_tier", "bronze")
-    tier = _get_tier(tier_slug)
-
-    league = _ensure_active_membership(current_user.id, tier_slug)
-
+def _build_league_status(league: dict, tier: dict, current_user_id: str) -> LeagueStatusResponse:
+    """/me VE /{league_id} ortak govdesi (Faz 3f, 10 Eylul 2026 --
+    "lige tıklayınca o ligin icindeki user'ları sıralamayı puan
+    durumunu falan goreyim") -- verilen lig grubunun tam uye/siralama
+    tablosunu doner, kullanicinin bu gruba UYE olmasi sart degil."""
     member_rows = (
         supabase_admin.table("league_memberships")
         .select("user_id")
@@ -153,7 +138,7 @@ async def get_my_league(current_user=Depends(get_current_user)):
                 username=profiles_by_id.get(uid, {}).get("username"),
                 avatar_url=profiles_by_id.get(uid, {}).get("avatar_url"),
                 xp=xp_by_user.get(uid, 0),
-                is_me=(uid == current_user.id),
+                is_me=(uid == current_user_id),
             )
             for uid in user_ids
         ),
@@ -169,6 +154,29 @@ async def get_my_league(current_user=Depends(get_current_user)):
         week_end=league["week_end"],
         members=members,
     )
+
+
+@router.get("/me", response_model=LeagueStatusResponse)
+async def get_my_league(current_user=Depends(get_current_user)):
+    """Kullanıcının bu haftaki lig grubunu döndürür — hiç yoksa (ilk kez
+    çağrılıyorsa ya da geçen hafta kapanmışsa) otomatik olarak
+    profiles.current_league_tier'daki kademede bir gruba yerleştirir.
+    Bot katılımcılar (is_bot=true) sıradan katılımcılar gibi döner —
+    istemci tarafında ayırt edilmiyor (bilinçli — gerçek bir rakip gibi
+    görünmeleri isteniyor)."""
+    profile = (
+        supabase_admin.table("profiles")
+        .select("current_league_tier")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    )
+    tier_slug = (profile.data or {}).get("current_league_tier", "bronze")
+    tier = _get_tier(tier_slug)
+
+    league = _ensure_active_membership(current_user.id, tier_slug)
+
+    return _build_league_status(league, tier, current_user.id)
 
 
 # ------------------------------------------------------------
@@ -303,3 +311,24 @@ async def get_league_overview(current_user=Depends(get_current_user)):
         )
 
     return LeagueOverviewResponse(groups=groups)
+# ------------------------------------------------------------
+# Faz 3f (10 Eylul 2026 kullanici istegi -- "lige tıklayınca o ligin
+# icindeki user'ları sıralamayı puan durumunu falan goreyim") --
+# overview (GET /leagues/overview) listesinden tıklanan HERHANGİ bir
+# aktif lig grubunun tam uye tablosu. leagues/league_memberships'in
+# mevcut "select_all" RLS ilkesiyle tutarli -- icerikte hassas bir sey
+# yok, kullanicinin o gruba uye olmasi sart degil.
+# ------------------------------------------------------------
+@router.get("/{league_id}", response_model=LeagueStatusResponse)
+async def get_league_detail(league_id: str, current_user=Depends(get_current_user)):
+    league = (
+        supabase_admin.table("leagues")
+        .select("*")
+        .eq("id", league_id)
+        .single()
+        .execute()
+    )
+    if not league.data:
+        raise HTTPException(status_code=404, detail="Lig bulunamadı.")
+    tier = _get_tier(league.data["tier_slug"])
+    return _build_league_status(league.data, tier, current_user.id)

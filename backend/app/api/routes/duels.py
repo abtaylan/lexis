@@ -614,6 +614,29 @@ async def leave_duel(
     ).eq("duel_id", duel_id).eq("user_id", current_user.id).execute()
 
 
+@router.post("/{duel_id}/cancel", status_code=204)
+async def cancel_duel(
+    duel_id: str,
+    current_user=Depends(get_current_user),
+):
+    """Faz 3f (10 Eylul 2026 kullanici istegi -- "duello olusturan
+    kisi, odayi silebilmeli"): sadece oda sahibi, sadece hala
+    'waiting' durumdaki (henuz baslamamis) bir odayi iptal edebilir.
+    Bu odaya bagli bekleyen (pending) davetler varsa (bkz. duel_invites,
+    050) onlar da iptal edilir ki davet ekraninda 'hayalet' bir davet
+    kalmasin."""
+    duel = _get_duel_or_404(duel_id)
+    if duel["created_by"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Sadece oda sahibi odayı silebilir.")
+    if duel["status"] != "waiting":
+        raise HTTPException(status_code=400, detail="Sadece bekleyen bir oda silinebilir.")
+
+    supabase_admin.table("duels").update({"status": "cancelled"}).eq("id", duel_id).execute()
+    supabase_admin.table("duel_invites").update(
+        {"status": "cancelled", "responded_at": datetime.now(UTC).isoformat()}
+    ).eq("duel_id", duel_id).eq("status", "pending").execute()
+
+
 @router.post("/{duel_id}/start", response_model=DuelResponse)
 async def start_duel(
     duel_id: str,

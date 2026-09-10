@@ -12,4 +12,11 @@ export const leaguesApi = {
     const res = await api.get<LeagueOverviewResponse>('/leagues/overview');
     return res.data;
   },
+  // Faz 3f (10 Eylul 2026) -- "tum ligleri listele, lige tiklayinca o ligin
+  // icindeki user'lari sirlamayi gorecegim": herhangi bir lig grubunun tam
+  // detayi (uye olmak sart degil, salt-okunur). Backend: GET /leagues/{id}
+  getDetail: async (leagueId: string): Promise<LeagueStatusResponse> => {
+    const res = await api.get<LeagueStatusResponse>(`/leagues/${leagueId}`);
+    return res.data;
+  },
 };

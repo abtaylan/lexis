@@ -72,4 +72,10 @@ export const duelsApi = {
   cancelInvite: async (inviteId: string): Promise<void> => {
     await api.post(`/duels/invites/${inviteId}/cancel`);
   },
+  // Faz 3f (10 Eylul 2026 kullanici istegi -- "duello olusturan kisi, odayi
+  // silebilmeli"): sadece oda sahibi, sadece 'waiting' durumdaki bir odayi
+  // silebilir. Backend: POST /duels/{id}/cancel (bkz. duels.py cancel_duel)
+  cancel: async (duelId: string): Promise<void> => {
+    await api.post(`/duels/${duelId}/cancel`);
+  },
 };

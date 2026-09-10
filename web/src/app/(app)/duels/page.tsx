@@ -15,9 +15,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
-import { Swords, Plus, Users, Loader2, RefreshCw, UserPlus, Check, X, Clock } from 'lucide-react';
+import { Swords, Plus, Users, Loader2, RefreshCw, UserPlus, Check, X, Clock, Trash2 } from 'lucide-react';
 import { duelsApi, socialApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { useAuth } from '@/store/auth';
 import type { DuelResponse, DuelInviteItem, FriendshipItem } from '@/types';
 
 function errorDetail(err: unknown): string | undefined {
@@ -38,6 +39,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: 'Bekleyen Davetler', noPendingInvites: 'Bekleyen davet yok.',
     incomingInviteLabel: 'seni davet etti', outgoingInviteLabel: 'davet edildi',
     acceptBtn: 'Kabul Et', declineBtn: 'Reddet', cancelInviteBtn: 'İptal Et', waitingBadge: 'Bekliyor',
+    deleteRoomBtn: 'Odayı Sil',
   },
   en: {
     title: 'Duel', subtitle: 'A live vocabulary competition with multiple players at once.',
@@ -49,6 +51,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: 'Pending Invites', noPendingInvites: 'No pending invites.',
     incomingInviteLabel: 'invited you', outgoingInviteLabel: 'invited',
     acceptBtn: 'Accept', declineBtn: 'Decline', cancelInviteBtn: 'Cancel', waitingBadge: 'Waiting',
+    deleteRoomBtn: 'Delete Room',
   },
   de: {
     title: 'Duell', subtitle: 'Ein Live-Vokabelwettbewerb mit mehreren Spielern gleichzeitig.',
@@ -60,6 +63,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: 'Ausstehende Einladungen', noPendingInvites: 'Keine ausstehenden Einladungen.',
     incomingInviteLabel: 'hat dich eingeladen', outgoingInviteLabel: 'eingeladen',
     acceptBtn: 'Annehmen', declineBtn: 'Ablehnen', cancelInviteBtn: 'Abbrechen', waitingBadge: 'Wartet',
+    deleteRoomBtn: 'Raum löschen',
   },
   fr: {
     title: 'Duel', subtitle: 'Une compétition de vocabulaire en direct avec plusieurs joueurs à la fois.',
@@ -71,6 +75,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: 'Invitations en attente', noPendingInvites: 'Aucune invitation en attente.',
     incomingInviteLabel: "t'a invité", outgoingInviteLabel: 'invité',
     acceptBtn: 'Accepter', declineBtn: 'Refuser', cancelInviteBtn: 'Annuler', waitingBadge: 'En attente',
+    deleteRoomBtn: 'Supprimer la salle',
   },
   es: {
     title: 'Duelo', subtitle: 'Una competencia de vocabulario en vivo con varios jugadores a la vez.',
@@ -82,6 +87,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: 'Invitaciones pendientes', noPendingInvites: 'No hay invitaciones pendientes.',
     incomingInviteLabel: 'te invitó', outgoingInviteLabel: 'invitado',
     acceptBtn: 'Aceptar', declineBtn: 'Rechazar', cancelInviteBtn: 'Cancelar', waitingBadge: 'Esperando',
+    deleteRoomBtn: 'Eliminar sala',
   },
   it: {
     title: 'Duello', subtitle: 'Una gara di vocabolario dal vivo con più giocatori contemporaneamente.',
@@ -93,6 +99,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: 'Inviti in sospeso', noPendingInvites: 'Nessun invito in sospeso.',
     incomingInviteLabel: 'ti ha invitato', outgoingInviteLabel: 'invitato',
     acceptBtn: 'Accetta', declineBtn: 'Rifiuta', cancelInviteBtn: 'Annulla', waitingBadge: 'In attesa',
+    deleteRoomBtn: 'Elimina stanza',
   },
   ar: {
     title: 'مبارزة', subtitle: 'مسابقة مفردات مباشرة مع عدة لاعبين في آن واحد.',
@@ -104,6 +111,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: 'الدعوات المعلقة', noPendingInvites: 'لا توجد دعوات معلقة.',
     incomingInviteLabel: 'دعاك', outgoingInviteLabel: 'مدعو',
     acceptBtn: 'قبول', declineBtn: 'رفض', cancelInviteBtn: 'إلغاء', waitingBadge: 'قيد الانتظار',
+    deleteRoomBtn: 'حذف الغرفة',
   },
   ru: {
     title: 'Дуэль', subtitle: 'Живое соревнование по словарному запасу с несколькими игроками одновременно.',
@@ -115,6 +123,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: 'Ожидающие приглашения', noPendingInvites: 'Нет ожидающих приглашений.',
     incomingInviteLabel: 'пригласил(а) тебя', outgoingInviteLabel: 'приглашён',
     acceptBtn: 'Принять', declineBtn: 'Отклонить', cancelInviteBtn: 'Отменить', waitingBadge: 'Ожидание',
+    deleteRoomBtn: 'Удалить комнату',
   },
   ja: {
     title: 'デュエル', subtitle: '複数のプレイヤーと同時に対戦するライブ単語バトル。',
@@ -126,6 +135,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: '保留中の招待', noPendingInvites: '保留中の招待はありません。',
     incomingInviteLabel: 'があなたを招待しました', outgoingInviteLabel: '招待済み',
     acceptBtn: '承認', declineBtn: '拒否', cancelInviteBtn: 'キャンセル', waitingBadge: '待機中',
+    deleteRoomBtn: 'ルームを削除',
   },
   pt: {
     title: 'Duelo', subtitle: 'Uma competição de vocabulário ao vivo com vários jogadores ao mesmo tempo.',
@@ -137,6 +147,7 @@ const L: Record<Locale, Record<string, string>> = {
     pendingInvitesTitle: 'Convites pendentes', noPendingInvites: 'Nenhum convite pendente.',
     incomingInviteLabel: 'convidou você', outgoingInviteLabel: 'convidado',
     acceptBtn: 'Aceitar', declineBtn: 'Recusar', cancelInviteBtn: 'Cancelar', waitingBadge: 'Aguardando',
+    deleteRoomBtn: 'Excluir Sala',
   },
 };
 
@@ -144,12 +155,14 @@ export default function DuelsLobbyPage() {
   const router = useRouter();
   const { locale } = useLocale();
   const t = L[locale];
+  const { user } = useAuth();
 
   const [duels, setDuels] = useState<DuelResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
 
   const [friends, setFriends] = useState<FriendshipItem[]>([]);
   const [selectedFriendUsername, setSelectedFriendUsername] = useState('');
@@ -214,6 +227,19 @@ export default function DuelsLobbyPage() {
     } catch (err) {
       setError(errorDetail(err) || t.error);
       setJoiningId(null);
+    }
+  };
+
+  // -- Faz 3f (10 Eylul 2026 -- "duello olusturan kisi, odayi silebilmeli") --
+  const handleCancel = async (duelId: string) => {
+    setCancelingId(duelId);
+    try {
+      await duelsApi.cancel(duelId);
+      setDuels((prev) => prev.filter((d) => d.id !== duelId));
+    } catch (err) {
+      setError(errorDetail(err) || t.error);
+    } finally {
+      setCancelingId(null);
     }
   };
 
@@ -422,14 +448,27 @@ export default function DuelsLobbyPage() {
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  disabled={joiningId === d.id || d.participant_count >= d.max_players}
-                  onClick={() => handleJoin(d.id)}
-                  className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 text-xs font-medium disabled:opacity-50 shrink-0"
-                >
-                  {joiningId === d.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t.joinBtn}
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    disabled={joiningId === d.id || d.participant_count >= d.max_players}
+                    onClick={() => handleJoin(d.id)}
+                    className="px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:hover:bg-blue-500/20 dark:text-blue-400 text-xs font-medium disabled:opacity-50"
+                  >
+                    {joiningId === d.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t.joinBtn}
+                  </button>
+                  {user && d.created_by === user.id && (
+                    <button
+                      type="button"
+                      disabled={cancelingId === d.id}
+                      onClick={() => handleCancel(d.id)}
+                      className="p-1.5 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400 disabled:opacity-50"
+                      aria-label={t.deleteRoomBtn}
+                    >
+                      {cancelingId === d.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

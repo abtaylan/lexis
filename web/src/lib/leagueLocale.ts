@@ -1,114 +1,15 @@
-// src/i18n/leagueStrings.ts — web'deki app/(app)/league/page.tsx +
-// app/(app)/league/[id]/page.tsx içindeki yerel sözlüklerden taşındı
-// (10 dilin hepsi, web'deki profesyonel çeviriler birebir).
-import type { Locale } from './locales';
-
-export type LeagueStrings = {
-  title: string;
-  error: string;
-  youLabel: string;
-  xpLabel: string;
-  rankLabel: string;
-  userLabel: string;
-  empty: string;
-  emptySub: string;
-  promoteHint: string;
-  demoteHint: string;
-  allLeaguesTitle: string;
-  membersSuffix: string;
-  groupLabel: string;
-  yourGroupBadge: string;
-  backBtn: string;
-  detailError: string;
-};
-
-export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
-  tr: {
-    title: 'Lig', error: 'Bir şeyler ters gitti.',
-    youLabel: 'sen', xpLabel: 'XP', rankLabel: 'Sıra', userLabel: 'Kullanıcı',
-    empty: 'Henüz bir lig grubuna atanmadın.', emptySub: 'XP kazanmaya başladığında otomatik olarak eklenirsin.',
-    promoteHint: 'Terfi bölgesi', demoteHint: 'Düşme bölgesi',
-    allLeaguesTitle: 'Tüm Ligler', membersSuffix: 'üye', groupLabel: 'Grup', yourGroupBadge: 'Senin Ligin',
-    backBtn: 'Lige Dön', detailError: 'Bu lig grubu bulunamadı.',
-  },
-  en: {
-    title: 'League', error: 'Something went wrong.',
-    youLabel: 'you', xpLabel: 'XP', rankLabel: 'Rank', userLabel: 'User',
-    empty: "You haven't been placed in a league group yet.", emptySub: "You'll be added automatically once you start earning XP.",
-    promoteHint: 'Promotion zone', demoteHint: 'Relegation zone',
-    allLeaguesTitle: 'All Leagues', membersSuffix: 'members', groupLabel: 'Group', yourGroupBadge: 'Your League',
-    backBtn: 'Back to League', detailError: 'This league group could not be found.',
-  },
-  de: {
-    title: 'Liga', error: 'Etwas ist schiefgelaufen.',
-    youLabel: 'du', xpLabel: 'XP', rankLabel: 'Rang', userLabel: 'Benutzer',
-    empty: 'Du wurdest noch keiner Ligagruppe zugewiesen.', emptySub: 'Du wirst automatisch hinzugefügt, sobald du XP sammelst.',
-    promoteHint: 'Aufstiegszone', demoteHint: 'Abstiegszone',
-    allLeaguesTitle: 'Alle Ligen', membersSuffix: 'Mitglieder', groupLabel: 'Gruppe', yourGroupBadge: 'Deine Liga',
-    backBtn: 'Zurück zur Liga', detailError: 'Diese Ligagruppe wurde nicht gefunden.',
-  },
-  fr: {
-    title: 'Ligue', error: "Une erreur s'est produite.",
-    youLabel: 'toi', xpLabel: 'XP', rankLabel: 'Rang', userLabel: 'Utilisateur',
-    empty: "Tu n'as pas encore été placé dans un groupe de ligue.", emptySub: 'Tu seras ajouté automatiquement dès que tu gagneras des XP.',
-    promoteHint: 'Zone de promotion', demoteHint: 'Zone de relégation',
-    allLeaguesTitle: 'Toutes les Ligues', membersSuffix: 'membres', groupLabel: 'Groupe', yourGroupBadge: 'Ta Ligue',
-    backBtn: 'Retour à la ligue', detailError: 'Ce groupe de ligue est introuvable.',
-  },
-  es: {
-    title: 'Liga', error: 'Algo salió mal.',
-    youLabel: 'tú', xpLabel: 'XP', rankLabel: 'Puesto', userLabel: 'Usuario',
-    empty: 'Todavía no te han asignado a un grupo de liga.', emptySub: 'Se te añadirá automáticamente en cuanto empieces a ganar XP.',
-    promoteHint: 'Zona de ascenso', demoteHint: 'Zona de descenso',
-    allLeaguesTitle: 'Todas las Ligas', membersSuffix: 'miembros', groupLabel: 'Grupo', yourGroupBadge: 'Tu Liga',
-    backBtn: 'Volver a la liga', detailError: 'No se encontró este grupo de liga.',
-  },
-  it: {
-    title: 'Lega', error: 'Qualcosa è andato storto.',
-    youLabel: 'tu', xpLabel: 'XP', rankLabel: 'Posizione', userLabel: 'Utente',
-    empty: 'Non sei ancora stato assegnato a un gruppo di lega.', emptySub: 'Sarai aggiunto automaticamente non appena inizierai a guadagnare XP.',
-    promoteHint: 'Zona promozione', demoteHint: 'Zona retrocessione',
-    allLeaguesTitle: 'Tutte le Leghe', membersSuffix: 'membri', groupLabel: 'Gruppo', yourGroupBadge: 'La Tua Lega',
-    backBtn: 'Torna alla lega', detailError: 'Questo gruppo di lega non è stato trovato.',
-  },
-  ar: {
-    title: 'الدوري', error: 'حدث خطأ ما.',
-    youLabel: 'أنت', xpLabel: 'XP', rankLabel: 'الترتيب', userLabel: 'المستخدم',
-    empty: 'لم يتم تعيينك بعد إلى مجموعة دوري.', emptySub: 'سيتم إضافتك تلقائياً بمجرد أن تبدأ بكسب نقاط الخبرة.',
-    promoteHint: 'منطقة الترقية', demoteHint: 'منطقة الهبوط',
-    allLeaguesTitle: 'كل الدوريات', membersSuffix: 'عضو', groupLabel: 'مجموعة', yourGroupBadge: 'دوريك',
-    backBtn: 'العودة إلى الدوري', detailError: 'لم يتم العثور على مجموعة الدوري هذه.',
-  },
-  ru: {
-    title: 'Лига', error: 'Что-то пошло не так.',
-    youLabel: 'ты', xpLabel: 'XP', rankLabel: 'Место', userLabel: 'Пользователь',
-    empty: 'Ты ещё не попал в группу лиги.', emptySub: 'Ты будешь добавлен автоматически, как только начнёшь получать XP.',
-    promoteHint: 'Зона повышения', demoteHint: 'Зона понижения',
-    allLeaguesTitle: 'Все Лиги', membersSuffix: 'участников', groupLabel: 'Группа', yourGroupBadge: 'Твоя Лига',
-    backBtn: 'Назад к лиге', detailError: 'Эта группа лиги не найдена.',
-  },
-  ja: {
-    title: 'リーグ', error: '問題が発生しました。',
-    youLabel: 'あなた', xpLabel: 'XP', rankLabel: '順位', userLabel: 'ユーザー',
-    empty: 'まだリーググループに配属されていません。', emptySub: 'XPを獲得し始めると自動的に追加されます。',
-    promoteHint: '昇格ゾーン', demoteHint: '降格ゾーン',
-    allLeaguesTitle: 'すべてのリーグ', membersSuffix: '人', groupLabel: 'グループ', yourGroupBadge: 'あなたのリーグ',
-    backBtn: 'リーグに戻る', detailError: 'このリーググループは見つかりませんでした。',
-  },
-  pt: {
-    title: 'Liga', error: 'Algo deu errado.',
-    youLabel: 'você', xpLabel: 'XP', rankLabel: 'Posição', userLabel: 'Usuário',
-    empty: 'Você ainda não foi colocado em um grupo de liga.', emptySub: 'Você será adicionado automaticamente assim que começar a ganhar XP.',
-    promoteHint: 'Zona de promoção', demoteHint: 'Zona de rebaixamento',
-    allLeaguesTitle: 'Todas as Ligas', membersSuffix: 'membros', groupLabel: 'Grupo', yourGroupBadge: 'Sua Liga',
-    backBtn: 'Voltar à liga', detailError: 'Este grupo de liga não foi encontrado.',
-  },
-};
+// src/lib/leagueLocale.ts — Lig sayfaları (app/(app)/league/page.tsx +
+// app/(app)/league/[id]/page.tsx) arasında paylaşılan yerel metinler ve
+// yardımcılar. Faz 3f (10 Eylül 2026): "Lig sayfasına girince tüm
+// ligleri listele, lige tıklayınca o ligin içindeki user'ları sıralamayı
+// puan durumunu falan göreyim" isteğiyle detay sayfası eklenince,
+// tekrarlanan L/TIER_NAMES sözlüğünün tek kaynağı burası oldu.
+import type { Locale } from '@/lib/i18n';
 
 // migration 041_leagues_schema.sql'deki 6 sabit kademeyle birebir eşleşir
 // (slug -> tier_index: bronze=0 ... master=5). Yeni bir kademe eklenirse
-// HEM o migration'a HEM buraya (HEM web'deki aynı adlı tabloya) eklenmeli.
-export const LEAGUE_TIER_NAMES: Record<Locale, Record<string, string>> = {
+// HEM o migration'a HEM buraya eklenmeli.
+export const TIER_NAMES: Record<Locale, Record<string, string>> = {
   tr: { bronze: 'Bronz', silver: 'Gümüş', gold: 'Altın', platinum: 'Platin', diamond: 'Elmas', master: 'Usta' },
   en: { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum', diamond: 'Diamond', master: 'Master' },
   de: { bronze: 'Bronze', silver: 'Silber', gold: 'Gold', platinum: 'Platin', diamond: 'Diamant', master: 'Meister' },
@@ -120,3 +21,107 @@ export const LEAGUE_TIER_NAMES: Record<Locale, Record<string, string>> = {
   ja: { bronze: 'ブロンズ', silver: 'シルバー', gold: 'ゴールド', platinum: 'プラチナ', diamond: 'ダイヤモンド', master: 'マスター' },
   pt: { bronze: 'Bronze', silver: 'Prata', gold: 'Ouro', platinum: 'Platina', diamond: 'Diamante', master: 'Mestre' },
 };
+
+export const LEAGUE_L: Record<Locale, Record<string, string>> = {
+  tr: {
+    title: 'Lig', subtitleWeek: 'hafta',
+    loading: 'Yükleniyor…', error: 'Bir şeyler ters gitti.', refreshBtn: 'Yenile',
+    youLabel: 'sen', xpLabel: 'XP', rankLabel: 'Sıra', userLabel: 'Kullanıcı',
+    empty: 'Henüz bir lig grubuna atanmadın.', emptySub: 'XP kazanmaya başladığında otomatik olarak eklenirsin.',
+    promoteHint: 'Terfi bölgesi', demoteHint: 'Düşme bölgesi',
+    allLeaguesTitle: 'Tüm Ligler', membersSuffix: 'üye', groupLabel: 'Grup', yourGroupBadge: 'Senin Ligin',
+    backBtn: 'Lige Dön', detailError: 'Bu lig grubu bulunamadı.',
+  },
+  en: {
+    title: 'League', subtitleWeek: 'week',
+    loading: 'Loading…', error: 'Something went wrong.', refreshBtn: 'Refresh',
+    youLabel: 'you', xpLabel: 'XP', rankLabel: 'Rank', userLabel: 'User',
+    empty: "You haven't been placed in a league group yet.", emptySub: "You'll be added automatically once you start earning XP.",
+    promoteHint: 'Promotion zone', demoteHint: 'Relegation zone',
+    allLeaguesTitle: 'All Leagues', membersSuffix: 'members', groupLabel: 'Group', yourGroupBadge: 'Your League',
+    backBtn: 'Back to League', detailError: 'This league group could not be found.',
+  },
+  de: {
+    title: 'Liga', subtitleWeek: 'Woche',
+    loading: 'Wird geladen…', error: 'Etwas ist schiefgelaufen.', refreshBtn: 'Aktualisieren',
+    youLabel: 'du', xpLabel: 'XP', rankLabel: 'Rang', userLabel: 'Benutzer',
+    empty: 'Du wurdest noch keiner Ligagruppe zugewiesen.', emptySub: 'Du wirst automatisch hinzugefügt, sobald du XP sammelst.',
+    promoteHint: 'Aufstiegszone', demoteHint: 'Abstiegszone',
+    allLeaguesTitle: 'Alle Ligen', membersSuffix: 'Mitglieder', groupLabel: 'Gruppe', yourGroupBadge: 'Deine Liga',
+    backBtn: 'Zurück zur Liga', detailError: 'Diese Ligagruppe wurde nicht gefunden.',
+  },
+  fr: {
+    title: 'Ligue', subtitleWeek: 'semaine',
+    loading: 'Chargement…', error: "Une erreur s'est produite.", refreshBtn: 'Actualiser',
+    youLabel: 'toi', xpLabel: 'XP', rankLabel: 'Rang', userLabel: 'Utilisateur',
+    empty: "Tu n'as pas encore été placé dans un groupe de ligue.", emptySub: 'Tu seras ajouté automatiquement dès que tu gagneras des XP.',
+    promoteHint: 'Zone de promotion', demoteHint: 'Zone de relégation',
+    allLeaguesTitle: 'Toutes les Ligues', membersSuffix: 'membres', groupLabel: 'Groupe', yourGroupBadge: 'Ta Ligue',
+    backBtn: 'Retour à la ligue', detailError: "Ce groupe de ligue est introuvable.",
+  },
+  es: {
+    title: 'Liga', subtitleWeek: 'semana',
+    loading: 'Cargando…', error: 'Algo salió mal.', refreshBtn: 'Actualizar',
+    youLabel: 'tú', xpLabel: 'XP', rankLabel: 'Puesto', userLabel: 'Usuario',
+    empty: 'Todavía no te han asignado a un grupo de liga.', emptySub: 'Se te añadirá automáticamente en cuanto empieces a ganar XP.',
+    promoteHint: 'Zona de ascenso', demoteHint: 'Zona de descenso',
+    allLeaguesTitle: 'Todas las Ligas', membersSuffix: 'miembros', groupLabel: 'Grupo', yourGroupBadge: 'Tu Liga',
+    backBtn: 'Volver a la liga', detailError: 'No se encontró este grupo de liga.',
+  },
+  it: {
+    title: 'Lega', subtitleWeek: 'settimana',
+    loading: 'Caricamento…', error: 'Qualcosa è andato storto.', refreshBtn: 'Aggiorna',
+    youLabel: 'tu', xpLabel: 'XP', rankLabel: 'Posizione', userLabel: 'Utente',
+    empty: 'Non sei ancora stato assegnato a un gruppo di lega.', emptySub: 'Sarai aggiunto automaticamente non appena inizierai a guadagnare XP.',
+    promoteHint: 'Zona promozione', demoteHint: 'Zona retrocessione',
+    allLeaguesTitle: 'Tutte le Leghe', membersSuffix: 'membri', groupLabel: 'Gruppo', yourGroupBadge: 'La Tua Lega',
+    backBtn: 'Torna alla lega', detailError: 'Questo gruppo di lega non è stato trovato.',
+  },
+  ar: {
+    title: 'الدوري', subtitleWeek: 'أسبوع',
+    loading: 'جارٍ التحميل…', error: 'حدث خطأ ما.', refreshBtn: 'تحديث',
+    youLabel: 'أنت', xpLabel: 'XP', rankLabel: 'الترتيب', userLabel: 'المستخدم',
+    empty: 'لم يتم تعيينك بعد إلى مجموعة دوري.', emptySub: 'سيتم إضافتك تلقائياً بمجرد أن تبدأ بكسب نقاط الخبرة.',
+    promoteHint: 'منطقة الترقية', demoteHint: 'منطقة الهبوط',
+    allLeaguesTitle: 'كل الدوريات', membersSuffix: 'عضو', groupLabel: 'مجموعة', yourGroupBadge: 'دوريك',
+    backBtn: 'العودة إلى الدوري', detailError: 'لم يتم العثور على مجموعة الدوري هذه.',
+  },
+  ru: {
+    title: 'Лига', subtitleWeek: 'неделя',
+    loading: 'Загрузка…', error: 'Что-то пошло не так.', refreshBtn: 'Обновить',
+    youLabel: 'ты', xpLabel: 'XP', rankLabel: 'Место', userLabel: 'Пользователь',
+    empty: 'Ты ещё не попал в группу лиги.', emptySub: 'Ты будешь добавлен автоматически, как только начнёшь получать XP.',
+    promoteHint: 'Зона повышения', demoteHint: 'Зона понижения',
+    allLeaguesTitle: 'Все Лиги', membersSuffix: 'участников', groupLabel: 'Группа', yourGroupBadge: 'Твоя Лига',
+    backBtn: 'Назад к лиге', detailError: 'Эта группа лиги не найдена.',
+  },
+  ja: {
+    title: 'リーグ', subtitleWeek: '週',
+    loading: '読み込み中…', error: '問題が発生しました。', refreshBtn: '更新',
+    youLabel: 'あなた', xpLabel: 'XP', rankLabel: '順位', userLabel: 'ユーザー',
+    empty: 'まだリーググループに配属されていません。', emptySub: 'XPを獲得し始めると自動的に追加されます。',
+    promoteHint: '昇格ゾーン', demoteHint: '降格ゾーン',
+    allLeaguesTitle: 'すべてのリーグ', membersSuffix: '人', groupLabel: 'グループ', yourGroupBadge: 'あなたのリーグ',
+    backBtn: 'リーグに戻る', detailError: 'このリーググループは見つかりませんでした。',
+  },
+  pt: {
+    title: 'Liga', subtitleWeek: 'semana',
+    loading: 'Carregando…', error: 'Algo deu errado.', refreshBtn: 'Atualizar',
+    youLabel: 'você', xpLabel: 'XP', rankLabel: 'Posição', userLabel: 'Usuário',
+    empty: 'Você ainda não foi colocado em um grupo de liga.', emptySub: 'Você será adicionado automaticamente assim que começar a ganhar XP.',
+    promoteHint: 'Zona de promoção', demoteHint: 'Zona de rebaixamento',
+    allLeaguesTitle: 'Todas as Ligas', membersSuffix: 'membros', groupLabel: 'Grupo', yourGroupBadge: 'Sua Liga',
+    backBtn: 'Voltar à liga', detailError: 'Este grupo de liga não foi encontrado.',
+  },
+};
+
+export function formatDateRange(startIso: string, endIso: string, locale: Locale): string {
+  try {
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    const fmt = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
+    return `${fmt.format(start)} – ${fmt.format(end)}`;
+  } catch {
+    return '';
+  }
+}

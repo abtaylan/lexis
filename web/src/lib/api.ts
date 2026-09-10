@@ -998,6 +998,10 @@ export const duelsApi = {
   cancelInvite: async (inviteId: string): Promise<void> => {
     await api.post(`/duels/invites/${inviteId}/cancel`);
   },
+  // -- Faz 3f: oda sahibi bekleyen odayi silebilsin --
+  cancel: async (duelId: string): Promise<void> => {
+    await api.post(`/duels/${duelId}/cancel`);
+  },
 };
 
 // ── Lig API (V2 §6.3 Faz 3b — haftalık kademe ligleri) ──
@@ -1008,6 +1012,11 @@ export const leaguesApi = {
   },
   getOverview: async (): Promise<LeagueOverviewResponse> => {
     const res = await api.get<LeagueOverviewResponse>('/leagues/overview');
+    return res.data;
+  },
+  // -- Faz 3f: herhangi bir lig grubunun tam siralama tablosu (Tum Ligler'den tiklaninca) --
+  getDetail: async (leagueId: string): Promise<LeagueStatusResponse> => {
+    const res = await api.get<LeagueStatusResponse>(`/leagues/${leagueId}`);
     return res.data;
   },
 };

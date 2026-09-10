@@ -1,9 +1,10 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Trophy, User as UserIcon } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { Trophy, ChevronRight, Users } from 'lucide-react-native';
 import { leaguesApi } from '@/api/leagues';
-import type { LeagueMemberItem, LeagueOverviewGroup } from '@/api/types';
+import type { LeagueOverviewGroup } from '@/api/types';
 import { LEAGUE_STRINGS, LEAGUE_TIER_NAMES } from '@/i18n/leagueStrings';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -11,13 +12,24 @@ import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { LeagueTable } from '@/components/LeagueTable';
 
 // ── Haftalık lig — web'deki app/(app)/league/page.tsx'in mobil karşılığı.
 // Kullanıcının bu haftaki lig grubunu + CANLI (xp_events'ten hesaplanan,
 // backend'in zaten xp'ye göre azalan sıralı döndürdüğü) liderlik tablosunu
 // gösterir. Terfi/düşme haftalık kapanışta scheduled task tarafından
 // işlenir (bkz. backend/app/api/routes/leagues.py docstring'i); bu ekran
-// sadece MEVCUT durumu okur. Backend: /api/v1/leagues/me ──
+// sadece MEVCUT durumu okur. Backend: /api/v1/leagues/me
+//
+// Faz 3f (10 Eylül 2026 kullanıcı isteği): "Lig tablosu daha güzel efektif
+// gözükmeli" → sıralama tablosu gerçek bir spor ligi tablosu gibi yeniden
+// tasarlandı (bkz. LeagueTable bileşeni, web'deki eşdeğeri). "Lig sayfasına
+// girince tüm ligleri listele, lige tıklayınca o ligin içindeki user'ları
+// sıralamayı puan durumunu falan göreyim" → "Diğer Ligler" önizleme
+// kartları yerine tıklanabilir "Tüm Ligler" listesi (detay:
+// app/(app)/league-detail.tsx — bu projede expo-router [id].tsx dinamik
+// segmenti KULLANILMIYOR, bkz. duel-room.tsx'teki not; flat route +
+// useLocalSearchParams deseni izleniyor).
 
 function formatDateRange(startIso: string, endIso: string, locale: string): string {
   try {
@@ -42,9 +54,16 @@ export default function LeagueScreen() {
   const overview = overviewQuery.data?.groups ?? [];
 
   const tierLabel = status ? (tierNames[status.tier_slug] ?? status.tier_slug) : '';
-  const memberCount = status?.members.length ?? 0;
-  const promoteCutoff = Math.max(1, Math.ceil(memberCount / 3));
-  const demoteCutoff = Math.max(1, Math.ceil(memberCount / 3));
+
+  // Ayni kademede (tier) birden fazla grup acilabildigi icin (bkz.
+  // ensure_active_league_membership, kapasite dolunca yeni grup) her
+  // satirda "Bronz · Grup 2" gibi ayirt edici bir numara gosterelim --
+  // overview zaten backend'de tier_index sonra created_at'e gore sirali.
+  const tierSeen: Record<string, number> = {};
+  const overviewWithGroupIndex = overview.map((g: LeagueOverviewGroup) => {
+    tierSeen[g.tier_slug] = (tierSeen[g.tier_slug] ?? 0) + 1;
+    return { ...g, groupIndex: tierSeen[g.tier_slug] };
+  });
 
   return (
     <ScreenContainer refreshing={query.isRefetching} onRefresh={query.refetch}>
@@ -77,44 +96,10 @@ export default function LeagueScreen() {
       )}
 
       {!query.isLoading && !query.isError && status && status.members.length > 0 && (
-        <Card style={{ paddingVertical: spacing.sm, paddingHorizontal: spacing.sm, gap: 2 }}>
-          {status.members.map((m: LeagueMemberItem, idx: number) => {
-            const rank = idx + 1;
-            const isPromoteZone = rank <= promoteCutoff && memberCount > 3;
-            const isDemoteZone = rank > memberCount - demoteCutoff && memberCount > 3;
-            const rankColor = isPromoteZone ? c.success : isDemoteZone ? c.danger : c.textMuted;
-            return (
-              <View
-                key={m.user_id}
-                style={[
-                  styles.memberRow,
-                  m.is_me ? { backgroundColor: c.primarySoft } : null,
-                ]}
-              >
-                <View style={styles.memberLeft}>
-                  <Text style={{ color: rankColor, fontSize: 12, fontWeight: '700', width: 20, textAlign: 'center' }}>
-                    {rank}
-                  </Text>
-                  <View style={[styles.avatar, { backgroundColor: c.background }]}>
-                    <UserIcon color={c.textMuted} size={15} />
-                  </View>
-                  <Text style={{ color: c.text, fontSize: 13, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
-                    {m.username || '—'}
-                    {m.is_me ? (
-                      <Text style={{ color: c.primary, fontWeight: '500', fontSize: 12 }}> ({t.youLabel})</Text>
-                    ) : null}
-                  </Text>
-                </View>
-                <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '700' }}>
-                  {m.xp} <Text style={{ color: c.textMuted, fontWeight: '400', fontSize: 11 }}>{t.xpLabel}</Text>
-                </Text>
-              </View>
-            );
-          })}
-        </Card>
+        <LeagueTable members={status.members} rankLabel={t.rankLabel} userLabel={t.userLabel} xpLabel={t.xpLabel} youLabel={t.youLabel} />
       )}
 
-      {!query.isLoading && !query.isError && status && status.members.length > 3 && (
+      {!query.isLoading && !query.isError && status && status.members.length > 6 && (
         <View style={styles.legendRow}>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: c.success }]} />
@@ -127,37 +112,52 @@ export default function LeagueScreen() {
         </View>
       )}
 
-      {overview.length > 0 && (
+      {overviewWithGroupIndex.length > 0 && (
         <View style={{ marginTop: spacing.lg }}>
           <Text style={{ color: c.textMuted, fontSize: 13, fontWeight: '700', marginBottom: spacing.sm }}>
-            {t.otherLeaguesTitle}
+            {t.allLeaguesTitle}
           </Text>
-          {overview.map((g: LeagueOverviewGroup) => (
-            <Card
-              key={g.league_id}
-              style={[
-                styles.overviewCard,
-                g.is_mine ? { borderColor: c.primary, borderWidth: 1 } : null,
-              ]}
-            >
-              <View style={styles.overviewHeaderRow}>
-                <Text style={{ color: c.text, fontSize: 13, fontWeight: '700' }}>
-                  {tierNames[g.tier_slug] ?? g.tier_slug}
-                </Text>
-                <Text style={{ color: c.textMuted, fontSize: 11 }}>
-                  {g.member_count} {t.membersSuffix}
-                </Text>
-              </View>
-              {g.top_members.map((m, idx: number) => (
-                <View key={m.user_id} style={styles.overviewMemberRow}>
-                  <Text style={{ color: c.textMuted, fontSize: 12 }} numberOfLines={1}>
-                    {idx + 1}. {m.username || '—'}
-                  </Text>
-                  <Text style={{ color: c.textMuted, fontSize: 12 }}>{m.xp} {t.xpLabel}</Text>
+          <Card style={{ paddingVertical: spacing.xs, paddingHorizontal: 0, gap: 0 }}>
+            {overviewWithGroupIndex.map((g, idx) => (
+              <Pressable
+                key={g.league_id}
+                onPress={() => router.push({ pathname: '/(app)/league-detail', params: { id: g.league_id } })}
+                style={({ pressed }) => [
+                  styles.overviewRow,
+                  idx > 0 ? { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.border } : null,
+                  pressed ? { backgroundColor: c.background } : null,
+                ]}
+              >
+                <View style={[styles.overviewIcon, { backgroundColor: c.warningSoft }]}>
+                  <Trophy color={c.warning} size={16} />
                 </View>
-              ))}
-            </Card>
-          ))}
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5 }}>
+                    <Text style={{ color: c.text, fontSize: 13, fontWeight: '700' }}>
+                      {tierNames[g.tier_slug] ?? g.tier_slug}
+                    </Text>
+                    {tierSeen[g.tier_slug] > 1 && (
+                      <Text style={{ color: c.textMuted, fontSize: 11 }}>
+                        · {t.groupLabel} {g.groupIndex}
+                      </Text>
+                    )}
+                    {g.is_mine && (
+                      <View style={[styles.badge, { backgroundColor: c.primarySoft }]}>
+                        <Text style={{ color: c.primary, fontSize: 9, fontWeight: '700' }}>{t.yourGroupBadge}</Text>
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <Users color={c.textMuted} size={11} />
+                    <Text style={{ color: c.textMuted, fontSize: 11 }}>
+                      {g.member_count} {t.membersSuffix}
+                    </Text>
+                  </View>
+                </View>
+                <ChevronRight color={c.textMuted} size={16} />
+              </Pressable>
+            ))}
+          </Card>
         </View>
       )}
     </ScreenContainer>
@@ -167,13 +167,10 @@ export default function LeagueScreen() {
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   headerIcon: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
-  memberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm, paddingVertical: spacing.sm, paddingHorizontal: spacing.xs, borderRadius: radius.md },
-  memberLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flex: 1, minWidth: 0 },
-  avatar: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   legendRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginTop: spacing.md },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 7, height: 7, borderRadius: 4 },
-  overviewCard: { marginBottom: spacing.sm, gap: 4 },
-  overviewHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 },
-  overviewMemberRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  overviewRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm + 2, paddingHorizontal: spacing.sm },
+  overviewIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  badge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: radius.full },
 });

@@ -116,6 +116,7 @@ export default function AppTabsLayout() {
       <Tabs.Screen name="duels" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="duel-room" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="league" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="league-detail" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="quests" options={{ href: null, headerShown: false }} />
     </Tabs>
   );

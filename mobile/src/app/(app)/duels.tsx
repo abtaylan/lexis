@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Swords, Plus, Users, UserPlus, Check, X, Clock } from 'lucide-react-native';
+import { Swords, Plus, Users, UserPlus, Check, X, Clock, Trash2 } from 'lucide-react-native';
 import { duelsApi } from '@/api/duels';
 import { socialApi } from '@/api/social';
+import { useAuth } from '@/store/auth';
 import type { DuelResponse, DuelInviteItem, FriendshipItem } from '@/api/types';
 import { DUELS_STRINGS } from '@/i18n/duelsStrings';
 import { useLocale } from '@/i18n';
@@ -32,6 +33,7 @@ export default function DuelsLobbyScreen() {
   const { locale } = useLocale();
   const c = useThemeColors();
   const qc = useQueryClient();
+  const { user } = useAuth();
   const ds = DUELS_STRINGS[locale] ?? DUELS_STRINGS.tr;
 
   const [selectedFriendUsername, setSelectedFriendUsername] = useState<string | null>(null);
@@ -80,6 +82,14 @@ export default function DuelsLobbyScreen() {
   const cancelInviteMutation = useMutation({
     mutationFn: (inviteId: string) => duelsApi.cancelInvite(inviteId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['duel-invites'] }),
+  });
+
+  // Faz 3f (10 Eylul 2026 kullanici istegi -- "duello olusturan kisi, odayi
+  // silebilmeli"): sadece oda sahibi gorur, sadece 'waiting' odalar
+  // silinebilir (bkz. backend duels.py cancel_duel).
+  const cancelDuelMutation = useMutation({
+    mutationFn: (duelId: string) => duelsApi.cancel(duelId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['duels-list'] }),
   });
 
   return (
@@ -245,20 +255,31 @@ export default function DuelsLobbyScreen() {
               </View>
             </View>
           </View>
-          <Pressable
-            onPress={() => joinMutation.mutate(d.id)}
-            disabled={joinMutation.isPending || d.participant_count >= d.max_players}
-            style={[
-              styles.joinBtn,
-              { backgroundColor: c.primarySoft, opacity: joinMutation.isPending || d.participant_count >= d.max_players ? 0.5 : 1 },
-            ]}
-          >
-            {joinMutation.isPending ? (
-              <ActivityIndicator color={c.primary} size="small" />
-            ) : (
-              <Text style={{ color: c.primary, fontWeight: '700', fontSize: 12 }}>{ds.joinBtn}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+            <Pressable
+              onPress={() => joinMutation.mutate(d.id)}
+              disabled={joinMutation.isPending || d.participant_count >= d.max_players}
+              style={[
+                styles.joinBtn,
+                { backgroundColor: c.primarySoft, opacity: joinMutation.isPending || d.participant_count >= d.max_players ? 0.5 : 1 },
+              ]}
+            >
+              {joinMutation.isPending ? (
+                <ActivityIndicator color={c.primary} size="small" />
+              ) : (
+                <Text style={{ color: c.primary, fontWeight: '700', fontSize: 12 }}>{ds.joinBtn}</Text>
+              )}
+            </Pressable>
+            {user && d.created_by === user.id && (
+              <Pressable
+                onPress={() => cancelDuelMutation.mutate(d.id)}
+                disabled={cancelDuelMutation.isPending}
+                style={[styles.iconBtn, { backgroundColor: c.dangerSoft, borderRadius: radius.full }]}
+              >
+                <Trash2 color={c.danger} size={15} />
+              </Pressable>
             )}
-          </Pressable>
+          </View>
         </Card>
       ))}
     </ScreenContainer>
