@@ -8,15 +8,18 @@ kullanılabilir AMA bu sefer ilerleme SUNUCUDA tutulmalı (rekabet/lig
 bağlamı olduğu için localStorage yetersiz — Gramer Rehberi'nin kendisi
 localStorage kullanıyordu, bilinçli bir fark).
 
-KAPSAM (bilinçli sınır): görev İÇERİĞİ (gerçek görev seti, ödüller) ayrı
-bir alt-adım — bkz. migration 042 yorumu. Bu modül SADECE mekanizmayı
-kurar: GET /quests, her görevin gereksinimini CANLI değerlendirir
-(_evaluate_requirement) ve yeni tamamlananları user_quest_progress'e
-işler. Ödül dağıtımı (XP/rozet) BİLİNÇLİ OLARAK YOK — tamamlama şu an
-sadece bir İŞARETLEME, XP kaynağı olarak sayılmıyor (bir görevin
-kendisi zaten altındaki aktiviteden (düello galibiyeti, XP kazanma) XP
-almış oluyor — görevi tamamlamak için AYRICA bonus vermek ayrı bir ürün
-kararı, ileride eklenebilir).
+KAPSAM (bilinçli sınır): görev İÇERİĞİ (gerçek görev seti) ayrı bir
+alt-adım — bkz. migration 042 yorumu. Bu modül GET /quests'i sunar,
+her görevin gereksinimini CANLI değerlendirir (_evaluate_requirement)
+ve yeni tamamlananları user_quest_progress'e işler.
+
+ÖDÜL (10 Eylül 2026 kullanıcı sorusu — "sadece XP değil, ödül/rozet de
+olmalı"): bir görev YENİ tamamlandığında quest_nodes.reward_xp (varsa,
+award_xp source_type="quest_complete") + reward_badge_code (varsa,
+badge_service.award_badge) veriliyor. award_badge zaten idempotent
+olduğu için (bkz. badge_service.py) burada ekstra bir kontrol
+gerekmiyor — user_quest_progress'in kendisi zaten tekrar tamamlamayı
+engelliyor (PRIMARY KEY(user_id, quest_node_id)).
 """
 
 from fastapi import APIRouter, Depends
@@ -24,6 +27,8 @@ from fastapi import APIRouter, Depends
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.schemas.quests import QuestListResponse, QuestNodeItem
+from app.services import badge_service
+from app.services.xp_service import award_xp
 
 router = APIRouter()
 
@@ -95,13 +100,22 @@ async def list_quests(current_user=Depends(get_current_user)):
 
         if not is_completed and previous_completed:
             # Kilidi açık ve henüz tamamlanmamış — gereksinimi canlı
-            # kontrol et, karşılanmışsa işaretle.
+            # kontrol et, karşılanmışsa işaretle + ödülü ver.
             current_value = _evaluate_requirement(current_user.id, node["requirement_type"])
             if current_value >= node["requirement_count"]:
                 supabase_admin.table("user_quest_progress").insert(
                     {"user_id": current_user.id, "quest_node_id": node_id}
                 ).execute()
                 is_completed = True
+                if node.get("reward_xp"):
+                    await award_xp(
+                        user_id=current_user.id,
+                        source_type="quest_complete",
+                        amount=node["reward_xp"],
+                        source_id=node_id,
+                    )
+                if node.get("reward_badge_code"):
+                    await badge_service.award_badge(current_user.id, node["reward_badge_code"])
         elif is_completed:
             current_value = node["requirement_count"]
 
@@ -115,6 +129,8 @@ async def list_quests(current_user=Depends(get_current_user)):
                 description_en=node.get("description_en"),
                 requirement_type=node["requirement_type"],
                 requirement_count=node["requirement_count"],
+                reward_xp=node.get("reward_xp", 0),
+                reward_badge_code=node.get("reward_badge_code"),
                 order_index=node["order_index"],
                 current_value=current_value,
                 is_completed=is_completed,

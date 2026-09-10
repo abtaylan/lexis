@@ -47,6 +47,11 @@ XPSourceType = Literal[
     # verilecek.
     "duel_participation",
     "duel_win",
+    # Görev haritası (V2 §6.3 Faz 3c) — quests.py bir görevi otomatik
+    # tamamlarken quest_nodes.reward_xp kadar bonus verir (0 ise hiç
+    # çağrılmaz, XP_AMOUNTS'taki değer bu yüzden sadece "eksik amount"
+    # savunması, gerçek miktar HER ZAMAN quest_nodes'tan geliyor).
+    "quest_complete",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -92,6 +97,7 @@ XP_AMOUNTS: dict[str, int] = {
     # büyüklükte. Round-servis uçları bağlandığında (3e) kullanılacak.
     "duel_participation": 8,
     "duel_win": 20,
+    "quest_complete": 20,
 }
 
 LEVEL_BASE = 50

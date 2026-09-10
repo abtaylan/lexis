@@ -18,6 +18,8 @@ class QuestNodeItem(BaseModel):
     description_en: str | None = None
     requirement_type: str
     requirement_count: int
+    reward_xp: int = 0
+    reward_badge_code: str | None = None
     order_index: int
     current_value: int
     is_completed: bool

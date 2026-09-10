@@ -42,6 +42,7 @@ from app.schemas.duels import (
     DuelRoundPublic,
     DuelStatusResponse,
 )
+from app.services import badge_service
 from app.services.xp_service import award_xp
 
 router = APIRouter()
@@ -668,6 +669,26 @@ async def advance_round(
                     await award_xp(
                         user_id=p["user_id"], source_type="duel_win", source_id=duel_id
                     )
+                    # Rozetler (10 Eylül 2026 kullanıcı sorusu — "sadece XP
+                    # değil, ödül/rozet de olmalı"): award_badge() zaten
+                    # idempotent (bkz. badge_service.py) — kazanan her
+                    # düellodan sonra "first_duel_win" çağrılması güvenli,
+                    # zaten sahipse no-op. 10/50 eşiği sayaç bazlı olduğu
+                    # için her galibiyette YENİDEN kontrol ediliyor (o an
+                    # tam eşiğe ulaşmış olabilir).
+                    await badge_service.award_badge(p["user_id"], "first_duel_win")
+                    win_count_result = (
+                        supabase_admin.table("xp_events")
+                        .select("id", count="exact")
+                        .eq("user_id", p["user_id"])
+                        .eq("source_type", "duel_win")
+                        .execute()
+                    )
+                    win_count = win_count_result.count or 0
+                    if win_count >= 50:
+                        await badge_service.award_badge(p["user_id"], "duel_win_50")
+                    elif win_count >= 10:
+                        await badge_service.award_badge(p["user_id"], "duel_win_10")
 
     participant_rows = (
         supabase_admin.table("duel_participants")
