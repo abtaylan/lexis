@@ -22,6 +22,16 @@ class LeagueMemberItem(BaseModel):
     avatar_url: str | None = None
     xp: int
     is_me: bool = False
+    # Faz 3 devami (10 Eylul 2026 kullanici istegi -- "kazanilan oyun,
+    # kazanilan duello gibi sayisal degerler eklenmeli, ayni puanda
+    # olanlar bunlara gore siralanacak"): bu hafta xp_events'ten CANLI
+    # sayilan iki ek sayac (bkz. leagues.py _weekly_stats_by_user).
+    # games_won: bu hafta tamamlanan (source_type 'game_' ile baslayan)
+    # oyun/pratik sayisi. duels_won: bu hafta kazanilan duello sayisi
+    # (source_type='duel_win', bkz. duels.py advance_round). ESIT XP'de
+    # siralama once duels_won sonra games_won'a gore kirilir.
+    games_won: int = 0
+    duels_won: int = 0
 
 
 class LeagueStatusResponse(BaseModel):

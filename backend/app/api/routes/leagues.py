@@ -8,7 +8,7 @@ master), o kademedeki ~30 kişilik bir "leagues" grubunda (o haftaya özel,
 tier_slug + week_start ile eşsiz olması hedeflenir — grup dolarsa YENİ bir
 grup açılır, bkz. _ensure_active_membership), o hafta KAZANDIĞI XP'ye göre
 sıralanır. Sıralama league_memberships'te AYRI bir sayaçla TUTULMUYOR —
-doğrudan xp_events'ten CANLI hesaplanıyor (bkz. _weekly_xp_by_user) —
+doğrudan xp_events'ten CANLI hesaplanıyor (bkz. _weekly_stats_by_user) —
 xp_source_type enum'undaki Python/DB senkron hatasının (bu oturumda 2 kez
 düzeltildi) aynı sınıfına düşmemek için bilinçli bir tercih: iki ayrı
 "XP kaynağı" birbirinden kopabilecek bir yapı KURULMADI.
@@ -51,21 +51,24 @@ from pydantic import BaseModel
 router = APIRouter()
 
 # Faz 3 devami (10 Eylul 2026 -- "Bronz gruplari cok fazla olmus, hepsi
-# ayni isimde gozukmesin"): 27+ Bronz grubunun hepsi sadece "Bronz Grup 1,
-# Grup 2... Grup 27" diye numaralanınca tekdüze/ayirt edilemez gorunuyordu.
-# Her gruba, tier icindeki olusturulma sirasina gore SABIT (deterministik)
-# bir dogatema takma ad veriliyor -- "Bronz Kartal", "Bronz Sahin" gibi.
-_GROUP_NICKNAMES = [
-    "Kartal", "Sahin", "Aslan", "Kaplan", "Kurt", "Ayi", "Boga", "Atmaca",
-    "Puma", "Panter", "Cita", "Yilan", "Akrep", "Baykus", "Tilki", "Karga",
-    "Dogan", "Zumrut", "Yakut", "Safir", "Inci", "Mercan", "Volkan", "Firtina",
-    "Simsek", "Ruzgar", "Deniz", "Dalga", "Kasirga", "Yildiz", "Ay", "Gunes",
-    "Kutup", "Orman", "Dag", "Nehir", "Selale", "Vadi", "Meteor", "Komet",
-]
-
-
+# ayni isimde gozukmesin", SONRA ayni gun ikinci geri bildirim -- "isimlendirme
+# tam istedigim gibi olmamis, bronz lig mesela A B C olsun, USTA ligi de
+# ayni sekilde A B C siralansin"): once dogatema takma ad listesi denendi,
+# kullanici bunun yerine kademe farketmeksizin (Bronz'dan Usta'ya) TUTARLI,
+# sade bir harf serisi istedi -- Excel sutunu mantigi: A, B, C, ... Z, AA,
+# AB, ... Hicbir kademeye ozel bir liste/istisna YOK, ayni fonksiyon hepsi
+# icin calisiyor (Usta icin de "alternatif isim" ihtiyaci boylece ayrica
+# cozulmus oluyor).
 def _group_nickname(index0: int) -> str:
-    return _GROUP_NICKNAMES[index0 % len(_GROUP_NICKNAMES)]
+    letters: list[str] = []
+    n = index0
+    while True:
+        n, rem = divmod(n, 26)
+        letters.append(chr(ord("A") + rem))
+        if n == 0:
+            break
+        n -= 1
+    return "".join(reversed(letters))
 
 _TR_OFFSET = timezone(timedelta(hours=3))
 
@@ -118,24 +121,48 @@ def _ensure_active_membership(user_id: str, tier_slug: str) -> dict:
     return league.data
 
 
-def _weekly_xp_by_user(user_ids: list[str], week_start: str, week_end: str) -> dict[str, int]:
-    """Verilen kullanıcılar için bu haftaki toplam XP'yi xp_events'ten
-    CANLI toplar (bkz. modül docstring'i — ayrı bir sayaç tutulmuyor)."""
+def _weekly_stats_by_user(user_ids: list[str], week_start: str, week_end: str) -> dict[str, dict[str, int]]:
+    """Verilen kullanıcılar için bu haftaki xp/games_won/duels_won'u
+    xp_events'ten TEK sorguda CANLI toplar (bkz. modül docstring'i — ayrı
+    bir sayaç tutulmuyor). Faz 3 devami (10 Eylul 2026 -- "kazanilan oyun,
+    kazanilan duello gibi sayisal degerler eklenmeli, ayni puanda olanlar
+    bunlara gore siralanacak"): games_won = bu hafta tamamlanan (source_type
+    'game_' ile baslayan) oyun sayisi, duels_won = 'duel_win' sayisi (bkz.
+    duels.py advance_round — kazanan katilimciya bu source_type ile XP
+    veriliyor). Botlarin source_type'i HER ZAMAN 'bot_activity' oldugundan
+    (bkz. simulate_bot_activity.py) bu iki sayac botlar icin dogal olarak
+    0 kalir — esit XP'de gercekten oynayan/duello kazanan kullanicilar
+    botlara karsi ON PLANA cikar."""
     if not user_ids:
         return {}
     rows = (
         supabase_admin.table("xp_events")
-        .select("user_id, amount")
+        .select("user_id, amount, source_type")
         .in_("user_id", user_ids)
         .gte("created_at", week_start)
         .lt("created_at", week_end)
         .execute()
         .data
     ) or []
-    totals: dict[str, int] = {uid: 0 for uid in user_ids}
+    stats: dict[str, dict[str, int]] = {
+        uid: {"xp": 0, "games_won": 0, "duels_won": 0} for uid in user_ids
+    }
     for row in rows:
-        totals[row["user_id"]] = totals.get(row["user_id"], 0) + row["amount"]
-    return totals
+        entry = stats.setdefault(row["user_id"], {"xp": 0, "games_won": 0, "duels_won": 0})
+        entry["xp"] += row["amount"]
+        source_type = row.get("source_type") or ""
+        if source_type.startswith("game_"):
+            entry["games_won"] += 1
+        elif source_type == "duel_win":
+            entry["duels_won"] += 1
+    return stats
+
+
+def _rank_key(stats: dict[str, int]) -> tuple[int, int, int]:
+    """Siralama anahtari: once XP, esitlikte once duello galibiyeti,
+    sonra oyun sayisi (bkz. _weekly_stats_by_user yorumu). Tumu azalan
+    (reverse=True ile kullanilir)."""
+    return (stats["xp"], stats["duels_won"], stats["games_won"])
 
 
 def _group_name_for_league(league: dict) -> str:
@@ -182,7 +209,7 @@ def _build_league_status(league: dict, tier: dict, current_user_id: str) -> Leag
         ) or []
         profiles_by_id = {p["id"]: p for p in profile_rows}
 
-    xp_by_user = _weekly_xp_by_user(user_ids, league["week_start"], league["week_end"])
+    stats_by_user = _weekly_stats_by_user(user_ids, league["week_start"], league["week_end"])
 
     members = sorted(
         (
@@ -190,12 +217,14 @@ def _build_league_status(league: dict, tier: dict, current_user_id: str) -> Leag
                 user_id=uid,
                 username=profiles_by_id.get(uid, {}).get("username"),
                 avatar_url=profiles_by_id.get(uid, {}).get("avatar_url"),
-                xp=xp_by_user.get(uid, 0),
+                xp=stats_by_user.get(uid, {}).get("xp", 0),
+                games_won=stats_by_user.get(uid, {}).get("games_won", 0),
+                duels_won=stats_by_user.get(uid, {}).get("duels_won", 0),
                 is_me=(uid == current_user_id),
             )
             for uid in user_ids
         ),
-        key=lambda m: m.xp,
+        key=lambda m: _rank_key({"xp": m.xp, "games_won": m.games_won, "duels_won": m.duels_won}),
         reverse=True,
     )
 
@@ -368,21 +397,30 @@ async def get_league_overview(current_user=Depends(get_current_user)):
         ) or []
         profiles_by_id = {p["id"]: p for p in profile_rows}
 
-    # ── Toplu XP cekimi: bu hafta TEK sorguda (tum aktif gruplarin hepsi
-    # zaten ayni haftaya ait, cunku yukarida week_start filtrelendi) ──
+    # ── Toplu XP/oyun/duello sayaci cekimi: bu hafta TEK sorguda (tum
+    # aktif gruplarin hepsi zaten ayni haftaya ait, cunku yukarida
+    # week_start filtrelendi) ──
     week_start_iso = _current_week_start_iso()
-    xp_by_user: dict[str, int] = {uid: 0 for uid in all_user_ids}
+    stats_by_user: dict[str, dict[str, int]] = {
+        uid: {"xp": 0, "games_won": 0, "duels_won": 0} for uid in all_user_ids
+    }
     if all_user_ids:
         xp_rows = (
             supabase_admin.table("xp_events")
-            .select("user_id, amount")
+            .select("user_id, amount, source_type")
             .in_("user_id", list(all_user_ids))
             .gte("created_at", week_start_iso)
             .execute()
             .data
         ) or []
         for row in xp_rows:
-            xp_by_user[row["user_id"]] = xp_by_user.get(row["user_id"], 0) + row["amount"]
+            entry = stats_by_user.setdefault(row["user_id"], {"xp": 0, "games_won": 0, "duels_won": 0})
+            entry["xp"] += row["amount"]
+            source_type = row.get("source_type") or ""
+            if source_type.startswith("game_"):
+                entry["games_won"] += 1
+            elif source_type == "duel_win":
+                entry["duels_won"] += 1
 
     # ── Grup takma adlari: her kademe icinde olusturulma sirasina gore ──
     tier_group_counter: dict[str, int] = {}
@@ -399,12 +437,14 @@ async def get_league_overview(current_user=Depends(get_current_user)):
                     user_id=uid,
                     username=profiles_by_id.get(uid, {}).get("username"),
                     avatar_url=profiles_by_id.get(uid, {}).get("avatar_url"),
-                    xp=xp_by_user.get(uid, 0),
+                    xp=stats_by_user.get(uid, {}).get("xp", 0),
+                    games_won=stats_by_user.get(uid, {}).get("games_won", 0),
+                    duels_won=stats_by_user.get(uid, {}).get("duels_won", 0),
                     is_me=(uid == current_user.id),
                 )
                 for uid in user_ids
             ),
-            key=lambda m: m.xp,
+            key=lambda m: _rank_key({"xp": m.xp, "games_won": m.games_won, "duels_won": m.duels_won}),
             reverse=True,
         )
 

@@ -15,12 +15,23 @@
 // ise 2.'ye olan farkı), terfi/düşme bölgelerinde satır başında küçük
 // bir ok rozeti, ve (weekEndIso verilirse) tablonun üstünde haftanın
 // ne zaman biteceğini gösteren bir sayaç eklendi.
+//
+// Faz 3 devamı — ikinci geri bildirim (10 Eylül 2026): "şimdi lig
+// tablosunda başlangıç bitiş tarihleri görülmeli" → üstteki şerit artık
+// (weekStartIso de verilirse) net tarih aralığını da gösteriyor, sadece
+// göreli sayaç değil. "Tablo içinde kazanılan oyun, kazanılan düello
+// vs. gibi şeylerin sayısal değerleri konulmalı, aynı puanda olanlar
+// oradaki değerlere göre sıralamada yer alacak" → Games/Duels sütunları
+// eklendi (backend zaten bu sırayla — XP, sonra düello, sonra oyun —
+// eşitlik bozuyor, bkz. leagues.py _rank_key). Dar ekranlarda (telefon
+// tarayıcısı) bu iki sütun gizlenir (sm: breakpoint) — Sıra/Kullanıcı/XP
+// her zaman görünür kalır.
 
 import type { ReactNode } from 'react';
-import { User as UserIcon, ChevronUp, ChevronDown, Clock } from 'lucide-react';
+import { User as UserIcon, ChevronUp, ChevronDown, Clock, Gamepad2, Swords } from 'lucide-react';
 import type { LeagueMemberItem } from '@/types';
 import type { Locale } from '@/lib/i18n';
-import { formatTimeRemaining } from '@/lib/leagueLocale';
+import { formatTimeRemaining, formatDateRange } from '@/lib/leagueLocale';
 
 interface Props {
   members: LeagueMemberItem[];
@@ -28,15 +39,21 @@ interface Props {
   userLabel: string;
   xpLabel: string;
   youLabel: string;
-  // Opsiyonel: verilirse tablonun üstünde "hafta X gün sonra bitiyor"
-  // gibi lokalize bir sayaç gösterilir (bkz. formatTimeRemaining).
+  gamesWonLabel: string;
+  duelsWonLabel: string;
+  // Opsiyonel: ikisi de verilirse tablonun üstünde "6 Eyl – 13 Eyl · 3
+  // gün sonra bitiyor" gibi net tarih aralığı + göreli sayaç gösterilir.
+  weekStartIso?: string;
   weekEndIso?: string;
   locale?: Locale;
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-export function LeagueTable({ members, rankLabel, userLabel, xpLabel, youLabel, weekEndIso, locale }: Props) {
+export function LeagueTable({
+  members, rankLabel, userLabel, xpLabel, youLabel, gamesWonLabel, duelsWonLabel,
+  weekStartIso, weekEndIso, locale,
+}: Props) {
   const memberCount = members.length;
   // Web'deki eski sayfada da aynı orantı kullanılıyordu (grup büyüklüğü
   // 30'dan 15'e indi ama oran aynı kaldı, bkz. migration 051) — üstteki
@@ -45,13 +62,18 @@ export function LeagueTable({ members, rankLabel, userLabel, xpLabel, youLabel, 
   const zoneSize = memberCount > 6 ? Math.max(1, Math.round(memberCount / 3)) : 0;
 
   const timeRemaining = weekEndIso && locale ? formatTimeRemaining(weekEndIso, locale) : '';
+  const dateRange = weekStartIso && weekEndIso && locale ? formatDateRange(weekStartIso, weekEndIso, locale) : '';
 
   return (
     <div className="space-y-2">
-      {timeRemaining && (
+      {(dateRange || timeRemaining) && (
         <div className="flex items-center gap-1.5 px-1 text-xs text-gray-400 dark:text-slate-500">
-          <Clock className="w-3.5 h-3.5" />
-          <span>{timeRemaining}</span>
+          <Clock className="w-3.5 h-3.5 shrink-0" />
+          <span>
+            {dateRange}
+            {dateRange && timeRemaining ? ' · ' : ''}
+            {timeRemaining}
+          </span>
         </div>
       )}
       <div className="overflow-hidden rounded-xl border border-gray-100 dark:border-slate-800">
@@ -60,6 +82,12 @@ export function LeagueTable({ members, rankLabel, userLabel, xpLabel, youLabel, 
             <tr className="bg-gray-50 dark:bg-slate-800/60 text-[11px] uppercase tracking-wide text-gray-400 dark:text-slate-500">
               <th className="text-left font-semibold py-2 pl-3 pr-1 w-10">{rankLabel}</th>
               <th className="text-left font-semibold py-2 px-2">{userLabel}</th>
+              <th className="hidden sm:table-cell text-right font-semibold py-2 px-1.5 w-12" title={gamesWonLabel}>
+                <Gamepad2 className="w-3.5 h-3.5 inline-block" />
+              </th>
+              <th className="hidden sm:table-cell text-right font-semibold py-2 px-1.5 w-12" title={duelsWonLabel}>
+                <Swords className="w-3.5 h-3.5 inline-block" />
+              </th>
               <th className="text-right font-semibold py-2 pl-2 pr-3">{xpLabel}</th>
             </tr>
           </thead>
@@ -125,7 +153,21 @@ export function LeagueTable({ members, rankLabel, userLabel, xpLabel, youLabel, 
                         {m.username || '—'}
                         {m.is_me && <span className="ml-1.5 text-xs font-normal text-blue-600 dark:text-blue-400">({youLabel})</span>}
                       </span>
+                      {/* Dar ekranda Games/Duels sütunları gizlendiği için (bkz. yukarısı)
+                          değerleri kullanıcı adının altına küçük bir satırda taşıyoruz --
+                          bilgi kaybolmasın diye, sadece daha kompakt gösteriliyor. */}
+                      {(m.games_won > 0 || m.duels_won > 0) && (
+                        <span className="sm:hidden shrink-0 text-[10px] text-gray-400 dark:text-slate-500 tabular-nums">
+                          🎮{m.games_won} ⚔{m.duels_won}
+                        </span>
+                      )}
                     </div>
+                  </td>
+                  <td className="hidden sm:table-cell text-right py-2.5 px-1.5 text-gray-500 dark:text-slate-400 tabular-nums">
+                    {m.games_won}
+                  </td>
+                  <td className="hidden sm:table-cell text-right py-2.5 px-1.5 text-gray-500 dark:text-slate-400 tabular-nums">
+                    {m.duels_won}
                   </td>
                   <td className="py-2.5 pl-2 pr-3 text-right">
                     <div className="flex flex-col items-end">

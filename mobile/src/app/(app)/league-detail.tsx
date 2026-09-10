@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, ChevronDown, ChevronUp, RefreshCw, Trophy } from 'lucide-react-native';
 import { leaguesApi } from '@/api/leagues';
 import type { LeagueOverviewGroup, LeagueStatusResponse } from '@/api/types';
-import { LEAGUE_STRINGS, LEAGUE_TIER_NAMES } from '@/i18n/leagueStrings';
+import { LEAGUE_STRINGS, LEAGUE_TIER_NAMES, formatDateRange } from '@/i18n/leagueStrings';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
@@ -22,17 +22,6 @@ import { LeagueGroupStrip } from '@/components/LeagueGroupStrip';
 // [id].tsx dinamik segmenti KULLANILMIYOR (bkz. duel-room.tsx'teki not),
 // bunun yerine düz rota dosyası + useLocalSearchParams (user-profile.tsx
 // ile aynı desen) kullanılıyor: router.push({ pathname: '/(app)/league-detail', params: { id } }).
-
-function formatDateRange(startIso: string, endIso: string, locale: string): string {
-  try {
-    const start = new Date(startIso);
-    const end = new Date(endIso);
-    const fmt = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
-    return `${fmt.format(start)} – ${fmt.format(end)}`;
-  } catch {
-    return '';
-  }
-}
 
 function errorDetail(err: unknown): string {
   const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
@@ -139,7 +128,7 @@ export default function LeagueDetailScreen() {
         </Card>
       )}
       {!loading && !error && status && status.members.length > 0 && (
-        <LeagueTable members={status.members} rankLabel={t.rankLabel} userLabel={t.userLabel} xpLabel={t.xpLabel} youLabel={t.youLabel} weekEndIso={status.week_end} locale={locale} />
+        <LeagueTable members={status.members} rankLabel={t.rankLabel} userLabel={t.userLabel} xpLabel={t.xpLabel} youLabel={t.youLabel} weekStartIso={status.week_start} weekEndIso={status.week_end} locale={locale} />
       )}
 
       {!loading && !error && status && status.members.length > 6 && (

@@ -109,6 +109,7 @@ export default function LeagueScreen() {
           userLabel={t.userLabel}
           xpLabel={t.xpLabel}
           youLabel={t.youLabel}
+          weekStartIso={status.week_start}
           weekEndIso={status.week_end}
           locale={locale}
         />

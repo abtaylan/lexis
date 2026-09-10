@@ -1,9 +1,9 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { User as UserIcon, ChevronUp, ChevronDown, Clock } from 'lucide-react-native';
+import { User as UserIcon, ChevronUp, ChevronDown, Clock, Gamepad2, Swords } from 'lucide-react-native';
 import type { LeagueMemberItem } from '@/api/types';
 import type { Locale } from '@/i18n/locales';
-import { formatTimeRemaining } from '@/i18n/leagueStrings';
+import { formatTimeRemaining, formatDateRange } from '@/i18n/leagueStrings';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { spacing } from '@/constants/theme';
 
@@ -22,6 +22,14 @@ import { spacing } from '@/constants/theme';
 // küçük bir ok rozeti, ve (weekEndIso verilirse) tablonun üstünde
 // haftanın ne zaman biteceğini gösteren bir sayaç — web ile birebir
 // aynı mantık (bkz. web LeagueTable yorumu).
+//
+// Faz 3 devamı — ikinci geri bildirim (10 Eylül 2026): "tabloda
+// başlangıç bitiş tarihleri görülmeli" → üstteki şerit artık
+// (weekStartIso de verilirse) net tarih aralığını da gösteriyor.
+// "kazanılan oyun, kazanılan düello sayısal değerleri konulmalı" →
+// kullanıcı adının altına küçük 🎮/⚔ sayaçları eklendi (telefon
+// genişliğinde ayrı sütunlara yer yok, bkz. web'deki sm:hidden
+// fallback ile AYNI kompakt gösterim).
 
 interface Props {
   members: LeagueMemberItem[];
@@ -29,26 +37,34 @@ interface Props {
   userLabel: string;
   xpLabel: string;
   youLabel: string;
+  weekStartIso?: string;
   weekEndIso?: string;
   locale?: Locale;
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-export function LeagueTable({ members, rankLabel, userLabel, xpLabel, youLabel, weekEndIso, locale }: Props) {
+export function LeagueTable({
+  members, rankLabel, userLabel, xpLabel, youLabel, weekStartIso, weekEndIso, locale,
+}: Props) {
   const c = useThemeColors();
   const memberCount = members.length;
   // Web'deki ile aynı oran (~1/3 terfi, ~1/3 düşme) — bkz. web LeagueTable
   // yorumu, gerçek terfi/düşme mantığı bkz. backend/league_weekly_rollover.py.
   const zoneSize = memberCount > 6 ? Math.max(1, Math.round(memberCount / 3)) : 0;
   const timeRemaining = weekEndIso && locale ? formatTimeRemaining(weekEndIso, locale) : '';
+  const dateRange = weekStartIso && weekEndIso && locale ? formatDateRange(weekStartIso, weekEndIso, locale) : '';
 
   return (
     <View>
-      {!!timeRemaining && (
+      {!!(dateRange || timeRemaining) && (
         <View style={styles.timeRow}>
           <Clock color={c.textMuted} size={12} />
-          <Text style={{ color: c.textMuted, fontSize: 11 }}>{timeRemaining}</Text>
+          <Text style={{ color: c.textMuted, fontSize: 11 }}>
+            {dateRange}
+            {dateRange && timeRemaining ? ' · ' : ''}
+            {timeRemaining}
+          </Text>
         </View>
       )}
       <View style={[styles.wrap, { borderColor: c.border }]}>
@@ -98,10 +114,20 @@ export function LeagueTable({ members, rankLabel, userLabel, xpLabel, youLabel, 
                 <View style={[styles.avatar, { backgroundColor: c.background }]}>
                   <UserIcon color={c.textMuted} size={13} />
                 </View>
-                <Text style={[styles.usernameText, { color: c.text }]} numberOfLines={1}>
-                  {m.username || '—'}
-                  {m.is_me ? <Text style={{ color: c.primary, fontWeight: '500', fontSize: 11 }}> ({youLabel})</Text> : null}
-                </Text>
+                <View style={{ minWidth: 0, flexShrink: 1 }}>
+                  <Text style={[styles.usernameText, { color: c.text }]} numberOfLines={1}>
+                    {m.username || '—'}
+                    {m.is_me ? <Text style={{ color: c.primary, fontWeight: '500', fontSize: 11 }}> ({youLabel})</Text> : null}
+                  </Text>
+                  {(m.games_won > 0 || m.duels_won > 0) && (
+                    <View style={styles.miniStatsRow}>
+                      <Gamepad2 color={c.textMuted} size={9} />
+                      <Text style={{ color: c.textMuted, fontSize: 9 }}>{m.games_won}</Text>
+                      <Swords color={c.textMuted} size={9} />
+                      <Text style={{ color: c.textMuted, fontSize: 9 }}>{m.duels_won}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
               <View style={styles.xpCell}>
                 <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '700' }}>{m.xp}</Text>
@@ -139,5 +165,6 @@ const styles = StyleSheet.create({
   userCell: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minWidth: 0 },
   avatar: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   usernameText: { fontSize: 13, fontWeight: '600', flexShrink: 1 },
+  miniStatsRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 1 },
   xpCell: { width: 52, alignItems: 'flex-end' },
 });

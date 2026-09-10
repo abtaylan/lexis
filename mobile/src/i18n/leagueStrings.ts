@@ -22,6 +22,8 @@ export type LeagueStrings = {
   detailError: string;
   prevLeagueLabel: string;
   nextLeagueLabel: string;
+  gamesWonLabel: string;
+  duelsWonLabel: string;
 };
 
 export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
@@ -32,6 +34,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Terfi bölgesi', demoteHint: 'Düşme bölgesi',
     allLeaguesTitle: 'Tüm Ligler', membersSuffix: 'üye', groupLabel: 'Grup', yourGroupBadge: 'Senin Ligin',
     backBtn: 'Lige Dön', detailError: 'Bu lig grubu bulunamadı.', prevLeagueLabel: 'Alt Lig', nextLeagueLabel: 'Üst Lig',
+    gamesWonLabel: 'Oyun', duelsWonLabel: 'Düello',
   },
   en: {
     title: 'League', error: 'Something went wrong.',
@@ -40,6 +43,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Promotion zone', demoteHint: 'Relegation zone',
     allLeaguesTitle: 'All Leagues', membersSuffix: 'members', groupLabel: 'Group', yourGroupBadge: 'Your League',
     backBtn: 'Back to League', detailError: 'This league group could not be found.', prevLeagueLabel: 'Lower League', nextLeagueLabel: 'Upper League',
+    gamesWonLabel: 'Games', duelsWonLabel: 'Duels',
   },
   de: {
     title: 'Liga', error: 'Etwas ist schiefgelaufen.',
@@ -48,6 +52,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Aufstiegszone', demoteHint: 'Abstiegszone',
     allLeaguesTitle: 'Alle Ligen', membersSuffix: 'Mitglieder', groupLabel: 'Gruppe', yourGroupBadge: 'Deine Liga',
     backBtn: 'Zurück zur Liga', detailError: 'Diese Ligagruppe wurde nicht gefunden.', prevLeagueLabel: 'Niedrigere Liga', nextLeagueLabel: 'Höhere Liga',
+    gamesWonLabel: 'Spiele', duelsWonLabel: 'Duelle',
   },
   fr: {
     title: 'Ligue', error: "Une erreur s'est produite.",
@@ -56,6 +61,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Zone de promotion', demoteHint: 'Zone de relégation',
     allLeaguesTitle: 'Toutes les Ligues', membersSuffix: 'membres', groupLabel: 'Groupe', yourGroupBadge: 'Ta Ligue',
     backBtn: 'Retour à la ligue', detailError: 'Ce groupe de ligue est introuvable.', prevLeagueLabel: 'Ligue inférieure', nextLeagueLabel: 'Ligue supérieure',
+    gamesWonLabel: 'Jeux', duelsWonLabel: 'Duels',
   },
   es: {
     title: 'Liga', error: 'Algo salió mal.',
@@ -64,6 +70,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Zona de ascenso', demoteHint: 'Zona de descenso',
     allLeaguesTitle: 'Todas las Ligas', membersSuffix: 'miembros', groupLabel: 'Grupo', yourGroupBadge: 'Tu Liga',
     backBtn: 'Volver a la liga', detailError: 'No se encontró este grupo de liga.', prevLeagueLabel: 'Liga inferior', nextLeagueLabel: 'Liga superior',
+    gamesWonLabel: 'Juegos', duelsWonLabel: 'Duelos',
   },
   it: {
     title: 'Lega', error: 'Qualcosa è andato storto.',
@@ -72,6 +79,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Zona promozione', demoteHint: 'Zona retrocessione',
     allLeaguesTitle: 'Tutte le Leghe', membersSuffix: 'membri', groupLabel: 'Gruppo', yourGroupBadge: 'La Tua Lega',
     backBtn: 'Torna alla lega', detailError: 'Questo gruppo di lega non è stato trovato.', prevLeagueLabel: 'Lega inferiore', nextLeagueLabel: 'Lega superiore',
+    gamesWonLabel: 'Giochi', duelsWonLabel: 'Duelli',
   },
   ar: {
     title: 'الدوري', error: 'حدث خطأ ما.',
@@ -80,6 +88,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'منطقة الترقية', demoteHint: 'منطقة الهبوط',
     allLeaguesTitle: 'كل الدوريات', membersSuffix: 'عضو', groupLabel: 'مجموعة', yourGroupBadge: 'دوريك',
     backBtn: 'العودة إلى الدوري', detailError: 'لم يتم العثور على مجموعة الدوري هذه.', prevLeagueLabel: 'الدوري الأدنى', nextLeagueLabel: 'الدوري الأعلى',
+    gamesWonLabel: 'الألعاب', duelsWonLabel: 'المبارزات',
   },
   ru: {
     title: 'Лига', error: 'Что-то пошло не так.',
@@ -88,6 +97,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Зона повышения', demoteHint: 'Зона понижения',
     allLeaguesTitle: 'Все Лиги', membersSuffix: 'участников', groupLabel: 'Группа', yourGroupBadge: 'Твоя Лига',
     backBtn: 'Назад к лиге', detailError: 'Эта группа лиги не найдена.', prevLeagueLabel: 'Лига ниже', nextLeagueLabel: 'Лига выше',
+    gamesWonLabel: 'Игры', duelsWonLabel: 'Дуэли',
   },
   ja: {
     title: 'リーグ', error: '問題が発生しました。',
@@ -96,6 +106,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: '昇格ゾーン', demoteHint: '降格ゾーン',
     allLeaguesTitle: 'すべてのリーグ', membersSuffix: '人', groupLabel: 'グループ', yourGroupBadge: 'あなたのリーグ',
     backBtn: 'リーグに戻る', detailError: 'このリーググループは見つかりませんでした。', prevLeagueLabel: '下位リーグ', nextLeagueLabel: '上位リーグ',
+    gamesWonLabel: 'ゲーム', duelsWonLabel: 'デュエル',
   },
   pt: {
     title: 'Liga', error: 'Algo deu errado.',
@@ -104,6 +115,7 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
     promoteHint: 'Zona de promoção', demoteHint: 'Zona de rebaixamento',
     allLeaguesTitle: 'Todas as Ligas', membersSuffix: 'membros', groupLabel: 'Grupo', yourGroupBadge: 'Sua Liga',
     backBtn: 'Voltar à liga', detailError: 'Este grupo de liga não foi encontrado.', prevLeagueLabel: 'Liga inferior', nextLeagueLabel: 'Liga superior',
+    gamesWonLabel: 'Jogos', duelsWonLabel: 'Duelos',
   },
 };
 
@@ -112,6 +124,21 @@ export const LEAGUE_STRINGS: Record<Locale, LeagueStrings> = {
 // lokalize, insan-okunur şekilde gösterir. Hermes (RN 0.86 / Expo 57)
 // tam ICU ile geliyor, Intl.RelativeTimeFormat ek kütüphane gerektirmez.
 // Gerçek kapanış mantığı bkz. backend/league_weekly_rollover.py.
+// web'deki leagueLocale.ts formatDateRange ile AYNI -- eskiden league.tsx
+// VE league-detail.tsx'te AYRI AYRI local fonksiyon olarak tanimliydi,
+// tekilleştirildi (Faz 3 devami, 10 Eylul 2026 -- "tabloda baslangic
+// bitis tarihleri gorulmeli" ile LeagueTable'a da tasinmasi gerekince).
+export function formatDateRange(startIso: string, endIso: string, locale: Locale): string {
+  try {
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    const fmt = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' });
+    return `${fmt.format(start)} \u2013 ${fmt.format(end)}`;
+  } catch {
+    return '';
+  }
+}
+
 export function formatTimeRemaining(endIso: string, locale: Locale): string {
   try {
     const diffMs = new Date(endIso).getTime() - Date.now();

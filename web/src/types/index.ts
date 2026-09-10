@@ -888,6 +888,12 @@ export interface LeagueMemberItem {
   avatar_url?: string | null;
   xp: number;
   is_me: boolean;
+  // Faz 3 devami (10 Eylul 2026 -- "kazanilan oyun, kazanilan duello gibi
+  // sayisal degerler eklenmeli, ayni puanda olanlar bunlara gore
+  // siralanacak"): bu hafta xp_events'ten sayilan iki ek sayac -- backend
+  // esitlikte siralamayi ONCE duels_won SONRA games_won'a gore kirar.
+  games_won: number;
+  duels_won: number;
 }
 
 export interface LeagueStatusResponse {

@@ -74,22 +74,41 @@ except ImportError:
 _TIER_SLUGS_BY_INDEX = ["bronze", "silver", "gold", "platinum", "diamond", "master"]
 
 
-def _weekly_xp_by_user(user_ids: list[str], week_start: str, week_end: str) -> dict[str, int]:
+def _weekly_stats_by_user(user_ids: list[str], week_start: str, week_end: str) -> dict[str, dict[str, int]]:
+    """leagues.py _weekly_stats_by_user ile AYNI mantik (bilerek kopyalandi
+    -- bu script bagimsiz calisiyor, bir route modulunu import etmek
+    istenmiyor). Faz 3 devami (10 Eylul 2026 -- "ayni puanda olanlar
+    kazanilan oyun/duello sayisina gore siralanacak"): kapanis sirasindaki
+    GERCEK terfi/dusme siralamasi da kullanicinin GORDUGU tabloyla BIREBIR
+    ayni esitlik-bozma kuralini kullanmali, yoksa ekranda gordugu sira ile
+    gercekte kimin terfi ettigi TUTARSIZ olur."""
     if not user_ids:
         return {}
     rows = (
         supabase_admin.table("xp_events")
-        .select("user_id, amount")
+        .select("user_id, amount, source_type")
         .in_("user_id", user_ids)
         .gte("created_at", week_start)
         .lt("created_at", week_end)
         .execute()
         .data
     ) or []
-    totals: dict[str, int] = {uid: 0 for uid in user_ids}
+    stats: dict[str, dict[str, int]] = {
+        uid: {"xp": 0, "games_won": 0, "duels_won": 0} for uid in user_ids
+    }
     for row in rows:
-        totals[row["user_id"]] = totals.get(row["user_id"], 0) + row["amount"]
-    return totals
+        entry = stats.setdefault(row["user_id"], {"xp": 0, "games_won": 0, "duels_won": 0})
+        entry["xp"] += row["amount"]
+        source_type = row.get("source_type") or ""
+        if source_type.startswith("game_"):
+            entry["games_won"] += 1
+        elif source_type == "duel_win":
+            entry["duels_won"] += 1
+    return stats
+
+
+def _rank_key(stats: dict[str, int]) -> tuple[int, int, int]:
+    return (stats["xp"], stats["duels_won"], stats["games_won"])
 
 
 async def main() -> None:
@@ -130,8 +149,12 @@ async def main() -> None:
             ) or []
             profiles_by_id = {p["id"]: p for p in profile_rows}
 
-            xp_by_user = _weekly_xp_by_user(user_ids, league["week_start"], league["week_end"])
-            ranked = sorted(user_ids, key=lambda uid: xp_by_user.get(uid, 0), reverse=True)
+            stats_by_user = _weekly_stats_by_user(user_ids, league["week_start"], league["week_end"])
+            ranked = sorted(
+                user_ids,
+                key=lambda uid: _rank_key(stats_by_user.get(uid, {"xp": 0, "games_won": 0, "duels_won": 0})),
+                reverse=True,
+            )
             member_count = len(ranked)
             # LeagueTable.tsx (web+mobil) ile BIREBIR ayni oran -- gorsel
             # onizleme ile gercek kapanis mantigi SIMDI tutarli.
@@ -165,7 +188,7 @@ async def main() -> None:
 
                 supabase_admin.table("league_memberships").update(
                     {
-                        "final_xp": xp_by_user.get(uid, 0),
+                        "final_xp": stats_by_user.get(uid, {}).get("xp", 0),
                         "final_rank": rank,
                         "outcome": outcome,
                     }
