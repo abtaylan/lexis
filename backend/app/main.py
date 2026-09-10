@@ -9,6 +9,7 @@ from app.api.routes import (
     auth,
     cron,
     dictionary,
+    duels,
     exam_reminders,
     exams,
     games,
@@ -60,6 +61,10 @@ app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(admin_platform.router, prefix="/api/v1/admin", tags=["Admin Platform"])
 app.include_router(languages.router, prefix="/api/v1/languages", tags=["Languages"])
 app.include_router(games.router, prefix="/api/v1/games", tags=["Games"])
+# V2 madde #6/#7 Faz 3a -- Gercek Zamanli Duello, oda yasam dongusu (bkz.
+# duels.py modul docstring'i -- round-servis uclari henuz yok, sonraki
+# alt-fazda eklenecek).
+app.include_router(duels.router, prefix="/api/v1/duels", tags=["Duels"])
 app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["Subscription"])
 app.include_router(user_languages.router, prefix="/api/v1/me/languages", tags=["User Languages"])
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])
