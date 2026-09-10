@@ -17,6 +17,7 @@ from app.api.routes import (
     languages,
     leagues,
     notifications,
+    organizations,
     push_tokens,
     quests,
     schedule,
@@ -81,6 +82,8 @@ app.include_router(grammar.router, prefix="/api/v1/grammar", tags=["Grammar"])
 app.include_router(leagues.router, prefix="/api/v1/leagues", tags=["Leagues"])
 # V2 Faz 3c — görev haritası, sunucu taraflı ilerleme (bkz. quests.py modül docstring'i).
 app.include_router(quests.router, prefix="/api/v1/quests", tags=["Quests"])
+# V2 Faz 3d — B2B/kurumsal ligler, en dusuk oncelik (bkz. organizations.py modül docstring'i).
+app.include_router(organizations.router, prefix="/api/v1/organizations", tags=["Organizations"])
 # Vercel Cron / GitHub Actions'tan secret-korumalı tetikleme — bkz. app/api/routes/cron.py
 app.include_router(cron.router, prefix="/internal/cron", tags=["Internal Cron"])
 
