@@ -104,6 +104,57 @@ def _to_duel_response(duel: dict) -> DuelResponse:
     )
 
 
+# Faz 3e zorluk kademesi (10 Eylül 2026 ürün kararı): hem düelloda hem
+# ligde (bkz. Faz 3b) seviye ilerledikçe zorlaşmalı. general_word_pool
+# difficulty_level'ı zaten 3 kademeli (beginner/intermediate/advanced,
+# her dil için ~900 kelime/kademe, definition backfill %100 — bkz.
+# istatistik sorgusu 10 Eylül 2026) — yeni bir üretim altyapısı kurmaya
+# gerek kalmadan, mevcut havuz kademeye göre bölünerek kullanılıyor.
+DIFFICULTY_PROGRESSION = ["beginner", "intermediate", "advanced"]
+
+
+def _difficulty_band_for_round(round_index: int, total_rounds: int) -> str:
+    """Tur sırasına göre zorluk kademesi: ilk 1/3 kolay, orta 1/3 orta,
+    son 1/3 zor — düello/lig ilerledikçe zorlaşsın diye. NOT: bu, TEK bir
+    düello/maç İÇİNDEKİ ilerlemeyi kademelendirir; kullanıcının genel
+    hesap seviyesine (profiles.level) göre başlangıç kademesini kaydırma
+    (ör. seviye 30 oyuncuya hep 'advanced' ile başlama) BİLİNÇLİ OLARAK
+    bu ilk versiyonda YOK — çok-oyunculu bir düelloda katılımcıların
+    seviyeleri farklı olabileceği için "kimin seviyesi baz alınacak"
+    netleşmeden eklenmedi; gerçek kullanım verisiyle değerlendirilecek."""
+    if total_rounds <= 1:
+        return DIFFICULTY_PROGRESSION[0]
+    progress = round_index / total_rounds
+    if progress < 1 / 3:
+        return DIFFICULTY_PROGRESSION[0]
+    if progress < 2 / 3:
+        return DIFFICULTY_PROGRESSION[1]
+    return DIFFICULTY_PROGRESSION[2]
+
+
+def _fetch_band_candidates(learning_lang: str, difficulty_level: str) -> list[dict]:
+    """Bir zorluk kademesindeki kelimeleri (id, word, definition) çeker,
+    metin bazlı dedupe eder (aynı kelimenin farklı target_lang satırları
+    olabilir)."""
+    rows = (
+        supabase_admin.table("general_word_pool")
+        .select("id, word, definition")
+        .eq("source_lang", learning_lang)
+        .eq("is_active", True)
+        .eq("difficulty_level", difficulty_level)
+        .not_.is_("definition", "null")
+        .limit(ROUND_CANDIDATE_FETCH_LIMIT)
+        .execute()
+        .data
+    ) or []
+    unique: dict[str, dict] = {}
+    for row in rows:
+        key = row["word"].strip().lower()
+        if key not in unique:
+            unique[key] = row
+    return list(unique.values())
+
+
 def _generate_rounds(duel_id: str, learning_lang: str, round_count: int) -> int:
     """Oda başlarken (start_duel) TÜM turları önceden üretir — round içeriği
     zamana göre değil, oda açılışında bir kerede belirlenir (games.py'deki
@@ -113,81 +164,79 @@ def _generate_rounds(duel_id: str, learning_lang: str, round_count: int) -> int:
     Faz 3e ürün kararı gereği SADECE hedef dilde: general_word_pool.definition
     (tanım) gösterilir, doğru "word" 4 seçenekten bulunur — games.py'deki
     "definition_to_word" yönüyle birebir aynı desen, ama native_lang'e HİÇ
-    bakılmaz (source_lang=learning_lang, target_lang filtresi YOK — aynı
-    kelimenin birden fazla target_lang satırı varsa metin bazlı dedupe ile
-    tekilleştirilir).
+    bakılmaz. Ayrıca zorluk _difficulty_band_for_round'a göre round_index
+    ilerledikçe kolay->orta->zor kademeleniyor (bkz. yukarısı).
 
-    Havuzda yeterli farklı kelime yoksa (< 4, bir soru için bile distractor
-    yetmez) 0 döner — çağıran taraf (start_duel) bunu 400'e çevirir. Havuzda
-    round_count'tan AZ ama >=4 farklı kelime varsa, üretilebilen kadar tur
-    üretilir (duel.round_count DEĞİŞTİRİLMEZ, sadece fiilen üretilen tur
-    sayısı bundan az olabilir — advance ucu buna göre davranır, bkz. aşağı).
+    Havuz tazeliği (10 Eylül 2026 kullanıcı sorusu — "hep aynı sorular
+    olmamalı"): her çağrıda o kademenin havuzundan random.sample ile
+    seçiliyor, sabit/statik bir soru seti YOK — ama bu, AYNI kullanıcının
+    GEÇMİŞ düellolarında gördüğü kelimeleri hatırlayıp DIŞLAMIYOR (games.py
+    _attempted_ids desenindeki gibi bir kullanıcı-bazlı geçmiş takibi
+    BİLİNÇLİ OLARAK bu ilk versiyonda YOK). Havuz zaten dil başına
+    kademe başına ~900 kelime olduğu için (definition backfill %100)
+    kısa vadede pratikte tekrar riski düşük; gerçek kullanım verisi tekrarın
+    fark edildiğini gösterirse eklenecek.
+
+    Havuzda (tüm kademeler toplam) yeterli farklı kelime yoksa (< 4, bir
+    soru için bile distractor yetmez) 0 döner — çağıran taraf (start_duel)
+    bunu 400'e çevirir. round_count'tan AZ ama >=4 farklı kelime varsa,
+    üretilebilen kadar tur üretilir (duel.round_count DEĞİŞTİRİLMEZ, sadece
+    fiilen üretilen tur sayısı bundan az olabilir — advance ucu buna göre
+    davranır, bkz. aşağı).
     """
-    rows = (
-        supabase_admin.table("general_word_pool")
-        .select("word, definition")
-        .eq("source_lang", learning_lang)
-        .eq("is_active", True)
-        .not_.is_("definition", "null")
-        .limit(ROUND_CANDIDATE_FETCH_LIMIT)
-        .execute()
-        .data
-    ) or []
+    band_pools = {
+        level: _fetch_band_candidates(learning_lang, level) for level in DIFFICULTY_PROGRESSION
+    }
+    combined_unique: dict[str, dict] = {}
+    for pool in band_pools.values():
+        for w in pool:
+            combined_unique.setdefault(w["word"].strip().lower(), w)
+    combined_pool = list(combined_unique.values())
 
-    # Metin bazlı dedupe (aynı kelimenin farklı target_lang satırları olabilir).
-    unique_by_word: dict[str, str] = {}
-    for row in rows:
-        key = row["word"].strip().lower()
-        if key not in unique_by_word:
-            unique_by_word[key] = row["word"]
-    candidates = list(unique_by_word.values())  # görüntülenecek orijinal metinler
-
-    if len(candidates) < 4:
+    if len(combined_pool) < 4:
         return 0
 
-    actual_round_count = min(round_count, len(candidates))
-    chosen_words = random.sample(candidates, actual_round_count)
-
+    actual_round_count = min(round_count, len(combined_pool))
+    used_words: set[str] = set()
     rounds_to_insert = []
-    for index, correct_word in enumerate(chosen_words):
-        distractor_pool = [w for w in candidates if w != correct_word]
+
+    for index in range(actual_round_count):
+        band = _difficulty_band_for_round(index, actual_round_count)
+        band_pool = [w for w in band_pools[band] if w["word"] not in used_words]
+        if not band_pool:
+            # Bu kademede kelime tükendi (küçük bir dil/kademe için olası) —
+            # tekrar olmasın diye tüm havuza (zorluk farkı gözetmeksizin) düş.
+            band_pool = [w for w in combined_pool if w["word"] not in used_words]
+        if not band_pool:
+            break
+
+        chosen = random.choice(band_pool)
+        used_words.add(chosen["word"])
+
+        distractor_pool = [w for w in band_pools[band] if w["word"] != chosen["word"]]
+        if len(distractor_pool) < 3:
+            extra = [
+                w
+                for w in combined_pool
+                if w["word"] != chosen["word"] and w not in distractor_pool
+            ]
+            distractor_pool = distractor_pool + extra
         distractor_picks = random.sample(distractor_pool, min(3, len(distractor_pool)))
-        options = [correct_word] + distractor_picks
+        options = [chosen["word"]] + [d["word"] for d in distractor_picks]
         random.shuffle(options)
+
         rounds_to_insert.append(
             {
                 "duel_id": duel_id,
                 "round_index": index,
-                # NOT: general_word_id yerine word/definition metnini doğrudan
-                # options/correct_option'a gömüyoruz (dedupe sonrası hangi
-                # general_word_pool satırının "temsilci" olduğu önemsiz —
-                # sadece metin gösteriliyor). general_word_id FK'i NOT NULL
-                # olduğu için ilk eşleşen satırı referans olarak buluyoruz.
-                "general_word_id": None,
+                "general_word_id": chosen["id"],
                 "options": options,
-                "correct_option": correct_word,
+                "correct_option": chosen["word"],
             }
         )
 
-    # general_word_id NOT NULL (migration 037) — dedupe edilmiş her kelime
-    # için gerçek bir general_word_pool.id lazım; word metnine göre tek bir
-    # temsilci id çekiyoruz.
-    word_to_id: dict[str, str] = {}
-    id_rows = (
-        supabase_admin.table("general_word_pool")
-        .select("id, word")
-        .eq("source_lang", learning_lang)
-        .in_("word", chosen_words)
-        .execute()
-        .data
-    ) or []
-    for row in id_rows:
-        word_to_id.setdefault(row["word"], row["id"])
-    for r in rounds_to_insert:
-        r["general_word_id"] = word_to_id.get(r["correct_option"])
-
     supabase_admin.table("duel_rounds").insert(rounds_to_insert).execute()
-    return actual_round_count
+    return len(rounds_to_insert)
 
 
 def _get_round_or_404(duel_id: str, round_index: int) -> dict:
