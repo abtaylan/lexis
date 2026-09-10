@@ -6,6 +6,8 @@ from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.schemas.words import (
     ReviewResult,
+    StudySessionCreate,
+    StudySessionResponse,
     WeakWordTypeItem,
     WeakWordTypesResult,
     WordCreate,
@@ -171,6 +173,36 @@ async def review_word(
     if xp_result:
         response["xp"] = xp_result.to_dict()
     return response
+
+@router.post("/study-sessions", response_model=StudySessionResponse, status_code=201)
+async def log_study_session(
+    session_in: StudySessionCreate,
+    current_user=Depends(get_current_user),
+):
+    """Bitmis bir kelime-tekrar TURUNU kaydeder (10 Eylul 2026 -- Gorev
+    Haritasi v2, bkz. StudySessionCreate docstring'i). Web/mobile
+    flashcards ekrani DoneScreen'e ulasinca bir kez cagirir. XP/streak
+    burada VERILMEZ -- onlar zaten POST /words/{id}/review icinde kart
+    bazli isleniyor (bkz. review_word); bu uc SADECE study_sessions
+    tablosuna bir ozet satiri yazip Gorev Haritasi'ndaki
+    'study_sessions_count' gereksinimini olcunebilir hale getirir.
+    """
+    now_iso = datetime.now(UTC).isoformat()
+    row = {
+        "user_id": current_user.id,
+        "study_type": session_in.study_type,
+        "words_studied": session_in.words_studied,
+        "correct_count": session_in.correct_count,
+        "wrong_count": session_in.wrong_count,
+        "duration_secs": session_in.duration_secs,
+        "started_at": now_iso,
+        "ended_at": now_iso,
+    }
+    result = supabase_admin.table("study_sessions").insert(row).execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Oturum kaydedilemedi.")
+    return result.data[0]
+
 
 @router.get("/stats/weak-word-types", response_model=WeakWordTypesResult)
 async def weak_word_types(

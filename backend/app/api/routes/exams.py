@@ -38,6 +38,7 @@ from app.core.auth import get_current_admin, get_current_admin_full, get_current
 from app.core.database import supabase_admin
 from app.services.auth_users import list_all_auth_users
 from app.schemas.exams import (
+    TopicPracticeAttemptCreate,
     AddWordFromQuestionResponse,
     AIQuestionGenerateRequest,
     AIQuestionGenerateResult,
@@ -711,6 +712,26 @@ async def practice_questions_by_topic(
             for q in chosen
         ],
     )
+
+
+@router.post("/topics/{topic_tag}/practice-attempt", status_code=201)
+async def log_topic_practice_attempt(
+    topic_tag: str,
+    attempt_in: TopicPracticeAttemptCreate,
+    current_user=Depends(get_current_user),
+):
+    """Görev Haritası v2 (10 Eylül 2026) — bkz. ExamPracticeQuestionsResult
+    docstring'i. practice_questions_by_topic ekranında cevaplanan HER soru
+    için istemci bunu çağırır; sadece topic_practice_attempts'e bir satır
+    yazar. XP verilmez, exam_sessions/exam_attempts'e DOKUNULMAZ."""
+    row = {
+        "user_id": current_user.id,
+        "topic_tag": topic_tag,
+        "question_id": attempt_in.question_id,
+        "is_correct": attempt_in.is_correct,
+    }
+    supabase_admin.table("topic_practice_attempts").insert(row).execute()
+    return {"message": "Kaydedildi"}
 
 
 # ── Madde #3c: haftalık/günlük zayıf konu özeti ────────────────────────

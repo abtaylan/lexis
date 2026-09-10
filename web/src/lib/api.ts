@@ -327,6 +327,24 @@ export const wordsApi = {
     });
     return res.data;
   },
+
+  // Gorev Haritasi v2 (10 Eylul 2026) -- flashcards sayfasi bir tur
+  // bittiginde (DoneScreen) bir kez cagirir; content_type='flashcard'
+  // gorevlerinin ilerlemesini olculebilir kilar (bkz. backend words.py
+  // log_study_session).
+  logStudySession: async (data: {
+    words_studied: number;
+    correct_count: number;
+    wrong_count: number;
+    duration_secs: number;
+    study_type?: string;
+  }): Promise<void> => {
+    try {
+      await api.post('/words/study-sessions', data);
+    } catch {
+      // sessizce yut -- bu sadece Gorev Haritasi ilerlemesi icin, kritik degil
+    }
+  },
 };
 
 // ── Dictionary API ────────────────────────────────────────────
@@ -524,6 +542,20 @@ export const examsApi = {
       { params }
     );
     return res.data;
+  },
+  // Görev Haritası v2 (10 Eylül 2026) — exam-topic-practice ekranında
+  // cevaplanan her soru için (bkz. ExamPracticeQuestionsResult docstring'i,
+  // backend). XP/session'a etkisi yok, sadece Görev Haritası'nın
+  // 'grammar_topic' düğümlerini ölçülebilir kılar.
+  logTopicPracticeAttempt: async (topicTag: string, questionId: string | null, isCorrect: boolean): Promise<void> => {
+    try {
+      await api.post(`/exams/topics/${encodeURIComponent(topicTag)}/practice-attempt`, {
+        question_id: questionId,
+        is_correct: isCorrect,
+      });
+    } catch {
+      // sessizce yut -- sadece Görev Haritası ilerlemesi icin, kritik degil
+    }
   },
   // Madde #3c — haftalık/günlük zayıf konu özeti (dashboard widget'ı için).
   weakTopics: async (days = 7, limit = 5): Promise<WeakTopicsResult> => {

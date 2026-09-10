@@ -5,7 +5,7 @@
 // attempt/finish akışının bire bir karşılığıdır (bkz. backend/app/api/routes/exams.py).
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Link, router } from 'expo-router';
+import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, CheckCircle2, Clock, Plus, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
@@ -37,6 +37,14 @@ function formatTime(totalSeconds: number): string {
 export default function ExamPrepScreen() {
   const { et } = useLocale();
   const c = useThemeColors();
+  // Görev Haritası v2 (10 Eylül 2026) — quests.tsx'ten
+  // { pathname: '/(app)/exam-prep', params: { examType, sessionMode } } ile
+  // derin bağlantı; tür/mod seçimi atlanıp oturum doğrudan başlar (bkz.
+  // web/src/app/(app)/exam-prep/page.tsx'teki ?examType= deseninin aynısı).
+  const { examType: examTypeParam, sessionMode: sessionModeParam } = useLocalSearchParams<{
+    examType?: string;
+    sessionMode?: string;
+  }>();
 
   const [stage, setStage] = useState<Stage>('loading');
   const [examType, setExamType] = useState<ExamType | null>(null);
@@ -62,6 +70,19 @@ export default function ExamPrepScreen() {
     } else {
       setStage('select-type');
     }
+  }, [examTypes, typesLoading]);
+
+  useEffect(() => {
+    if (typesLoading || !examTypes || examTypes.length === 0) return;
+    if (!examTypeParam) return;
+    const valid = examTypes.some((t) => t.exam_type === examTypeParam);
+    if (!valid) return;
+    const mode: ExamSessionMode = sessionModeParam === 'timed_mock' ? 'timed_mock' : 'practice';
+    const et_ = examTypeParam as ExamType;
+    setExamType(et_);
+    setSessionMode(mode);
+    handleStart(et_, mode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examTypes, typesLoading]);
 
   // Deneme sınavı (timed_mock) geri sayımı — süre bitince otomatik bitir.
@@ -94,11 +115,13 @@ export default function ExamPrepScreen() {
     }
   }
 
-  async function handleStart() {
-    if (!examType) return;
+  async function handleStart(examTypeOverride?: ExamType, sessionModeOverride?: ExamSessionMode) {
+    const effectiveType = examTypeOverride ?? examType;
+    const effectiveMode = sessionModeOverride ?? sessionMode;
+    if (!effectiveType) return;
     setBusy(true);
     try {
-      const s = await examsApi.createSession(examType, sessionMode);
+      const s = await examsApi.createSession(effectiveType, effectiveMode);
       setSession(s);
       setTimeLeft(s.time_limit_seconds ?? null);
       setStage('playing');

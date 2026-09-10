@@ -54,6 +54,24 @@ export const wordsApi = {
     return res.data;
   },
 
+  // Gorev Haritasi v2 (10 Eylul 2026) -- flashcards ekrani bir tur
+  // bittiginde (DoneScreen) bir kez cagirir; content_type='flashcard'
+  // gorevlerinin ilerlemesini olculebilir kilar (bkz. backend words.py
+  // log_study_session, web/src/lib/api.ts wordsApi.logStudySession).
+  logStudySession: async (data: {
+    words_studied: number;
+    correct_count: number;
+    wrong_count: number;
+    duration_secs: number;
+    study_type?: string;
+  }): Promise<void> => {
+    try {
+      await api.post('/words/study-sessions', data);
+    } catch {
+      // sessizce yut -- bu sadece Gorev Haritasi ilerlemesi icin, kritik degil
+    }
+  },
+
   // V2 madde #6 (Faz 2) -- zayif kelime turu ozeti (dashboard widget'i icin).
   weakWordTypes: async (days = 30, limit = 5): Promise<WeakWordTypesResult> => {
     const res = await api.get<WeakWordTypesResult>('/words/stats/weak-word-types', {

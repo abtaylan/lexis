@@ -56,6 +56,9 @@ export default function ExamTopicPracticeScreen() {
     if (revealed) return;
     setSelectedOption(optionId);
     setRevealed(true);
+    if (current) {
+      examsApi.logTopicPracticeAttempt(topicTag, current.id, optionId === current.correct_option);
+    }
   }
 
   function handleNext() {

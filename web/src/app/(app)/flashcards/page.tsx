@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { CheckCircle2, XCircle, RotateCcw, Loader2, Layers, ChevronRight, BookPlus } from 'lucide-react';
 import { wordsApi, languagesApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
@@ -86,6 +86,7 @@ export default function FlashcardsPage() {
   const [done, setDone] = useState(false);
   const [correct, setCorrect] = useState(0);
   const [error, setError] = useState('');
+  const sessionStartRef = useRef<number>(0); // ilk gerçek değer loadCards içinde (mount'ta çalışır) atanır -- render sırasında Date.now() çağırmamak için
 
   const shuffle = (arr: Word[]) => [...arr].sort(() => Math.random() - 0.5);
 
@@ -105,6 +106,7 @@ export default function FlashcardsPage() {
       setFlipped(false);
       setDone(false);
       setCorrect(0);
+      sessionStartRef.current = Date.now();
     } catch {
       setError(t('wordsLoadError'));
     } finally {
@@ -131,6 +133,14 @@ export default function FlashcardsPage() {
     }
     if (success) setCorrect((c) => c + 1);
     if (index + 1 >= queue.length) {
+      const finalCorrect = success ? correct + 1 : correct;
+      wordsApi.logStudySession({
+        words_studied: queue.length,
+        correct_count: finalCorrect,
+        wrong_count: queue.length - finalCorrect,
+        duration_secs: Math.round((Date.now() - sessionStartRef.current) / 1000),
+        study_type: 'flashcard',
+      });
       setDone(true);
     } else {
       setIndex((i) => i + 1);

@@ -72,6 +72,36 @@ class WeakWordTypeItem(BaseModel):
     avg_ease_factor: float
 
 
+class StudySessionCreate(BaseModel):
+    """POST /words/study-sessions govdesi (10 Eylul 2026 -- Gorev Haritasi
+    v2, content_type='flashcard' dugumlerinin ilerlemesini SAYABILMEK icin
+    eklendi). study_sessions tablosu semada 001_initial.sql'den beri
+    vardi ama hicbir route hic INSERT etmiyordu (bkz. WeakWordTypesResult
+    docstring'i asagida) -- flashcard tekrar akisi (POST /words/{id}/review)
+    her kart icin ayri ayri SM-2 alanlarini guncelliyor, bir "tur/oturum"
+    kavrami hic tutulmuyordu. Bu uc, web/mobile flashcards ekrani bir tur
+    (DoneScreen'e ulasildiginda) BITTIGINDE bir kez cagrilir -- kart bazli
+    review akisina hicbir degisiklik YOK, sadece o turun ozeti ayrica
+    kaydediliyor."""
+
+    words_studied: int = Field(..., ge=0)
+    correct_count: int = Field(0, ge=0)
+    wrong_count: int = Field(0, ge=0)
+    duration_secs: int = Field(0, ge=0)
+    study_type: str = "flashcard"  # study_type enum: flashcard/quiz/review
+
+
+class StudySessionResponse(BaseModel):
+    id: str
+    study_type: str
+    words_studied: int
+    correct_count: int
+    wrong_count: int
+    duration_secs: int
+    started_at: datetime
+    ended_at: datetime | None = None
+
+
 class WeakWordTypesResult(BaseModel):
     """GET /words/stats/weak-word-types cevabı — V2 madde #6, Faz 2.
 

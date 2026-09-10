@@ -199,12 +199,27 @@ class ExamPracticeQuestionItem(BaseModel):
 
 class ExamPracticeQuestionsResult(BaseModel):
     """GET /exams/topics/{topic_tag}/practice-questions cevabı — madde #3b.
-    Bağımsız, oturumsuz mini pratik seti: XP verilmez, ilerleme kaydedilmez,
-    sadece aynı konuyu tekrar pekiştirmek içindir."""
+    Bağımsız, oturumsuz mini pratik seti: XP verilmez, exam_sessions/
+    exam_attempts'e YAZILMAZ, sadece aynı konuyu tekrar pekiştirmek
+    içindir (bu tasarım DEĞİŞMEDİ). 10 Eylül 2026 (Görev Haritası v2)
+    itibariyle istemci her cevaptan sonra AYRI, hafif bir uca
+    (POST /exams/topics/{topic_tag}/practice-attempt, bkz.
+    TopicPracticeAttemptCreate) log atar — bu SADECE Görev Haritası'nın
+    'grammar_topic' düğümlerini ölçebilmesi için, XP/session akışına
+    hiçbir etkisi yok."""
 
     topic_tag: str
     related_grammar_topic: RelatedGrammarTopic | None = None
     questions: list[ExamPracticeQuestionItem]
+
+
+class TopicPracticeAttemptCreate(BaseModel):
+    """POST /exams/topics/{topic_tag}/practice-attempt gövdesi (10 Eylül
+    2026 -- Görev Haritası v2, bkz. ExamPracticeQuestionsResult docstring'i
+    ve supabase/migrations/060_topic_practice_attempts.sql)."""
+
+    question_id: str | None = None
+    is_correct: bool
 
 
 class WeakTopicItem(BaseModel):

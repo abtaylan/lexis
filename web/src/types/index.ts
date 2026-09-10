@@ -942,6 +942,17 @@ export interface QuestNodeItem {
   is_completed: boolean;
   is_unlocked: boolean;
   completed_at?: string | null;
+  // ── v2 alanlari (10 Eylul 2026 -- gorev haritasi "harita" yeniden
+  // tasarimi, bkz. backend/app/schemas/quests.py ayni yorum) ──
+  world_slug?: string | null;
+  world_title_tr?: string | null;
+  world_title_en?: string | null;
+  part_index?: number | null;
+  part_title_tr?: string | null;
+  part_title_en?: string | null;
+  content_type: string;
+  content_ref?: Record<string, unknown> | null;
+  difficulty_index: number;
 }
 
 export interface QuestListResponse {

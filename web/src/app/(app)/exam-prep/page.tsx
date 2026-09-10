@@ -9,7 +9,7 @@
 // merkezi lib/i18n.tsx sözlüğüne dokunmadan yerel çeviri (Sidebar.tsx'teki
 // GAME_LABEL / dashboard'daki MSG_LABELS ile aynı yaklaşım).
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
   BookOpen, CheckCircle2, XCircle, Clock, Plus, Loader2, GraduationCap, ChevronLeft, Map, Lightbulb, ChevronRight,
@@ -171,6 +171,7 @@ function formatTime(totalSeconds: number): string {
 
 export default function ExamPrepPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { locale } = useLocale();
   const et = EXAM_STRINGS[locale] ?? EXAM_STRINGS.tr!;
 
@@ -194,10 +195,30 @@ export default function ExamPrepPage() {
   useEffect(() => {
     if (typesLoading) return;
     if (!examTypes || examTypes.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
       setStage('disabled');
     } else {
       setStage('select-type');
     }
+  }, [examTypes, typesLoading]);
+
+  // Görev Haritası v2 (10 Eylül 2026) — ?examType=&sessionMode= ile derin
+  // bağlantı: content_type='quiz'/'question_practice' düğümüne dokununca
+  // tür/mod seçimi atlanır, oturum doğrudan başlar (bkz. game/page.tsx'teki
+  // ?mode= deseninin aynısı).
+  useEffect(() => {
+    if (typesLoading || !examTypes || examTypes.length === 0) return;
+    const qpType = searchParams.get('examType') as ExamType | null;
+    if (!qpType) return;
+    const valid = examTypes.some((t) => t.exam_type === qpType);
+    if (!valid) return;
+    const qpMode = searchParams.get('sessionMode');
+    const mode: ExamSessionMode = qpMode === 'timed_mock' ? 'timed_mock' : 'practice';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde derin bağlantı state'ini kurma (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı
+    setExamType(qpType);
+    setSessionMode(mode);
+    handleStart(qpType, mode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examTypes, typesLoading]);
 
   // Deneme sınavı (timed_mock) geri sayımı.
@@ -230,11 +251,13 @@ export default function ExamPrepPage() {
     }
   }
 
-  async function handleStart() {
-    if (!examType) return;
+  async function handleStart(examTypeOverride?: ExamType, sessionModeOverride?: ExamSessionMode) {
+    const effectiveType = examTypeOverride ?? examType;
+    const effectiveMode = sessionModeOverride ?? sessionMode;
+    if (!effectiveType) return;
     setBusy(true);
     try {
-      const s = await examsApi.createSession(examType, sessionMode);
+      const s = await examsApi.createSession(effectiveType, effectiveMode);
       setSession(s);
       setTimeLeft(s.time_limit_seconds ?? null);
       setStage('playing');
@@ -453,7 +476,7 @@ export default function ExamPrepPage() {
         </div>
         <div className="mt-8 flex flex-col gap-2">
           <button
-            onClick={handleStart}
+            onClick={() => handleStart()}
             disabled={busy}
             className="w-full flex items-center justify-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-60 text-white rounded-xl py-3 text-sm font-medium transition-colors"
           >

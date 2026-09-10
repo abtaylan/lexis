@@ -67,6 +67,20 @@ export const examsApi = {
     );
     return res.data;
   },
+  // Görev Haritası v2 (10 Eylül 2026) — exam-topic-practice ekranında
+  // cevaplanan her soru için (bkz. web/src/lib/api.ts'teki aynı fonksiyon).
+  // XP/session'a etkisi yok, sadece Görev Haritası'nın 'grammar_topic'
+  // düğümlerini ölçülebilir kılar.
+  logTopicPracticeAttempt: async (topicTag: string, questionId: string | null, isCorrect: boolean): Promise<void> => {
+    try {
+      await api.post(`/exams/topics/${encodeURIComponent(topicTag)}/practice-attempt`, {
+        question_id: questionId,
+        is_correct: isCorrect,
+      });
+    } catch {
+      // sessizce yut -- sadece Görev Haritası ilerlemesi icin, kritik degil
+    }
+  },
   // Madde #3c — haftalık/günlük zayıf konu özeti (dashboard widget'ı için).
   weakTopics: async (days = 7, limit = 5): Promise<WeakTopicsResult> => {
     const res = await api.get<WeakTopicsResult>('/exams/stats/weak-topics', {

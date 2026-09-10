@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CircleCheckBig, CircleX, RotateCcw, Layers, ChevronRight, BookPlus } from 'lucide-react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -44,6 +44,7 @@ export default function FlashcardsScreen() {
   const [done, setDone] = useState(false);
   const [correct, setCorrect] = useState(0);
   const [error, setError] = useState('');
+  const sessionStartRef = useRef<number>(Date.now());
 
   const shuffle = (arr: Word[]) => [...arr].sort(() => Math.random() - 0.5);
 
@@ -62,6 +63,7 @@ export default function FlashcardsScreen() {
       setFlipped(false);
       setDone(false);
       setCorrect(0);
+      sessionStartRef.current = Date.now();
     } catch {
       setError(t('wordsLoadError'));
     } finally {
@@ -107,6 +109,14 @@ export default function FlashcardsScreen() {
     }
     if (success) setCorrect((cc) => cc + 1);
     if (index + 1 >= queue.length) {
+      const finalCorrect = success ? correct + 1 : correct;
+      wordsApi.logStudySession({
+        words_studied: queue.length,
+        correct_count: finalCorrect,
+        wrong_count: queue.length - finalCorrect,
+        duration_secs: Math.round((Date.now() - sessionStartRef.current) / 1000),
+        study_type: 'flashcard',
+      });
       setDone(true);
     } else {
       setIndex((i) => i + 1);

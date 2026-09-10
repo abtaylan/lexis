@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { Volume2 } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
@@ -83,6 +83,11 @@ export default function GameScreen() {
   const c = useThemeColors();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  // Görev Haritası v2 (10 Eylül 2026) — quests.tsx'ten
+  // { pathname: '/(app)/game', params: { mode } } ile derin bağlantı; web'deki
+  // game/page.tsx'in ?mode= parametresinin mobil karşılığı (challengeId YOK —
+  // görev haritasından değil, sadece mod seçimini atlamak için kullanılıyor).
+  const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
 
   const [stage, setStage] = useState<Stage>('mode');
   const [gameMode, setGameMode] = useState<GameMode>('multiple_choice');
@@ -138,6 +143,29 @@ export default function GameScreen() {
   const [levelUp, setLevelUp] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [finishResult, setFinishResult] = useState<GameFinishResult | null>(null);
+
+  // Görev Haritası v2 (10 Eylül 2026) — ?mode= ile gelince mod seçim ekranı
+  // atlanır. Her mod için tam olarak OptionButton onPress'lerindeki (aşağıda,
+  // 'mode' aşamasının render'ında) aynı state geçişleri uygulanır — sprint
+  // için sprintSecondsLeft sıfırlama dahil.
+  useEffect(() => {
+    const mode = modeParam as GameMode | undefined;
+    if (!mode) return;
+    if (mode === 'multiple_choice') {
+      setGameMode('multiple_choice');
+      setStage('direction');
+    } else if (mode === 'sprint') {
+      setGameMode('sprint');
+      setDirection('meaning_to_word');
+      setSprintSecondsLeft(SPRINT_DURATION_SECS);
+      setStage('setup');
+    } else if (['wordle', 'typing', 'listening', 'matching'].includes(mode)) {
+      setGameMode(mode);
+      setDirection('meaning_to_word');
+      setStage('setup');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const loadNext = async (sid: string, hadAnswered: boolean, pool: PoolSource) => {
     try {
