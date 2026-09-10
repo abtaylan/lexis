@@ -1,18 +1,19 @@
 'use client';
 
-// app/(app)/quests/page.tsx — Görev Haritası v2 (10 Eylül 2026, "içeriği
-// tamamen değişecek" isteği, bkz. supabase/migrations/049 + 059 ve
-// backend/app/api/routes/quests.py modül docstring'i). Eskiden tek bir
-// dikey liste (5 görev, hepsi 'aggregate') idi; artık dünya (world) ->
-// bölüm (part) -> görev (node) hiyerarşisi var ve her görevin FARKLI bir
-// içerik türü (content_type) olabilir: aggregate/game/flashcard/
-// grammar_topic/quiz/question_practice/duel. Bir düğüme dokununca
-// content_type'a göre doğru ekrana yönlendirilir (bkz. resolveHref).
-// Görsel olarak dikey "yol" deseni KORUNDU (mevcut, kanıtlanmış tasarım) —
-// üzerine dünya/bölüm başlıkları ve içerik-türü ikonları eklendi.
-// İlerleme SUNUCUDA tutuluyor (bkz. backend modül docstring'i — Gramer
-// Rehberi'nin localStorage deseninden BİLİNÇLİ bir sapma, rekabet/lig
-// bağlamı yüzünden).
+// app/(app)/quests/page.tsx — Görev Haritası v3 (10 Eylül 2026, "SVG/CSS
+// tabanlı macera-patikası" görsel yenilemesi — bkz. skills game-ui-svg /
+// game-asset-pipeline ve bu sohbetteki karar: MCP üzerinden hazır bir
+// "oyun grafiği üretimi" skill'i yok, bu yüzden kod-tabanlı vektör/animasyon
+// yaklaşımı seçildi, kullanıcı onayı: "A maddesini yap").
+// v2'deki dikey düz liste yerine, her BÖLÜM (part) kendi SVG'sinde
+// yılankavi (zigzag) bir patika üzerinde dizilir; dünya (world) başına
+// döngüsel bir renk teması (WORLD_THEMES) uygulanır, patikanın tamamlanan
+// kısmı renkli+çizilerek-belirir (stroke-dashoffset), kalan kısmı gri
+// noktalı çizgi ile gösterilir. "Şu an buradasın" düğümü nabız (pulse)
+// animasyonu alır, rozet ödülü olan düğümler köşede küçük bir rozet
+// rozeti (ribbon) gösterir (bkz. backend reward_badge_code).
+// İçerik/yönlendirme mantığı (resolveHref, content_type sözleşmesi)
+// DEĞİŞMEDİ — sadece görsel katman yenilendi.
 // Backend: /api/v1/quests (bkz. backend/app/api/routes/quests.py)
 //
 // DİL NOTU: quest_nodes/quest_worlds/quest_parts içeriği backend'de SADECE
@@ -21,7 +22,7 @@
 // *_en kullanılır (BİLİNÇLİ sınır, diğer 8 dil için içerik İngilizce'ye
 // düşer — bkz. eski quests/page.tsx'teki aynı yorum).
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useEffect, useState, useCallback, useMemo, useRef, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
 import {
@@ -201,6 +202,108 @@ function groupByWorldAndPart(items: QuestNodeItem[], locale: Locale): WorldGroup
   return groups;
 }
 
+// ────────────────────────────────────────────────────────────────────────
+// Görsel patika (path) motoru — bkz. skill "game-ui-svg". Her BÖLÜM kendi
+// dikey SVG şeridinde, düğümler bir sinüs desenine göre sola/ortaya/sağa
+// kayarak yılankavi bir iz oluşturur; ardışık noktalar arasında yumuşak
+// kübik Bezier eğrisi çizilir (C komutu, kontrol noktaları ortadaki Y'de).
+// ────────────────────────────────────────────────────────────────────────
+
+type WorldTheme = { accent: string; accentDark: string; soft: string; softDark: string };
+
+const WORLD_THEMES: WorldTheme[] = [
+  { accent: '#10b981', accentDark: '#34d399', soft: '#ecfdf5', softDark: 'rgba(16,185,129,0.12)' },
+  { accent: '#8b5cf6', accentDark: '#a78bfa', soft: '#f5f3ff', softDark: 'rgba(139,92,246,0.12)' },
+  { accent: '#f59e0b', accentDark: '#fbbf24', soft: '#fffbeb', softDark: 'rgba(245,158,11,0.12)' },
+  { accent: '#f43f5e', accentDark: '#fb7185', soft: '#fff1f2', softDark: 'rgba(244,63,94,0.12)' },
+  { accent: '#0ea5e9', accentDark: '#38bdf8', soft: '#f0f9ff', softDark: 'rgba(14,165,233,0.12)' },
+  { accent: '#6366f1', accentDark: '#818cf8', soft: '#eef2ff', softDark: 'rgba(99,102,241,0.12)' },
+  { accent: '#14b8a6', accentDark: '#2dd4bf', soft: '#f0fdfa', softDark: 'rgba(20,184,166,0.12)' },
+  { accent: '#d946ef', accentDark: '#e879f9', soft: '#fdf4ff', softDark: 'rgba(217,70,239,0.12)' },
+];
+
+const ROW_H = 118;
+const WRAPPER_W = 300;
+const CENTER_X = WRAPPER_W / 2;
+const AMPLITUDE = 92;
+const NODE_SIZE = 52;
+
+function nodeOffsetX(globalIdx: number): number {
+  const phase = globalIdx % 4;
+  if (phase === 1) return AMPLITUDE;
+  if (phase === 3) return -AMPLITUDE;
+  return 0;
+}
+
+type Point = { x: number; y: number };
+
+function buildSmoothPath(points: Point[]): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return '';
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 1; i < points.length; i++) {
+    const p0 = points[i - 1];
+    const p1 = points[i];
+    const midY = (p0.y + p1.y) / 2;
+    d += ` C ${p0.x} ${midY}, ${p1.x} ${midY}, ${p1.x} ${p1.y}`;
+  }
+  return d;
+}
+
+// Bölüm başına düğüm konumlarını hesaplar; globalIdx dünya boyunca KESİNTİSİZ
+// artar (bölüm sınırlarında sıfırlanmaz) ki zigzag deseni bölümler arasında
+// doğal görünsün.
+function computeWorldLayout(world: WorldGroup): { partPoints: Point[][]; completed: number; total: number } {
+  let idx = 0;
+  let completed = 0;
+  const partPoints: Point[][] = [];
+  for (const part of world.parts) {
+    const pts = part.nodes.map((node, i) => {
+      const p: Point = { x: CENTER_X + nodeOffsetX(idx), y: i * ROW_H + ROW_H / 2 };
+      idx += 1;
+      if (node.is_completed) completed += 1;
+      return p;
+    });
+    partPoints.push(pts);
+  }
+  const total = world.parts.reduce((acc, p) => acc + p.nodes.length, 0);
+  return { partPoints, completed, total };
+}
+
+// Renkli (tamamlanan) patika parçasını "çizilerek belirsin" diye
+// stroke-dashoffset animasyonuyla oynatan yardımcı bileşen (bkz.
+// game-ui-svg skill'i — SMIL/CSS state-transition önerisi). Gerçek yay
+// uzunluğunu getTotalLength() ile ölçüp tam isabetli bir "çizim" efekti
+// üretir; prefers-reduced-motion'a saygı duyar.
+function AnimatedPath({ d, className, strokeWidth }: { d: string; className: string; strokeWidth: number }) {
+  const ref = useRef<SVGPathElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !d) return;
+    const reduceMotion = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const len = el.getTotalLength();
+    if (reduceMotion) {
+      el.style.strokeDasharray = 'none';
+      el.style.strokeDashoffset = '0';
+      return;
+    }
+    el.style.transition = 'none';
+    el.style.strokeDasharray = `${len}`;
+    el.style.strokeDashoffset = `${len}`;
+    el.getBoundingClientRect(); // reflow'u zorla
+    const raf = requestAnimationFrame(() => {
+      el.style.transition = 'stroke-dashoffset 1s ease-out';
+      el.style.strokeDashoffset = '0';
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [d]);
+
+  if (!d) return null;
+  return <path ref={ref} d={d} fill="none" strokeWidth={strokeWidth} strokeLinecap="round" className={className} />;
+}
+
 export default function QuestsPage() {
   const { locale } = useLocale();
   const t = L[locale];
@@ -229,6 +332,28 @@ export default function QuestsPage() {
   }, [load]);
 
   const worlds = useMemo(() => groupByWorldAndPart(items, locale), [items, locale]);
+
+  const worldsWithLayout = useMemo(
+    () => worlds.map((world, i) => ({
+      world,
+      layout: computeWorldLayout(world),
+      theme: WORLD_THEMES[i % WORLD_THEMES.length],
+    })),
+    [worlds],
+  );
+
+  // Akışta ilk "açık ama tamamlanmamış" düğüm -- "şu an buradasın" nabız
+  // vurgusu bunun üzerine uygulanır.
+  const currentNodeId = useMemo(() => {
+    for (const world of worlds) {
+      for (const part of world.parts) {
+        for (const node of part.nodes) {
+          if (node.is_unlocked && !node.is_completed) return node.id;
+        }
+      }
+    }
+    return null;
+  }, [worlds]);
 
   function handleOpen(node: QuestNodeItem) {
     if (!node.is_unlocked) return;
@@ -264,136 +389,177 @@ export default function QuestsPage() {
         <p className="text-sm text-gray-400 dark:text-slate-500 py-8 text-center">{t.empty}</p>
       )}
 
-      {!loading && !error && worlds.length > 0 && (
-        <div className="space-y-8">
-          {worlds.map((world) => (
-            <div key={world.key} className="space-y-4">
-              {world.title && (
-                <div className="flex items-center gap-2.5 pt-2">
-                  <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-500/15 flex items-center justify-center shrink-0">
-                    <Flag className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+      {!loading && !error && worldsWithLayout.length > 0 && (
+        <div className="space-y-6">
+          {worldsWithLayout.map(({ world, layout, theme }) => {
+            const cssVars = {
+              '--world-accent': theme.accent,
+              '--world-accent-dark': theme.accentDark,
+              '--world-soft': theme.soft,
+              '--world-soft-dark': theme.softDark,
+            } as CSSProperties;
+
+            return (
+              <div
+                key={world.key}
+                className="qm-soft-bg rounded-3xl p-4 md:p-6 relative overflow-hidden"
+                style={cssVars}
+              >
+                <svg className="absolute inset-0 w-full h-full pointer-events-none" aria-hidden="true">
+                  <pattern id={`qm-dots-${world.key}`} width="18" height="18" patternUnits="userSpaceOnUse">
+                    <circle cx="2" cy="2" r="1.3" className="qm-accent-text" fill="currentColor" opacity="0.3" />
+                  </pattern>
+                  <rect width="100%" height="100%" fill={`url(#qm-dots-${world.key})`} />
+                </svg>
+
+                <div className="relative flex items-center justify-between gap-3 mb-1">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: theme.accent }}>
+                      <Flag className="w-4 h-4 text-white" />
+                    </div>
+                    <h2 className="text-sm font-bold text-gray-800 dark:text-slate-200">{world.title}</h2>
                   </div>
-                  <h2 className="text-sm font-bold text-gray-800 dark:text-slate-200">{world.title}</h2>
-                </div>
-              )}
-
-              {world.parts.map((part) => (
-                <div key={part.key} className="space-y-3">
-                  {part.title && (
-                    <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide pl-1">
-                      {part.title}
-                    </p>
+                  {layout.total > 0 && (
+                    <span className="text-[11px] font-bold qm-accent-text shrink-0">{layout.completed}/{layout.total}</span>
                   )}
+                </div>
 
-                  <div className="relative space-y-3">
-                    {part.nodes.map((node, idx) => {
-                      const isLastOverall = world === worlds[worlds.length - 1]
-                        && part === world.parts[world.parts.length - 1]
-                        && idx === part.nodes.length - 1;
-                      const pct = node.requirement_count > 0
-                        ? Math.min(100, Math.round((node.current_value / node.requirement_count) * 100))
-                        : 0;
-                      const title = localizedTitle(node, locale);
-                      const description = localizedDescription(node, locale);
-                      const Icon = CONTENT_ICONS[node.content_type] ?? Star;
-                      const clickable = node.is_unlocked && !node.is_completed && resolveHref(node) !== null;
+                {world.parts.map((part, partIdx) => {
+                  const pts = layout.partPoints[partIdx];
+                  const lastCompletedIdx = part.nodes.reduce((acc, n, i) => (n.is_completed ? i : acc), -1);
+                  const greyD = buildSmoothPath(pts);
+                  const coloredD = lastCompletedIdx >= 0 ? buildSmoothPath(pts.slice(0, lastCompletedIdx + 1)) : '';
+                  const partHeight = part.nodes.length * ROW_H;
 
-                      return (
-                        <div key={node.id} className="relative flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${
-                                node.is_completed
-                                  ? 'bg-green-500 border-green-500'
-                                  : node.is_unlocked
-                                    ? 'bg-white dark:bg-slate-900 border-purple-400 dark:border-purple-500'
-                                    : 'bg-gray-100 dark:bg-slate-800 border-gray-200 dark:border-slate-700'
-                              }`}
-                            >
-                              {node.is_completed ? (
-                                <Check className="w-5 h-5 text-white" />
-                              ) : node.is_unlocked ? (
-                                <Icon className="w-4 h-4 text-purple-500 dark:text-purple-400" />
-                              ) : (
-                                <Lock className="w-4 h-4 text-gray-300 dark:text-slate-600" />
-                              )}
-                            </div>
-                            {!isLastOverall && (
-                              <div
-                                className={`w-0.5 flex-1 min-h-[1.5rem] mt-1 ${
-                                  node.is_completed ? 'bg-green-400 dark:bg-green-600' : 'bg-gray-200 dark:bg-slate-700'
-                                }`}
-                              />
-                            )}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleOpen(node)}
-                            disabled={!clickable}
-                            className={`flex-1 mb-2 text-left rounded-2xl border p-4 transition-colors ${
-                              node.is_unlocked
-                                ? 'bg-white dark:bg-slate-900 border-gray-100 dark:border-slate-800 shadow-sm'
-                                : 'bg-gray-50/60 dark:bg-slate-900/40 border-gray-100 dark:border-slate-800 opacity-60'
-                            } ${clickable ? 'hover:border-purple-200 dark:hover:border-purple-800 cursor-pointer' : 'cursor-default'}`}
+                  return (
+                    <div key={part.key} className="relative mt-2">
+                      {part.title && (
+                        <div className="flex items-center justify-center relative z-10 py-2">
+                          <span
+                            className="qm-soft-bg qm-accent-text text-[10px] font-bold uppercase tracking-wide px-3 py-1 rounded-full border"
+                            style={{ borderColor: theme.accent }}
                           >
-                            <div className="flex items-center justify-between gap-2">
-                              <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{title}</h3>
-                              {node.is_completed && (
-                                <span className="text-xs font-medium text-green-600 dark:text-green-400 shrink-0">{t.completedLabel}</span>
-                              )}
-                              {!node.is_unlocked && (
-                                <span className="text-xs font-medium text-gray-400 dark:text-slate-500 shrink-0">{t.lockedLabel}</span>
-                              )}
-                              {clickable && (
-                                <span className="flex items-center gap-0.5 text-xs font-medium text-purple-600 dark:text-purple-400 shrink-0">
-                                  {node.current_value > 0 ? t.continueBtn : t.startBtn}
-                                  <ChevronRight className="w-3.5 h-3.5" />
-                                </span>
-                              )}
-                            </div>
+                            {part.title}
+                          </span>
+                        </div>
+                      )}
 
-                            {description && (
-                              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">{description}</p>
-                            )}
+                      <div className="relative mx-auto" style={{ width: WRAPPER_W, height: partHeight }}>
+                        <svg
+                          width={WRAPPER_W}
+                          height={partHeight}
+                          viewBox={`0 0 ${WRAPPER_W} ${partHeight}`}
+                          className="absolute inset-0"
+                          aria-hidden="true"
+                        >
+                          {greyD && (
+                            <path d={greyD} fill="none" strokeWidth={5} strokeLinecap="round" strokeDasharray="1 13" className="qm-path-bg" />
+                          )}
+                          {coloredD && <AnimatedPath d={coloredD} strokeWidth={5} className="qm-path-fill" />}
+                        </svg>
 
-                            {node.is_unlocked && (
-                              <>
-                                <div className="mt-3 h-1.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full ${node.is_completed ? 'bg-green-500' : 'bg-purple-500'}`}
-                                    style={{ width: `${node.is_completed ? 100 : pct}%` }}
-                                  />
-                                </div>
-                                <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                                  {Math.min(node.current_value, node.requirement_count)} / {node.requirement_count}
-                                </p>
-                              </>
-                            )}
+                        {part.nodes.map((node, i) => {
+                          const { x, y } = pts[i];
+                          const title = localizedTitle(node, locale);
+                          const description = localizedDescription(node, locale);
+                          const Icon = CONTENT_ICONS[node.content_type] ?? Star;
+                          const clickable = node.is_unlocked && !node.is_completed && resolveHref(node) !== null;
+                          const isCurrent = node.id === currentNodeId;
 
-                            {(node.reward_xp > 0 || node.reward_badge_code) && (
-                              <div className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-100 dark:border-slate-800">
-                                <span className="text-xs text-gray-400 dark:text-slate-500">{t.rewardLabel}:</span>
-                                {node.reward_xp > 0 && (
-                                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">+{node.reward_xp} XP</span>
+                          return (
+                            <div key={node.id} className="absolute" style={{ left: x, top: y }}>
+                              <button
+                                type="button"
+                                onClick={() => handleOpen(node)}
+                                disabled={!clickable}
+                                aria-label={title}
+                                title={description || title}
+                                className={`absolute rounded-full flex items-center justify-center border-[3px] transition-transform qm-node-enter ${
+                                  clickable ? 'hover:scale-110 active:scale-95 cursor-pointer' : 'cursor-default'
+                                } ${isCurrent ? 'qm-pulse' : ''} ${
+                                  !node.is_unlocked ? 'bg-gray-100 dark:bg-slate-800 border-gray-200 dark:border-slate-700' : ''
+                                }`}
+                                style={{
+                                  width: NODE_SIZE,
+                                  height: NODE_SIZE,
+                                  left: 0,
+                                  top: 0,
+                                  transform: 'translate(-50%, -50%)',
+                                  animationDelay: `${Math.min(i * 35, 900)}ms`,
+                                  backgroundColor: node.is_completed ? theme.accent : node.is_unlocked ? 'var(--bg-card)' : undefined,
+                                  borderColor: node.is_unlocked ? theme.accent : undefined,
+                                }}
+                              >
+                                {node.is_completed ? (
+                                  <Check className="w-6 h-6 text-white qm-check-enter" />
+                                ) : node.is_unlocked ? (
+                                  <Icon className="w-5 h-5 qm-accent-text" />
+                                ) : (
+                                  <Lock className="w-4 h-4 text-gray-300 dark:text-slate-600" />
                                 )}
                                 {node.reward_badge_code && (
-                                  <span className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">
-                                    <Award className="w-3.5 h-3.5" />
-                                    {t.badgeRewardLabel}
+                                  <span
+                                    className="absolute -top-1 -right-1 w-[18px] h-[18px] rounded-full flex items-center justify-center border-2 border-white dark:border-slate-900"
+                                    style={{ backgroundColor: '#f59e0b' }}
+                                    title={t.badgeRewardLabel}
+                                  >
+                                    <Award className="w-2.5 h-2.5 text-white" />
                                   </span>
                                 )}
+                              </button>
+
+                              <div
+                                className="absolute text-center"
+                                style={{ left: 0, top: NODE_SIZE / 2 + 8, width: 136, transform: 'translateX(-50%)' }}
+                              >
+                                <p className={`text-[11px] font-semibold leading-tight line-clamp-1 ${
+                                  node.is_unlocked ? 'text-gray-800 dark:text-slate-200' : 'text-gray-400 dark:text-slate-600'
+                                }`}
+                                >
+                                  {title}
+                                </p>
+                                {node.is_unlocked && description && (
+                                  <p className="text-[10px] text-gray-400 dark:text-slate-500 leading-tight line-clamp-1 mt-0.5">
+                                    {description}
+                                  </p>
+                                )}
+                                <p className="text-[10px] font-medium leading-tight mt-0.5 flex items-center justify-center gap-1 flex-wrap">
+                                  {node.is_completed && <span className="text-green-600 dark:text-green-400">{t.completedLabel}</span>}
+                                  {!node.is_unlocked && <span className="text-gray-400 dark:text-slate-500">{t.lockedLabel}</span>}
+                                  {clickable && (
+                                    <span className="qm-accent-text flex items-center gap-0.5">
+                                      {node.current_value > 0 ? t.continueBtn : t.startBtn}
+                                      <ChevronRight className="w-3 h-3" />
+                                      {node.requirement_count > 1 && (
+                                        <span className="text-gray-400 dark:text-slate-500 font-normal">
+                                          ({Math.min(node.current_value, node.requirement_count)}/{node.requirement_count})
+                                        </span>
+                                      )}
+                                    </span>
+                                  )}
+                                </p>
+                                {(node.reward_xp > 0 || node.reward_badge_code) && (
+                                  <p className="text-[9.5px] text-gray-400 dark:text-slate-500 mt-0.5">
+                                    {node.reward_xp > 0 && (
+                                      <span className="text-amber-600 dark:text-amber-400 font-medium">+{node.reward_xp} XP</span>
+                                    )}
+                                    {node.reward_xp > 0 && node.reward_badge_code && ' · '}
+                                    {node.reward_badge_code && (
+                                      <span className="text-blue-600 dark:text-blue-400 font-medium">{t.badgeRewardLabel}</span>
+                                    )}
+                                  </p>
+                                )}
                               </div>
-                            )}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ))}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

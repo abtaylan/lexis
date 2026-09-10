@@ -133,3 +133,53 @@ body {
 .stagger > *:nth-child(4) { animation-delay: 180ms; }
 .stagger > *:nth-child(5) { animation-delay: 240ms; }
 .stagger > *:nth-child(6) { animation-delay: 300ms; }
+
+/* ============================================================
+   Görev Haritası v3 (10 Eylül 2026) -- dünya temalı SVG patika
+   görselleri. Renkler JS'ten --world-accent/--world-accent-dark/
+   --world-soft/--world-soft-dark custom property'leri olarak
+   enjekte edilir (bkz. app/(app)/quests/page.tsx, skill: game-ui-svg).
+   ============================================================ */
+.qm-accent-text { color: var(--world-accent); }
+:root[data-theme="dark"] .qm-accent-text { color: var(--world-accent-dark); }
+.qm-soft-bg { background-color: var(--world-soft); }
+:root[data-theme="dark"] .qm-soft-bg { background-color: var(--world-soft-dark); }
+.qm-path-fill { stroke: var(--world-accent); }
+:root[data-theme="dark"] .qm-path-fill { stroke: var(--world-accent-dark); }
+.qm-path-bg { stroke: var(--gray-200); }
+:root[data-theme="dark"] .qm-path-bg { stroke: #263049; }
+
+@keyframes qm-pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.55; }
+  70% { transform: scale(1.55); opacity: 0; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+.qm-pulse { position: relative; z-index: 1; }
+.qm-pulse::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  background: var(--world-accent);
+  animation: qm-pulse-ring 2.2s cubic-bezier(0.4,0,0.6,1) infinite;
+  z-index: -1;
+}
+:root[data-theme="dark"] .qm-pulse::before { background: var(--world-accent-dark); }
+
+@keyframes qm-pop-in {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  60% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+}
+.qm-node-enter { animation: qm-pop-in 0.42s cubic-bezier(0.34,1.56,0.64,1) backwards; }
+
+@keyframes qm-check-pop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+.qm-check-enter { animation: qm-check-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) 0.15s backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .qm-pulse::before, .qm-node-enter, .qm-check-enter { animation: none !important; }
+}
