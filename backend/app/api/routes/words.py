@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -6,6 +6,8 @@ from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.schemas.words import (
     ReviewResult,
+    WeakWordTypeItem,
+    WeakWordTypesResult,
     WordCreate,
     WordListResponse,
     WordResponse,
@@ -169,6 +171,78 @@ async def review_word(
     if xp_result:
         response["xp"] = xp_result.to_dict()
     return response
+
+@router.get("/stats/weak-word-types", response_model=WeakWordTypesResult)
+async def weak_word_types(
+    days: int = 30,
+    limit: int = 5,
+    current_user=Depends(get_current_user),
+):
+    """Kelime tarafında 'zayıf kelime türü' özeti (V2 madde #6 — Faz 2).
+
+    NOT (10 Eylül 2026): exams.py::weak_topics'teki gibi bir "deneme geçmişi"
+    tablosu (quiz_results/study_sessions) üzerinden HESAPLANMIYOR — o tablolar
+    şemada var ama backend'in hiçbir yerinde INSERT edilmiyor (flashcard
+    review akışı /words/{id}/review, geçmiş kaydı tutmadan doğrudan words
+    satırındaki SM-2 alanlarını güncelliyor, bkz. review_word). Bu yüzden bu
+    uç, kelimenin GÜNCEL ease_factor'üne bakıyor: calculate_next_review
+    başarısız tekrarda ease_factor'ü düşürüyor (min 1.3), başarılıda
+    artırıyor (varsayılan 2.5) — bir word_type'ın ortalama ease_factor'ü
+    2.5'in altındaysa o tür net olarak zorlanılıyor demektir.
+
+    Sadece en az bir kez tekrar edilmiş (last_reviewed_at dolu) ve word_type'ı
+    olan kelimeler dahil edilir — mobil tarafta 10 Eylül 2026'ya kadar
+    word_type hiç gönderilmiyordu (bkz. mobile/src/app/(app)/words.tsx bug
+    fix), o yüzden eski kelimelerde bu alan büyük oranda boş olacaktır; yeni
+    eklenen kelimelerle zamanla dolacak.
+    """
+    days = max(1, min(days, 365))
+    limit = max(1, min(limit, 20))
+
+    profile = (
+        supabase_admin.table("profiles")
+        .select("learning_lang")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    )
+    active_lang = (profile.data or {}).get("learning_lang", "en")
+    since_iso = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+
+    rows = (
+        supabase_admin.table("words")
+        .select("word_type, ease_factor")
+        .eq("user_id", current_user.id)
+        .eq("source_lang", active_lang)
+        .not_.is_("word_type", "null")
+        .not_.is_("last_reviewed_at", "null")
+        .gte("last_reviewed_at", since_iso)
+        .execute()
+        .data
+    ) or []
+
+    buckets: dict[str, dict[str, float]] = {}
+    for r in rows:
+        wt = (r.get("word_type") or "").strip().lower()
+        if not wt:
+            continue
+        b = buckets.setdefault(wt, {"count": 0, "ease_sum": 0.0})
+        b["count"] += 1
+        b["ease_sum"] += float(r.get("ease_factor") or 2.5)
+
+    items = [
+        WeakWordTypeItem(
+            word_type=wt,
+            word_count=int(b["count"]),
+            avg_ease_factor=round(b["ease_sum"] / b["count"], 2),
+        )
+        for wt, b in buckets.items()
+        if (b["ease_sum"] / b["count"]) < 2.5
+    ]
+    items.sort(key=lambda i: i.avg_ease_factor)
+    items = items[:limit]
+
+    return WeakWordTypesResult(period_days=days, items=items)
 
 @router.get("/due/today")
 async def get_due_words(current_user=Depends(get_current_user)):

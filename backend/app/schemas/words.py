@@ -64,3 +64,24 @@ class WordListResponse(BaseModel):
 class ReviewResult(BaseModel):
     word_id: str
     success: bool   # True = bildi, False = bilmedi
+
+
+class WeakWordTypeItem(BaseModel):
+    word_type: str
+    word_count: int
+    avg_ease_factor: float
+
+
+class WeakWordTypesResult(BaseModel):
+    """GET /words/stats/weak-word-types cevabı — V2 madde #6, Faz 2.
+
+    exams.py::WeakTopicsResult'ın kelime tarafı analogu, ama farklı bir
+    veri kaynağından hesaplanır: quiz_results/study_sessions tabloları
+    şemada var ama hiç kullanılmıyor (backend'de INSERT edilmediği için
+    her zaman boş) — bu yüzden geçmiş "deneme" kaydı yerine kelimenin
+    GÜNCEL SM-2 ease_factor değeri (review_word / calculate_next_review)
+    üzerinden, ortalaması varsayılan 2.5'in altında kalan word_type'lar
+    "zayıf" sayılır."""
+
+    period_days: int
+    items: list[WeakWordTypeItem]

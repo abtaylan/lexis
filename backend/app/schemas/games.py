@@ -114,3 +114,26 @@ class GuessLetterResponse(BaseModel):
     xp_awarded: int = 0
     leveled_up: bool = False
     new_level: int | None = None
+
+
+# ── Zayıf zorluk seviyesi istatistiği (V2 madde #6 — Faz 2) ────────
+class WeakDifficultyItem(BaseModel):
+    difficulty_level: str
+    total_count: int
+    wrong_count: int
+    accuracy_ratio: float
+
+
+class WeakDifficultyResult(BaseModel):
+    """GET /games/stats/weak-difficulty cevabı.
+
+    exams.py::WeakTopicsResult'ın oyun tarafı analogu — ama "konu" (topic_tag)
+    yerine "zorluk seviyesi" (difficulty_level) boyutunda: general_word_pool
+    şemasında gramer konularındaki gibi bir topic/kategori sütunu yok, sadece
+    difficulty_level (beginner/intermediate/advanced) var; oyun denemelerinin
+    de büyük çoğunluğu (10 Eylül 2026 itibarıyla ~%95) general_word_pool
+    kaynaklı (pool_source="general") olduğu için bu, gerçek veriyle çalışan
+    tek anlamlı boyut."""
+
+    period_days: int
+    items: list[WeakDifficultyItem]
