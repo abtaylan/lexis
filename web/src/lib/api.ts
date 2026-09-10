@@ -73,6 +73,13 @@ import type {
   ConversationThread,
   ChallengeItem,
   ChallengesList,
+  DuelResponse,
+  DuelListResponse,
+  DuelStatusResponse,
+  DuelRoundPublic,
+  DuelAnswerResponse,
+  LeagueStatusResponse,
+  QuestListResponse,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -923,5 +930,66 @@ export const notificationsApi = {
   },
   markAllRead: async (): Promise<void> => {
     await api.patch('/notifications/read-all');
+  },
+};
+
+// ── Düello API (V2 §6.3 Faz 3a/3e — Gerçek Zamanlı Düello) ──
+export const duelsApi = {
+  create: async (max_players = 8, round_count = 10): Promise<DuelResponse> => {
+    const res = await api.post<DuelResponse>('/duels', { max_players, round_count });
+    return res.data;
+  },
+  list: async (): Promise<DuelListResponse> => {
+    const res = await api.get<DuelListResponse>('/duels');
+    return res.data;
+  },
+  getStatus: async (duelId: string): Promise<DuelStatusResponse> => {
+    const res = await api.get<DuelStatusResponse>(`/duels/${duelId}`);
+    return res.data;
+  },
+  join: async (duelId: string): Promise<DuelResponse> => {
+    const res = await api.post<DuelResponse>(`/duels/${duelId}/join`);
+    return res.data;
+  },
+  leave: async (duelId: string): Promise<void> => {
+    await api.post(`/duels/${duelId}/leave`);
+  },
+  start: async (duelId: string): Promise<DuelResponse> => {
+    const res = await api.post<DuelResponse>(`/duels/${duelId}/start`);
+    return res.data;
+  },
+  getCurrentRound: async (duelId: string): Promise<DuelRoundPublic> => {
+    const res = await api.get<DuelRoundPublic>(`/duels/${duelId}/rounds/current`);
+    return res.data;
+  },
+  beginRound: async (duelId: string): Promise<DuelRoundPublic> => {
+    const res = await api.post<DuelRoundPublic>(`/duels/${duelId}/rounds/begin`);
+    return res.data;
+  },
+  submitAnswer: async (duelId: string, selectedOption: string): Promise<DuelAnswerResponse> => {
+    const res = await api.post<DuelAnswerResponse>(`/duels/${duelId}/rounds/answer`, {
+      selected_option: selectedOption,
+    });
+    return res.data;
+  },
+  advanceRound: async (duelId: string): Promise<DuelStatusResponse> => {
+    const res = await api.post<DuelStatusResponse>(`/duels/${duelId}/rounds/advance`);
+    return res.data;
+  },
+};
+
+// ── Lig API (V2 §6.3 Faz 3b — haftalık kademe ligleri) ──
+export const leaguesApi = {
+  getMyLeague: async (): Promise<LeagueStatusResponse> => {
+    const res = await api.get<LeagueStatusResponse>('/leagues/me');
+    return res.data;
+  },
+};
+
+// ── Görev haritası API (V2 §6.3 Faz 3c) ──
+export const questsApi = {
+  list: async (): Promise<QuestListResponse> => {
+    const res = await api.get<QuestListResponse>('/quests');
+    return res.data;
   },
 };

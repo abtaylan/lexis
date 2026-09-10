@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
-  Menu, X, Users, GraduationCap,
+  Menu, X, Users, GraduationCap, Swords, Trophy, Map,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -41,6 +41,22 @@ const FRIENDS_LABEL: Record<Locale, string> = {
   it: 'Amici',
   ja: '友達',
   pt: 'Amigos',
+};
+
+// V2 §6.3 Faz 3 — Gerçek Zamanlı Düello / Lig / Görev Haritası navigasyon
+// etiketleri (yerel çeviri deseni — merkezi i18n.tsx'e dokunmadan, GAME_LABEL/
+// FRIENDS_LABEL ile aynı yaklaşım).
+const DUELS_LABEL: Record<Locale, string> = {
+  tr: 'Düello', en: 'Duel', ar: 'مبارزة', ru: 'Дуэль', de: 'Duell',
+  fr: 'Duel', es: 'Duelo', it: 'Duello', ja: 'デュエル', pt: 'Duelo',
+};
+const LEAGUE_LABEL: Record<Locale, string> = {
+  tr: 'Lig', en: 'League', ar: 'الدوري', ru: 'Лига', de: 'Liga',
+  fr: 'Ligue', es: 'Liga', it: 'Lega', ja: 'リーグ', pt: 'Liga',
+};
+const QUESTS_LABEL: Record<Locale, string> = {
+  tr: 'Görev Haritası', en: 'Quest Map', ar: 'خريطة المهام', ru: 'Карта заданий', de: 'Aufgabenkarte',
+  fr: 'Carte des Quêtes', es: 'Mapa de Misiones', it: 'Mappa delle Missioni', ja: 'クエストマップ', pt: 'Mapa de Missões',
 };
 
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı navigasyon
@@ -91,6 +107,9 @@ export function Sidebar() {
     { href: '/flashcards', label: t('flashcards'), icon: Layers },
     { href: '/quiz', label: t('quiz'), icon: HelpCircle },
     { href: '/game', label: GAME_LABEL[locale], icon: Gamepad2 },
+    { href: '/duels', label: DUELS_LABEL[locale], icon: Swords },
+    { href: '/league', label: LEAGUE_LABEL[locale], icon: Trophy },
+    { href: '/quests', label: QUESTS_LABEL[locale], icon: Map },
     { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
     // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası
