@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { DictionaryResult, Word, WordCreate, WordUpdate } from './types';
+import type { DictionaryResult, Word, WordCreate, WordUpdate, WeakWordTypesResult } from './types';
 
 export interface PaginatedWords {
   items: Word[];
@@ -51,6 +51,14 @@ export const wordsApi = {
   },
   review: async (id: string, success: boolean): Promise<Word> => {
     const res = await api.post<Word>(`/words/${id}/review`, { word_id: id, success });
+    return res.data;
+  },
+
+  // V2 madde #6 (Faz 2) -- zayif kelime turu ozeti (dashboard widget'i icin).
+  weakWordTypes: async (days = 30, limit = 5): Promise<WeakWordTypesResult> => {
+    const res = await api.get<WeakWordTypesResult>('/words/stats/weak-word-types', {
+      params: { days, limit },
+    });
     return res.data;
   },
 };

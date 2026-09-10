@@ -8,7 +8,9 @@ import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
 import { statsApi } from '@/api/stats';
 import { scheduleApi } from '@/api/schedule';
 import { examsApi } from '@/api/exams';
-import type { WeakTopicItem } from '@/api/types';
+import { wordsApi } from '@/api/words';
+import { gamesApi } from '@/api/games';
+import type { WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem } from '@/api/types';
 import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
@@ -48,6 +50,37 @@ function humanizeTopicTag(tag: string): string {
   return cleaned.replace(/\b\w/g, (ch) => ch.toUpperCase());
 }
 
+// V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan ozetleri. Web'deki
+// WEAK_WORD_TYPES_STRINGS/WEAK_DIFFICULTY_STRINGS ile birebir ayni tr/en
+// metinler (bkz. web/src/app/(app)/dashboard/page.tsx).
+const WEAK_WORD_TYPES_STRINGS: Record<'tr' | 'en', { title: string; subtitle: string; cta: string }> = {
+  tr: {
+    title: 'Zayıf Kelime Türlerin',
+    subtitle: 'Tekrarlarında en çok zorlandığın kelime türleri',
+    cta: 'Kelimelerime Git',
+  },
+  en: {
+    title: 'Your Weak Word Types',
+    subtitle: 'Word types you struggle with most in reviews',
+    cta: 'Go to My Words',
+  },
+};
+
+const WEAK_DIFFICULTY_STRINGS: Record<'tr' | 'en', { title: string; subtitle: string; cta: string; levelLabels: Record<string, string> }> = {
+  tr: {
+    title: 'Zayıf Zorluk Seviyen',
+    subtitle: 'Oyunlarda en çok yanlış yaptığın zorluk seviyeleri',
+    cta: 'Oyun Oyna',
+    levelLabels: { beginner: 'Başlangıç', intermediate: 'Orta', advanced: 'İleri' },
+  },
+  en: {
+    title: 'Your Weak Difficulty Level',
+    subtitle: 'Difficulty levels you miss most in games',
+    cta: 'Play a Game',
+    levelLabels: { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' },
+  },
+};
+
 export default function DashboardScreen() {
   const { t, locale, et } = useLocale();
   const c = useThemeColors();
@@ -65,6 +98,16 @@ export default function DashboardScreen() {
   const { data: weakTopics } = useQuery({
     queryKey: ['exam-weak-topics'],
     queryFn: () => examsApi.weakTopics(7, 3),
+  });
+
+  // V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan widget'lari.
+  const { data: weakWordTypes } = useQuery({
+    queryKey: ['words-weak-word-types'],
+    queryFn: () => wordsApi.weakWordTypes(30, 3),
+  });
+  const { data: weakDifficulty } = useQuery({
+    queryKey: ['games-weak-difficulty'],
+    queryFn: () => gamesApi.weakDifficulty(30, 3),
   });
 
   // Kullanıcı isteği (9 Eylül 2026): "ana ekrana bu sınav programı için bir
@@ -238,6 +281,69 @@ export default function DashboardScreen() {
                       <Text style={{ color: c.warning, fontSize: 12, fontWeight: '700' }}>{et.weakTopicsPracticeBtn}</Text>
                     </Pressable>
                   </View>
+                </View>
+              ))}
+            </View>
+          </Card>
+        )}
+
+        {/* V2 madde #6 (Faz 2): zayıf kelime türü özeti */}
+        {!!weakWordTypes?.items?.length && (
+          <Card style={{ marginTop: spacing.sm }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>
+              {(WEAK_WORD_TYPES_STRINGS[locale as 'tr' | 'en'] ?? WEAK_WORD_TYPES_STRINGS.tr).title}
+            </Text>
+            <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
+              {(WEAK_WORD_TYPES_STRINGS[locale as 'tr' | 'en'] ?? WEAK_WORD_TYPES_STRINGS.tr).subtitle}
+            </Text>
+            <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+              {weakWordTypes.items.map((item: WeakWordTypeItem) => (
+                <View key={item.word_type} style={[styles.weakTopicRow, { borderColor: c.border }]}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: c.text, textTransform: 'capitalize' }} numberOfLines={1}>
+                    {item.word_type}
+                  </Text>
+                  <Pressable
+                    onPress={() => router.push('/(app)/words')}
+                    style={[styles.weakTopicBtn, { borderColor: c.primary }]}
+                  >
+                    <Text style={{ color: c.primary, fontSize: 12, fontWeight: '700' }}>
+                      {(WEAK_WORD_TYPES_STRINGS[locale as 'tr' | 'en'] ?? WEAK_WORD_TYPES_STRINGS.tr).cta}
+                    </Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </Card>
+        )}
+
+        {/* V2 madde #6 (Faz 2): zayıf zorluk seviyesi özeti */}
+        {!!weakDifficulty?.items?.length && (
+          <Card style={{ marginTop: spacing.sm }}>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>
+              {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).title}
+            </Text>
+            <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
+              {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).subtitle}
+            </Text>
+            <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
+              {weakDifficulty.items.map((item: WeakDifficultyItem) => (
+                <View key={item.difficulty_level} style={[styles.weakTopicRow, { borderColor: c.border }]}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: c.text }} numberOfLines={1}>
+                      {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).levelLabels[item.difficulty_level] ?? item.difficulty_level}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
+                      {et.weakTopicsAccuracyTpl.replace('{percent}', String(Math.round(item.accuracy_ratio * 100)))}
+                    </Text>
+                  </View>
+                  <Pressable
+                    onPress={() => router.push('/(app)/game')}
+                    style={[styles.weakTopicBtn, { borderColor: c.warning }]}
+                  >
+                    <Text style={{ color: c.warning, fontSize: 12, fontWeight: '700' }}>
+                      {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).cta}
+                    </Text>
+                  </Pressable>
                 </View>
               ))}
             </View>

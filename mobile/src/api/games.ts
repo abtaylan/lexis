@@ -8,6 +8,7 @@ import type {
   GuessLetterResult,
   NextWordResult,
   PoolSource,
+  WeakDifficultyResult,
 } from './types';
 
 export const gamesApi = {
@@ -32,6 +33,14 @@ export const gamesApi = {
   },
   finishSession: async (sessionId: string): Promise<GameFinishResult> => {
     const res = await api.post<GameFinishResult>(`/games/sessions/${sessionId}/finish`);
+    return res.data;
+  },
+
+  // V2 madde #6 (Faz 2) -- zayif zorluk seviyesi ozeti (dashboard widget'i icin).
+  weakDifficulty: async (days = 30, limit = 5): Promise<WeakDifficultyResult> => {
+    const res = await api.get<WeakDifficultyResult>('/games/stats/weak-difficulty', {
+      params: { days, limit },
+    });
     return res.data;
   },
 };
