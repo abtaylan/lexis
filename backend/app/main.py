@@ -8,6 +8,7 @@ from app.api.routes import (
     admin_platform,
     auth,
     cron,
+    custom_leagues,
     dictionary,
     duels,
     exam_reminders,
@@ -67,6 +68,7 @@ app.include_router(games.router, prefix="/api/v1/games", tags=["Games"])
 # V2 madde #6/#7 Faz 3a+3e -- Gercek Zamanli Duello (oda yasam dongusu +
 # round-servis uclari, bkz. duels.py modul docstring'i).
 app.include_router(duels.router, prefix="/api/v1/duels", tags=["Duels"])
+app.include_router(custom_leagues.router, prefix="/api/v1/custom-leagues", tags=["Custom Leagues"])
 app.include_router(subscription.router, prefix="/api/v1/subscription", tags=["Subscription"])
 app.include_router(user_languages.router, prefix="/api/v1/me/languages", tags=["User Languages"])
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["Notifications"])

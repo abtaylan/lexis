@@ -83,6 +83,11 @@ import type {
   LeagueStatusResponse,
   LeagueOverviewResponse,
   QuestListResponse,
+  CustomLeagueItem,
+  CustomLeagueListResponse,
+  CustomLeagueDetailResponse,
+  CustomLeagueInviteItem,
+  CustomLeagueInvitesListResponse,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -1018,6 +1023,48 @@ export const leaguesApi = {
   getDetail: async (leagueId: string): Promise<LeagueStatusResponse> => {
     const res = await api.get<LeagueStatusResponse>(`/leagues/${leagueId}`);
     return res.data;
+  },
+};
+
+// ── Ozel Lig API (V2 Faz 3 devami, 10 Eylul 2026 -- "kendi
+// arkadaslarimdan olusan ozel lig kurup kendi aramizda yarisabilmeliyim")
+// Backend: /api/v1/custom-leagues/* (bkz. backend/app/api/routes/custom_leagues.py)
+export const customLeaguesApi = {
+  create: async (name: string, max_members = 20): Promise<CustomLeagueItem> => {
+    const res = await api.post<CustomLeagueItem>('/custom-leagues', { name, max_members });
+    return res.data;
+  },
+  listMine: async (): Promise<CustomLeagueListResponse> => {
+    const res = await api.get<CustomLeagueListResponse>('/custom-leagues/mine');
+    return res.data;
+  },
+  getDetail: async (leagueId: string): Promise<CustomLeagueDetailResponse> => {
+    const res = await api.get<CustomLeagueDetailResponse>(`/custom-leagues/${leagueId}`);
+    return res.data;
+  },
+  delete: async (leagueId: string): Promise<void> => {
+    await api.delete(`/custom-leagues/${leagueId}`);
+  },
+  leave: async (leagueId: string): Promise<void> => {
+    await api.post(`/custom-leagues/${leagueId}/leave`);
+  },
+  invite: async (leagueId: string, username: string): Promise<CustomLeagueInviteItem> => {
+    const res = await api.post<CustomLeagueInviteItem>(`/custom-leagues/${leagueId}/invite`, { username });
+    return res.data;
+  },
+  listInvites: async (): Promise<CustomLeagueInvitesListResponse> => {
+    const res = await api.get<CustomLeagueInvitesListResponse>('/custom-leagues/invites/mine');
+    return res.data;
+  },
+  acceptInvite: async (inviteId: string): Promise<CustomLeagueItem> => {
+    const res = await api.post<CustomLeagueItem>(`/custom-leagues/invites/${inviteId}/accept`);
+    return res.data;
+  },
+  declineInvite: async (inviteId: string): Promise<void> => {
+    await api.post(`/custom-leagues/invites/${inviteId}/decline`);
+  },
+  cancelInvite: async (inviteId: string): Promise<void> => {
+    await api.post(`/custom-leagues/invites/${inviteId}/cancel`);
   },
 };
 

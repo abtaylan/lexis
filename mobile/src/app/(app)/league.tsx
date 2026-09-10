@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { Trophy, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { Trophy, ChevronUp, ChevronDown, Users2 } from 'lucide-react-native';
 import { leaguesApi } from '@/api/leagues';
 import { LEAGUE_STRINGS, LEAGUE_TIER_NAMES } from '@/i18n/leagueStrings';
 import { useLocale } from '@/i18n';
@@ -74,6 +74,13 @@ export default function LeagueScreen() {
             </Text>
           )}
         </View>
+        <Pressable
+          onPress={() => router.push('/(app)/custom-leagues')}
+          style={({ pressed }) => [styles.customLeaguesBtn, { backgroundColor: c.accentSoft, opacity: pressed ? 0.8 : 1 }]}
+        >
+          <Users2 color={c.accent} size={14} />
+          <Text style={{ color: c.accent, fontWeight: '700', fontSize: 11 }}>{t.customLeaguesBtn}</Text>
+        </Pressable>
       </View>
 
       {overview.length > 0 && (
@@ -175,6 +182,7 @@ export default function LeagueScreen() {
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   headerIcon: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  customLeaguesBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.sm, paddingVertical: spacing.xs + 1, borderRadius: radius.full },
   legendRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginTop: spacing.md },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendDot: { width: 7, height: 7, borderRadius: 4 },

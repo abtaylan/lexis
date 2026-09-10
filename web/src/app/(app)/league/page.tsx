@@ -21,7 +21,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
-import { Trophy, RefreshCw, ChevronUp, ChevronDown } from 'lucide-react';
+import { Trophy, RefreshCw, ChevronUp, ChevronDown, Users2 } from 'lucide-react';
 import { leaguesApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { LEAGUE_L, TIER_NAMES, formatDateRange } from '@/lib/leagueLocale';
@@ -114,14 +114,24 @@ export default function LeaguePage() {
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={refresh}
-          className="p-2 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
-          aria-label={t.refreshBtn}
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => router.push('/league/custom')}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-500/10 dark:hover:bg-purple-500/20 dark:text-purple-400 text-sm font-medium transition-colors"
+          >
+            <Users2 className="w-4 h-4" />
+            {t.customLeaguesBtn}
+          </button>
+          <button
+            type="button"
+            onClick={refresh}
+            className="p-2 rounded-lg text-gray-400 hover:bg-gray-50 hover:text-gray-700 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
+            aria-label={t.refreshBtn}
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {!overviewLoading && overview.length > 0 && (

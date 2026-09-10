@@ -15,6 +15,31 @@ router = APIRouter()
 ASSIGNABLE_ROLES = ADMIN_ROLES | {"user"}
 
 
+# Kullanici Listesi'nde E-posta sutunu bos gorunuyordu (10 Eylul 2026
+# kullanici geri bildirimi) -- kok neden: supabase_admin.auth.admin.list_users()
+# TEK sayfa donduruyor (GoTrue admin API varsayilani per_page=50), profiles
+# tablosunda artik 50'den fazla kayit oldugu icin (149) 50. kullanicidan
+# sonrakiler email_map'e hic girmiyordu, "email": p.get("email", "") fallback'i
+# bos string'e dusuyordu (profiles tablosunda zaten email sutunu yok/kullanilmiyor
+# -- e-posta SADECE auth.users'da). Duzeltme: TUM sayfalari gezen paylasimli
+# bir yardimci -- ayni dosyadaki create_user'in e-posta on-kontrolunde de
+# AYNI bug vardi (sayfa 1'den sonraki kullanicilarla e-posta çakışması
+# kaçırılabiliyordu), o da bu yardimciyi kullanacak sekilde guncellendi.
+def _list_all_auth_users(max_pages: int = 50) -> list:
+    all_users: list = []
+    page_num = 1
+    while page_num <= max_pages:
+        page = supabase_admin.auth.admin.list_users(page=page_num, per_page=200)
+        users = page if isinstance(page, list) else getattr(page, "users", [])
+        if not users:
+            break
+        all_users.extend(users)
+        if len(users) < 200:
+            break
+        page_num += 1
+    return all_users
+
+
 class CreateUserRequest(BaseModel):
     email: EmailStr
     password: str
@@ -35,12 +60,12 @@ async def list_users(admin=Depends(get_current_admin)):
         .execute()
     )
 
-    # E-posta auth.users'da tutuluyor — admin API'den eşleştir
+    # E-posta auth.users'da tutuluyor — admin API'den eşleştir (TÜM
+    # sayfalar, bkz. _list_all_auth_users yorumu -- eskiden tek sayfa
+    # (ilk 50) okunuyordu, 50. kullanıcıdan sonrası boş kalıyordu).
     email_map = {}
     try:
-        page = supabase_admin.auth.admin.list_users()
-        users = page if isinstance(page, list) else getattr(page, "users", [])
-        for u in users:
+        for u in _list_all_auth_users():
             email_map[u.id] = u.email
     except Exception as e:
         print(f"LIST_USERS email map warning: {e}")
@@ -105,8 +130,7 @@ async def get_user_detail(user_id: str, admin=Depends(get_current_admin)):
 async def create_user(req: CreateUserRequest, admin=Depends(get_current_admin_full)):
     # Önce e-posta zaten var mı kontrol et — net hata için
     try:
-        page = supabase_admin.auth.admin.list_users()
-        existing = page if isinstance(page, list) else getattr(page, "users", [])
+        existing = _list_all_auth_users()
         if any((u.email or "").lower() == req.email.lower() for u in existing):
             raise HTTPException(status_code=409, detail="Bu e-posta zaten kayıtlı.")
     except HTTPException:

@@ -816,3 +816,65 @@ export interface QuestNodeItem {
 export interface QuestListResponse {
   items: QuestNodeItem[];
 }
+
+// ============================================================
+// V2 Faz 3 devami (10 Eylul 2026 kullanici istegi) -- Ozel Lig
+// web/src/types/index.ts'teki aynı adlı tiplerle birebir (bkz.
+// backend/app/schemas/custom_leagues.py).
+// ============================================================
+
+export interface CustomLeagueMemberItem {
+  user_id: string;
+  username?: string | null;
+  display_name?: string | null;
+  avatar_url?: string | null;
+  xp: number;
+  games_won: number;
+  duels_won: number;
+  flashcards_reviewed: number;
+  is_me: boolean;
+  is_creator: boolean;
+  joined_at: string;
+}
+
+export interface CustomLeagueItem {
+  id: string;
+  name: string;
+  created_by: string;
+  max_members: number;
+  member_count: number;
+  created_at: string;
+  is_creator: boolean;
+}
+
+export interface CustomLeagueListResponse {
+  items: CustomLeagueItem[];
+}
+
+export interface CustomLeagueDetailResponse {
+  id: string;
+  name: string;
+  created_by: string;
+  max_members: number;
+  created_at: string;
+  members: CustomLeagueMemberItem[];
+}
+
+export interface CustomLeagueInviteItem {
+  id: string;
+  league_id: string;
+  league_name: string;
+  inviter_id: string;
+  inviter_username?: string | null;
+  inviter_display_name?: string | null;
+  invitee_id: string;
+  invitee_username?: string | null;
+  invitee_display_name?: string | null;
+  status: 'pending' | 'accepted' | 'declined' | 'cancelled';
+  created_at: string;
+  is_received: boolean;
+}
+
+export interface CustomLeagueInvitesListResponse {
+  items: CustomLeagueInviteItem[];
+}

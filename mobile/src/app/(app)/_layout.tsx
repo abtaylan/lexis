@@ -117,6 +117,10 @@ export default function AppTabsLayout() {
       <Tabs.Screen name="duel-room" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="league" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="league-detail" options={{ href: null, headerShown: false }} />
+      {/* V2 Faz 3 devami (10 Eylul 2026 -- "kendi arkadaslarimdan olusan
+          ozel lig kurup kendi aramizda yarisabilmeliyim") */}
+      <Tabs.Screen name="custom-leagues" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="custom-league-detail" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="quests" options={{ href: null, headerShown: false }} />
     </Tabs>
   );

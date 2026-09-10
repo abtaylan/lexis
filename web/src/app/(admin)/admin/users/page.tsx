@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ShieldCheck, ShieldOff, UserX, UserCheck, Loader2, Users, Plus, X,
   ChevronRight, BookOpen, CheckCircle2, RefreshCw, Archive, Target,
   Calendar, Globe, GraduationCap, KeyRound, Eye, Trash2, AlertTriangle,
+  ArrowUpDown, ArrowUp, ArrowDown,
 } from 'lucide-react';
 import { adminApi, languagesApi } from '@/lib/api';
 import type { AdminUser, AdminUserDetail, Language } from '@/types';
@@ -20,6 +21,8 @@ import { getErrorMessage } from '@/lib/errors';
 // desen Premium/checkout sayfalarında da kabul edilmişti.
 
 const DATE_LOCALE = 'tr-TR';
+
+type SortKey = 'display_name' | 'email' | 'username' | 'password_masked' | 'role' | 'is_active' | 'created_at' | null;
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'admin', admin_readonly: 'salt-okunur admin', user: 'user',
@@ -288,6 +291,23 @@ export default function AdminUsersPage() {
   const [detailId, setDetailId]     = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [search, setSearch]   = useState('');
+  // Yönetim Paneli Faz devamı (10 Eylül 2026 kullanıcı isteği --
+  // "Kullanıcı Listesi altında bulunan tüm sütunlarda artan azalan
+  // özelliği olsun"): her sütun başlığına tıklanınca o alana göre
+  // artan/azalan sıralama. `null` = varsayılan (backend zaten
+  // created_at DESC döndürüyor, bkz. list_users).
+  const [sortKey, setSortKey] = useState<SortKey>(null);
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (key: SortKey) => {
+    if (key === null) return;
+    if (sortKey === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const load = async () => {
     setLoading(true);
@@ -337,7 +357,36 @@ export default function AdminUsersPage() {
     (u.username || '').toLowerCase().includes(search.toLowerCase())
   );
 
-  const columns = ['Kullanıcı', 'E-posta', 'Kullanıcı adı', 'Şifre', 'Rol', 'Durum', 'Kayıt tarihi', ''];
+  // Yönetim Paneli Faz devamı (10 Eylül 2026 -- "tüm sütunlarda artan
+  // azalan özelliği olsun"): sortKey seçiliyken filtrelenmiş listeyi o
+  // alana göre sırala -- boolean (Durum) ve tarih (Kayıt tarihi) için
+  // özel karşılaştırma, geri kalanı yerel (tr) string karşılaştırması.
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered;
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      if (sortKey === 'is_active') {
+        return (Number(a.is_active) - Number(b.is_active)) * dir;
+      }
+      if (sortKey === 'created_at') {
+        return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * dir;
+      }
+      const av = (a[sortKey] ?? '') as string;
+      const bv = (b[sortKey] ?? '') as string;
+      return av.localeCompare(bv, 'tr') * dir;
+    });
+  }, [filtered, sortKey, sortDir]);
+
+  const columns: { label: string; key: SortKey }[] = [
+    { label: 'Kullanıcı', key: 'display_name' },
+    { label: 'E-posta', key: 'email' },
+    { label: 'Kullanıcı adı', key: 'username' },
+    { label: 'Şifre', key: 'password_masked' },
+    { label: 'Rol', key: 'role' },
+    { label: 'Durum', key: 'is_active' },
+    { label: 'Kayıt tarihi', key: 'created_at' },
+    { label: '', key: null },
+  ];
 
   return (
     <div className="p-8 space-y-6">
@@ -375,18 +424,33 @@ export default function AdminUsersPage() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Kullanıcı Listesi</h2>
-            <span className="text-xs font-medium bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 px-2 py-0.5 rounded-full">{filtered.length} kayıt</span>
+            <span className="text-xs font-medium bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 px-2 py-0.5 rounded-full">{sorted.length} kayıt</span>
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 dark:border-slate-800">
-                {columns.map((h, i) => (
-                  <th key={i} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide">{h}</th>
+                {columns.map((col, i) => (
+                  <th key={i} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide">
+                    {col.key ? (
+                      <button
+                        type="button"
+                        onClick={() => handleSort(col.key)}
+                        className="flex items-center gap-1 hover:text-gray-700 hover:dark:text-slate-200 transition-colors"
+                      >
+                        {col.label}
+                        {sortKey === col.key ? (
+                          sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+                        ) : (
+                          <ArrowUpDown className="w-3 h-3 opacity-40" />
+                        )}
+                      </button>
+                    ) : col.label}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((u) => (
+              {sorted.map((u) => (
                 <tr key={u.id} className="border-b border-gray-50 dark:border-slate-800 last:border-0 hover:bg-slate-50 hover:dark:bg-slate-800 transition-colors group">
                   <td className="px-4 py-3 font-semibold text-gray-900 dark:text-slate-100">{u.display_name || '—'}</td>
                   <td className="px-4 py-3 text-gray-500 dark:text-slate-400 text-xs">{u.email}</td>
