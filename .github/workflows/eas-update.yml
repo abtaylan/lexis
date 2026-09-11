@@ -48,5 +48,17 @@ jobs:
       - run: npm ci
 
       - name: Publish EAS update
+        # --platform ios,android: mobil projede app.json'daki web.output:"static"
+        # ayari yuzunden "eas update" varsayilan olarak (platform belirtilmezse
+        # "all") web icin de JS bundle almaya calisiyor. Bu proje web'e HIC
+        # deploy edilmiyor (monorepo'daki ayri "web" Next.js projesi web'i
+        # kendisi sagliyor) -- ama web bundling yine de calisiyor ve
+        # react-native-google-mobile-ads (AdBanner.tsx) native-only bir RN
+        # internal modulunu (codegenNativeComponent) web'de import etmeye
+        # calistigi icin export sert bir sekilde patliyor (11 Eylul 2026,
+        # run #9: "Web Bundling failed ... Importing native-only module
+        # ... on web"). ios/android bundle'lari sorunsuz basariyla
+        # tamamlaniyor; hatanin tek sebebi gereksiz web adimi. Bu satirla
+        # web adimi tamamen atlanip sorun kokten cozuluyor.
         run: |
-          eas update --branch production --message "CI: ${{ github.event.head_commit.message }}" --non-interactive
+          eas update --branch production --platform ios,android --message "CI: ${{ github.event.head_commit.message }}" --non-interactive
