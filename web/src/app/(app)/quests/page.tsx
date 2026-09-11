@@ -560,7 +560,7 @@ export default function QuestsPage() {
                               <button
                                 type="button"
                                 onClick={() => handleOpen(node)}
-                                disabled={!clickable}
+                                aria-disabled={!clickable}
                                 aria-label={title}
                                 title={description || title}
                                 className={`absolute rounded-full flex items-center justify-center border-[3px] transition-transform qm-node-enter ${
