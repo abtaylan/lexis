@@ -136,7 +136,7 @@ async def get_badges_catalog(user_id: str) -> list[dict[str, Any]]:
     # Katalogda sabit/öngörülebilir bir sıra: önce kazanılanlar (en yeni
     # önce), sonra kazanılmayanlar kategoriye göre — kullanıcı sayfayı her
     # açtığında düzen aniden değişmesin.
-    category_order = {"quest": 0, "quest_world": 1, "streak": 2, "duel": 3, "league": 4, "leaderboard": 5}
+    category_order = {"quest": 0, "quest_world": 1, "streak": 2, "duel": 3, "league": 4, "leaderboard": 5, "level": 6}
     catalog.sort(
         key=lambda b: (
             0 if b["earned"] else 1,

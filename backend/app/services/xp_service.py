@@ -15,6 +15,7 @@ import math
 from typing import Any, Literal
 
 from app.core.database import supabase_admin
+from app.services.badge_service import award_badge
 
 XPSourceType = Literal[
     "flashcard_review",
@@ -118,6 +119,33 @@ def level_from_total_xp(total_xp: int) -> int:
     return level
 
 
+# Ödüller (title/kozmetik ödüller) — bkz. migration 064_title_rewards.sql.
+# Achievement rozetlerinden farklı olarak bunlar tek bir olayı değil,
+# kullanıcının GÜNCEL seviye rütbesini temsil ediyor, ama award_badge()
+# altyapısı aynı (bir kez kazanılır, kalıcıdır — XP hiç azalmadığı için
+# bu sorun değil).
+_TITLE_LEVEL_THRESHOLDS: dict[int, str] = {
+    3: "level_3",
+    5: "level_5",
+    10: "level_10",
+    15: "level_15",
+    20: "level_20",
+    30: "level_30",
+    40: "level_40",
+    50: "level_50",
+}
+
+
+async def _award_level_titles(user_id: str, previous_level: int, new_level: int) -> None:
+    """Seviye atlandıysa, atlanan ARALIKTAKİ (previous_level, new_level] tüm
+    unvan eşiklerini ver. Büyük bir tek seferlik XP artışı (ör. haftalık lig
+    ödülü ya da görev tamamlama bonusu) birden fazla eşiği aynı anda
+    atlayabilir — hepsi verilmeli, sadece en yükseği değil."""
+    for threshold, code in _TITLE_LEVEL_THRESHOLDS.items():
+        if previous_level < threshold <= new_level:
+            await award_badge(user_id, code)
+
+
 class XPResult:
     def __init__(
         self,
@@ -190,6 +218,9 @@ async def award_xp(
     supabase_admin.table("profiles").update(
         {"total_xp": new_total, "level": new_level}
     ).eq("id", user_id).execute()
+
+    if leveled_up:
+        await _award_level_titles(user_id, previous_level, new_level)
 
     return XPResult(
         amount_awarded=final_amount,

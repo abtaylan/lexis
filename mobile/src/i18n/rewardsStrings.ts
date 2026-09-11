@@ -9,7 +9,7 @@ export type RewardsStrings = {
   achievementsTab: string; titlesTab: string;
   lockedLabel: string; earnedLabel: string;
   section_quest: string; section_streak: string; section_duel: string;
-  section_league: string; section_leaderboard: string;
+  section_league: string; section_leaderboard: string; section_level: string;
   titlesEmpty: string;
   backBtn: string;
 };
@@ -24,9 +24,11 @@ export const CATEGORY_SECTION: Record<string, string> = {
   duel: 'duel',
   league: 'league',
   leaderboard: 'leaderboard',
+  // kind='title' (Ödüller sekmesi) — bkz. migration 064_title_rewards.sql.
+  level: 'level',
 };
 
-export const CATEGORY_ORDER = ['quest', 'streak', 'duel', 'league', 'leaderboard'];
+export const CATEGORY_ORDER = ['quest', 'streak', 'duel', 'league', 'leaderboard', 'level'];
 
 export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
   tr: {
@@ -36,7 +38,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'Rozetler', titlesTab: 'Ödüller',
     lockedLabel: 'Kilitli', earnedLabel: 'Kazanıldı',
     section_quest: 'Görev Haritası', section_streak: 'Seri', section_duel: 'Düello',
-    section_league: 'Lig', section_leaderboard: 'Sıralama',
+    section_league: 'Lig', section_leaderboard: 'Sıralama', section_level: 'Seviye',
     titlesEmpty: 'Yakında — unvan ve kozmetik ödüller bu bölüme eklenecek.',
     backBtn: 'Geri',
   },
@@ -47,7 +49,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'Badges', titlesTab: 'Rewards',
     lockedLabel: 'Locked', earnedLabel: 'Earned',
     section_quest: 'Quest Map', section_streak: 'Streak', section_duel: 'Duel',
-    section_league: 'League', section_leaderboard: 'Leaderboard',
+    section_league: 'League', section_leaderboard: 'Leaderboard', section_level: 'Level',
     titlesEmpty: 'Coming soon — titles and cosmetic rewards will appear here.',
     backBtn: 'Back',
   },
@@ -58,7 +60,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'Abzeichen', titlesTab: 'Belohnungen',
     lockedLabel: 'Gesperrt', earnedLabel: 'Verdient',
     section_quest: 'Aufgabenkarte', section_streak: 'Serie', section_duel: 'Duell',
-    section_league: 'Liga', section_leaderboard: 'Bestenliste',
+    section_league: 'Liga', section_leaderboard: 'Bestenliste', section_level: 'Level',
     titlesEmpty: 'Demnächst — Titel und kosmetische Belohnungen erscheinen hier.',
     backBtn: 'Zurück',
   },
@@ -69,7 +71,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'Badges', titlesTab: 'Récompenses',
     lockedLabel: 'Verrouillé', earnedLabel: 'Obtenu',
     section_quest: 'Carte des Quêtes', section_streak: 'Série', section_duel: 'Duel',
-    section_league: 'Ligue', section_leaderboard: 'Classement',
+    section_league: 'Ligue', section_leaderboard: 'Classement', section_level: 'Niveau',
     titlesEmpty: 'Bientôt disponible — les titres et récompenses cosmétiques arriveront ici.',
     backBtn: 'Retour',
   },
@@ -80,7 +82,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'Insignias', titlesTab: 'Recompensas',
     lockedLabel: 'Bloqueada', earnedLabel: 'Obtenida',
     section_quest: 'Mapa de Misiones', section_streak: 'Racha', section_duel: 'Duelo',
-    section_league: 'Liga', section_leaderboard: 'Clasificación',
+    section_league: 'Liga', section_leaderboard: 'Clasificación', section_level: 'Nivel',
     titlesEmpty: 'Próximamente — los títulos y recompensas cosméticas aparecerán aquí.',
     backBtn: 'Atrás',
   },
@@ -91,7 +93,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'Badge', titlesTab: 'Ricompense',
     lockedLabel: 'Bloccato', earnedLabel: 'Ottenuto',
     section_quest: 'Mappa delle Missioni', section_streak: 'Serie', section_duel: 'Duello',
-    section_league: 'Lega', section_leaderboard: 'Classifica',
+    section_league: 'Lega', section_leaderboard: 'Classifica', section_level: 'Livello',
     titlesEmpty: 'Prossimamente — titoli e ricompense cosmetiche appariranno qui.',
     backBtn: 'Indietro',
   },
@@ -102,7 +104,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'الأوسمة', titlesTab: 'المكافآت',
     lockedLabel: 'مُقفل', earnedLabel: 'تم الحصول عليه',
     section_quest: 'خريطة المهام', section_streak: 'السلسلة', section_duel: 'المبارزة',
-    section_league: 'الدوري', section_leaderboard: 'الترتيب',
+    section_league: 'الدوري', section_leaderboard: 'الترتيب', section_level: 'المستوى',
     titlesEmpty: 'قريباً — ستظهر الألقاب والمكافآت التجميلية هنا.',
     backBtn: 'رجوع',
   },
@@ -113,7 +115,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'Значки', titlesTab: 'Награды',
     lockedLabel: 'Заблокировано', earnedLabel: 'Получено',
     section_quest: 'Карта заданий', section_streak: 'Серия', section_duel: 'Дуэль',
-    section_league: 'Лига', section_leaderboard: 'Таблица лидеров',
+    section_league: 'Лига', section_leaderboard: 'Таблица лидеров', section_level: 'Уровень',
     titlesEmpty: 'Скоро здесь появятся титулы и косметические награды.',
     backBtn: 'Назад',
   },
@@ -124,7 +126,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'バッジ', titlesTab: '報酬',
     lockedLabel: 'ロック中', earnedLabel: '獲得済み',
     section_quest: 'クエストマップ', section_streak: '連続記録', section_duel: 'デュエル',
-    section_league: 'リーグ', section_leaderboard: 'ランキング',
+    section_league: 'リーグ', section_leaderboard: 'ランキング', section_level: 'レベル',
     titlesEmpty: '近日公開 — 称号やコスメティック報酬がここに表示されます。',
     backBtn: '戻る',
   },
@@ -135,7 +137,7 @@ export const REWARDS_STRINGS: Record<Locale, RewardsStrings> = {
     achievementsTab: 'Insígnias', titlesTab: 'Recompensas',
     lockedLabel: 'Bloqueada', earnedLabel: 'Conquistada',
     section_quest: 'Mapa de Missões', section_streak: 'Sequência', section_duel: 'Duelo',
-    section_league: 'Liga', section_leaderboard: 'Classificação',
+    section_league: 'Liga', section_leaderboard: 'Classificação', section_level: 'Nível',
     titlesEmpty: 'Em breve — títulos e recompensas cosméticas vão aparecer aqui.',
     backBtn: 'Voltar',
   },
