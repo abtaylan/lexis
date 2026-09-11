@@ -18,6 +18,11 @@ on:
       - "!mobile/package-lock.json"
       - "!mobile/android/**"
       - "!mobile/ios/**"
+  # Elle tetikleme: otomatik path filtresine takilmayan durumlarda (ornegin
+  # bu workflow dosyasinin kendisi degisti, ya da onceki bir otomatik run
+  # basarisiz oldu ve mobile/** icin yeni bir push beklemeden hemen tekrar
+  # yayinlanmasi gerekiyor) OTA'yi elden calistirmak icin.
+  workflow_dispatch:
 
 jobs:
   update:
@@ -31,7 +36,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: mobile/package-lock.json
 
