@@ -7,7 +7,7 @@ import {
   Map, Check, Lock, Star, Award, Gamepad2, Layers, BookOpen, FileQuestion, Timer, Swords, Flag, ChevronRight,
 } from 'lucide-react-native';
 import { questsApi } from '@/api/quests';
-import { playQuestClick, playQuestComplete, playQuestBadge } from '@/lib/questSounds';
+import { playQuestClick, playQuestComplete, playQuestBadge, startQuestAmbient, stopQuestAmbient } from '@/lib/questSounds';
 import type { QuestNodeItem } from '@/api/types';
 import { QUESTS_STRINGS } from '@/i18n/questsStrings';
 import { useLocale, type Locale } from '@/i18n';
@@ -217,6 +217,14 @@ export default function QuestsScreen() {
   const query = useQuery({ queryKey: ['quests-list'], queryFn: questsApi.list });
   const items = query.data?.items ?? [];
   const worlds = useMemo(() => groupByWorldAndPart(items, locale), [items, locale]);
+
+  // Görev Haritası ekranında kısık sesle çalan arka plan ambiyansı --
+  // ekrana girince başlar, ekrandan çıkınca durur (bkz. web/quests/page.tsx
+  // ile aynı desen).
+  useEffect(() => {
+    startQuestAmbient();
+    return () => stopQuestAmbient();
+  }, []);
 
   // Onceki yuklemeye gore YENI tamamlanan gorevleri tespit edip ses calmak
   // icin (bkz. web/quests/page.tsx'teki ayni desen) -- ilk yuklemede

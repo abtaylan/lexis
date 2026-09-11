@@ -30,7 +30,7 @@ import {
   FileQuestion, Timer, Swords, Flag, ChevronRight,
 } from 'lucide-react';
 import { questsApi } from '@/lib/api';
-import { playQuestClick, playQuestComplete, playQuestBadge } from '@/lib/questSounds';
+import { playQuestClick, playQuestComplete, playQuestBadge, startQuestAmbient, stopQuestAmbient } from '@/lib/questSounds';
 import { useLocale, type Locale } from '@/lib/i18n';
 import type { QuestNodeItem } from '@/types';
 
@@ -346,6 +346,14 @@ export default function QuestsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
     load();
   }, [load]);
+
+  // Görev Haritası ekranında kısık sesle çalan arka plan ambiyansı --
+  // ekrana girince başlar (autoplay engeline takılırsa ilk tıklamada
+  // devreye girer, bkz. questSounds.ts), ekrandan çıkınca durur.
+  useEffect(() => {
+    startQuestAmbient();
+    return () => stopQuestAmbient();
+  }, []);
 
   const worlds = useMemo(() => groupByWorldAndPart(items, locale), [items, locale]);
 
