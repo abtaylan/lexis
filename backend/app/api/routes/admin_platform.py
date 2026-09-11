@@ -16,6 +16,13 @@ barındırıyor:
   - GET /notifications-log  → bildirim/e-posta gönderim logları
   - GET /game-analytics     → oyun/içerik analitiği
   - GET /audit-log          → admin işlem geçmişi
+  - GET /content-accuracy/summary    → İstatistik & Raporlama Faz 1 (11 Eylül
+    2026) — 3'lü segmentasyon (sistem soruları / sistem kelimeleri / kullanıcı
+    kelimeleri) özet doğruluk
+  - GET /content-accuracy/questions  → soru bazında doğruluk + her yanlış
+    şıkkın seçilme dağılımı (exam_question_stats view'ı)
+  - GET /content-accuracy/words      → kelime bazında doğru/yanlış tahmin
+    yüzdesi (system_word_stats / user_word_stats view'ları, migration 062)
 
 Okuma (GET) endpoint'leri get_current_admin (hem 'admin' hem
 'admin_readonly' kabul eder) ile korunuyor; mutasyon yapan endpoint'ler
@@ -592,3 +599,128 @@ async def list_audit_log(
         query = query.eq("target_type", target_type)
     result = query.order("created_at", desc=True).limit(limit).execute()
     return {"items": result.data or [], "total": result.count or 0}
+
+# ================================================================
+# 9) İçerik doğruluk analitiği — İstatistik & Raporlama Faz 1
+#    (11 Eylül 2026). "3'lü segmentasyon": sistem soruları
+#    (exam_questions/exam_question_stats), sistem kelimeleri
+#    (general_word_pool/system_word_stats) ve kullanıcının kendi
+#    kelimeleri (words/user_word_stats, migration 062). Ayrı bir
+#    sayaç servisi yok — hepsi mevcut view'lardan okunuyor, bu
+#    yüzden ekstra bakım/senkron yükü yaratmıyor. Sıradaki fazlar:
+#    admin/reports sayfasının bu uçları tüketmesi, periyodik
+#    özet+e-posta gönderimi, kurum/ülke bazlı kırılım.
+# ================================================================
+@router.get("/content-accuracy/summary")
+async def content_accuracy_summary(admin=Depends(get_current_admin)):
+    def _agg(table: str) -> dict:
+        rows = (
+            supabase_admin.table(table)
+            .select("total_attempts, correct_count, wrong_count")
+            .gt("total_attempts", 0)
+            .execute()
+            .data
+        ) or []
+        total_attempts = sum(r["total_attempts"] for r in rows)
+        total_correct = sum(r["correct_count"] for r in rows)
+        return {
+            "items_with_attempts": len(rows),
+            "total_attempts": total_attempts,
+            "accuracy_percent": round((total_correct / total_attempts) * 100, 1) if total_attempts else None,
+        }
+
+    return {
+        "system_questions": _agg("exam_question_stats"),
+        "system_words": _agg("system_word_stats"),
+        "user_words": _agg("user_word_stats"),
+    }
+
+
+@router.get("/content-accuracy/questions")
+async def content_accuracy_questions(
+    exam_type: str | None = None,
+    min_attempts: int = 5,
+    limit: int = 50,
+    order: str = "weakest",  # weakest | strongest | most_attempted
+    admin=Depends(get_current_admin),
+):
+    """Soru bazında doğruluk oranı + option_counts (her şıkkın kaç kez
+    seçildiği, buradan yanlış şıkların seçilme yüzdesi hesaplanabilir).
+    Varsayılan sıralama en zayıf (en düşük accuracy_ratio) sorular önde."""
+    limit = max(1, min(limit, 200))
+    min_attempts = max(0, min_attempts)
+
+    query = (
+        supabase_admin.table("exam_question_stats")
+        .select(
+            "question_id, exam_type, learning_lang, topic_tag, difficulty_level,"
+            " total_attempts, correct_count, wrong_count, accuracy_ratio, option_counts"
+        )
+        .gte("total_attempts", min_attempts)
+    )
+    if exam_type:
+        query = query.eq("exam_type", exam_type)
+
+    if order == "most_attempted":
+        query = query.order("total_attempts", desc=True)
+    elif order == "strongest":
+        query = query.order("accuracy_ratio", desc=True)
+    else:
+        query = query.order("accuracy_ratio", desc=False)
+
+    rows = query.limit(limit).execute().data or []
+
+    question_ids = [r["question_id"] for r in rows]
+    question_by_id: dict[str, dict] = {}
+    if question_ids:
+        qrows = (
+            supabase_admin.table("exam_questions")
+            .select("id, question_text, correct_option")
+            .in_("id", question_ids)
+            .execute()
+            .data
+        ) or []
+        question_by_id = {q["id"]: q for q in qrows}
+
+    items = []
+    for r in rows:
+        q = question_by_id.get(r["question_id"], {})
+        items.append({
+            **r,
+            "question_text": q.get("question_text"),
+            "correct_option": q.get("correct_option"),
+        })
+
+    return {"items": items, "total_returned": len(items)}
+
+
+@router.get("/content-accuracy/words")
+async def content_accuracy_words(
+    source: str = "system",  # system (general_word_pool, global) | user (words, kullanıcı bazlı)
+    min_attempts: int = 5,
+    limit: int = 50,
+    order: str = "weakest",  # weakest | strongest | most_attempted
+    admin=Depends(get_current_admin),
+):
+    """Kelime bazında doğru/yanlış tahmin yüzdesi. source=system → tüm
+    kullanıcılar bazında genel_word_pool doğruluğu (ülke/genel özet
+    raporları için); source=user → words tablosundaki (kullanıcı bazlı
+    SRS kartları) doğruluk."""
+    if source not in ("system", "user"):
+        raise HTTPException(status_code=400, detail="source 'system' veya 'user' olmalı")
+    limit = max(1, min(limit, 200))
+    min_attempts = max(0, min_attempts)
+
+    table = "system_word_stats" if source == "system" else "user_word_stats"
+    query = supabase_admin.table(table).select("*").gte("total_attempts", min_attempts)
+
+    if order == "most_attempted":
+        query = query.order("total_attempts", desc=True)
+    elif order == "strongest":
+        query = query.order("accuracy_ratio", desc=True)
+    else:
+        query = query.order("accuracy_ratio", desc=False)
+
+    rows = query.limit(limit).execute().data or []
+    return {"items": rows, "total_returned": len(rows), "source": source}
+
