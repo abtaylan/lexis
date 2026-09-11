@@ -9,8 +9,8 @@ from supabase import create_client
 from app.core.auth import get_current_user
 from app.core.config import settings
 from app.core.database import supabase_admin
-from app.services.auth_users import list_all_auth_users
 from app.services import learning_languages, otp_service
+from app.services.auth_users import list_all_auth_users
 
 router = APIRouter()
 

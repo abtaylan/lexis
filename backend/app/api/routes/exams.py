@@ -36,9 +36,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_admin, get_current_admin_full, get_current_user
 from app.core.database import supabase_admin
-from app.services.auth_users import list_all_auth_users
 from app.schemas.exams import (
-    TopicPracticeAttemptCreate,
     AddWordFromQuestionResponse,
     AIQuestionGenerateRequest,
     AIQuestionGenerateResult,
@@ -58,10 +56,12 @@ from app.schemas.exams import (
     NextQuestionResponse,
     PendingExamQuestion,
     RelatedGrammarTopic,
+    TopicPracticeAttemptCreate,
     WeakTopicItem,
     WeakTopicsResult,
 )
 from app.services.audit_log import log_admin_action
+from app.services.auth_users import list_all_auth_users
 from app.services.exam_question_generator import (
     ExamQuestionGenerationError,
     generate_questions,

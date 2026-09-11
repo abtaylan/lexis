@@ -29,6 +29,7 @@ import random
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
 
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
@@ -50,7 +51,6 @@ from app.services import badge_service
 from app.services.friends_service import friendship_status_map
 from app.services.notify import notify_user
 from app.services.xp_service import award_xp
-from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -364,7 +364,7 @@ def _fill_duel_with_bot_if_needed(duel: dict) -> None:
     if duel["status"] != "waiting":
         return
     try:
-        created_at = datetime.fromisoformat(duel["created_at"].replace("Z", "+00:00"))
+        created_at = datetime.fromisoformat(duel["created_at"])
     except (TypeError, ValueError):
         return
     elapsed = (datetime.now(UTC) - created_at).total_seconds()
@@ -752,7 +752,7 @@ async def submit_round_answer(
 
     if not round_row.get("started_at"):
         raise HTTPException(status_code=400, detail="Tur henüz başlamadı.")
-    ends_at = datetime.fromisoformat(round_row["ends_at"].replace("Z", "+00:00"))
+    ends_at = datetime.fromisoformat(round_row["ends_at"])
     if datetime.now(UTC) > ends_at:
         raise HTTPException(status_code=400, detail="Bu tur için süre doldu.")
 
@@ -830,7 +830,7 @@ async def advance_round(
         or 0
     )
     round_expired = bool(round_row.get("ends_at")) and datetime.now(UTC) > datetime.fromisoformat(
-        round_row["ends_at"].replace("Z", "+00:00")
+        round_row["ends_at"]
     )
     if not round_expired and answered_count < len(active_ids):
         raise HTTPException(status_code=400, detail="Şu anki tur henüz bitmedi.")

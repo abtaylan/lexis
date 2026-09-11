@@ -37,9 +37,9 @@ from pydantic import BaseModel
 from app.core.auth import get_current_admin, get_current_admin_full
 from app.core.config import settings
 from app.core.database import supabase_admin
-from app.services.auth_users import list_all_auth_users
 from app.core.runtime import START_TIME
 from app.services.audit_log import log_admin_action
+from app.services.auth_users import list_all_auth_users
 
 router = APIRouter()
 
@@ -500,7 +500,7 @@ async def live_activity(admin=Depends(get_current_admin)):
         ls = p.get("last_seen_at")
         if not ls:
             continue
-        ls_dt = datetime.fromisoformat(ls.replace("Z", "+00:00"))
+        ls_dt = datetime.fromisoformat(ls)
         if ls_dt >= cutoff_5min:
             online_now += 1
         if ls_dt >= cutoff_1h:

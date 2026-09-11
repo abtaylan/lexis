@@ -39,14 +39,14 @@ havuzundan (profiles.is_bot, migration 046) otomatik dolgu yapılıyor —
 artık hiçbir lig grubu boş/tek kişilik başlamıyor.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.schemas.leagues import LeagueMemberItem, LeagueStatusResponse
-from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -79,11 +79,11 @@ def _current_week_start_iso() -> str:
     now() + interval 3 hours) - interval 3 hours' hesabinin Python
     esdegeri. /overview'de SADECE bu haftanin aktif gruplarini gostermek
     icin (eski test/gecmis hafta artigi gruplar liste kirletmesin diye)."""
-    now_tr = datetime.now(timezone.utc).astimezone(_TR_OFFSET)
+    now_tr = datetime.now(UTC).astimezone(_TR_OFFSET)
     monday_tr = (now_tr - timedelta(days=now_tr.weekday())).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
-    return monday_tr.astimezone(timezone.utc).isoformat()
+    return monday_tr.astimezone(UTC).isoformat()
 
 
 def _get_tier(tier_slug: str) -> dict:
