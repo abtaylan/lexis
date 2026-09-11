@@ -71,7 +71,8 @@
           "icon": "./assets/logo-icon.png",
           "color": "#378ADD"
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,
