@@ -449,6 +449,52 @@ export interface BadgeCatalogItem {
   period_key: string | null;
 }
 
+// GET /stats/report?period=week|month. web'deki lib/api.ts::UserReport ile
+// birebir aynı şekil.
+export interface UserReportTopicAccuracy {
+  topic_tag: string;
+  attempts: number;
+  accuracy: number;
+}
+
+export interface UserReportLeagueHistoryEntry {
+  week_start: string | null;
+  tier_slug: string | null;
+  outcome: string | null;
+  final_rank: number | null;
+  final_xp: number | null;
+}
+
+export interface UserReport {
+  period: 'week' | 'month';
+  learning_lang: string;
+  range: { current_start: string; previous_start: string; now: string };
+  study: {
+    minutes_current: number; minutes_previous: number; minutes_change_pct: number | null;
+    sessions_current: number; sessions_previous: number; sessions_change_pct: number | null;
+  };
+  streak: { current: number; longest: number };
+  vocabulary: {
+    total_words: number; learned_words: number; learned_pct: number;
+    new_words_current: number; new_words_previous: number; new_words_change_pct: number | null;
+  };
+  games: {
+    sessions_current: number; sessions_previous: number; sessions_change_pct: number | null;
+    avg_score_current: number; avg_score_previous: number;
+  };
+  exam: {
+    accuracy_current: number | null; accuracy_previous: number | null;
+    weak_topics: UserReportTopicAccuracy[]; strong_topics: UserReportTopicAccuracy[];
+  };
+  quests: {
+    completed_total: number; completed_current: number; completed_previous: number;
+    total_active_nodes: number; progress_pct: number;
+  };
+  badges: { total_earned: number; earned_current: number };
+  league: { current_tier: string | null; history: UserReportLeagueHistoryEntry[] };
+  subscription: { is_premium: boolean; premium_until: string | null };
+}
+
 // ── Games ────────────────────────────────────────────────────
 export type GameMode = 'wordle' | 'multiple_choice' | 'typing' | 'matching' | 'listening' | 'sprint';
 export type PoolSource = 'own' | 'general';

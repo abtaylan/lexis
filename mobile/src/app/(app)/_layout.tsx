@@ -139,6 +139,10 @@ export default function AppTabsLayout() {
           ekranı, quests/duels ile aynı desen: kendi sekmesi yok, profildeki
           BadgeShowcase'teki "Tümünü Gör" kısayolundan açılıyor. */}
       <Tabs.Screen name="rewards" options={{ href: null, headerShown: false }} />
+      {/* İstatistik & Raporlama V2 öncelik #3, madde A (11 Eylül 2026) —
+          "Raporum" ekranı, rewards/quests ile aynı desen: kendi sekmesi yok,
+          dashboard'daki Faz 3 kısayol grid'inden açılıyor. */}
+      <Tabs.Screen name="report" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

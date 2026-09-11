@@ -7,6 +7,7 @@ from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.services.badge_service import get_badges_catalog, get_user_badges
 from app.services.leaderboard_service import get_leaderboard
+from app.services.user_report_service import get_user_report
 from app.services.xp_service import get_xp_summary
 
 router = APIRouter()
@@ -147,6 +148,18 @@ async def get_badges_route(current_user=Depends(get_current_user)):
 @router.get("/badges/catalog")
 async def get_badges_catalog_route(current_user=Depends(get_current_user)):
     return await get_badges_catalog(current_user.id)
+
+# ── Kullanıcı Raporu — İstatistik & Raporlama Faz 3, madde A ──
+# Dönemsel (bu hafta/ay) tüm ilerleme özetini bir önceki eşit uzunluktaki
+# döneme kıyasla % değişimiyle döner (bkz. user_report_service.py::get_user_report).
+# Web/mobil "Raporum" sayfası bunu kullanıyor.
+@router.get("/report")
+async def get_user_report_route(period: str = "week", current_user=Depends(get_current_user)):
+    if period not in ("week", "month"):
+        raise HTTPException(
+            status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı."
+        )
+    return await get_user_report(current_user.id, period)  # type: ignore[arg-type]
 
 # ── Detaylı analiz — grafik sayfası için ──────────────────────
 @router.get("/analytics")

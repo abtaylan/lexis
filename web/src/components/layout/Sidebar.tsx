@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
-  Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award,
+  Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award, FileBarChart2,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -66,6 +66,15 @@ const REWARDS_LABEL: Record<Locale, string> = {
   fr: 'Badges et récompenses', es: 'Insignias y recompensas', it: 'Badge e ricompense', ja: 'バッジと報酬', pt: 'Insígnias e Recompensas',
 };
 
+// İstatistik & Raporlama V2 öncelik #3, madde A (11 Eylül 2026) — "Raporum"
+// (Kullanıcı Raporu) sayfası (app/(app)/report/page.tsx). Aynı yerel çeviri
+// deseni. Mevcut /stats (grafikler) sayfasından farklı — bu sayfa dönemsel
+// (bu hafta/ay) % değişim özetine odaklanıyor.
+const REPORT_LABEL: Record<Locale, string> = {
+  tr: 'Raporum', en: 'My Report', ar: 'تقريري', ru: 'Мой отчёт', de: 'Mein Bericht',
+  fr: 'Mon rapport', es: 'Mi informe', it: 'Il mio report', ja: 'マイレポート', pt: 'Meu Relatório',
+};
+
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı navigasyon
 // etiketi. Bu alan sadece native_lang=tr + learning_lang=en kullanıcılarına
 // gösteriliyor (bkz. exam-prep/page.tsx), o yüzden sadece tr/en dolduruldu —
@@ -118,6 +127,7 @@ export function Sidebar() {
     { href: '/league', label: LEAGUE_LABEL[locale], icon: Trophy },
     { href: '/quests', label: QUESTS_LABEL[locale], icon: Map },
     { href: '/rewards', label: REWARDS_LABEL[locale], icon: Award },
+    { href: '/report', label: REPORT_LABEL[locale], icon: FileBarChart2 },
     { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
     // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası

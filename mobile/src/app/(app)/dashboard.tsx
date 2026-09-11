@@ -2,12 +2,13 @@ import React, { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2 } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
 import { DUELS_STRINGS } from '@/i18n/duelsStrings';
 import { LEAGUE_STRINGS } from '@/i18n/leagueStrings';
 import { QUESTS_STRINGS } from '@/i18n/questsStrings';
+import { REPORT_STRINGS } from '@/i18n/reportStrings';
 import { statsApi } from '@/api/stats';
 import { scheduleApi } from '@/api/schedule';
 import { examsApi } from '@/api/exams';
@@ -92,6 +93,7 @@ export default function DashboardScreen() {
   const ds = DUELS_STRINGS[locale] ?? DUELS_STRINGS.tr;
   const lgs = LEAGUE_STRINGS[locale] ?? LEAGUE_STRINGS.tr;
   const qs = QUESTS_STRINGS[locale] ?? QUESTS_STRINGS.tr;
+  const rs = REPORT_STRINGS[locale] ?? REPORT_STRINGS.tr;
 
   const { data: stats, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['stats-summary'],
@@ -384,6 +386,7 @@ export default function DashboardScreen() {
             <ActionTile icon={Swords} label={ds.title} onPress={() => router.push('/(app)/duels')} bg={c.primarySoft} fg={c.primary} />
             <ActionTile icon={Trophy} label={lgs.title} onPress={() => router.push('/(app)/league')} bg={c.warningSoft} fg={c.warning} />
             <ActionTile icon={Map} label={qs.title} onPress={() => router.push('/(app)/quests')} bg={c.accentSoft} fg={c.accent} />
+            <ActionTile icon={FileBarChart2} label={rs.title} onPress={() => router.push('/(app)/report')} bg={c.successSoft} fg={c.success} />
           </View>
         </View>
 

@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { AnalyticsData, BadgeCatalogItem, DailyProgress, LeaderboardPeriod, LeaderboardResponse, Stats, UserBadge, XpSummary } from './types';
+import type { AnalyticsData, BadgeCatalogItem, DailyProgress, LeaderboardPeriod, LeaderboardResponse, Stats, UserBadge, UserReport, XpSummary } from './types';
 
 export const statsApi = {
   getSummary: async (): Promise<Stats> => {
@@ -28,6 +28,10 @@ export const statsApi = {
   },
   getBadgesCatalog: async (): Promise<BadgeCatalogItem[]> => {
     const res = await api.get<BadgeCatalogItem[]>('/stats/badges/catalog');
+    return res.data;
+  },
+  getUserReport: async (period: 'week' | 'month' = 'week'): Promise<UserReport> => {
+    const res = await api.get<UserReport>('/stats/report', { params: { period } });
     return res.data;
   },
 };
