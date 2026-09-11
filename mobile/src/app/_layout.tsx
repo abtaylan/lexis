@@ -8,6 +8,7 @@ import mobileAds from 'react-native-google-mobile-ads';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LocaleProvider } from '@/i18n';
 import { ThemeProvider, useThemeMode } from '@/store/theme';
+import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -26,17 +27,27 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <QueryClientProvider client={queryClient}>
-        <ThemeProvider>
-          <LocaleProvider>
-            <AuthProvider>
-              <RootNavigator />
-            </AuthProvider>
-          </LocaleProvider>
-        </ThemeProvider>
-      </QueryClientProvider>
-    </GestureHandlerRootView>
+    // 11 Eylül 2026: en dışa AppErrorBoundary eklendi -- gerçek cihaz
+    // crash log'unda görülen "JS hatası -> React Native'in New Architecture
+    // hata kurtarma kuyruğu -> yakalanmamış NSException -> native abort()"
+    // zincirini burada JS seviyesinde yakalayıp uygulamanın tamamen
+    // çökmesi yerine kurtarılabilir bir ekran gösteriyoruz (bkz.
+    // AppErrorBoundary.tsx'teki uzun açıklama). ThemeProvider/LocaleProvider/
+    // AuthProvider'dan bile DAHA DIŞARIDA -- onlardan biri hata fırlatırsa
+    // da yakalansın diye.
+    <AppErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <LocaleProvider>
+              <AuthProvider>
+                <RootNavigator />
+              </AuthProvider>
+            </LocaleProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </GestureHandlerRootView>
+    </AppErrorBoundary>
   );
 }
 
