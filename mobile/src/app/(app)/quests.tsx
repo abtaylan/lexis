@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, Alert, Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator, Alert, Animated, Easing, ImageBackground, Pressable, StyleSheet, Text, View,
+  type ImageSourcePropType,
+} from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -138,6 +141,34 @@ const WORLD_THEMES: WorldTheme[] = [
   { accent: '#d946ef', accentDark: '#e879f9', soft: '#fdf4ff', softDark: 'rgba(217,70,239,0.14)' },
 ];
 
+// Bölüm başına Canva'da üretilmiş sahne illüstrasyonu (11 Eylül 2026,
+// Görev Haritası görsel temasının Canva AI ile yeniden üretilmesi -- bkz.
+// web/quests/page.tsx'teki aynı `world-{order}-part-{index}` adlandırma
+// sözleşmesi). Metro bundler require() içinde template literal/dinamik
+// yol KABUL ETMEDİĞİ için burada tüm 20 varlık statik olarak listeleniyor.
+const QUEST_BACKGROUNDS: Record<string, ImageSourcePropType> = {
+  'world-1-part-1': require('../../../assets/images/quests/world-1-part-1.jpg'),
+  'world-1-part-2': require('../../../assets/images/quests/world-1-part-2.jpg'),
+  'world-2-part-1': require('../../../assets/images/quests/world-2-part-1.jpg'),
+  'world-2-part-2': require('../../../assets/images/quests/world-2-part-2.jpg'),
+  'world-3-part-1': require('../../../assets/images/quests/world-3-part-1.jpg'),
+  'world-3-part-2': require('../../../assets/images/quests/world-3-part-2.jpg'),
+  'world-4-part-1': require('../../../assets/images/quests/world-4-part-1.jpg'),
+  'world-4-part-2': require('../../../assets/images/quests/world-4-part-2.jpg'),
+  'world-4-part-3': require('../../../assets/images/quests/world-4-part-3.jpg'),
+  'world-5-part-1': require('../../../assets/images/quests/world-5-part-1.jpg'),
+  'world-5-part-2': require('../../../assets/images/quests/world-5-part-2.jpg'),
+  'world-5-part-3': require('../../../assets/images/quests/world-5-part-3.jpg'),
+  'world-5-part-4': require('../../../assets/images/quests/world-5-part-4.jpg'),
+  'world-5-part-5': require('../../../assets/images/quests/world-5-part-5.jpg'),
+  'world-6-part-1': require('../../../assets/images/quests/world-6-part-1.jpg'),
+  'world-6-part-2': require('../../../assets/images/quests/world-6-part-2.jpg'),
+  'world-6-part-3': require('../../../assets/images/quests/world-6-part-3.jpg'),
+  'world-6-part-4': require('../../../assets/images/quests/world-6-part-4.jpg'),
+  'world-7-part-1': require('../../../assets/images/quests/world-7-part-1.jpg'),
+  'world-7-part-2': require('../../../assets/images/quests/world-7-part-2.jpg'),
+};
+
 const ROW_H = 118;
 const WRAPPER_W = 300;
 const CENTER_X = WRAPPER_W / 2;
@@ -249,6 +280,7 @@ export default function QuestsScreen() {
       world,
       layout: computeWorldLayout(world),
       theme: WORLD_THEMES[i % WORLD_THEMES.length],
+      order: i + 1,
     })),
     [worlds],
   );
@@ -288,7 +320,7 @@ export default function QuestsScreen() {
         <Text style={{ color: c.textMuted, fontSize: 13, textAlign: 'center', paddingVertical: spacing.lg }}>{t.empty}</Text>
       )}
 
-      {worldsWithLayout.map(({ world, layout, theme }) => {
+      {worldsWithLayout.map(({ world, layout, theme, order: worldOrder }) => {
         const accent = scheme === 'dark' ? theme.accentDark : theme.accent;
         const soft = scheme === 'dark' ? theme.softDark : theme.soft;
 
@@ -310,6 +342,8 @@ export default function QuestsScreen() {
               const greyD = buildSmoothPath(pts);
               const coloredD = lastCompletedIdx >= 0 ? buildSmoothPath(pts.slice(0, lastCompletedIdx + 1)) : '';
               const partHeight = part.nodes.length * ROW_H;
+              const partNumber = part.nodes[0]?.part_index ?? partIdx + 1;
+              const bgSource = QUEST_BACKGROUNDS[`world-${worldOrder}-part-${partNumber}`];
 
               return (
                 <View key={part.key} style={{ marginTop: spacing.xs }}>
@@ -322,6 +356,18 @@ export default function QuestsScreen() {
                   )}
 
                   <View style={{ width: WRAPPER_W, height: partHeight, alignSelf: 'center' }}>
+                    {!!bgSource && (
+                      <View style={[StyleSheet.absoluteFill, { borderRadius: 24, overflow: 'hidden' }]}>
+                        <ImageBackground source={bgSource} style={StyleSheet.absoluteFill} resizeMode="cover">
+                          <View
+                            style={[
+                              StyleSheet.absoluteFill,
+                              { backgroundColor: scheme === 'dark' ? 'rgba(2,6,23,0.55)' : 'rgba(255,255,255,0.55)' },
+                            ]}
+                          />
+                        </ImageBackground>
+                      </View>
+                    )}
                     {pts.length > 1 && (
                       <Svg width={WRAPPER_W} height={partHeight} style={StyleSheet.absoluteFill}>
                         {!!greyD && <Path d={greyD} fill="none" stroke={c.border} strokeWidth={5} strokeLinecap="round" strokeDasharray="1 13" />}

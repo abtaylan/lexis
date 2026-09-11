@@ -9,7 +9,9 @@
 //    tamamen orijinal, lisans gerektirmeyen sesler -- badge artık
 //    complete'ten ayırt edici, yükselen 4 notalı bir "unlock" cini sesi;
 //    ambient, Görev Haritası ekranında çok kısık sesle çalan, kesintisiz
-//    dönen (seamless loop) yumuşak bir pad.
+//    dönen (seamless loop) neşeli bir oyun-haritası arp+ritim döngüsü
+//    (11 Eylül 2026 güncellemesi -- ilk sürümdeki sakin/atmosferik pad
+//    kullanıcı geri bildirimiyle "basit eğlenceli oyun sesi"ne değiştirildi).
 // Dosyalar public/sounds/quest/ altında.
 // Tarayıcı otomatik-oynatma kısıtlamaları nedeniyle SADECE kullanıcı
 // etkileşimi (tıklama/yenileme) sonrası tetikleniyor; .play() reddi

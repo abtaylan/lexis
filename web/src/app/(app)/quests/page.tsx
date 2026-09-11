@@ -383,6 +383,7 @@ export default function QuestsPage() {
       world,
       layout: computeWorldLayout(world),
       theme: WORLD_THEMES[i % WORLD_THEMES.length],
+      order: i + 1,
     })),
     [worlds],
   );
@@ -466,7 +467,7 @@ export default function QuestsPage() {
 
       {!loading && !error && worldsWithLayout.length > 0 && (
         <div className="space-y-6">
-          {worldsWithLayout.map(({ world, layout, theme }) => {
+          {worldsWithLayout.map(({ world, layout, theme, order: worldOrder }) => {
             const cssVars = {
               '--world-accent': theme.accent,
               '--world-accent-dark': theme.accentDark,
@@ -505,6 +506,8 @@ export default function QuestsPage() {
                   const greyD = buildSmoothPath(pts);
                   const coloredD = lastCompletedIdx >= 0 ? buildSmoothPath(pts.slice(0, lastCompletedIdx + 1)) : '';
                   const partHeight = part.nodes.length * ROW_H;
+                  const partNumber = part.nodes[0]?.part_index ?? partIdx + 1;
+                  const bgUrl = `/images/quests/world-${worldOrder}-part-${partNumber}.jpg`;
 
                   return (
                     <div key={part.key} className="relative mt-2">
@@ -520,6 +523,17 @@ export default function QuestsPage() {
                       )}
 
                       <div className="relative mx-auto" style={{ width: WRAPPER_W, height: partHeight }}>
+                        <div
+                          className="absolute inset-0 rounded-3xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10 shadow-sm"
+                          aria-hidden="true"
+                        >
+                          <div
+                            className="absolute inset-0 bg-cover bg-center"
+                            style={{ backgroundImage: `url(${bgUrl})` }}
+                          />
+                          <div className="absolute inset-0 bg-white/55 dark:bg-slate-950/55" />
+                        </div>
+
                         <svg
                           width={WRAPPER_W}
                           height={partHeight}
