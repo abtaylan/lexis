@@ -1022,3 +1022,63 @@ export interface CustomLeagueInviteItem {
 export interface CustomLeagueInvitesListResponse {
   items: CustomLeagueInviteItem[];
 }
+
+// ── İstatistik & Raporlama Faz 2 — içerik doğruluk analitiği (11 Eylül 2026) ──
+// Backend: admin_platform.py /content-accuracy/{summary,questions,words}
+// (bkz. migration 062 + exam_question_stats view'i). "3'lü segmentasyon":
+// sistem soruları, sistem kelimeleri (general_word_pool), kullanıcı
+// kelimeleri (words).
+export interface ContentAccuracyAgg {
+  items_with_attempts: number;
+  total_attempts: number;
+  accuracy_percent: number | null;
+}
+
+export interface ContentAccuracySummary {
+  system_questions: ContentAccuracyAgg;
+  system_words: ContentAccuracyAgg;
+  user_words: ContentAccuracyAgg;
+}
+
+export interface QuestionAccuracyItem {
+  question_id: string;
+  exam_type: ExamType;
+  learning_lang: string;
+  topic_tag?: string | null;
+  difficulty_level?: string | null;
+  total_attempts: number;
+  correct_count: number;
+  wrong_count: number;
+  accuracy_ratio: number | null;
+  option_counts: Record<string, number> | null;
+  question_text?: string | null;
+  correct_option?: string | null;
+}
+
+export interface QuestionAccuracyResponse {
+  items: QuestionAccuracyItem[];
+  total_returned: number;
+}
+
+export interface WordAccuracyItem {
+  // source=system → general_word_id; source=user → word_id + user_id
+  general_word_id?: string;
+  word_id?: string;
+  user_id?: string;
+  word: string;
+  source_lang: string;
+  target_lang: string;
+  difficulty_level?: string | null;
+  status?: string | null;
+  list_type?: string | null;
+  total_attempts: number;
+  correct_count: number;
+  wrong_count: number;
+  accuracy_ratio: number | null;
+}
+
+export interface WordAccuracyResponse {
+  items: WordAccuracyItem[];
+  total_returned: number;
+  source: 'system' | 'user';
+}

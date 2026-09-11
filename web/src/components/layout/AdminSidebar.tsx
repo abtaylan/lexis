@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Users, BarChart3, ArrowLeft, LogOut, ShieldCheck, Activity, CreditCard,
   BookOpen, Share2, Bell, Gamepad2, History, Smartphone, Eye, LayoutDashboard,
-  GraduationCap,
+  GraduationCap, FileBarChart,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 
@@ -18,6 +18,7 @@ const adminNav = [
   { href: '/admin/overview', label: 'Genel Bakış', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Kullanıcılar', icon: Users },
   { href: '/admin/stats', label: 'İstatistikler', icon: BarChart3 },
+  { href: '/admin/reports', label: 'Raporlar', icon: FileBarChart },
   { href: '/admin/system-health', label: 'Sistem Sağlığı', icon: Activity },
   { href: '/admin/payments', label: 'Ödemeler', icon: CreditCard },
   { href: '/admin/content', label: 'Kelime Havuzu', icon: BookOpen },

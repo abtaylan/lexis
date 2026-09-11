@@ -40,6 +40,9 @@ import type {
   ExamQuestionModerationResult,
   AIQuestionGenerateInput,
   AIQuestionGenerateResult,
+  ContentAccuracySummary,
+  QuestionAccuracyResponse,
+  WordAccuracyResponse,
   GrammarCategory,
   GrammarTopicSummary,
   GrammarTopicDetail,
@@ -719,6 +722,24 @@ export const adminApi = {
   },
   getAuditLog: async (params?: { action?: string; target_type?: string; limit?: number }): Promise<{ items: AuditLogEntry[]; total: number }> => {
     const res = await api.get('/admin/audit-log', { params });
+    return res.data;
+  },
+
+  // İstatistik & Raporlama Faz 2 — içerik doğruluk analitiği (bkz. admin/reports sayfası)
+  getContentAccuracySummary: async (): Promise<ContentAccuracySummary> => {
+    const res = await api.get<ContentAccuracySummary>('/admin/content-accuracy/summary');
+    return res.data;
+  },
+  getContentAccuracyQuestions: async (params?: {
+    exam_type?: string; min_attempts?: number; limit?: number; order?: 'weakest' | 'strongest' | 'most_attempted';
+  }): Promise<QuestionAccuracyResponse> => {
+    const res = await api.get<QuestionAccuracyResponse>('/admin/content-accuracy/questions', { params });
+    return res.data;
+  },
+  getContentAccuracyWords: async (params?: {
+    source?: 'system' | 'user'; min_attempts?: number; limit?: number; order?: 'weakest' | 'strongest' | 'most_attempted';
+  }): Promise<WordAccuracyResponse> => {
+    const res = await api.get<WordAccuracyResponse>('/admin/content-accuracy/words', { params });
     return res.data;
   },
 };
