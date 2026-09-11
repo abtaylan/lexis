@@ -20,8 +20,24 @@ Bilinçli kapsam dışı bırakılanlar:
   bkz. quests.py::_count_exam_attempts) VE hâlâ boş (0 satır, bkz. Faz 1
   bulgusu). Bunun yerine "sınav doğruluğu + zayıf/güçlü konular" için
   DOLU ve doğrudan user_id taşıyan topic_practice_attempts kullanılıyor.
-- profiles.country henüz yok, o yüzden ulusal/global karşılaştırma
-  (madde D) burada değil — ayrı bir iş.
+
+Madde D — "ulusal/global içgörüler" (11 Eylül 2026, aynı gün üçüncü
+ekleme) BURADA "platform" bölümü olarak eklendi, ama YENİDEN
+YORUMLANARAK: profiles.country hâlâ yok VE canlı veride is_bot=false
+olan TÜM 30 kullanıcı tek bir timezone'da (Europe/Istanbul — yani hepsi
+Türkiye) — yani "ulusal" ile "global" şu an matematiksel olarak
+birebir aynı olurdu. Bunun yerine daha somut ve hemen değerli olan
+kısmı yapıldı: kullanıcının bu dönemki istatistiklerini PLATFORM
+GENELİNDEKİ (aynı öğrenilen dili öğrenen, bot olmayan, aktif diğer
+kullanıcılar) ortalamayla + genel XP yüzdelik dilimiyle karşılaştırma.
+is_bot=true kayıtlar (119 adet, hepsi total_xp=0 — lig doldurma botları)
+KESİNLİKLE hariç tutuluyor, yoksa her ortalama sıfıra yakın çıkıp
+gerçek kullanıcıları yapay şekilde "platformun çok üstünde" gösterirdi.
+`same_country_cohort` alanı bu varsayımı her çağrıda yeniden kontrol
+eder (statik/hardcoded DEĞİL) — kullanıcı tabanı çeşitlenince (örn.
+Korece/Çince lansmanından sonra) otomatik olarak false'a döner ve o an
+gerçek bir "ulusal" ayrım (profiles.country ile) eklenmesi gerektiği
+anlaşılır.
 """
 
 from __future__ import annotations
@@ -57,12 +73,102 @@ def _period_bounds(period: Period) -> tuple[datetime, datetime, datetime]:
 def _get_profile(uid: str) -> dict[str, Any]:
     profile = (
         supabase_admin.table("profiles")
-        .select("learning_lang, is_premium, premium_until, current_league_tier")
+        .select("learning_lang, is_premium, premium_until, current_league_tier, total_xp")
         .eq("id", uid)
         .single()
         .execute()
     )
     return profile.data or {}
+
+
+def _get_platform_comparison(
+    user_id: str, active_lang: str, current_start: datetime, now: datetime, user_total_xp: int
+) -> dict[str, Any]:
+    """Madde D — platform genelinde karşılaştırma (bkz. modül docstring'i:
+    "ulusal" ayrımı şu an anlamsız, bunun yerine bot hariç platform
+    ortalaması + XP yüzdelik dilimi). is_bot=true kayıtlar HER ZAMAN hariç
+    tutulur (aksi halde ortalamalar botların total_xp=0 olmasından dolayı
+    yapay şekilde sıfıra çeker)."""
+    cohort_rows = (
+        supabase_admin.table("profiles")
+        .select("id")
+        .eq("is_bot", False)
+        .eq("is_active", True)
+        .eq("learning_lang", active_lang)
+        .neq("id", user_id)
+        .execute()
+    ).data or []
+    cohort_ids = [r["id"] for r in cohort_rows]
+
+    avg_minutes = None
+    avg_new_words = None
+    active_peers_current = 0
+    if cohort_ids:
+        sessions = (
+            supabase_admin.table("study_sessions")
+            .select("user_id, duration_secs")
+            .eq("learning_lang", active_lang)
+            .in_("user_id", cohort_ids)
+            .gte("started_at", current_start.isoformat())
+            .execute()
+        ).data or []
+        active_peer_ids = {s["user_id"] for s in sessions}
+        active_peers_current = len(active_peer_ids)
+        if active_peer_ids:
+            total_minutes = sum((s.get("duration_secs") or 0) for s in sessions) / 60
+            avg_minutes = round(total_minutes / len(active_peer_ids), 1)
+
+        words = (
+            supabase_admin.table("words")
+            .select("user_id")
+            .eq("source_lang", active_lang)
+            .in_("user_id", cohort_ids)
+            .gte("created_at", current_start.isoformat())
+            .execute()
+        ).data or []
+        if words:
+            word_counts: dict[str, int] = {}
+            for w in words:
+                word_counts[w["user_id"]] = word_counts.get(w["user_id"], 0) + 1
+            avg_new_words = round(sum(word_counts.values()) / len(word_counts), 1)
+
+    avg_accuracy = None
+    all_peer_rows = (
+        supabase_admin.table("profiles")
+        .select("id, total_xp, timezone")
+        .eq("is_bot", False)
+        .eq("is_active", True)
+        .execute()
+    ).data or []
+    all_peer_ids = [r["id"] for r in all_peer_rows if r["id"] != user_id]
+    if all_peer_ids:
+        topic_rows = (
+            supabase_admin.table("topic_practice_attempts")
+            .select("is_correct")
+            .in_("user_id", all_peer_ids)
+            .gte("created_at", current_start.isoformat())
+            .execute()
+        ).data or []
+        if topic_rows:
+            avg_accuracy = round(sum(1 for t in topic_rows if t["is_correct"]) / len(topic_rows) * 100)
+
+    all_xp_values = [r.get("total_xp") or 0 for r in all_peer_rows] + [user_total_xp]
+    xp_percentile = None
+    if len(all_xp_values) > 1:
+        lower = sum(1 for x in all_xp_values if x < user_total_xp)
+        xp_percentile = round(lower / (len(all_xp_values) - 1) * 100)
+
+    distinct_timezones = {r.get("timezone") for r in all_peer_rows if r.get("timezone")}
+
+    return {
+        "cohort_size": len(cohort_ids),
+        "active_peers_current": active_peers_current,
+        "avg_minutes_current": avg_minutes,
+        "avg_new_words_current": avg_new_words,
+        "avg_accuracy_current": avg_accuracy,
+        "xp_percentile": xp_percentile,
+        "same_country_cohort": len(distinct_timezones) <= 1,
+    }
 
 
 async def get_user_report(user_id: str, period: Period = "week") -> dict[str, Any]:
@@ -288,4 +394,7 @@ async def get_user_report(user_id: str, period: Period = "week") -> dict[str, An
             "is_premium": profile.get("is_premium", False),
             "premium_until": profile.get("premium_until"),
         },
+        "platform": _get_platform_comparison(
+            user_id, active_lang, current_start, now, profile.get("total_xp") or 0
+        ),
     }

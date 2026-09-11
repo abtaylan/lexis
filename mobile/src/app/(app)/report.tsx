@@ -11,7 +11,7 @@ import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, Clock, Flame, BookOpen, Gamepad2, Target, Map, Award, Trophy,
-  Sparkles, ArrowUp, ArrowDown, Minus,
+  Sparkles, ArrowUp, ArrowDown, Minus, Globe,
 } from 'lucide-react-native';
 import { statsApi } from '@/api/stats';
 import type { UserReport } from '@/api/types';
@@ -278,6 +278,43 @@ export default function ReportScreen() {
                     </Text>
                   </View>
                 ))}
+              </View>
+            )}
+          </SectionCard>
+
+          <SectionCard icon={<Globe color={c.textMuted} size={16} />} title={t.sectionPlatform} colors={c}>
+            {data.platform.cohort_size === 0 || data.platform.active_peers_current === 0 ? (
+              <Text style={{ color: c.textMuted, fontSize: 12 }}>{t.noPlatformDataLabel}</Text>
+            ) : (
+              <View>
+                <View style={styles.statRow}>
+                  <StatBlock
+                    label={t.platformAvgMinutesLabel}
+                    value={data.platform.avg_minutes_current ?? '—'}
+                    colors={c}
+                  />
+                  <StatBlock
+                    label={t.platformAvgNewWordsLabel}
+                    value={data.platform.avg_new_words_current ?? '—'}
+                    colors={c}
+                  />
+                  <StatBlock
+                    label={t.platformAvgAccuracyLabel}
+                    value={data.platform.avg_accuracy_current !== null ? `${data.platform.avg_accuracy_current}%` : '—'}
+                    colors={c}
+                  />
+                  <StatBlock
+                    label={t.platformXpPercentileLabel}
+                    value={data.platform.xp_percentile !== null ? `%${data.platform.xp_percentile}` : '—'}
+                    unit={data.platform.xp_percentile !== null ? t.percentileUnit : undefined}
+                    colors={c}
+                  />
+                </View>
+                {data.platform.same_country_cohort && (
+                  <Text style={{ color: c.textMuted, fontSize: 10, marginTop: spacing.sm }}>
+                    {t.sameCountryNoteLabel}
+                  </Text>
+                )}
               </View>
             )}
           </SectionCard>

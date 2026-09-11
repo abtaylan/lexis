@@ -493,6 +493,15 @@ export interface UserReport {
   badges: { total_earned: number; earned_current: number };
   league: { current_tier: string | null; history: UserReportLeagueHistoryEntry[] };
   subscription: { is_premium: boolean; premium_until: string | null };
+  platform: {
+    cohort_size: number;
+    active_peers_current: number;
+    avg_minutes_current: number | null;
+    avg_new_words_current: number | null;
+    avg_accuracy_current: number | null;
+    xp_percentile: number | null;
+    same_country_cohort: boolean;
+  };
 }
 
 // ── Games ────────────────────────────────────────────────────

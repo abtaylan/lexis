@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Clock, Flame, BookOpen, Gamepad2, Target, Map, Award, Trophy, Sparkles,
-  ArrowUp, ArrowDown, Minus,
+  ArrowUp, ArrowDown, Minus, Globe,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { statsApi, type UserReport } from '@/lib/api';
@@ -316,6 +316,38 @@ export default function ReportPage() {
                   ))}
                 </ul>
               </div>
+            )}
+          </Card>
+
+          <Card className="sm:col-span-2">
+            <SectionTitle icon={<Globe className="w-4 h-4" />} title={t.sectionPlatform} />
+            {data.platform.cohort_size === 0 || data.platform.active_peers_current === 0 ? (
+              <p className="text-xs text-gray-400 dark:text-slate-500">{t.noPlatformDataLabel}</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <StatBlock
+                    label={t.platformAvgMinutesLabel}
+                    value={data.platform.avg_minutes_current ?? '—'}
+                  />
+                  <StatBlock
+                    label={t.platformAvgNewWordsLabel}
+                    value={data.platform.avg_new_words_current ?? '—'}
+                  />
+                  <StatBlock
+                    label={t.platformAvgAccuracyLabel}
+                    value={data.platform.avg_accuracy_current !== null ? `${data.platform.avg_accuracy_current}%` : '—'}
+                  />
+                  <StatBlock
+                    label={t.platformXpPercentileLabel}
+                    value={data.platform.xp_percentile !== null ? `%${data.platform.xp_percentile}` : '—'}
+                    unit={data.platform.xp_percentile !== null ? t.percentileUnit : undefined}
+                  />
+                </div>
+                {data.platform.same_country_cohort && (
+                  <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-3">{t.sameCountryNoteLabel}</p>
+                )}
+              </>
             )}
           </Card>
 
