@@ -1140,3 +1140,28 @@ export interface ContentFlagScanResult {
   total: { created: number; updated: number; skipped: number };
   scanned_at: string;
 }
+
+// İstatistik & Raporlama V2 öncelik #3, Faz 3 madde E — "Zaman bazlı
+// periyodik snapshot+cron". Backend: admin_platform.py /platform-stats/
+// snapshots/* (bkz. migration 066_platform_daily_snapshots.sql,
+// platform_snapshot_service.py). Üretimde günlük bir Claude scheduled
+// task tarafından doldurulur; bu tipler admin panelde geçmiş trend
+// görünümü + manuel yeniden tetikleme için.
+export interface PlatformDailySnapshot {
+  id: string;
+  snapshot_date: string;
+  new_signups_count: number;
+  active_users_count: number;
+  total_study_minutes: number;
+  total_new_words: number;
+  avg_topic_accuracy: number | null;
+  total_xp_awarded: number;
+  premium_users_count: number;
+  total_active_profiles: number;
+  captured_at: string;
+}
+
+export interface PlatformSnapshotsResponse {
+  items: PlatformDailySnapshot[];
+  total_returned: number;
+}

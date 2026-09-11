@@ -20,9 +20,12 @@ tespit eder ve content_flags tablosuna (idempotent) yazar:
     yok (game_attempts sadece is_correct tutuyor), tek sinyal çok düşük
     doğruluk + yeterli deneme sayısı → 'low_accuracy'.
 
-Tarama MANUEL tetiklenir (admin panelde "Tara" butonu → POST
-/admin/content-accuracy/flags/scan). Periyodik/cron otomasyonu bilinçli
-olarak kapsam dışı — o Faz 3 madde E'nin işi.
+Tarama admin panelde "Tara" butonu (POST /admin/content-accuracy/
+flags/scan) ile MANUEL de tetiklenebilir, AMA 11 Eylül 2026'dan
+itibaren (Faz 3 madde E — "zaman bazlı periyodik snapshot+cron")
+artık GÜNLÜK bir Claude scheduled task tarafından da otomatik
+çalıştırılıyor (bu fonksiyonun SQL karşılığıyla — bkz. devir notu).
+Manuel buton, bir günü kaçırdıysa/hemen görmek isterse diye duruyor.
 
 İdempotency: content_type+content_id başına tek satır (UNIQUE kısıtı).
 Zaten 'open' durumdaki bir kayıt varsa metric_snapshot/detected_at

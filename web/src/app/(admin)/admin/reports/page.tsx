@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, HelpCircle, BookOpen, User, Flame, ShieldAlert, RefreshCw } from 'lucide-react';
+import { Loader2, HelpCircle, BookOpen, User, Flame, ShieldAlert, RefreshCw, TrendingUp } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import type {
   ContentAccuracySummary, ContentAccuracyAgg, QuestionAccuracyItem, WordAccuracyItem, ExamType,
-  ContentFlagItem, ContentFlagType, ContentFlagStatus,
+  ContentFlagItem, ContentFlagType, ContentFlagStatus, PlatformDailySnapshot,
 } from '@/types';
 
 // İstatistik & Raporlama Faz 2 — içerik doğruluk raporları (11 Eylül 2026).
@@ -19,8 +19,17 @@ import type {
 // paneli": Faz 1/2'nin salt "doğruluğa göre sırala" görünümüne ek olarak,
 // otomatik ANOMALİ TESPİTİ + admin inceleme iş akışı (FlagsPanel, altta).
 // Backend: admin_platform.py /content-accuracy/flags/* (bkz. migration
-// 065_content_flags.sql, content_flag_service.py). Sıradaki fazlar:
-// periyodik özet + e-posta gönderimi, kurum/ülke bazlı kırılım.
+// 065_content_flags.sql, content_flag_service.py).
+//
+// Faz 3 madde E (aynı gün, üçüncü ekleme) — "Zaman bazlı periyodik
+// snapshot+cron": platform_daily_snapshots (SnapshotsPanel, altta) +
+// content_flags taraması artık GÜNLÜK bir Claude scheduled task ile de
+// otomatik çalışıyor (bu sayfadaki "Tara" butonu hâlâ manuel tetikleme
+// için duruyor). Backend: admin_platform.py /platform-stats/snapshots/*
+// (bkz. migration 066_platform_daily_snapshots.sql,
+// platform_snapshot_service.py). Sıradaki fazlar: e-posta/PDF/CSV/Excel
+// dağıtımı, KVKK onay mekanizması, abonelik-segment korelasyonu, admin
+// filtreleme/benchmark/takvim.
 
 const EXAM_TYPES: { value: ExamType; label: string }[] = [
   { value: 'yds', label: 'YDS' },
@@ -377,7 +386,7 @@ function FlagsPanel() {
       )}
 
       <p className="px-6 pt-4 text-xs text-gray-400 dark:text-slate-500">
-        Otomatik anomali tespiti: yeterli deneme sayısına rağmen doğruluğu çok düşük içerik, ya da bir soruda doğru şıktan daha çok seçilen bir yanlış şık (&quot;baskın yanlış şık&quot; — cevap anahtarı hatalı olabilir) burada listelenir. Tarama manuel tetiklenir.
+        Otomatik anomali tespiti: yeterli deneme sayısına rağmen doğruluğu çok düşük içerik, ya da bir soruda doğru şıktan daha çok seçilen bir yanlış şık (&quot;baskın yanlış şık&quot; — cevap anahtarı hatalı olabilir) burada listelenir. Tarama her gün otomatik çalışır; &quot;Tara&quot; butonu hemen/manuel yeniden taramak içindir.
       </p>
 
       {loading ? (
@@ -427,6 +436,100 @@ function FlagsPanel() {
   );
 }
 
+// ── Faz 3 madde E — Zaman bazlı periyodik snapshot (platform trendi) ────
+
+function SnapshotsPanel() {
+  const [items, setItems] = useState<PlatformDailySnapshot[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [capturing, setCapturing] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    adminApi.getPlatformSnapshots(30)
+      .then((res) => setItems(res.items))
+      .finally(() => setLoading(false));
+  };
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount olunca veri cekme (fetch-on-effect) deseni
+  useEffect(load, []);
+
+  const handleCapture = async () => {
+    setCapturing(true);
+    setMessage(null);
+    try {
+      await adminApi.capturePlatformSnapshot();
+      setMessage('Yakalama tamamlandı.');
+      load();
+    } catch {
+      setMessage('Yakalama sırasında bir hata oluştu.');
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800">
+      <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Platform Geçmişi (Günlük Snapshot)</h2>
+        </div>
+        <button onClick={handleCapture} disabled={capturing}
+          className="inline-flex items-center gap-1.5 bg-[#534AB7] hover:bg-[#463da0] disabled:opacity-60 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+          {capturing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+          Dünü yeniden yakala
+        </button>
+      </div>
+
+      {message && (
+        <p className="px-6 pt-4 text-xs text-gray-500 dark:text-slate-400">{message}</p>
+      )}
+
+      <p className="px-6 pt-4 text-xs text-gray-400 dark:text-slate-500">
+        Her gün otomatik (bot hariç) yakalanan platform genelinde özet metrikler — trend görünümü için. Bu tablo Faz 3 madde H/I&apos;nin (abonelik-segment korelasyonu, admin filtreleme/benchmark/takvim) üzerine inşa edeceği ham veri.
+      </p>
+
+      {loading ? (
+        <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+      ) : items.length === 0 ? (
+        <p className="p-10 text-center text-sm text-gray-500 dark:text-slate-400">Henüz hiç snapshot yok. &quot;Dünü yeniden yakala&quot; ile ilk kaydı oluşturabilirsiniz.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-gray-400 dark:text-slate-500 border-b border-gray-100 dark:border-slate-800">
+                <th className="px-6 py-3 font-medium">Tarih</th>
+                <th className="px-3 py-3 font-medium text-right">Yeni Kayıt</th>
+                <th className="px-3 py-3 font-medium text-right">Aktif Kullanıcı</th>
+                <th className="px-3 py-3 font-medium text-right">Çalışma (dk)</th>
+                <th className="px-3 py-3 font-medium text-right">Yeni Kelime</th>
+                <th className="px-3 py-3 font-medium text-right">Doğruluk</th>
+                <th className="px-3 py-3 font-medium text-right">XP</th>
+                <th className="px-6 py-3 font-medium text-right">Premium / Toplam Aktif</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              {items.map((s) => (
+                <tr key={s.id}>
+                  <td className="px-6 py-3 text-gray-900 dark:text-slate-100 font-medium">{s.snapshot_date}</td>
+                  <td className="px-3 py-3 text-right text-gray-600 dark:text-slate-400">{s.new_signups_count}</td>
+                  <td className="px-3 py-3 text-right text-gray-600 dark:text-slate-400">{s.active_users_count}</td>
+                  <td className="px-3 py-3 text-right text-gray-600 dark:text-slate-400">{s.total_study_minutes}</td>
+                  <td className="px-3 py-3 text-right text-gray-600 dark:text-slate-400">{s.total_new_words}</td>
+                  <td className="px-3 py-3 text-right"><AccuracyPill percent={s.avg_topic_accuracy} /></td>
+                  <td className="px-3 py-3 text-right text-gray-600 dark:text-slate-400">{s.total_xp_awarded}</td>
+                  <td className="px-6 py-3 text-right text-xs text-gray-500 dark:text-slate-400">{s.premium_users_count} / {s.total_active_profiles}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminReportsPage() {
   const [summary, setSummary] = useState<ContentAccuracySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -465,6 +568,7 @@ export default function AdminReportsPage() {
       <QuestionsPanel />
       <WordsPanel />
       <FlagsPanel />
+      <SnapshotsPanel />
     </div>
   );
 }

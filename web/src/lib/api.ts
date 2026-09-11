@@ -44,6 +44,7 @@ import type {
   QuestionAccuracyResponse,
   WordAccuracyResponse,
   ContentFlagScanResult,
+  PlatformSnapshotsResponse,
   ContentFlagsResponse,
   ContentFlagItem,
   GrammarCategory,
@@ -842,6 +843,17 @@ export const adminApi = {
   },
   updateContentFlag: async (flagId: string, data: { status: 'open' | 'fixed' | 'dismissed'; admin_note?: string }): Promise<ContentFlagItem> => {
     const res = await api.patch<ContentFlagItem>(`/admin/content-accuracy/flags/${flagId}`, data);
+    return res.data;
+  },
+
+  // İstatistik & Raporlama Faz 3 madde E — zaman bazlı periyodik snapshot
+  // (bkz. admin_platform.py /platform-stats/snapshots/*)
+  getPlatformSnapshots: async (days = 30): Promise<PlatformSnapshotsResponse> => {
+    const res = await api.get<PlatformSnapshotsResponse>('/admin/platform-stats/snapshots', { params: { days } });
+    return res.data;
+  },
+  capturePlatformSnapshot: async (targetDate?: string): Promise<Record<string, unknown>> => {
+    const res = await api.post('/admin/platform-stats/snapshots/capture', targetDate ? { target_date: targetDate } : {});
     return res.data;
   },
 };

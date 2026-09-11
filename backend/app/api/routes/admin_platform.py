@@ -28,6 +28,14 @@ barındırıyor:
     doğruluklu soru/kelimeleri content_flags tablosuna işaretler.
   - GET/PATCH /content-accuracy/flags → işaretlenen içerik listesi ve
     admin inceleme durumu güncellemesi (open/fixed/dismissed).
+  - GET /platform-stats/snapshots     → Faz 3 madde E (zaman bazlı
+    periyodik snapshot+cron) — platform_daily_snapshots tablosundaki
+    geçmiş günlük özet metrikler (trend görünümü, migration 066).
+    Üretimde bu tablo GÜNLÜK bir Claude scheduled task tarafından
+    doldurulur (bkz. devir notu); bu buton MANUEL yeniden
+    tetikleme/doldurma içindir (ör. bir günü kaçırdıysa).
+  - POST /platform-stats/snapshots/capture → dünü (veya body'de verilen
+    bir tarihi) manuel olarak yakalar/yeniden hesaplar (idempotent).
 
 Okuma (GET) endpoint'leri get_current_admin (hem 'admin' hem
 'admin_readonly' kabul eder) ile korunuyor; mutasyon yapan endpoint'ler
@@ -50,6 +58,7 @@ from app.services.content_flag_service import (
     scan_content_flags,
     update_content_flag,
 )
+from app.services.platform_snapshot_service import capture_daily_snapshot, get_snapshots
 
 router = APIRouter()
 
@@ -754,8 +763,9 @@ async def content_accuracy_words(
 #    görünümüne ek olarak, otomatik ANOMALİ TESPİTİ + admin inceleme
 #    iş akışı: option_counts'ta baskın yanlış şık varsa (cevap anahtarı
 #    hatalı olabilir) veya doğruluk aşırı düşükse içerik işaretlenir,
-#    admin "düzeltildi"/"göz ardı et" olarak kapatabilir. Tarama MANUEL
-#    (buton ile) — periyodik otomasyon Faz 3 madde E'nin kapsamında.
+#    admin "düzeltildi"/"göz ardı et" olarak kapatabilir. Tarama hem bu
+#    buton hem de (Faz 3 madde E'den itibaren) günlük bir Claude
+#    scheduled task ile otomatik çalışıyor.
 # ================================================================
 @router.post("/content-accuracy/flags/scan")
 async def scan_content_accuracy_flags(admin=Depends(get_current_admin_full)):
@@ -798,3 +808,41 @@ async def patch_content_accuracy_flag(
         raise HTTPException(status_code=404, detail=str(e))
     log_admin_action(admin.id, admin.email, "content_flags.update", "content_flags", flag_id, req.model_dump())
     return row
+# ================================================================
+# Faz 3 madde E — Zaman bazlı periyodik snapshot+cron. Madde A/B/D'nin
+# rapor hesaplamaları hep CANLI (bu dönem vs bir önceki dönem) — bu
+# platform_daily_snapshots tablosu geçmiş birçok dönem boyunca trend
+# görmek için (madde H/I'nin üzerine inşa edeceği ham veri). Üretimde
+# GÜNLÜK bir Claude scheduled task bunu doldurur (bkz. devir notu,
+# expire_premium.py/league_weekly_rollover.py ile AYNI desen — backend'de
+# referans Python fonksiyonu var ama üretim periyodik çalıştırması VPS
+# cron'una hiç bağlanmadı). Bu iki uç nokta MANUEL görüntüleme/yeniden
+# tetikleme için.
+# ================================================================
+@router.get("/platform-stats/snapshots")
+async def list_platform_snapshots(days: int = 30, admin=Depends(get_current_admin)):
+    rows = await get_snapshots(days=days)
+    return {"items": rows, "total_returned": len(rows)}
+
+
+class SnapshotCaptureRequest(BaseModel):
+    target_date: str | None = None  # YYYY-MM-DD, verilmezse "dün" (TR takvimi)
+
+
+@router.post("/platform-stats/snapshots/capture")
+async def capture_platform_snapshot(
+    req: SnapshotCaptureRequest | None = None,
+    admin=Depends(get_current_admin_full),
+):
+    target_date = None
+    if req and req.target_date:
+        from datetime import date as _date
+
+        try:
+            target_date = _date.fromisoformat(req.target_date)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="target_date 'YYYY-MM-DD' formatında olmalı")
+
+    result = await capture_daily_snapshot(target_date=target_date)
+    log_admin_action(admin.id, admin.email, "platform_snapshots.capture", detail=result)
+    return result
