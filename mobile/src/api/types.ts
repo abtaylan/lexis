@@ -430,6 +430,25 @@ export interface UserBadge {
   } | null;
 }
 
+// Rozetler ve Ödüller — TAM katalog (V2 öncelik #2). Backend:
+// GET /stats/badges/catalog. web'deki lib/api.ts::BadgeCatalogItem ile
+// birebir aynı şekil.
+export interface BadgeCatalogItem {
+  code: string;
+  kind: 'achievement' | 'title';
+  category: string;
+  icon_emoji: string;
+  name_tr: string; name_en: string; name_de: string; name_fr: string; name_es: string;
+  name_it: string; name_ar: string; name_ru: string; name_ja: string; name_pt: string;
+  description_tr: string; description_en: string; description_de: string; description_fr: string; description_es: string;
+  description_it: string; description_ar: string; description_ru: string; description_ja: string; description_pt: string;
+  requirement_tr: string | null;
+  requirement_en: string | null;
+  earned: boolean;
+  earned_at: string | null;
+  period_key: string | null;
+}
+
 // ── Games ────────────────────────────────────────────────────
 export type GameMode = 'wordle' | 'multiple_choice' | 'typing' | 'matching' | 'listening' | 'sprint';
 export type PoolSource = 'own' | 'general';

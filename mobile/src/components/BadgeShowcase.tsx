@@ -4,7 +4,8 @@
 // gösterir. Backend: GET /stats/badges. XPBar.tsx'teki desenle aynı: react-query
 // + useThemeColors + i18n/dashboardStrings.ts'teki merkezi BADGE_LABELS.
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { statsApi } from '@/api/stats';
 import { useLocale } from '@/i18n';
@@ -28,7 +29,12 @@ export function BadgeShowcase() {
 
   return (
     <Card style={{ marginBottom: spacing.md }}>
-      <Text style={[styles.title, { color: c.textMuted }]}>{badgeLabels.title}</Text>
+      <View style={styles.headerRow}>
+        <Text style={[styles.title, { color: c.textMuted }]}>{badgeLabels.title}</Text>
+        <Pressable onPress={() => router.push('/rewards')} hitSlop={8}>
+          <Text style={{ color: c.primary, fontSize: 11, fontWeight: '600' }}>{badgeLabels.seeAll}</Text>
+        </Pressable>
+      </View>
       {isLoading || !badges ? (
         <Text style={{ color: c.textMuted, fontSize: 13 }}>{badgeLabels.loading}</Text>
       ) : badges.length === 0 ? (
@@ -61,7 +67,8 @@ export function BadgeShowcase() {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: spacing.sm },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
+  title: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   badge: {
     width: 84,

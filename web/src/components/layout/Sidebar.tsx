@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
-  Menu, X, Users, GraduationCap, Swords, Trophy, Map,
+  Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -57,6 +57,13 @@ const LEAGUE_LABEL: Record<Locale, string> = {
 const QUESTS_LABEL: Record<Locale, string> = {
   tr: 'Görev Haritası', en: 'Quest Map', ar: 'خريطة المهام', ru: 'Карта заданий', de: 'Aufgabenkarte',
   fr: 'Carte des Quêtes', es: 'Mapa de Misiones', it: 'Mappa delle Missioni', ja: 'クエストマップ', pt: 'Mapa de Missões',
+};
+
+// V2 öncelik #2 (11 Eylül 2026) — Rozetler ve Ödüller tam katalog sayfası
+// (app/(app)/rewards/page.tsx). Aynı yerel çeviri deseni.
+const REWARDS_LABEL: Record<Locale, string> = {
+  tr: 'Rozetler ve Ödüller', en: 'Badges & Rewards', ar: 'الأوسمة والمكافآت', ru: 'Значки и награды', de: 'Abzeichen & Belohnungen',
+  fr: 'Badges et récompenses', es: 'Insignias y recompensas', it: 'Badge e ricompense', ja: 'バッジと報酬', pt: 'Insígnias e Recompensas',
 };
 
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı navigasyon
@@ -110,6 +117,7 @@ export function Sidebar() {
     { href: '/duels', label: DUELS_LABEL[locale], icon: Swords },
     { href: '/league', label: LEAGUE_LABEL[locale], icon: Trophy },
     { href: '/quests', label: QUESTS_LABEL[locale], icon: Map },
+    { href: '/rewards', label: REWARDS_LABEL[locale], icon: Award },
     { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
     // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası

@@ -32,15 +32,15 @@ export const LB_LABELS: Record<
 };
 
 // web'deki components/layout/BadgeShowcase.tsx BADGE_LABELS ile birebir aynı.
-export const BADGE_LABELS: Record<Locale, { title: string; empty: string; loading: string }> = {
-  tr: { title: 'Rozetlerim', empty: 'Henüz rozet kazanmadın — çalışmaya devam!', loading: 'Yükleniyor…' },
-  en: { title: 'My Badges', empty: "You haven't earned a badge yet — keep going!", loading: 'Loading…' },
-  de: { title: 'Meine Abzeichen', empty: 'Du hast noch kein Abzeichen verdient — mach weiter!', loading: 'Lädt…' },
-  fr: { title: 'Mes badges', empty: "Tu n'as pas encore gagné de badge — continue !", loading: 'Chargement…' },
-  es: { title: 'Mis insignias', empty: 'Aún no has ganado ninguna insignia — ¡sigue así!', loading: 'Cargando…' },
-  it: { title: 'I miei badge', empty: 'Non hai ancora guadagnato un badge — continua così!', loading: 'Caricamento…' },
-  ar: { title: 'أوسمتي', empty: 'لم تحصل على وسام بعد — واصل التقدم!', loading: 'جارٍ التحميل…' },
-  ru: { title: 'Мои значки', empty: 'Вы ещё не заработали значок — продолжайте!', loading: 'Загрузка…' },
-  ja: { title: 'マイバッジ', empty: 'まだバッジを獲得していません — がんばって!', loading: '読み込み中…' },
-  pt: { title: 'As Minhas Insígnias', empty: 'Ainda não ganhaste nenhuma insígnia — continua!', loading: 'A carregar…' },
+export const BADGE_LABELS: Record<Locale, { title: string; empty: string; loading: string; seeAll: string }> = {
+  tr: { title: 'Rozetlerim', empty: 'Henüz rozet kazanmadın — çalışmaya devam!', loading: 'Yükleniyor…', seeAll: 'Tümünü Gör' },
+  en: { title: 'My Badges', empty: "You haven't earned a badge yet — keep going!", loading: 'Loading…', seeAll: 'See All' },
+  de: { title: 'Meine Abzeichen', empty: 'Du hast noch kein Abzeichen verdient — mach weiter!', loading: 'Lädt…', seeAll: 'Alle ansehen' },
+  fr: { title: 'Mes badges', empty: "Tu n'as pas encore gagné de badge — continue !", loading: 'Chargement…', seeAll: 'Tout voir' },
+  es: { title: 'Mis insignias', empty: 'Aún no has ganado ninguna insignia — ¡sigue así!', loading: 'Cargando…', seeAll: 'Ver todas' },
+  it: { title: 'I miei badge', empty: 'Non hai ancora guadagnato un badge — continua così!', loading: 'Caricamento…', seeAll: 'Vedi tutti' },
+  ar: { title: 'أوسمتي', empty: 'لم تحصل على وسام بعد — واصل التقدم!', loading: 'جارٍ التحميل…', seeAll: 'عرض الكل' },
+  ru: { title: 'Мои значки', empty: 'Вы ещё не заработали значок — продолжайте!', loading: 'Загрузка…', seeAll: 'Смотреть все' },
+  ja: { title: 'マイバッジ', empty: 'まだバッジを獲得していません — がんばって!', loading: '読み込み中…', seeAll: 'すべて見る' },
+  pt: { title: 'As Minhas Insígnias', empty: 'Ainda não ganhaste nenhuma insígnia — continua!', loading: 'A carregar…', seeAll: 'Ver Tudo' },
 };

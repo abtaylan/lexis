@@ -8,21 +8,22 @@
 // sözlüğü kullanılıyor.
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { clsx } from 'clsx';
 import { statsApi, type UserBadge } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 
-const BADGE_LABELS: Record<Locale, { title: string; empty: string; loading: string }> = {
-  tr: { title: 'Rozetlerim', empty: 'Henüz rozet kazanmadın — çalışmaya devam!', loading: 'Yükleniyor…' },
-  en: { title: 'My Badges', empty: "You haven't earned a badge yet — keep going!", loading: 'Loading…' },
-  de: { title: 'Meine Abzeichen', empty: 'Du hast noch kein Abzeichen verdient — mach weiter!', loading: 'Lädt…' },
-  fr: { title: 'Mes badges', empty: "Tu n'as pas encore gagné de badge — continue !", loading: 'Chargement…' },
-  es: { title: 'Mis insignias', empty: 'Aún no has ganado ninguna insignia — ¡sigue así!', loading: 'Cargando…' },
-  it: { title: 'I miei badge', empty: 'Non hai ancora guadagnato un badge — continua così!', loading: 'Caricamento…' },
-  ar: { title: 'أوسمتي', empty: 'لم تحصل على وسام بعد — واصل التقدم!', loading: 'جارٍ التحميل…' },
-  ru: { title: 'Мои значки', empty: 'Вы ещё не заработали значок — продолжайте!', loading: 'Загрузка…' },
-  ja: { title: 'マイバッジ', empty: 'まだバッジを獲得していません — がんばって!', loading: '読み込み中…' },
-  pt: { title: 'As Minhas Insígnias', empty: 'Ainda não ganhaste nenhuma insígnia — continua!', loading: 'A carregar…' },
+const BADGE_LABELS: Record<Locale, { title: string; empty: string; loading: string; seeAll: string }> = {
+  tr: { title: 'Rozetlerim', empty: 'Henüz rozet kazanmadın — çalışmaya devam!', loading: 'Yükleniyor…', seeAll: 'Tümünü Gör' },
+  en: { title: 'My Badges', empty: "You haven't earned a badge yet — keep going!", loading: 'Loading…', seeAll: 'See All' },
+  de: { title: 'Meine Abzeichen', empty: 'Du hast noch kein Abzeichen verdient — mach weiter!', loading: 'Lädt…', seeAll: 'Alle ansehen' },
+  fr: { title: 'Mes badges', empty: "Tu n'as pas encore gagné de badge — continue !", loading: 'Chargement…', seeAll: 'Tout voir' },
+  es: { title: 'Mis insignias', empty: 'Aún no has ganado ninguna insignia — ¡sigue así!', loading: 'Cargando…', seeAll: 'Ver todas' },
+  it: { title: 'I miei badge', empty: 'Non hai ancora guadagnato un badge — continua così!', loading: 'Caricamento…', seeAll: 'Vedi tutti' },
+  ar: { title: 'أوسمتي', empty: 'لم تحصل على وسام بعد — واصل التقدم!', loading: 'جارٍ التحميل…', seeAll: 'عرض الكل' },
+  ru: { title: 'Мои значки', empty: 'Вы ещё не заработали значок — продолжайте!', loading: 'Загрузка…', seeAll: 'Смотреть все' },
+  ja: { title: 'マイバッジ', empty: 'まだバッジを獲得していません — がんばって!', loading: '読み込み中…', seeAll: 'すべて見る' },
+  pt: { title: 'As Minhas Insígnias', empty: 'Ainda não ganhaste nenhuma insígnia — continua!', loading: 'A carregar…', seeAll: 'Ver Tudo' },
 };
 
 interface BadgeShowcaseProps {
@@ -61,7 +62,12 @@ export function BadgeShowcase({ className }: BadgeShowcaseProps) {
 
   return (
     <div className={clsx('bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4', className)}>
-      <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{labels.title}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{labels.title}</h2>
+        <Link href="/rewards" className="text-xs font-medium text-blue-600 hover:underline">
+          {labels.seeAll}
+        </Link>
+      </div>
       {badges === null ? (
         <p className="text-sm text-gray-400">{labels.loading}</p>
       ) : badges.length === 0 ? (

@@ -79,3 +79,83 @@ async def get_user_badges(user_id: str) -> list[dict[str, Any]]:
         .execute()
     )
     return res.data or []
+
+
+async def get_badges_catalog(user_id: str) -> list[dict[str, Any]]:
+    """Rozetler ve Ödüller sayfası (V2 öncelik #2) için TAM katalog —
+    kazanılan + henüz kazanılmayan TÜM rozetleri döner (bkz. migration
+    063_badges_catalog_taxonomy: kind/category/requirement_tr/requirement_en
+    alanları). get_user_badges()'ten farkı: o sadece kazanılanları dönüyordu
+    (GET /stats/badges, profildeki kompakt BadgeShowcase için hâlâ kullanımda),
+    bu ise katalog sayfası için kazanılmamışları da "locked" olarak içeriyor.
+
+    Dönem bazlı rozetlerde (weekly_top1 gibi) kullanıcının o rozeti kaç kez /
+    en son ne zaman kazandığı önemli değil — katalogda tek satır olarak
+    görünür, earned=true + en son earned_at/period_key ile."""
+    all_badges = (
+        supabase_admin.table("badges")
+        .select(
+            "code, kind, category, icon_emoji, "
+            "name_tr, name_en, name_de, name_fr, name_es, name_it, name_ar, name_ru, name_ja, name_pt, "
+            "description_tr, description_en, description_de, description_fr, description_es, description_it, "
+            "description_ar, description_ru, description_ja, description_pt, "
+            "requirement_tr, requirement_en"
+        )
+        .execute()
+    ).data or []
+
+    earned_rows = (
+        supabase_admin.table("user_badges")
+        .select("badge_code, period_key, earned_at")
+        .eq("user_id", user_id)
+        .order("earned_at", desc=True)
+        .execute()
+    ).data or []
+
+    # Aynı badge_code birden çok kez (farklı dönemlerde) kazanılmış olabilir —
+    # earned_rows earned_at'e göre azalan sırada geldiği için ilk görülen
+    # (en yeni) kayıt tutulur, sonrakiler atlanır.
+    earned_by_code: dict[str, dict[str, Any]] = {}
+    for row in earned_rows:
+        code = row["badge_code"]
+        if code not in earned_by_code:
+            earned_by_code[code] = row
+
+    catalog: list[dict[str, Any]] = []
+    for badge in all_badges:
+        earned = earned_by_code.get(badge["code"])
+        catalog.append(
+            {
+                **badge,
+                "earned": earned is not None,
+                "earned_at": earned["earned_at"] if earned else None,
+                "period_key": earned["period_key"] if earned else None,
+            }
+        )
+
+    # Katalogda sabit/öngörülebilir bir sıra: önce kazanılanlar (en yeni
+    # önce), sonra kazanılmayanlar kategoriye göre — kullanıcı sayfayı her
+    # açtığında düzen aniden değişmesin.
+    category_order = {"quest": 0, "quest_world": 1, "streak": 2, "duel": 3, "league": 4, "leaderboard": 5}
+    catalog.sort(
+        key=lambda b: (
+            0 if b["earned"] else 1,
+            -_earned_at_sort_key(b["earned_at"]) if b["earned"] else 0,
+            category_order.get(b["category"], 99),
+            b["code"],
+        )
+    )
+    return catalog
+
+
+def _earned_at_sort_key(earned_at: str | None) -> float:
+    """earned_at ISO string'ini karşılaştırılabilir bir sayıya çevirir —
+    yoksa 0 (sort key'de zaten sadece earned=true dallarında kullanılıyor)."""
+    if not earned_at:
+        return 0
+    try:
+        from datetime import datetime
+
+        return datetime.fromisoformat(earned_at.replace("Z", "+00:00")).timestamp()
+    except ValueError:
+        return 0

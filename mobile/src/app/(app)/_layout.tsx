@@ -135,6 +135,10 @@ export default function AppTabsLayout() {
       <Tabs.Screen name="custom-leagues" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="custom-league-detail" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="quests" options={{ href: null, headerShown: false }} />
+      {/* V2 öncelik #2 (11 Eylül 2026) — Rozetler ve Ödüller tam katalog
+          ekranı, quests/duels ile aynı desen: kendi sekmesi yok, profildeki
+          BadgeShowcase'teki "Tümünü Gör" kısayolundan açılıyor. */}
+      <Tabs.Screen name="rewards" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

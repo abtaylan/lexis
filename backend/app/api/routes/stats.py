@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
-from app.services.badge_service import get_user_badges
+from app.services.badge_service import get_badges_catalog, get_user_badges
 from app.services.leaderboard_service import get_leaderboard
 from app.services.xp_service import get_xp_summary
 
@@ -137,6 +137,16 @@ async def get_leaderboard_route(
 @router.get("/badges")
 async def get_badges_route(current_user=Depends(get_current_user)):
     return await get_user_badges(current_user.id)
+
+# ── Rozetler ve Ödüller — TAM katalog (V2 öncelik #2) ──────────
+# Kazanılan + kazanılmayan TÜM rozetleri döner (bkz. badge_service.py::
+# get_badges_catalog + migration 063_badges_catalog_taxonomy). Web/mobil
+# "Rozetler ve Ödüller" sayfası bunu kullanıyor; yukarıdaki /badges ucu
+# (sadece kazanılanlar) profildeki kompakt BadgeShowcase için değişmeden
+# kalıyor.
+@router.get("/badges/catalog")
+async def get_badges_catalog_route(current_user=Depends(get_current_user)):
+    return await get_badges_catalog(current_user.id)
 
 # ── Detaylı analiz — grafik sayfası için ──────────────────────
 @router.get("/analytics")

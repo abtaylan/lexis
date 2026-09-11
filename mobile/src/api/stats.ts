@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { AnalyticsData, DailyProgress, LeaderboardPeriod, LeaderboardResponse, Stats, UserBadge, XpSummary } from './types';
+import type { AnalyticsData, BadgeCatalogItem, DailyProgress, LeaderboardPeriod, LeaderboardResponse, Stats, UserBadge, XpSummary } from './types';
 
 export const statsApi = {
   getSummary: async (): Promise<Stats> => {
@@ -24,6 +24,10 @@ export const statsApi = {
   },
   getBadges: async (): Promise<UserBadge[]> => {
     const res = await api.get<UserBadge[]>('/stats/badges');
+    return res.data;
+  },
+  getBadgesCatalog: async (): Promise<BadgeCatalogItem[]> => {
+    const res = await api.get<BadgeCatalogItem[]>('/stats/badges/catalog');
     return res.data;
   },
 };
