@@ -8,10 +8,41 @@
 //    complete'ten ayırt edici, yükselen 4 notalı bir "unlock" cini sesi;
 //    ambient, Görev Haritası ekranında çok kısık sesle çalan, kesintisiz
 //    dönen (seamless loop) yumuşak bir pad.
-// expo-audio ile çalınıyor (bkz. package.json -- expo-audio eklendi ve
-// kullanıcının kendi terminalinde `npx expo install expo-audio` ile
-// kuruldu).
-import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
+//
+// ÖNEMLİ (11 Eylül 2026, canlı kesinti sonrası): expo-audio native modülü
+// şu an App Store'daki YAYINDAKİ build'de (STORE #10, 9 Eylül) DERLENMİŞ
+// DEĞİL -- npm paketi sonradan eklendi ve OTA (EAS Update) ile bu paketi
+// KULLANAN JS otomatik olarak o eski build'e gönderildi. `import ... from
+// 'expo-audio'` STATİK bir import olduğu için modül değerlendirilirken
+// (uygulama açılışında, herhangi bir try/catch'e girmeden) "native modül
+// bulunamadı" hatası fırlatıyor ve TÜM uygulamanın açılmasını engelliyor.
+// Bunu bir daha yaşamamak için expo-audio artık STATİK import EDİLMİYOR --
+// require() ile module-scope'ta ama try/catch içinde yükleniyor; native
+// modül yoksa (eski/güncellenmemiş build) ses özelliği sessizce devre dışı
+// kalıyor, uygulamanın geri kalanı normal çalışmaya devam ediyor. Yeni bir
+// native build (expo-audio linkli, bkz. .github/workflows/eas-build-submit.yml
+// elle tetikleme) yayınlandığında bu dosyada hiçbir değişiklik gerekmeden
+// sesler otomatik olarak etkinleşir.
+
+type AudioPlayerLike = {
+  playing: boolean;
+  loop: boolean;
+  volume: number;
+  play: () => void;
+  pause: () => void;
+  seekTo: (seconds: number) => void;
+};
+
+type ExpoAudioModule = {
+  createAudioPlayer: (source: number) => AudioPlayerLike;
+};
+
+let expoAudio: ExpoAudioModule | null = null;
+try {
+  expoAudio = require('expo-audio');
+} catch {
+  expoAudio = null;
+}
 
 type QuestSoundKey = 'click' | 'complete' | 'badge';
 
@@ -24,14 +55,15 @@ const SOURCES: Record<QuestSoundKey, number> = {
 const AMBIENT_SOURCE = require('../../assets/sounds/quest/ambient.mp3');
 const AMBIENT_VOLUME = 0.18;
 
-const players: Partial<Record<QuestSoundKey, AudioPlayer>> = {};
-let ambientPlayer: AudioPlayer | null = null;
+const players: Partial<Record<QuestSoundKey, AudioPlayerLike>> = {};
+let ambientPlayer: AudioPlayerLike | null = null;
 
-function getPlayer(key: QuestSoundKey): AudioPlayer | null {
+function getPlayer(key: QuestSoundKey): AudioPlayerLike | null {
+  if (!expoAudio) return null;
   try {
     let player = players[key];
     if (!player) {
-      player = createAudioPlayer(SOURCES[key]);
+      player = expoAudio.createAudioPlayer(SOURCES[key]);
       players[key] = player;
     }
     return player;
@@ -51,10 +83,11 @@ function play(key: QuestSoundKey) {
   }
 }
 
-function getAmbientPlayer(): AudioPlayer | null {
+function getAmbientPlayer(): AudioPlayerLike | null {
+  if (!expoAudio) return null;
   try {
     if (!ambientPlayer) {
-      ambientPlayer = createAudioPlayer(AMBIENT_SOURCE);
+      ambientPlayer = expoAudio.createAudioPlayer(AMBIENT_SOURCE);
       ambientPlayer.loop = true;
       ambientPlayer.volume = AMBIENT_VOLUME;
     }
