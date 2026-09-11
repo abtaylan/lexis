@@ -2,7 +2,7 @@ import React, { useCallback, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
 import { DUELS_STRINGS } from '@/i18n/duelsStrings';
@@ -282,8 +282,9 @@ export default function DashboardScreen() {
                     )}
                     <Pressable
                       onPress={() => router.push({ pathname: '/(app)/exam-topic-practice', params: { topic_tag: item.topic_tag } })}
-                      style={[styles.weakTopicBtn, { borderColor: c.warning }]}
+                      style={[styles.weakTopicBtn, { borderColor: c.warning, flexDirection: 'row', alignItems: 'center', gap: 4 }]}
                     >
+                      <Dumbbell color={c.warning} size={12} />
                       <Text style={{ color: c.warning, fontSize: 12, fontWeight: '700' }}>{et.weakTopicsPracticeBtn}</Text>
                     </Pressable>
                   </View>

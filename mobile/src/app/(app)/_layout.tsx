@@ -110,6 +110,19 @@ export default function AppTabsLayout() {
       <Tabs.Screen name="exam-suggest" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="exam-grammar" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="exam-grammar-detail" options={{ href: null, headerShown: false }} />
+      {/* 11 Eylül 2026 düzeltmesi: exam-topic-practice.tsx eklendiğinde bu
+          listeye href:null olarak eklenmeyi unutmuştuk — Expo Router,
+          (app) grubundaki listelenmeyen her ekran dosyası için otomatik
+          olarak alt sekme çubuğuna varsayılan ikonlu bir sekme EKLİYOR.
+          Sonuç: kullanıcı sekme çubuğunun sonunda beklenmeyen/çirkin bir
+          ikon gördü, tıklayınca da topic_tag parametresi olmadan boş/yarım
+          kalan bir "Konu Pratiği" ekranı açılıyordu. Bu ekran zaten kendi
+          başına bir giriş noktası değil — tek bir konuyu (topic_tag ile)
+          pratik etmek için dashboard'daki "Zayıf Konuların" kartından
+          (bkz. aşağıda dashboard.tsx) veya exam-grammar-detail/exam-prep
+          içindeki "Bu Konuyu Pratik Et" CTA'larından açılıyor. Bu yüzden
+          burada da diğerleri gibi sekme çubuğundan gizleniyor. */}
+      <Tabs.Screen name="exam-topic-practice" options={{ href: null, headerShown: false }} />
       {/* V2 §6.3 Faz 3 (10 Eylül 2026) — Düello/Lig/Görev Haritası, friends
           ile aynı desen: kendi sekmesi yok, dashboard'daki kısayoldan
           açılıyor (bkz. dashboard.tsx). */}
