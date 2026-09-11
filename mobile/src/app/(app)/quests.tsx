@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { ActivityIndicator, Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -347,8 +347,17 @@ export default function QuestsScreen() {
                         <View key={node.id} style={{ position: 'absolute', left: x - NODE_SIZE / 2, top: y - NODE_SIZE / 2 }}>
                           {isCurrent && <PulseRing color={accent} />}
                           <Pressable
-                            onPress={() => clickable && openNode(node)}
-                            disabled={!clickable}
+                            onPress={() => {
+                              if (clickable) {
+                                openNode(node);
+                                return;
+                              }
+                              // Kilitli VEYA 'aggregate' tipi (hedefsiz) dugum -- eskiden
+                              // Pressable disabled oldugu icin dokununca hicbir sey
+                              // olmuyordu (bkz. 11 Eylul geri bildirimi); artik neden
+                              // hicbir seyin olmadigini kisa bir Alert ile anlatiyoruz.
+                              Alert.alert(title, !node.is_unlocked ? t.lockedHint : t.milestoneHint);
+                            }}
                             style={[styles.nodeCircle, nodeCircleStyle, { width: NODE_SIZE, height: NODE_SIZE, borderRadius: NODE_SIZE / 2 }]}
                           >
                             {node.is_completed ? (

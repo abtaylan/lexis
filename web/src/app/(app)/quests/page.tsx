@@ -27,7 +27,7 @@ import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
 import {
   Map, RefreshCw, Check, Lock, Star, Award, Gamepad2, Layers, BookOpen,
-  FileQuestion, Timer, Swords, Flag, ChevronRight,
+  FileQuestion, Timer, Swords, Flag, ChevronRight, Info, X,
 } from 'lucide-react';
 import { questsApi } from '@/lib/api';
 import { playQuestClick, playQuestComplete, playQuestBadge, startQuestAmbient, stopQuestAmbient } from '@/lib/questSounds';
@@ -105,6 +105,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'Henüz görev tanımlanmamış.',
     completedLabel: 'Tamamlandı', lockedLabel: 'Kilitli', rewardLabel: 'Ödül',
     badgeRewardLabel: 'rozet', startBtn: 'Başla', continueBtn: 'Devam Et',
+    milestoneHint: 'Bu bir kilometre taşı — otomatik olarak ilerler. Kelime çalışarak, oyun oynayarak veya düello yaparak XP kazan!', lockedHint: 'Bu görev kilitli. Önce önceki görevleri tamamlaman gerekiyor.',
   },
   en: {
     title: 'Quest Map', subtitle: 'Explore each world in order to earn XP and badges.',
@@ -112,6 +113,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'No quests defined yet.',
     completedLabel: 'Completed', lockedLabel: 'Locked', rewardLabel: 'Reward',
     badgeRewardLabel: 'badge', startBtn: 'Start', continueBtn: 'Continue',
+    milestoneHint: 'This is a milestone — it progresses automatically. Earn XP by studying words, playing games, or dueling!', lockedHint: 'This quest is locked. Complete the previous quests first.',
   },
   de: {
     title: 'Aufgabenkarte', subtitle: 'Entdecke jede Welt der Reihe nach, um XP und Abzeichen zu verdienen.',
@@ -119,6 +121,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'Noch keine Aufgaben definiert.',
     completedLabel: 'Abgeschlossen', lockedLabel: 'Gesperrt', rewardLabel: 'Belohnung',
     badgeRewardLabel: 'Abzeichen', startBtn: 'Starten', continueBtn: 'Weiter',
+    milestoneHint: 'Dies ist ein Meilenstein — er schreitet automatisch voran. Verdiene XP, indem du Wörter lernst, Spiele spielst oder duellierst!', lockedHint: 'Diese Aufgabe ist gesperrt. Schließe zuerst die vorherigen Aufgaben ab.',
   },
   fr: {
     title: 'Carte des Quêtes', subtitle: 'Explore chaque monde dans l’ordre pour gagner XP et badges.',
@@ -126,6 +129,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'Aucune quête définie pour le moment.',
     completedLabel: 'Terminée', lockedLabel: 'Verrouillée', rewardLabel: 'Récompense',
     badgeRewardLabel: 'badge', startBtn: 'Démarrer', continueBtn: 'Continuer',
+    milestoneHint: 'Ceci est une étape — elle progresse automatiquement. Gagne de l’XP en étudiant des mots, en jouant ou en duel !', lockedHint: 'Cette quête est verrouillée. Termine d’abord les quêtes précédentes.',
   },
   es: {
     title: 'Mapa de Misiones', subtitle: 'Explora cada mundo en orden para ganar XP e insignias.',
@@ -133,6 +137,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'Todavía no hay misiones definidas.',
     completedLabel: 'Completada', lockedLabel: 'Bloqueada', rewardLabel: 'Recompensa',
     badgeRewardLabel: 'insignia', startBtn: 'Empezar', continueBtn: 'Continuar',
+    milestoneHint: 'Esto es un hito — avanza automáticamente. ¡Gana XP estudiando palabras, jugando o en duelos!', lockedHint: 'Esta misión está bloqueada. Completa primero las misiones anteriores.',
   },
   it: {
     title: 'Mappa delle Missioni', subtitle: 'Esplora ogni mondo in ordine per guadagnare XP e distintivi.',
@@ -140,6 +145,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'Nessuna missione definita al momento.',
     completedLabel: 'Completata', lockedLabel: 'Bloccata', rewardLabel: 'Ricompensa',
     badgeRewardLabel: 'distintivo', startBtn: 'Inizia', continueBtn: 'Continua',
+    milestoneHint: 'Questo è un traguardo — avanza automaticamente. Guadagna XP studiando parole, giocando o in duello!', lockedHint: 'Questa missione è bloccata. Completa prima le missioni precedenti.',
   },
   ar: {
     title: 'خريطة المهام', subtitle: 'استكشف كل عالم بالترتيب لكسب نقاط الخبرة والأوسمة.',
@@ -147,6 +153,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'لا توجد مهام محددة بعد.',
     completedLabel: 'مكتملة', lockedLabel: 'مقفلة', rewardLabel: 'المكافأة',
     badgeRewardLabel: 'وسام', startBtn: 'ابدأ', continueBtn: 'متابعة',
+    milestoneHint: 'هذا معلم بارز — يتقدم تلقائيًا. اكسب نقاط الخبرة بدراسة الكلمات أو اللعب أو المبارزة!', lockedHint: 'هذه المهمة مقفلة. أكمل المهام السابقة أولاً.',
   },
   ru: {
     title: 'Карта заданий', subtitle: 'Исследуй миры по порядку, чтобы получить XP и значки.',
@@ -154,6 +161,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'Задания пока не определены.',
     completedLabel: 'Выполнено', lockedLabel: 'Заблокировано', rewardLabel: 'Награда',
     badgeRewardLabel: 'значок', startBtn: 'Начать', continueBtn: 'Продолжить',
+    milestoneHint: 'Это веха — она продвигается автоматически. Получай XP, изучая слова, играя или дуэлируя!', lockedHint: 'Это задание заблокировано. Сначала выполни предыдущие задания.',
   },
   ja: {
     title: 'クエストマップ', subtitle: '順番に世界を探検してXPとバッジを獲得しよう。',
@@ -161,6 +169,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'まだクエストが定義されていません。',
     completedLabel: '完了', lockedLabel: 'ロック中', rewardLabel: '報酬',
     badgeRewardLabel: 'バッジ', startBtn: '始める', continueBtn: '続ける',
+    milestoneHint: 'これはマイルストーンです。自動的に進みます。単語学習、ゲーム、デュエルでXPを獲得しよう!', lockedHint: 'このクエストはロックされています。先に前のクエストを完了してください。',
   },
   pt: {
     title: 'Mapa de Missões', subtitle: 'Explore cada mundo em ordem para ganhar XP e emblemas.',
@@ -168,6 +177,7 @@ const L: Record<Locale, Record<string, string>> = {
     empty: 'Nenhuma missão definida ainda.',
     completedLabel: 'Concluída', lockedLabel: 'Bloqueada', rewardLabel: 'Recompensa',
     badgeRewardLabel: 'emblema', startBtn: 'Começar', continueBtn: 'Continuar',
+    milestoneHint: 'Este é um marco — avança automaticamente. Ganhe XP estudando palavras, jogando ou duelando!', lockedHint: 'Esta missão está bloqueada. Conclua as missões anteriores primeiro.',
   },
 };
 
@@ -319,6 +329,17 @@ export default function QuestsPage() {
   // ses calinmiyor, sadece sonraki fetch'lerde (yenile / sayfaya donus).
   const prevItemsRef = useRef<QuestNodeItem[] | null>(null);
 
+  // Tiklanan ama gidilecek bir hedefi olmayan dugum icin (kilitli VEYA
+  // 'aggregate' tipi kilometre tasi) kisa sureli bilgi baloncugu -- eskiden
+  // bu durumda hicbir geri bildirim verilmiyordu, kullaniciya "tiklayinca
+  // hicbir sey olmuyor" (bkz. 11 Eylul geri bildirimi) hissi veriyordu.
+  const [infoNode, setInfoNode] = useState<QuestNodeItem | null>(null);
+  useEffect(() => {
+    if (!infoNode) return;
+    const timer = setTimeout(() => setInfoNode(null), 4500);
+    return () => clearTimeout(timer);
+  }, [infoNode]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -380,12 +401,19 @@ export default function QuestsPage() {
   }, [worlds]);
 
   function handleOpen(node: QuestNodeItem) {
-    if (!node.is_unlocked) return;
+    if (!node.is_unlocked) {
+      setInfoNode(node);
+      return;
+    }
     const href = resolveHref(node);
     if (href) {
       playQuestClick();
       router.push(href);
+      return;
     }
+    // 'aggregate' -- tiklanabilir bir hedefi yok, otomatik ilerleyen bir
+    // kilometre tasi -- kullaniciya neden hicbir seyin olmadigini anlat.
+    setInfoNode(node);
   }
 
   return (
@@ -409,6 +437,26 @@ export default function QuestsPage() {
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
+
+      {infoNode && (
+        <div className="flex items-start gap-3 rounded-xl border border-purple-100 dark:border-purple-500/20 bg-purple-50 dark:bg-purple-500/10 p-3 text-sm text-purple-800 dark:text-purple-200 animate-in fade-in slide-in-from-top-1">
+          <Info className="w-4 h-4 mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="font-medium">{localizedTitle(infoNode, locale)}</p>
+            <p className="text-purple-700/80 dark:text-purple-300/80">
+              {!infoNode.is_unlocked ? t.lockedHint : t.milestoneHint}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setInfoNode(null)}
+            aria-label="Kapat"
+            className="text-purple-400 hover:text-purple-600 dark:hover:text-purple-200 shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {loading && <p className="text-sm text-gray-400 dark:text-slate-500 py-8 text-center">{t.loading}</p>}
       {!loading && error && <p className="text-sm text-red-400 dark:text-red-300 py-8 text-center">{error}</p>}
