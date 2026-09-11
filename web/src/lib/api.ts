@@ -43,6 +43,9 @@ import type {
   ContentAccuracySummary,
   QuestionAccuracyResponse,
   WordAccuracyResponse,
+  ContentFlagScanResult,
+  ContentFlagsResponse,
+  ContentFlagItem,
   GrammarCategory,
   GrammarTopicSummary,
   GrammarTopicDetail,
@@ -813,6 +816,23 @@ export const adminApi = {
     source?: 'system' | 'user'; min_attempts?: number; limit?: number; order?: 'weakest' | 'strongest' | 'most_attempted';
   }): Promise<WordAccuracyResponse> => {
     const res = await api.get<WordAccuracyResponse>('/admin/content-accuracy/words', { params });
+    return res.data;
+  },
+
+  // İstatistik & Raporlama Faz 3 madde C — veri doğruluğu/güvenilirlik paneli
+  // (bkz. admin_platform.py /content-accuracy/flags/*, content_flag_service.py)
+  scanContentFlags: async (): Promise<ContentFlagScanResult> => {
+    const res = await api.post<ContentFlagScanResult>('/admin/content-accuracy/flags/scan');
+    return res.data;
+  },
+  getContentFlags: async (params?: {
+    status?: 'open' | 'fixed' | 'dismissed'; content_type?: 'exam_question' | 'system_word' | 'user_word'; limit?: number;
+  }): Promise<ContentFlagsResponse> => {
+    const res = await api.get<ContentFlagsResponse>('/admin/content-accuracy/flags', { params });
+    return res.data;
+  },
+  updateContentFlag: async (flagId: string, data: { status: 'open' | 'fixed' | 'dismissed'; admin_note?: string }): Promise<ContentFlagItem> => {
+    const res = await api.patch<ContentFlagItem>(`/admin/content-accuracy/flags/${flagId}`, data);
     return res.data;
   },
 };

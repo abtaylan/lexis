@@ -1038,6 +1038,9 @@ export interface ContentAccuracySummary {
   system_questions: ContentAccuracyAgg;
   system_words: ContentAccuracyAgg;
   user_words: ContentAccuracyAgg;
+  // Faz 3 madde C — veri kapsamı gözlem noktası (topic_practice_attempts
+  // tablosu tüm kullanıcılarda boş olabilir, bkz. devir notları).
+  topic_practice_attempts_total: number;
 }
 
 export interface QuestionAccuracyItem {
@@ -1081,4 +1084,59 @@ export interface WordAccuracyResponse {
   items: WordAccuracyItem[];
   total_returned: number;
   source: 'system' | 'user';
+}
+
+// ── İstatistik & Raporlama Faz 3 madde C — Veri doğruluğu/güvenilirlik
+// paneli (11 Eylül 2026). Faz 1/2'nin doğruluk sıralamasına ek olarak
+// otomatik anomali tespiti: option_counts'ta baskın yanlış şık varsa
+// (cevap anahtarı hatalı olabilir) veya doğruluk aşırı düşükse içerik
+// işaretlenir; admin panelden 'düzeltildi'/'göz ardı et' olarak
+// kapatılabilir. Backend: admin_platform.py /content-accuracy/flags/*
+// (bkz. migration 065_content_flags.sql, content_flag_service.py).
+export type ContentFlagType = 'exam_question' | 'system_word' | 'user_word';
+export type ContentFlagReason = 'dominant_wrong_option' | 'low_accuracy';
+export type ContentFlagStatus = 'open' | 'fixed' | 'dismissed';
+
+export interface ContentFlagContent {
+  // exam_question
+  question_text?: string | null;
+  exam_type?: string | null;
+  topic_tag?: string | null;
+  correct_option?: string | null;
+  // system_word / user_word
+  word?: string | null;
+  source_lang?: string | null;
+  target_lang?: string | null;
+  user_id?: string | null;
+}
+
+export interface ContentFlagItem {
+  id: string;
+  content_type: ContentFlagType;
+  content_id: string;
+  reason: ContentFlagReason;
+  metric_snapshot: {
+    total_attempts?: number;
+    accuracy_ratio?: number | null;
+    option_counts?: Record<string, number> | null;
+    correct_option?: string | null;
+    dominant_wrong_option?: string | null;
+  };
+  status: ContentFlagStatus;
+  detected_at: string;
+  reviewed_at: string | null;
+  reviewed_by: string | null;
+  admin_note: string | null;
+  content: ContentFlagContent | null;
+}
+
+export interface ContentFlagsResponse {
+  items: ContentFlagItem[];
+  total_returned: number;
+}
+
+export interface ContentFlagScanResult {
+  by_type: Record<ContentFlagType, { created: number; updated: number; skipped: number }>;
+  total: { created: number; updated: number; skipped: number };
+  scanned_at: string;
 }

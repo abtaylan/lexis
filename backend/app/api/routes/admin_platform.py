@@ -23,6 +23,11 @@ barındırıyor:
     şıkkın seçilme dağılımı (exam_question_stats view'ı)
   - GET /content-accuracy/words      → kelime bazında doğru/yanlış tahmin
     yüzdesi (system_word_stats / user_word_stats view'ları, migration 062)
+  - POST /content-accuracy/flags/scan → İçerik doğruluğu/güvenilirliği
+    için otomatik anomali taraması (Faz 3 madde C, migration 065) — düşük
+    doğruluklu soru/kelimeleri content_flags tablosuna işaretler.
+  - GET/PATCH /content-accuracy/flags → işaretlenen içerik listesi ve
+    admin inceleme durumu güncellemesi (open/fixed/dismissed).
 
 Okuma (GET) endpoint'leri get_current_admin (hem 'admin' hem
 'admin_readonly' kabul eder) ile korunuyor; mutasyon yapan endpoint'ler
@@ -40,6 +45,11 @@ from app.core.database import supabase_admin
 from app.core.runtime import START_TIME
 from app.services.audit_log import log_admin_action
 from app.services.auth_users import list_all_auth_users
+from app.services.content_flag_service import (
+    get_content_flags,
+    scan_content_flags,
+    update_content_flag,
+)
 
 router = APIRouter()
 
@@ -629,10 +639,22 @@ async def content_accuracy_summary(admin=Depends(get_current_admin)):
             "accuracy_percent": round((total_correct / total_attempts) * 100, 1) if total_attempts else None,
         }
 
+    # Faz 3 madde C — veri kapsamı gözlem noktası: topic_practice_attempts
+    # tüm kullanıcılarda boş olabilir (bkz. devir notları), bunu admin
+    # panelde şeffafça göstermek için toplam satır sayısını da dönüyoruz.
+    topic_practice_total = (
+        supabase_admin.table("topic_practice_attempts")
+        .select("id", count="exact")
+        .limit(1)
+        .execute()
+        .count
+    ) or 0
+
     return {
         "system_questions": _agg("exam_question_stats"),
         "system_words": _agg("system_word_stats"),
         "user_words": _agg("user_word_stats"),
+        "topic_practice_attempts_total": topic_practice_total,
     }
 
 
@@ -724,3 +746,55 @@ async def content_accuracy_words(
     rows = query.limit(limit).execute().data or []
     return {"items": rows, "total_returned": len(rows), "source": source}
 
+
+# ================================================================
+# 10) İçerik doğruluğu/güvenilirlik paneli — İstatistik & Raporlama
+#    Faz 3 madde C (bkz. migration 065_content_flags.sql,
+#    content_flag_service.py). Faz 1/2'nin "doğruluğa göre sırala"
+#    görünümüne ek olarak, otomatik ANOMALİ TESPİTİ + admin inceleme
+#    iş akışı: option_counts'ta baskın yanlış şık varsa (cevap anahtarı
+#    hatalı olabilir) veya doğruluk aşırı düşükse içerik işaretlenir,
+#    admin "düzeltildi"/"göz ardı et" olarak kapatabilir. Tarama MANUEL
+#    (buton ile) — periyodik otomasyon Faz 3 madde E'nin kapsamında.
+# ================================================================
+@router.post("/content-accuracy/flags/scan")
+async def scan_content_accuracy_flags(admin=Depends(get_current_admin_full)):
+    result = await scan_content_flags()
+    log_admin_action(admin.id, admin.email, "content_flags.scan", detail=result["total"])
+    return result
+
+
+@router.get("/content-accuracy/flags")
+async def list_content_accuracy_flags(
+    status: str | None = None,
+    content_type: str | None = None,
+    limit: int = 50,
+    admin=Depends(get_current_admin),
+):
+    if status and status not in ("open", "fixed", "dismissed"):
+        raise HTTPException(status_code=400, detail="status 'open', 'fixed' veya 'dismissed' olmalı")
+    if content_type and content_type not in ("exam_question", "system_word", "user_word"):
+        raise HTTPException(status_code=400, detail="content_type geçersiz")
+    items = await get_content_flags(status=status, content_type=content_type, limit=limit)
+    return {"items": items, "total_returned": len(items)}
+
+
+class ContentFlagUpdate(BaseModel):
+    status: str
+    admin_note: str | None = None
+
+
+@router.patch("/content-accuracy/flags/{flag_id}")
+async def patch_content_accuracy_flag(
+    flag_id: str,
+    req: ContentFlagUpdate,
+    admin=Depends(get_current_admin_full),
+):
+    try:
+        row = await update_content_flag(flag_id, req.status, req.admin_note, admin.id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    log_admin_action(admin.id, admin.email, "content_flags.update", "content_flags", flag_id, req.model_dump())
+    return row

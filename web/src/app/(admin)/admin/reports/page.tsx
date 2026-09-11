@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, HelpCircle, BookOpen, User, Flame } from 'lucide-react';
+import { Loader2, HelpCircle, BookOpen, User, Flame, ShieldAlert, RefreshCw } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import type {
   ContentAccuracySummary, ContentAccuracyAgg, QuestionAccuracyItem, WordAccuracyItem, ExamType,
+  ContentFlagItem, ContentFlagType, ContentFlagStatus,
 } from '@/types';
 
 // İstatistik & Raporlama Faz 2 — içerik doğruluk raporları (11 Eylül 2026).
@@ -12,8 +13,14 @@ import type {
 // (bkz. migration 062 + exam_question_stats view'i). "3'lü segmentasyon":
 // sistem soruları (exam_questions), sistem kelimeleri (general_word_pool,
 // tüm kullanıcılar bazında global doğruluk), kullanıcı kelimeleri (words,
-// kişisel doğruluk). Sıradaki fazlar: periyodik özet + e-posta gönderimi,
-// kurum/ülke bazlı kırılım (bkz. devir notları).
+// kişisel doğruluk).
+//
+// Faz 3 madde C (aynı gün, ikinci ekleme) — "Veri doğruluğu/güvenilirlik
+// paneli": Faz 1/2'nin salt "doğruluğa göre sırala" görünümüne ek olarak,
+// otomatik ANOMALİ TESPİTİ + admin inceleme iş akışı (FlagsPanel, altta).
+// Backend: admin_platform.py /content-accuracy/flags/* (bkz. migration
+// 065_content_flags.sql, content_flag_service.py). Sıradaki fazlar:
+// periyodik özet + e-posta gönderimi, kurum/ülke bazlı kırılım.
 
 const EXAM_TYPES: { value: ExamType; label: string }[] = [
   { value: 'yds', label: 'YDS' },
@@ -222,6 +229,204 @@ function WordsPanel() {
   );
 }
 
+// ── Faz 3 madde C — Veri Güvenilirliği / İşaretlenen İçerik ──────────────
+
+const CONTENT_TYPE_LABEL: Record<ContentFlagType, string> = {
+  exam_question: 'Sınav sorusu',
+  system_word: 'Sistem kelimesi',
+  user_word: 'Kullanıcı kelimesi',
+};
+
+const STATUS_LABEL: Record<ContentFlagStatus, string> = {
+  open: 'Açık',
+  fixed: 'Düzeltildi',
+  dismissed: 'Göz ardı edildi',
+};
+
+function FlagContentLabel({ item }: { item: ContentFlagItem }) {
+  if (!item.content) return <span className="text-gray-400 italic">(içerik bulunamadı — silinmiş olabilir)</span>;
+  if (item.content_type === 'exam_question') {
+    return (
+      <div>
+        <p className="text-gray-900 dark:text-slate-100 truncate max-w-md" title={item.content.question_text || undefined}>
+          {item.content.question_text || '(metin yok)'}
+        </p>
+        <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+          {item.content.exam_type?.toUpperCase()} {item.content.topic_tag ? `· ${item.content.topic_tag}` : ''}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <p className="text-gray-900 dark:text-slate-100 font-medium">{item.content.word}</p>
+      <p className="text-xs text-gray-400 dark:text-slate-500 uppercase mt-0.5">
+        {item.content.source_lang} → {item.content.target_lang}
+      </p>
+    </div>
+  );
+}
+
+function FlagReasonBadge({ item }: { item: ContentFlagItem }) {
+  const snap = item.metric_snapshot;
+  const accuracyPct = snap.accuracy_ratio != null ? Math.round(snap.accuracy_ratio * 100) : null;
+  if (item.reason === 'dominant_wrong_option') {
+    return (
+      <div>
+        <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300">
+          Baskın yanlış şık
+        </span>
+        <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+          Doğru: <b>{snap.correct_option}</b> · Çoğunluk: <b>{snap.dominant_wrong_option}</b> seçmiş ({accuracyPct !== null ? `%${accuracyPct}` : '—'} doğruluk, {snap.total_attempts} deneme)
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <span className="inline-flex items-center text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-300">
+        Çok düşük doğruluk
+      </span>
+      <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+        {accuracyPct !== null ? `%${accuracyPct}` : '—'} doğruluk, {snap.total_attempts} deneme
+      </p>
+    </div>
+  );
+}
+
+function FlagsPanel() {
+  const [items, setItems] = useState<ContentFlagItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [status, setStatus] = useState<ContentFlagStatus | ''>('open');
+  const [contentType, setContentType] = useState<ContentFlagType | ''>('');
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const load = () => {
+    setLoading(true);
+    adminApi.getContentFlags({
+      status: status || undefined,
+      content_type: contentType || undefined,
+      limit: 100,
+    })
+      .then((res) => setItems(res.items))
+      .finally(() => setLoading(false));
+  };
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- filtre değişince yeniden çekme (fetch-on-effect) deseni
+  useEffect(load, [status, contentType]);
+
+  const handleScan = async () => {
+    setScanning(true);
+    setScanMessage(null);
+    try {
+      const result = await adminApi.scanContentFlags();
+      setScanMessage(`Tarama tamamlandı: ${result.total.created} yeni, ${result.total.updated} güncellendi, ${result.total.skipped} atlandı (zaten düzeltildi/göz ardı edildi).`);
+      load();
+    } catch {
+      setScanMessage('Tarama sırasında bir hata oluştu.');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const handleStatusChange = async (item: ContentFlagItem, newStatus: ContentFlagStatus) => {
+    setUpdatingId(item.id);
+    try {
+      await adminApi.updateContentFlag(item.id, { status: newStatus });
+      setItems((prev) => prev.filter((i) => i.id !== item.id || status === ''));
+      if (status !== '') load();
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800">
+      <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Veri Güvenilirliği — İşaretlenen İçerik</h2>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <select value={contentType} onChange={(e) => setContentType(e.target.value as ContentFlagType | '')}
+            className="border border-gray-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2.5 py-1.5 text-xs">
+            <option value="">Tüm türler</option>
+            <option value="exam_question">Sınav soruları</option>
+            <option value="system_word">Sistem kelimeleri</option>
+            <option value="user_word">Kullanıcı kelimeleri</option>
+          </select>
+          <select value={status} onChange={(e) => setStatus(e.target.value as ContentFlagStatus | '')}
+            className="border border-gray-200 dark:border-slate-700 dark:bg-slate-800 rounded-lg px-2.5 py-1.5 text-xs">
+            <option value="open">Açık</option>
+            <option value="fixed">Düzeltildi</option>
+            <option value="dismissed">Göz ardı edildi</option>
+            <option value="">Tümü</option>
+          </select>
+          <button onClick={handleScan} disabled={scanning}
+            className="inline-flex items-center gap-1.5 bg-[#534AB7] hover:bg-[#463da0] disabled:opacity-60 text-white text-xs font-semibold px-3 py-1.5 rounded-lg">
+            {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            Tara
+          </button>
+        </div>
+      </div>
+
+      {scanMessage && (
+        <p className="px-6 pt-4 text-xs text-gray-500 dark:text-slate-400">{scanMessage}</p>
+      )}
+
+      <p className="px-6 pt-4 text-xs text-gray-400 dark:text-slate-500">
+        Otomatik anomali tespiti: yeterli deneme sayısına rağmen doğruluğu çok düşük içerik, ya da bir soruda doğru şıktan daha çok seçilen bir yanlış şık (&quot;baskın yanlış şık&quot; — cevap anahtarı hatalı olabilir) burada listelenir. Tarama manuel tetiklenir.
+      </p>
+
+      {loading ? (
+        <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+      ) : items.length === 0 ? (
+        <p className="p-10 text-center text-sm text-gray-500 dark:text-slate-400">Bu filtrelerle eşleşen işaretlenmiş içerik yok. &quot;Tara&quot; butonuyla yeni bir tarama başlatabilirsiniz.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-gray-400 dark:text-slate-500 border-b border-gray-100 dark:border-slate-800">
+                <th className="px-6 py-3 font-medium">İçerik</th>
+                <th className="px-3 py-3 font-medium">Tür</th>
+                <th className="px-3 py-3 font-medium">Sebep</th>
+                <th className="px-3 py-3 font-medium">Durum</th>
+                <th className="px-6 py-3 font-medium text-right">İşlem</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
+              {items.map((item) => (
+                <tr key={item.id}>
+                  <td className="px-6 py-3 max-w-md"><FlagContentLabel item={item} /></td>
+                  <td className="px-3 py-3 text-xs text-gray-500 dark:text-slate-400">{CONTENT_TYPE_LABEL[item.content_type]}</td>
+                  <td className="px-3 py-3"><FlagReasonBadge item={item} /></td>
+                  <td className="px-3 py-3 text-xs text-gray-500 dark:text-slate-400">{STATUS_LABEL[item.status]}</td>
+                  <td className="px-6 py-3 text-right">
+                    {item.status !== 'fixed' && (
+                      <button disabled={updatingId === item.id} onClick={() => handleStatusChange(item, 'fixed')}
+                        className="text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:underline mr-3 disabled:opacity-50">
+                        Düzeltildi
+                      </button>
+                    )}
+                    {item.status !== 'dismissed' && (
+                      <button disabled={updatingId === item.id} onClick={() => handleStatusChange(item, 'dismissed')}
+                        className="text-xs font-medium text-gray-500 dark:text-slate-400 hover:underline disabled:opacity-50">
+                        Göz ardı et
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminReportsPage() {
   const [summary, setSummary] = useState<ContentAccuracySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -243,15 +448,23 @@ export default function AdminReportsPage() {
       {loading ? (
         <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
       ) : summary ? (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <SummaryCard label="Sistem Soruları" agg={summary.system_questions} icon={<HelpCircle className="w-6 h-6" />} />
-          <SummaryCard label="Sistem Kelimeleri" agg={summary.system_words} icon={<Flame className="w-6 h-6" />} />
-          <SummaryCard label="Kullanıcı Kelimeleri" agg={summary.user_words} icon={<User className="w-6 h-6" />} />
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <SummaryCard label="Sistem Soruları" agg={summary.system_questions} icon={<HelpCircle className="w-6 h-6" />} />
+            <SummaryCard label="Sistem Kelimeleri" agg={summary.system_words} icon={<Flame className="w-6 h-6" />} />
+            <SummaryCard label="Kullanıcı Kelimeleri" agg={summary.user_words} icon={<User className="w-6 h-6" />} />
+          </div>
+          {summary.topic_practice_attempts_total === 0 && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-lg px-4 py-2">
+              Veri kapsamı notu: &quot;Bu Konuyu Pratik Et&quot; akışından (zayıf konu kartı) henüz hiç kayıt (topic_practice_attempts) gelmemiş — konu bazlı doğruluk/zayıf konu bölümleri (Raporum, Kurum Raporu) bu yüzden şu an boş görünüyor. Kod bunu güvenle ele alıyor, acil bir müdahale gerekmiyor.
+            </p>
+          )}
+        </>
       ) : null}
 
       <QuestionsPanel />
       <WordsPanel />
+      <FlagsPanel />
     </div>
   );
 }
