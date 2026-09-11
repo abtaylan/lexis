@@ -1205,3 +1205,45 @@ export const questsApi = {
     return res.data;
   },
 };
+
+// ── Kurum Raporu — İstatistik & Raporlama V2 öncelik #3, madde B ──
+// NOT: organizations.py backend'i (kurum oluştur/üye davet/liderlik tablosu)
+// V2 öncelik #4'ün ("B2B Kurumsal Lig arayüzü") bir parçası ve HENÜZ hiç
+// web/mobil ekranı yok — bu API sadece rapor ucu için, kurum yönetimi
+// (oluşturma/davet/üye listesi) burada YOK, öncelik #4'te eklenecek.
+export interface OrgReportTopLearner {
+  user_id: string;
+  username: string | null;
+  xp_gained: number;
+}
+
+export interface OrgReportWeakTopic {
+  topic_tag: string;
+  attempts: number;
+  accuracy: number;
+}
+
+export interface OrganizationReport {
+  org: { id: string; name: string | null; plan: string | null };
+  period: 'week' | 'month';
+  member_count: number;
+  active_member_count: number;
+  study: {
+    minutes_current: number; minutes_previous: number; minutes_change_pct: number | null;
+    sessions_current: number; sessions_previous: number; sessions_change_pct: number | null;
+  };
+  accuracy: { current: number | null; previous: number | null };
+  vocabulary: {
+    new_words_current: number; new_words_previous: number; new_words_change_pct: number | null;
+  };
+  top_learners: OrgReportTopLearner[];
+  weak_topics: OrgReportWeakTopic[];
+  badges_earned_current: number;
+}
+
+export const organizationsApi = {
+  getReport: async (orgId: string, period: 'week' | 'month' = 'week'): Promise<OrganizationReport> => {
+    const res = await api.get<OrganizationReport>(`/organizations/${orgId}/report`, { params: { period } });
+    return res.data;
+  },
+};

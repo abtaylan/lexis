@@ -40,6 +40,7 @@ from app.schemas.organizations import (
     OrganizationMembersResponse,
 )
 from app.services.auth_users import list_all_auth_users
+from app.services.organization_report_service import get_organization_report
 
 router = APIRouter()
 
@@ -273,3 +274,24 @@ async def remove_member(org_id: str, user_id: str, current_user=Depends(get_curr
     supabase_admin.table("organization_members").delete().eq("org_id", org_id).eq(
         "user_id", user_id
     ).execute()
+
+
+# ── Kurum Raporu — İstatistik & Raporlama V2 öncelik #3, madde B ──────
+# Dönemsel (bu hafta/ay) kurum GENELİNDE bir özet: çalışma süresi, doğruluk,
+# en aktif üyeler, zayıf konular, kazanılan rozetler. Sadece owner/admin
+# görebilir (bkz. _require_manage_role) — normal bir üyenin kurum-içi
+# liderlik tablosunu (yukarıdaki /members) görmesi ile bu raporu görmesi
+# FARKLI yetki seviyeleri: rapor yönetimsel bir görünüm, tüm üyelere açık
+# değil.
+@router.get("/{org_id}/report")
+async def get_organization_report_route(
+    org_id: str,
+    period: str = "week",
+    current_user=Depends(get_current_user),
+):
+    _require_manage_role(org_id, current_user.id)
+    if period not in ("week", "month"):
+        raise HTTPException(
+            status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı."
+        )
+    return await get_organization_report(org_id, period)  # type: ignore[arg-type]
