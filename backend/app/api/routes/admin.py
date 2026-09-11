@@ -233,7 +233,7 @@ async def delete_user_permanently(user_id: str, admin=Depends(get_current_admin_
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception("DELETE_USER_PERMANENT failed for user_id=%s: %s", user_id, e)
+        logger.exception("DELETE_USER_PERMANENT failed for user_id=%s", user_id)
         raise HTTPException(status_code=500, detail=f"Kullanıcı silinemedi: {e}")
 
     log_admin_action(
