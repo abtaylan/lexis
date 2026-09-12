@@ -2,9 +2,25 @@
 
 // app/(app)/duels/[id]/page.tsx — V2 §6.3 Faz 3a/3e: Düello odası.
 // Bekleme odası (katılımcı listesi + başlat) -> aktif tur (tanım + 4
-// seçenek, canlı sayaç) -> bitiş (final skor tablosu). Gerçek zamanlı
-// yayın (Realtime) YOK — bilinçli olarak POLLING kullanılıyor (bkz.
-// backend/app/api/routes/duels.py modül docstring'i, alt-faz 3e notu).
+// seçenek, canlı sayaç) -> bitiş (final skor tablosu).
+//
+// GÜNCELLEME (12 Eylül 2026, V2 öncelik #5 — "Gerçek Zamanlı Düello"):
+// artık Supabase Realtime de devrede — `duels` ve `duel_participants`
+// tabloları publication'a eklendi (bkz. supabase/migrations/
+// 067_duel_realtime.sql). Realtime BURADA VERİ KAYNAĞI OLARAK
+// KULLANILMIYOR (payload'a güvenilmiyor) — sadece "bir şey değişti,
+// hemen tick() çağır" sinyali olarak kullanılıyor ("wake up and
+// refetch" deseni): yetkilendirme/iş kuralları hâlâ tamamen mevcut
+// REST tick() çağrısında. POLL_MS bu yüzden 2sn'den ~8sn'e çıkarıldı —
+// hızlı yol artık Realtime, polling sadece güvenlik ağı (bağlantı
+// koptuğunda/olay kaçırıldığında). `duel_rounds`/`duel_answers`
+// BİLİNÇLİ OLARAK publication'a eklenmedi — bkz. backend/app/schemas/
+// duels.py::DuelStatusResponse/DuelRoundPublic docstring'leri
+// (correct_option asla client'a round bitmeden gönderilmez).
+// BİLİNÇLİ SINIR: mobil tarafta @supabase/supabase-js henüz kurulu
+// değil (npx expo install ... kullanıcının kendi terminalinden
+// çalıştırması gerekiyor) — mobil şimdilik sadece polling ile devam
+// ediyor, bu web-only bir iyileştirme.
 // Backend: /api/v1/duels/* (bkz. backend/app/api/routes/duels.py)
 
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -14,6 +30,7 @@ import { Swords, Loader2, Play, LogOut, Check, X, Trophy } from 'lucide-react';
 import { duelsApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { supabase } from '@/lib/supabase';
 import type { DuelStatusResponse, DuelRoundPublic } from '@/types';
 
 function errorDetail(err: unknown): string | undefined {
@@ -126,7 +143,9 @@ const L: Record<Locale, Record<string, string>> = {
   },
 };
 
-const POLL_MS = 2000;
+// Realtime artık hızlı yolu üstleniyor (bkz. yukarıdaki modül notu) —
+// bu sadece yedek/güvenlik ağı aralığı.
+const POLL_MS = 8000;
 
 export default function DuelRoomPage() {
   const params = useParams<{ id: string }>();
@@ -198,6 +217,31 @@ export default function DuelRoomPage() {
     const interval = setInterval(tick, POLL_MS);
     return () => clearInterval(interval);
   }, [tick]);
+
+  // Realtime "uyandır ve yeniden çek" (bkz. modül başı notu): duels/
+  // duel_participants tablolarındaki HERHANGİ bir değişiklikte (skor,
+  // durum, katılımcı giriş/çıkış, tur ilerlemesi) polling aralığını
+  // beklemeden tick()'i hemen tetikler. Realtime bağlantısı kopsa/olay
+  // kaçırılsa bile yukarıdaki interval yedek olarak çalışmaya devam eder.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`duel-room-${duelId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'duels', filter: `id=eq.${duelId}` },
+        () => { tick(); },
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'duel_participants', filter: `duel_id=eq.${duelId}` },
+        () => { tick(); },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [duelId, tick]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 500);
