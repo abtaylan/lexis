@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { organizationsApi, type OrganizationReport } from '@/lib/api';
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
 import { useLocale } from '@/lib/i18n';
 import { ORG_REPORT_L } from '@/lib/orgReportLocale';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -152,6 +153,18 @@ export default function OrganizationReportPage() {
           {t.monthTab}
         </button>
       </div>
+
+      <ReportExportMenu
+        className="mb-5"
+        labels={{
+          formatCsv: t.exportFormatCsv, formatXlsx: t.exportFormatXlsx, formatPdf: t.exportFormatPdf,
+          downloadBtn: t.exportDownloadBtn, emailBtn: t.exportEmailBtn,
+          downloading: t.exportDownloading, sending: t.exportSending,
+          sentToTpl: t.exportSentToTpl, errorMsg: t.exportErrorMsg,
+        }}
+        onExport={(format) => organizationsApi.exportReport(orgId, period, format)}
+        onEmail={(format) => organizationsApi.sendReportEmail(orgId, period, format)}
+      />
 
       {error ? (
         <Card className="text-center">

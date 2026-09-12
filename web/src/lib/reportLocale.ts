@@ -62,6 +62,19 @@ export interface ReportStrings {
   percentileUnit: string;
   noPlatformDataLabel: string;
   sameCountryNoteLabel: string;
+  // İstatistik & Raporlama V2 öncelik #3, Faz 3 madde F — export/e-posta
+  // kontrolü (bkz. components/reports/ReportExportMenu.tsx). Üretilen
+  // dosyanın içeriği HER ZAMAN Türkçe (bkz. backend report_export_service.py) —
+  // bu alanlar sadece buton/etiket metinleri için.
+  exportFormatCsv: string;
+  exportFormatXlsx: string;
+  exportFormatPdf: string;
+  exportDownloadBtn: string;
+  exportEmailBtn: string;
+  exportDownloading: string;
+  exportSending: string;
+  exportSentToTpl: string;
+  exportErrorMsg: string;
 }
 
 // backend'in weak_topics/strong_topics döndürdüğü topic_tag ham anahtarları
@@ -97,6 +110,11 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'yüzdelik dilim',
     noPlatformDataLabel: 'Henüz karşılaştırılacak yeterli platform verisi yok.',
     sameCountryNoteLabel: 'Şu an tüm kullanıcılar aynı ülkede olduğu için bu karşılaştırma ulusal değil, platform geneli.',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'İndir', exportEmailBtn: 'E-posta ile Gönder',
+    exportDownloading: 'İndiriliyor…', exportSending: 'Gönderiliyor…',
+    exportSentToTpl: '{email} adresine gönderildi',
+    exportErrorMsg: 'Bir şeyler ters gitti, lütfen tekrar dene.',
   },
   en: {
     title: 'My Report', subtitle: 'A period-over-period summary of your progress.',
@@ -126,6 +144,11 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentile',
     noPlatformDataLabel: 'Not enough platform data to compare yet.',
     sameCountryNoteLabel: 'Since all users are currently in the same country, this is a platform-wide comparison rather than a national one.',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Download', exportEmailBtn: 'Email It',
+    exportDownloading: 'Downloading…', exportSending: 'Sending…',
+    exportSentToTpl: 'Sent to {email}',
+    exportErrorMsg: 'Something went wrong, please try again.',
   },
   de: {
     title: 'Mein Bericht', subtitle: 'Eine Zusammenfassung deines Fortschritts im Zeitvergleich.',
@@ -155,6 +178,11 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'Perzentil',
     noPlatformDataLabel: 'Noch nicht genug Plattformdaten zum Vergleich.',
     sameCountryNoteLabel: 'Da sich derzeit alle Nutzer im selben Land befinden, ist dies ein plattformweiter statt ein nationaler Vergleich.',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Herunterladen', exportEmailBtn: 'Per E-Mail senden',
+    exportDownloading: 'Wird heruntergeladen…', exportSending: 'Wird gesendet…',
+    exportSentToTpl: 'An {email} gesendet',
+    exportErrorMsg: 'Etwas ist schiefgelaufen, bitte versuche es erneut.',
   },
   fr: {
     title: 'Mon rapport', subtitle: "Un résumé de tes progrès, période par période.",
@@ -184,6 +212,11 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentile',
     noPlatformDataLabel: 'Pas encore assez de données de la plateforme pour comparer.',
     sameCountryNoteLabel: "Comme tous les utilisateurs sont actuellement dans le même pays, il s'agit d'une comparaison à l'échelle de la plateforme plutôt que nationale.",
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Télécharger', exportEmailBtn: 'Envoyer par e-mail',
+    exportDownloading: 'Téléchargement…', exportSending: 'Envoi…',
+    exportSentToTpl: 'Envoyé à {email}',
+    exportErrorMsg: 'Une erreur s\'est produite, réessaie.',
   },
   es: {
     title: 'Mi informe', subtitle: 'Un resumen de tu progreso, periodo tras periodo.',
@@ -213,6 +246,11 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentil',
     noPlatformDataLabel: 'Aún no hay suficientes datos de la plataforma para comparar.',
     sameCountryNoteLabel: 'Como todos los usuarios están actualmente en el mismo país, esta es una comparación a nivel de plataforma y no nacional.',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Descargar', exportEmailBtn: 'Enviar por correo',
+    exportDownloading: 'Descargando…', exportSending: 'Enviando…',
+    exportSentToTpl: 'Enviado a {email}',
+    exportErrorMsg: 'Algo salió mal, inténtalo de nuevo.',
   },
   it: {
     title: 'Il mio report', subtitle: 'Un riepilogo dei tuoi progressi, periodo su periodo.',
@@ -242,6 +280,11 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentile',
     noPlatformDataLabel: 'Non ci sono ancora abbastanza dati della piattaforma per confrontare.',
     sameCountryNoteLabel: 'Poiché al momento tutti gli utenti si trovano nello stesso paese, questo è un confronto a livello di piattaforma e non nazionale.',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Scarica', exportEmailBtn: 'Invia via email',
+    exportDownloading: 'Download in corso…', exportSending: 'Invio in corso…',
+    exportSentToTpl: 'Inviato a {email}',
+    exportErrorMsg: 'Qualcosa è andato storto, riprova.',
   },
   ar: {
     title: 'تقريري', subtitle: 'ملخص لتقدمك مقارنة بالفترة السابقة.',
@@ -271,6 +314,11 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'شريحة مئوية',
     noPlatformDataLabel: 'لا توجد بيانات كافية من المنصة للمقارنة بعد.',
     sameCountryNoteLabel: 'نظرًا لأن جميع المستخدمين حاليًا في نفس البلد، فهذه مقارنة على مستوى المنصة وليست وطنية.',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'تنزيل', exportEmailBtn: 'إرسال بالبريد الإلكتروني',
+    exportDownloading: 'جارٍ التنزيل…', exportSending: 'جارٍ الإرسال…',
+    exportSentToTpl: 'تم الإرسال إلى {email}',
+    exportErrorMsg: 'حدث خطأ ما، يرجى المحاولة مرة أخرى.',
   },
   ru: {
     title: 'Мой отчёт', subtitle: 'Сводка твоего прогресса по сравнению с прошлым периодом.',
@@ -300,6 +348,11 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'процентиль',
     noPlatformDataLabel: 'Пока недостаточно данных платформы для сравнения.',
     sameCountryNoteLabel: 'Поскольку сейчас все пользователи находятся в одной стране, это сравнение в рамках всей платформы, а не национальное.',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Скачать', exportEmailBtn: 'Отправить по почте',
+    exportDownloading: 'Скачивание…', exportSending: 'Отправка…',
+    exportSentToTpl: 'Отправлено на {email}',
+    exportErrorMsg: 'Что-то пошло не так, попробуй ещё раз.',
   },
   ja: {
     title: 'マイレポート', subtitle: '前期間と比較した進捗のまとめ。',
@@ -329,6 +382,11 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'パーセンタイル',
     noPlatformDataLabel: '比較するのに十分なプラットフォームデータがまだありません。',
     sameCountryNoteLabel: '現在すべてのユーザーが同じ国にいるため、これは国別ではなくプラットフォーム全体の比較です。',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'ダウンロード', exportEmailBtn: 'メールで送信',
+    exportDownloading: 'ダウンロード中…', exportSending: '送信中…',
+    exportSentToTpl: '{email} に送信しました',
+    exportErrorMsg: '問題が発生しました。もう一度お試しください。',
   },
   pt: {
     title: 'Meu Relatório', subtitle: 'Um resumo do teu progresso, período após período.',
@@ -358,5 +416,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentil',
     noPlatformDataLabel: 'Ainda não há dados suficientes da plataforma para comparar.',
     sameCountryNoteLabel: 'Como todos os utilizadores estão atualmente no mesmo país, esta é uma comparação a nível da plataforma, não nacional.',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Transferir', exportEmailBtn: 'Enviar por email',
+    exportDownloading: 'A transferir…', exportSending: 'A enviar…',
+    exportSentToTpl: 'Enviado para {email}',
+    exportErrorMsg: 'Algo correu mal, tenta novamente.',
   },
 };

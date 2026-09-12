@@ -431,6 +431,22 @@ export interface BadgeCatalogItem {
   period_key: string | null;
 }
 
+export type ReportExportFormat = 'csv' | 'xlsx' | 'pdf';
+
+// Tarayıcıda blob response'u indirilebilir bir dosyaya çevirir (rapor
+// export/e-posta özellikleri için ortak yardımcı — user report + org report
+// export'u aynı deseni kullanıyor).
+function downloadBlobResponse(blob: Blob, filename: string): void {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export interface UserReportTopicAccuracy {
   topic_tag: string;
   attempts: number;
@@ -511,6 +527,20 @@ export const statsApi = {
   },
   getUserReport: async (period: 'week' | 'month' = 'week'): Promise<UserReport> => {
     const res = await api.get<UserReport>('/stats/report', { params: { period } });
+    return res.data;
+  },
+  // İstatistik & Raporlama V2 öncelik #3, Faz 3 madde F — rapor export.
+  // BİLİNÇLİ KAPSAM: üretilen dosya içeriği HER ZAMAN Türkçe (bkz. backend
+  // report_export_service.py modül docstring'i) — sadece bu buton/etiket
+  // metinleri kullanıcının arayüz diline göre çevriliyor.
+  exportUserReport: async (period: 'week' | 'month', format: ReportExportFormat): Promise<void> => {
+    const res = await api.get('/stats/report/export', { params: { period, format }, responseType: 'blob' });
+    downloadBlobResponse(res.data, `lexis-rapor-${period}.${format}`);
+  },
+  sendUserReportEmail: async (
+    period: 'week' | 'month', format: ReportExportFormat
+  ): Promise<{ sent: boolean; to: string }> => {
+    const res = await api.post('/stats/report/send-email', null, { params: { period, format } });
     return res.data;
   },
   getLeaderboard: async (
@@ -1285,6 +1315,19 @@ export interface OrganizationReport {
 export const organizationsApi = {
   getReport: async (orgId: string, period: 'week' | 'month' = 'week'): Promise<OrganizationReport> => {
     const res = await api.get<OrganizationReport>(`/organizations/${orgId}/report`, { params: { period } });
+    return res.data;
+  },
+  exportReport: async (orgId: string, period: 'week' | 'month', format: ReportExportFormat): Promise<void> => {
+    const res = await api.get(`/organizations/${orgId}/report/export`, {
+      params: { period, format },
+      responseType: 'blob',
+    });
+    downloadBlobResponse(res.data, `lexis-kurum-rapor-${period}.${format}`);
+  },
+  sendReportEmail: async (
+    orgId: string, period: 'week' | 'month', format: ReportExportFormat
+  ): Promise<{ sent: boolean; to: string }> => {
+    const res = await api.post(`/organizations/${orgId}/report/send-email`, null, { params: { period, format } });
     return res.data;
   },
 };

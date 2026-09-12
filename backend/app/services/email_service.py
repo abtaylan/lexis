@@ -1,5 +1,8 @@
+import base64
 import smtplib
 import socket
+from email import encoders
+from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
@@ -26,6 +29,38 @@ def _send_via_resend(to_email: str, subject: str, html_body: str) -> None:
             "html": html_body,
         },
         timeout=15,
+    )
+    resp.raise_for_status()
+
+
+def _send_via_resend_with_attachment(
+    to_email: str,
+    subject: str,
+    html_body: str,
+    attachment_filename: str,
+    attachment_bytes: bytes,
+    attachment_content_type: str,
+) -> None:
+    """_send_via_resend ile aynı, tek farkla: Resend'in "attachments" alanı
+    (İstatistik & Raporlama V2 öncelik #3, Faz 3 madde F — rapor export
+    e-postası). Resend base64 içerik bekliyor (veri URI ÖNEKİ OLMADAN, ham
+    base64 string)."""
+    resp = httpx.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+        json={
+            "from": settings.RESEND_FROM_EMAIL or f"{settings.SMTP_FROM_NAME} <onboarding@resend.dev>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_body,
+            "attachments": [
+                {
+                    "filename": attachment_filename,
+                    "content": base64.b64encode(attachment_bytes).decode("ascii"),
+                }
+            ],
+        },
+        timeout=30,
     )
     resp.raise_for_status()
 
@@ -404,3 +439,91 @@ def send_daily_word_email(to_email: str, user_id: str, content: dict) -> None:
     except Exception as e:
         print(f"DAILY WORD EMAIL SEND ERROR via SMTP ({to_email}): {e}")
         log_notification("email", "daily_word", to_email, "failed", {"word": content["word"], "error": str(e), "via": "smtp"})
+
+
+def send_report_export_email(
+    to_email: str,
+    subject: str,
+    intro_html: str,
+    attachment_filename: str,
+    attachment_bytes: bytes,
+    attachment_content_type: str,
+) -> bool:
+    """
+    İstatistik & Raporlama V2 öncelik #3, Faz 3 madde F — "rapor e-postayla
+    gönder" (isteğe bağlı/on-demand): kullanıcı "Raporum" sayfasında ya da
+    kurum admin'i "Kurum Raporu" sayfasında bir butonla, O AN oluşturduğu
+    CSV/XLSX/PDF export'unu kendi (ya da kurum admin'inin kendi) e-postasına
+    gönderir.
+
+    BİLİNÇLİ KAPSAM SINIRI: bu PERİYODİK/otomatik bir dağıtım sistemi
+    DEĞİL — sadece kullanıcının o an bastığı bir "e-posta ile gönder"
+    butonunun karşılığı (report_export_service.py'nin V1 kapsamıyla
+    tutarlı: export zaten sadece Türkçe render ediyor, bu da aynı V1
+    sınırının bir parçası — otomatik/zamanlanmış e-posta dağıtımı, kişiye
+    özel abonelik tercihi gibi ek karmaşıklık gerektirdiği için kapsam
+    dışı bırakıldı).
+
+    Diğer send_*_email fonksiyonlarından FARKLI olarak bool döner (route
+    katmanı bunu senkron bir kullanıcı eylemi olarak 200/502'ye çeviriyor —
+    arka plan job'u değil, kullanıcı butona basıp sonucu bekliyor).
+    """
+    if settings.OTP_MODE != "real":
+        print(f"[REPORT-EMAIL-DEV] {to_email} → '{attachment_filename}' ({len(attachment_bytes)} bayt) — gönderilmedi (OTP_MODE=fixed)")
+        log_notification("email", "report_export", to_email, "skipped", {"filename": attachment_filename, "reason": "OTP_MODE=fixed"})
+        return True  # dev modunda gerçekten mail atılmasa da kullanıcıya "gönderildi" gibi davran
+
+    if not settings.RESEND_API_KEY and (not settings.SMTP_USER or not settings.SMTP_PASSWORD):
+        print(f"[REPORT-EMAIL] Mail sağlayıcısı ayarlanmamış, gönderilemedi: {to_email}")
+        log_notification("email", "report_export", to_email, "failed", {"filename": attachment_filename, "reason": "no email provider configured"})
+        return False
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+      <h2 style="color:#0284c7; margin-bottom: 4px;">Lexis</h2>
+      {intro_html}
+      <p style="color:#64748b; font-size: 13px; margin-top: 20px;">
+        Raporun ekte ({attachment_filename}).
+      </p>
+    </div>
+    """
+
+    if settings.RESEND_API_KEY:
+        try:
+            _send_via_resend_with_attachment(
+                to_email, subject, html_body, attachment_filename, attachment_bytes, attachment_content_type
+            )
+            log_notification("email", "report_export", to_email, "sent", {"filename": attachment_filename, "via": "resend"})
+            return True
+        except Exception as e:
+            print(f"REPORT EXPORT EMAIL SEND ERROR via Resend ({to_email}): {e}")
+            log_notification("email", "report_export", to_email, "failed", {"filename": attachment_filename, "error": str(e), "via": "resend"})
+            return False
+
+    msg = MIMEMultipart("mixed")
+    msg["Subject"] = subject
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["To"] = to_email
+    alt_part = MIMEMultipart("alternative")
+    alt_part.attach(MIMEText(html_body, "html"))
+    msg.attach(alt_part)
+
+    content_type_clean = attachment_content_type.split(";")[0].strip()
+    maintype, _, subtype = content_type_clean.partition("/")
+    attachment_part = MIMEBase(maintype or "application", subtype or "octet-stream")
+    attachment_part.set_payload(attachment_bytes)
+    encoders.encode_base64(attachment_part)
+    attachment_part.add_header("Content-Disposition", "attachment", filename=attachment_filename)
+    msg.attach(attachment_part)
+
+    try:
+        with _IPv4SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+        log_notification("email", "report_export", to_email, "sent", {"filename": attachment_filename, "via": "smtp"})
+        return True
+    except Exception as e:
+        print(f"REPORT EXPORT EMAIL SEND ERROR via SMTP ({to_email}): {e}")
+        log_notification("email", "report_export", to_email, "failed", {"filename": attachment_filename, "error": str(e), "via": "smtp"})
+        return False

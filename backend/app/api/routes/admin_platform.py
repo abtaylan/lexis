@@ -45,6 +45,7 @@ get_current_admin_full (sadece 'admin') ile.
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from app.core.auth import get_current_admin, get_current_admin_full
@@ -59,6 +60,7 @@ from app.services.content_flag_service import (
     update_content_flag,
 )
 from app.services.platform_snapshot_service import capture_daily_snapshot, get_snapshots
+from app.services.report_export_service import build_platform_snapshots_document, render, SUPPORTED_FORMATS
 
 router = APIRouter()
 
@@ -846,3 +848,25 @@ async def capture_platform_snapshot(
     result = await capture_daily_snapshot(target_date=target_date)
     log_admin_action(admin.id, admin.email, "platform_snapshots.capture", detail=result)
     return result
+
+
+# ── Platform Günlük Özet Export — İstatistik & Raporlama V2 öncelik #3,
+# madde F ── CSV/XLSX/PDF indirme (bkz. get_current_admin — admin_readonly
+# da erişebilir, tıpkı /platform-stats/snapshots GET'i gibi salt okunur).
+@router.get("/platform-stats/snapshots/export")
+async def export_platform_snapshots(
+    days: int = 30, format: str = "xlsx", admin=Depends(get_current_admin)
+):
+    if format not in SUPPORTED_FORMATS:
+        raise HTTPException(status_code=400, detail=f"Geçersiz format. Şunlardan biri olmalı: {', '.join(SUPPORTED_FORMATS)}")
+
+    rows = await get_snapshots(days=days)
+    generated_at = (datetime.now(UTC) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+    doc = build_platform_snapshots_document(rows, generated_at=generated_at)
+    body, media_type = render(doc, format)
+    filename = f"lexis-platform-ozet-{days}gun.{format}"
+    return Response(
+        content=body,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

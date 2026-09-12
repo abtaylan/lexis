@@ -30,6 +30,17 @@ export interface OrgReportStrings {
   attemptsUnit: string;
   sectionBadges: string;
   badgesEarnedLabel: string;
+  // İstatistik & Raporlama V2 öncelik #3, Faz 3 madde F — export/e-posta
+  // kontrolü (bkz. components/reports/ReportExportMenu.tsx).
+  exportFormatCsv: string;
+  exportFormatXlsx: string;
+  exportFormatPdf: string;
+  exportDownloadBtn: string;
+  exportEmailBtn: string;
+  exportDownloading: string;
+  exportSending: string;
+  exportSentToTpl: string;
+  exportErrorMsg: string;
 }
 
 export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
@@ -46,6 +57,11 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: 'En Aktif Üyeler', noTopLearnersLabel: 'Bu dönem henüz XP kazanan üye yok.', xpUnit: 'XP',
     sectionWeakTopics: 'Kurum Genelinde Zayıf Konular', noWeakTopicsLabel: 'Henüz yeterli veri yok.', attemptsUnit: 'deneme',
     sectionBadges: 'Rozetler', badgesEarnedLabel: 'Bu dönem kazanılan rozet (kurum toplamı)',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'İndir', exportEmailBtn: 'E-posta ile Gönder',
+    exportDownloading: 'İndiriliyor…', exportSending: 'Gönderiliyor…',
+    exportSentToTpl: '{email} adresine gönderildi',
+    exportErrorMsg: 'Bir şeyler ters gitti, lütfen tekrar dene.',
   },
   en: {
     title: 'Organization Report', subtitle: "Your organization's overall progress this period, compared to the previous one.",
@@ -60,6 +76,11 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: 'Top Learners', noTopLearnersLabel: 'No member has earned XP this period yet.', xpUnit: 'XP',
     sectionWeakTopics: 'Weakest Topics Org-Wide', noWeakTopicsLabel: 'Not enough data yet.', attemptsUnit: 'attempts',
     sectionBadges: 'Badges', badgesEarnedLabel: 'Badges earned this period (org total)',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Download', exportEmailBtn: 'Email It',
+    exportDownloading: 'Downloading…', exportSending: 'Sending…',
+    exportSentToTpl: 'Sent to {email}',
+    exportErrorMsg: 'Something went wrong, please try again.',
   },
   de: {
     title: 'Organisationsbericht', subtitle: 'Der Gesamtfortschritt deiner Organisation in diesem Zeitraum im Vergleich zum vorherigen.',
@@ -74,6 +95,11 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: 'Aktivste Mitglieder', noTopLearnersLabel: 'Noch kein Mitglied hat in diesem Zeitraum XP verdient.', xpUnit: 'XP',
     sectionWeakTopics: 'Schwächste Themen (organisationsweit)', noWeakTopicsLabel: 'Noch nicht genug Daten.', attemptsUnit: 'Versuche',
     sectionBadges: 'Abzeichen', badgesEarnedLabel: 'In diesem Zeitraum verdiente Abzeichen (Organisation gesamt)',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Herunterladen', exportEmailBtn: 'Per E-Mail senden',
+    exportDownloading: 'Wird heruntergeladen…', exportSending: 'Wird gesendet…',
+    exportSentToTpl: 'An {email} gesendet',
+    exportErrorMsg: 'Etwas ist schiefgelaufen, bitte versuche es erneut.',
   },
   fr: {
     title: "Rapport d'organisation", subtitle: "La progression globale de ton organisation sur cette période, comparée à la précédente.",
@@ -88,6 +114,11 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: 'Membres les plus actifs', noTopLearnersLabel: "Aucun membre n'a encore gagné d'XP cette période.", xpUnit: 'XP',
     sectionWeakTopics: "Sujets les plus faibles de l'organisation", noWeakTopicsLabel: 'Pas encore assez de données.', attemptsUnit: 'essais',
     sectionBadges: 'Badges', badgesEarnedLabel: "Badges obtenus cette période (total de l'organisation)",
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Télécharger', exportEmailBtn: 'Envoyer par e-mail',
+    exportDownloading: 'Téléchargement…', exportSending: 'Envoi…',
+    exportSentToTpl: 'Envoyé à {email}',
+    exportErrorMsg: 'Une erreur s\'est produite, réessaie.',
   },
   es: {
     title: 'Informe de la Organización', subtitle: 'El progreso general de tu organización en este periodo, comparado con el anterior.',
@@ -102,6 +133,11 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: 'Miembros más activos', noTopLearnersLabel: 'Ningún miembro ha ganado XP este periodo todavía.', xpUnit: 'XP',
     sectionWeakTopics: 'Temas más débiles de la organización', noWeakTopicsLabel: 'Aún no hay suficientes datos.', attemptsUnit: 'intentos',
     sectionBadges: 'Insignias', badgesEarnedLabel: 'Insignias obtenidas este periodo (total de la organización)',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Descargar', exportEmailBtn: 'Enviar por correo',
+    exportDownloading: 'Descargando…', exportSending: 'Enviando…',
+    exportSentToTpl: 'Enviado a {email}',
+    exportErrorMsg: 'Algo salió mal, inténtalo de nuevo.',
   },
   it: {
     title: "Report dell'Organizzazione", subtitle: "L'andamento generale della tua organizzazione in questo periodo, rispetto al precedente.",
@@ -116,6 +152,11 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: 'Membri più attivi', noTopLearnersLabel: 'Nessun membro ha ancora guadagnato XP in questo periodo.', xpUnit: 'XP',
     sectionWeakTopics: "Argomenti più deboli dell'organizzazione", noWeakTopicsLabel: 'Non ci sono ancora abbastanza dati.', attemptsUnit: 'tentativi',
     sectionBadges: 'Badge', badgesEarnedLabel: "Badge ottenuti in questo periodo (totale organizzazione)",
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Scarica', exportEmailBtn: 'Invia via email',
+    exportDownloading: 'Download in corso…', exportSending: 'Invio in corso…',
+    exportSentToTpl: 'Inviato a {email}',
+    exportErrorMsg: 'Qualcosa è andato storto, riprova.',
   },
   ar: {
     title: 'تقرير المؤسسة', subtitle: 'التقدم العام لمؤسستك في هذه الفترة، مقارنة بالفترة السابقة.',
@@ -130,6 +171,11 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: 'الأعضاء الأكثر نشاطًا', noTopLearnersLabel: 'لم يكتسب أي عضو XP بعد في هذه الفترة.', xpUnit: 'XP',
     sectionWeakTopics: 'أضعف المواضيع على مستوى المؤسسة', noWeakTopicsLabel: 'لا توجد بيانات كافية بعد.', attemptsUnit: 'محاولة',
     sectionBadges: 'الأوسمة', badgesEarnedLabel: 'الأوسمة المكتسبة هذه الفترة (إجمالي المؤسسة)',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'تنزيل', exportEmailBtn: 'إرسال بالبريد الإلكتروني',
+    exportDownloading: 'جارٍ التنزيل…', exportSending: 'جارٍ الإرسال…',
+    exportSentToTpl: 'تم الإرسال إلى {email}',
+    exportErrorMsg: 'حدث خطأ ما، يرجى المحاولة مرة أخرى.',
   },
   ru: {
     title: 'Отчёт организации', subtitle: 'Общий прогресс твоей организации за этот период по сравнению с предыдущим.',
@@ -144,6 +190,11 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: 'Самые активные участники', noTopLearnersLabel: 'Пока ни один участник не заработал XP за этот период.', xpUnit: 'XP',
     sectionWeakTopics: 'Самые слабые темы по организации', noWeakTopicsLabel: 'Пока недостаточно данных.', attemptsUnit: 'попыток',
     sectionBadges: 'Значки', badgesEarnedLabel: 'Значков получено за этот период (всего по организации)',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Скачать', exportEmailBtn: 'Отправить по почте',
+    exportDownloading: 'Скачивание…', exportSending: 'Отправка…',
+    exportSentToTpl: 'Отправлено на {email}',
+    exportErrorMsg: 'Что-то пошло не так, попробуй ещё раз.',
   },
   ja: {
     title: '組織レポート', subtitle: '前期間と比較した、あなたの組織全体の今期の進捗。',
@@ -158,6 +209,11 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: '最も活発なメンバー', noTopLearnersLabel: '今期まだXPを獲得したメンバーはいません。', xpUnit: 'XP',
     sectionWeakTopics: '組織全体の弱いトピック', noWeakTopicsLabel: 'まだ十分なデータがありません。', attemptsUnit: '回',
     sectionBadges: 'バッジ', badgesEarnedLabel: '今期獲得したバッジ（組織合計）',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'ダウンロード', exportEmailBtn: 'メールで送信',
+    exportDownloading: 'ダウンロード中…', exportSending: '送信中…',
+    exportSentToTpl: '{email} に送信しました',
+    exportErrorMsg: '問題が発生しました。もう一度お試しください。',
   },
   pt: {
     title: 'Relatório da Organização', subtitle: 'O progresso geral da tua organização neste período, em comparação com o anterior.',
@@ -172,5 +228,10 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionTopLearners: 'Membros Mais Ativos', noTopLearnersLabel: 'Ainda nenhum membro ganhou XP neste período.', xpUnit: 'XP',
     sectionWeakTopics: 'Tópicos Mais Fracos da Organização', noWeakTopicsLabel: 'Ainda não há dados suficientes.', attemptsUnit: 'tentativas',
     sectionBadges: 'Insígnias', badgesEarnedLabel: 'Insígnias conquistadas neste período (total da organização)',
+    exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
+    exportDownloadBtn: 'Transferir', exportEmailBtn: 'Enviar por email',
+    exportDownloading: 'A transferir…', exportSending: 'A enviar…',
+    exportSentToTpl: 'Enviado para {email}',
+    exportErrorMsg: 'Algo correu mal, tenta novamente.',
   },
 };

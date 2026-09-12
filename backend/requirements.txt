@@ -17,3 +17,7 @@ requests==2.32.3
 
 # Sınav Hazırlık — AI ile soru üretimi (bkz. app/services/exam_question_generator.py)
 anthropic==1.4.0
+
+# İstatistik & Raporlama V2 — rapor export (bkz. app/services/report_export_service.py)
+openpyxl==3.1.5
+reportlab==5.0.0

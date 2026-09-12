@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { statsApi, type UserReport } from '@/lib/api';
+import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
 import { useLocale } from '@/lib/i18n';
 import { REPORT_L } from '@/lib/reportLocale';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -151,6 +152,18 @@ export default function ReportPage() {
           {t.monthTab}
         </button>
       </div>
+
+      <ReportExportMenu
+        className="mb-5"
+        labels={{
+          formatCsv: t.exportFormatCsv, formatXlsx: t.exportFormatXlsx, formatPdf: t.exportFormatPdf,
+          downloadBtn: t.exportDownloadBtn, emailBtn: t.exportEmailBtn,
+          downloading: t.exportDownloading, sending: t.exportSending,
+          sentToTpl: t.exportSentToTpl, errorMsg: t.exportErrorMsg,
+        }}
+        onExport={(format) => statsApi.exportUserReport(period, format)}
+        onEmail={(format) => statsApi.sendUserReportEmail(period, format)}
+      />
 
       {error ? (
         <Card className="text-center">

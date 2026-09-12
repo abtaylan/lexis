@@ -1,13 +1,16 @@
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.services.badge_service import get_badges_catalog, get_user_badges
 from app.services.leaderboard_service import get_leaderboard
 from app.services.user_report_service import get_user_report
+from app.services.report_export_service import build_user_report_document, render, SUPPORTED_FORMATS
+from app.services.email_service import send_report_export_email
 from app.services.xp_service import get_xp_summary
 
 router = APIRouter()
@@ -160,6 +163,84 @@ async def get_user_report_route(period: str = "week", current_user=Depends(get_c
             status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı."
         )
     return await get_user_report(current_user.id, period)  # type: ignore[arg-type]
+
+# ── Kullanıcı Raporu Export — İstatistik & Raporlama V2 öncelik #3, madde F ──
+# CSV/XLSX/PDF indirme. V1 kapsamı: sadece Türkçe render (bkz.
+# report_export_service.py modül docstring'i) — 10 dilli rapor sayfası
+# i18n'i buraya taşınmadı, bu ayrı bir "indir" özelliği.
+@router.get("/report/export")
+async def export_user_report_route(
+    period: str = "week", format: str = "pdf", current_user=Depends(get_current_user)
+):
+    if period not in ("week", "month"):
+        raise HTTPException(status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı.")
+    if format not in SUPPORTED_FORMATS:
+        raise HTTPException(status_code=400, detail=f"Geçersiz format. Şunlardan biri olmalı: {', '.join(SUPPORTED_FORMATS)}")
+
+    report = await get_user_report(current_user.id, period)  # type: ignore[arg-type]
+    profile = (
+        supabase_admin.table("profiles")
+        .select("username")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    ).data or {}
+    username = profile.get("username") or current_user.email or "Kullanıcı"
+    generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+
+    doc = build_user_report_document(report, username=username, generated_at=generated_at)
+    body, media_type = render(doc, format)
+    filename = f"lexis-rapor-{period}.{format}"
+    return Response(
+        content=body,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ── Kullanıcı Raporu — E-posta ile Gönder (isteğe bağlı/on-demand) ──
+# BİLİNÇLİ KAPSAM SINIRI (bkz. email_service.py::send_report_export_email
+# docstring'i): periyodik/otomatik bir dağıtım DEĞİL, kullanıcının "Raporum"
+# sayfasındaki bir butonla o an tetiklediği tek seferlik gönderim.
+@router.post("/report/send-email")
+async def send_user_report_email_route(
+    period: str = "week", format: str = "pdf", current_user=Depends(get_current_user)
+):
+    if period not in ("week", "month"):
+        raise HTTPException(status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı.")
+    if format not in SUPPORTED_FORMATS:
+        raise HTTPException(status_code=400, detail=f"Geçersiz format. Şunlardan biri olmalı: {', '.join(SUPPORTED_FORMATS)}")
+    if not current_user.email:
+        raise HTTPException(status_code=400, detail="Hesabında kayıtlı bir e-posta adresi yok.")
+
+    report = await get_user_report(current_user.id, period)  # type: ignore[arg-type]
+    profile = (
+        supabase_admin.table("profiles")
+        .select("username")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    ).data or {}
+    username = profile.get("username") or current_user.email or "Kullanıcı"
+    generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+
+    doc = build_user_report_document(report, username=username, generated_at=generated_at)
+    body, media_type = render(doc, format)
+    filename = f"lexis-rapor-{period}.{format}"
+    period_label = "Haftalık" if period == "week" else "Aylık"
+
+    sent = send_report_export_email(
+        current_user.email,
+        subject=f"Lexis {period_label} Raporun Hazır",
+        intro_html=f'<p style="color:#334155; font-size:15px;">{period_label} çalışma raporun ekte — indirip inceleyebilirsin.</p>',
+        attachment_filename=filename,
+        attachment_bytes=body,
+        attachment_content_type=media_type,
+    )
+    if not sent:
+        raise HTTPException(status_code=502, detail="Rapor e-postayla gönderilemedi. Lütfen daha sonra tekrar dene.")
+    return {"sent": True, "to": current_user.email}
+
 
 # ── Detaylı analiz — grafik sayfası için ──────────────────────
 @router.get("/analytics")

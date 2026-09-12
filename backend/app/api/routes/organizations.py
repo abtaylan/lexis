@@ -27,7 +27,10 @@ admin API çağrısına geçilmeli (bkz. Supabase GoTrue admin API'sinin daha
 yeni sürümlerinde email filtresi olabilir, kontrol edilmedi).
 """
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
@@ -41,6 +44,8 @@ from app.schemas.organizations import (
 )
 from app.services.auth_users import list_all_auth_users
 from app.services.organization_report_service import get_organization_report
+from app.services.report_export_service import build_org_report_document, render, SUPPORTED_FORMATS
+from app.services.email_service import send_report_export_email
 
 router = APIRouter()
 
@@ -295,3 +300,69 @@ async def get_organization_report_route(
             status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı."
         )
     return await get_organization_report(org_id, period)  # type: ignore[arg-type]
+
+# ── Kurum Raporu Export — İstatistik & Raporlama V2 öncelik #3, madde F ──
+# CSV/XLSX/PDF indirme, sadece owner/admin (aynı yetki, _require_manage_role).
+@router.get("/{org_id}/report/export")
+async def export_organization_report_route(
+    org_id: str,
+    period: str = "week",
+    format: str = "pdf",
+    current_user=Depends(get_current_user),
+):
+    _require_manage_role(org_id, current_user.id)
+    if period not in ("week", "month"):
+        raise HTTPException(status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı.")
+    if format not in SUPPORTED_FORMATS:
+        raise HTTPException(status_code=400, detail=f"Geçersiz format. Şunlardan biri olmalı: {', '.join(SUPPORTED_FORMATS)}")
+
+    report = await get_organization_report(org_id, period)  # type: ignore[arg-type]
+    generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+    doc = build_org_report_document(report, generated_at=generated_at)
+    body, media_type = render(doc, format)
+    filename = f"lexis-kurum-rapor-{period}.{format}"
+    return Response(
+        content=body,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+# ── Kurum Raporu — E-posta ile Gönder (isteğe bağlı/on-demand) ──
+# Kendi (isteği yapan owner/admin'in) e-postasına gönderir — kurumun genel
+# bir "iletişim e-postası" alanı yok, bkz. organizations tablosu.
+@router.post("/{org_id}/report/send-email")
+async def send_organization_report_email_route(
+    org_id: str,
+    period: str = "week",
+    format: str = "pdf",
+    current_user=Depends(get_current_user),
+):
+    _require_manage_role(org_id, current_user.id)
+    if period not in ("week", "month"):
+        raise HTTPException(status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı.")
+    if format not in SUPPORTED_FORMATS:
+        raise HTTPException(status_code=400, detail=f"Geçersiz format. Şunlardan biri olmalı: {', '.join(SUPPORTED_FORMATS)}")
+    if not current_user.email:
+        raise HTTPException(status_code=400, detail="Hesabında kayıtlı bir e-posta adresi yok.")
+
+    report = await get_organization_report(org_id, period)  # type: ignore[arg-type]
+    generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+    doc = build_org_report_document(report, generated_at=generated_at)
+    body, media_type = render(doc, format)
+    filename = f"lexis-kurum-rapor-{period}.{format}"
+    period_label = "Haftalık" if period == "week" else "Aylık"
+    org_name = report.get("org", {}).get("name") or "kurumun"
+
+    sent = send_report_export_email(
+        current_user.email,
+        subject=f"Lexis {period_label} Kurum Raporu — {org_name}",
+        intro_html=f'<p style="color:#334155; font-size:15px;">{org_name} için {period_label.lower()} kurum raporu ekte.</p>',
+        attachment_filename=filename,
+        attachment_bytes=body,
+        attachment_content_type=media_type,
+    )
+    if not sent:
+        raise HTTPException(status_code=502, detail="Rapor e-postayla gönderilemedi. Lütfen daha sonra tekrar dene.")
+    return {"sent": True, "to": current_user.email}
+
