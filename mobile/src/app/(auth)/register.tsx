@@ -29,6 +29,12 @@ export default function RegisterScreen() {
   const [nativeLang, setNativeLang] = useState<string | null>('tr');
   const [learningLang, setLearningLang] = useState<string | null>('en');
 
+  // Referans/Davet Programı (V2 öncelik #8) — mobilde deep-link ile otomatik
+  // yakalama YOK (v1 kapsamı dışında bırakıldı, bkz. process_referral_rewards.py
+  // ve web/src/app/(auth)/register/page.tsx'teki ?ref= otomatik yakalama notu),
+  // sadece elle girilen opsiyonel kod.
+  const [referralCode, setReferralCode] = useState('');
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -70,6 +76,7 @@ export default function RegisterScreen() {
         username: username.trim() || undefined,
         native_lang: nativeLang,
         learning_lang: learningLang,
+        referral_code: referralCode.trim() || undefined,
       });
       router.push({ pathname: '/(auth)/verify-otp', params: { email: email.trim(), purpose: 'register' } });
     } catch (e) {
@@ -133,6 +140,20 @@ export default function RegisterScreen() {
 
           <Text style={[styles.label, { color: c.textSecondary, marginTop: spacing.lg }]}>{t('learningLangSelectLabel')}</Text>
           <ChipSelect options={langOptions} value={learningLang} onChange={setLearningLang} />
+
+          <View style={{ marginTop: spacing.lg }}>
+            <TextField
+              label={mt('referralCodeFieldLabel')}
+              placeholder={mt('referralCodeFieldPlaceholder')}
+              value={referralCode}
+              onChangeText={(v) => setReferralCode(v.toUpperCase())}
+              autoCapitalize="characters"
+              maxLength={8}
+            />
+            {referralCode ? (
+              <Text style={{ color: c.success, fontSize: 12, marginTop: -spacing.sm }}>{mt('referralCodeAppliedHint')}</Text>
+            ) : null}
+          </View>
 
           {error ? <Text style={[styles.error, { color: c.danger, marginTop: spacing.md }]}>{error}</Text> : null}
 

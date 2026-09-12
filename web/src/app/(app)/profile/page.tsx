@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
-import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus, Ban, Trash2 } from 'lucide-react';
-import { authApi, languagesApi, userLanguagesApi, socialApi } from '@/lib/api';
+import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus, Ban, Trash2, Gift, Copy, Check } from 'lucide-react';
+import { authApi, languagesApi, userLanguagesApi, socialApi, referralsApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { useLocale, LOCALE_META, type Locale } from '@/lib/i18n';
 import { BadgeShowcase } from '@/components/layout/BadgeShowcase';
-import type { User as UserType, Language, UserLanguage, UserCard } from '@/types';
+import type { User as UserType, Language, UserLanguage, UserCard, ReferralsSummary } from '@/types';
 
 // backend HTTPException'ların { detail: string } gövdesini `any` kullanmadan
 // okumak için — dosyadaki tüm catch bloklarında (legacy dahil) bu yardımcı
@@ -51,6 +51,191 @@ const BLOCK_LABELS: Record<
 // aksi halde LocaleProvider sessizce Türkçe'ye düşüyor (bkz. Bug 2, Ağustos 2026).
 const UI_SUPPORTED_CODES = new Set<string>(LOCALE_META.map((l) => l.code));
 
+// Referans/Davet Programı (V2 öncelik #8, 12 Eylül 2026) — BLOCK_LABELS'teki
+// aynı yerel-i18n deseni (merkezi i18n.tsx'e dokunmadan). Ödül: davet eden
+// +30 XP + 3 gün ücretsiz Premium, davet edilen +15 XP — davet edilen
+// kullanıcı 3 günlük seriye ulaşınca (bkz. process_referral_rewards.py).
+const REFERRAL_LABELS: Record<
+  Locale,
+  {
+    title: string;
+    desc: string;
+    yourCodeLabel: string;
+    copyBtn: string;
+    copiedLabel: string;
+    linkLabel: string;
+    invitedStatTpl: (n: number) => string;
+    rewardedStatTpl: (n: number) => string;
+    listEmpty: string;
+    listEmptySub: string;
+    pendingStatus: string;
+    rewardedStatus: string;
+    loading: string;
+    anonymousUser: string;
+  }
+> = {
+  tr: {
+    title: 'Arkadaşını Davet Et',
+    desc: 'Kodunu paylaş: arkadaşın 3 günlük seriye ulaşınca sana +30 XP ve 3 gün ücretsiz Premium, ona +15 XP verilir.',
+    yourCodeLabel: 'Davet Kodun',
+    copyBtn: 'Kopyala',
+    copiedLabel: 'Kopyalandı!',
+    linkLabel: 'Davet Linki',
+    invitedStatTpl: (n) => `${n} kişi davet edildi`,
+    rewardedStatTpl: (n) => `${n} ödül kazanıldı`,
+    listEmpty: 'Henüz kimseyi davet etmedin.',
+    listEmptySub: 'Linkini paylaştığında davet ettiğin kişiler burada listelenir.',
+    pendingStatus: 'Bekliyor',
+    rewardedStatus: 'Ödüllendirildi',
+    loading: 'Yükleniyor…',
+    anonymousUser: 'İsimsiz kullanıcı',
+  },
+  en: {
+    title: 'Invite a Friend',
+    desc: "Share your code: once your friend hits a 3-day streak, you get +30 XP and 3 days of free Premium, they get +15 XP.",
+    yourCodeLabel: 'Your Invite Code',
+    copyBtn: 'Copy',
+    copiedLabel: 'Copied!',
+    linkLabel: 'Invite Link',
+    invitedStatTpl: (n) => `${n} people invited`,
+    rewardedStatTpl: (n) => `${n} rewards earned`,
+    listEmpty: "You haven't invited anyone yet.",
+    listEmptySub: 'People you invite will be listed here once you share your link.',
+    pendingStatus: 'Pending',
+    rewardedStatus: 'Rewarded',
+    loading: 'Loading…',
+    anonymousUser: 'Anonymous user',
+  },
+  de: {
+    title: 'Freund einladen',
+    desc: 'Teile deinen Code: Sobald dein Freund eine 3-Tage-Serie erreicht, erhältst du +30 XP und 3 Tage kostenloses Premium, er/sie +15 XP.',
+    yourCodeLabel: 'Dein Einladungscode',
+    copyBtn: 'Kopieren',
+    copiedLabel: 'Kopiert!',
+    linkLabel: 'Einladungslink',
+    invitedStatTpl: (n) => `${n} Personen eingeladen`,
+    rewardedStatTpl: (n) => `${n} Belohnungen erhalten`,
+    listEmpty: 'Du hast noch niemanden eingeladen.',
+    listEmptySub: 'Eingeladene Personen erscheinen hier, sobald du deinen Link teilst.',
+    pendingStatus: 'Ausstehend',
+    rewardedStatus: 'Belohnt',
+    loading: 'Lädt…',
+    anonymousUser: 'Anonymer Nutzer',
+  },
+  fr: {
+    title: 'Invite un ami',
+    desc: 'Partage ton code : quand ton ami atteint une série de 3 jours, tu reçois +30 XP et 3 jours de Premium gratuit, il/elle reçoit +15 XP.',
+    yourCodeLabel: "Ton code d'invitation",
+    copyBtn: 'Copier',
+    copiedLabel: 'Copié !',
+    linkLabel: "Lien d'invitation",
+    invitedStatTpl: (n) => `${n} personnes invitées`,
+    rewardedStatTpl: (n) => `${n} récompenses obtenues`,
+    listEmpty: "Tu n'as invité personne pour l'instant.",
+    listEmptySub: 'Les personnes que tu invites apparaîtront ici une fois ton lien partagé.',
+    pendingStatus: 'En attente',
+    rewardedStatus: 'Récompensé',
+    loading: 'Chargement…',
+    anonymousUser: 'Utilisateur anonyme',
+  },
+  es: {
+    title: 'Invita a un amigo',
+    desc: 'Comparte tu código: cuando tu amigo llegue a una racha de 3 días, tú recibes +30 XP y 3 días de Premium gratis, y él/ella +15 XP.',
+    yourCodeLabel: 'Tu código de invitación',
+    copyBtn: 'Copiar',
+    copiedLabel: '¡Copiado!',
+    linkLabel: 'Enlace de invitación',
+    invitedStatTpl: (n) => `${n} personas invitadas`,
+    rewardedStatTpl: (n) => `${n} recompensas obtenidas`,
+    listEmpty: 'Todavía no has invitado a nadie.',
+    listEmptySub: 'Las personas que invites aparecerán aquí en cuanto compartas tu enlace.',
+    pendingStatus: 'Pendiente',
+    rewardedStatus: 'Recompensado',
+    loading: 'Cargando…',
+    anonymousUser: 'Usuario anónimo',
+  },
+  it: {
+    title: 'Invita un amico',
+    desc: "Condividi il tuo codice: quando il tuo amico raggiunge una serie di 3 giorni, tu ricevi +30 XP e 3 giorni di Premium gratis, lui/lei +15 XP.",
+    yourCodeLabel: 'Il tuo codice invito',
+    copyBtn: 'Copia',
+    copiedLabel: 'Copiato!',
+    linkLabel: 'Link di invito',
+    invitedStatTpl: (n) => `${n} persone invitate`,
+    rewardedStatTpl: (n) => `${n} premi ottenuti`,
+    listEmpty: 'Non hai ancora invitato nessuno.',
+    listEmptySub: 'Le persone che inviti verranno elencate qui una volta condiviso il link.',
+    pendingStatus: 'In attesa',
+    rewardedStatus: 'Premiato',
+    loading: 'Caricamento…',
+    anonymousUser: 'Utente anonimo',
+  },
+  ar: {
+    title: 'ادعُ صديقًا',
+    desc: 'شارك رمزك: عندما يصل صديقك إلى سلسلة 3 أيام، تحصل أنت على +30 نقطة خبرة و3 أيام بريميوم مجانًا، ويحصل هو/هي على +15 نقطة خبرة.',
+    yourCodeLabel: 'رمز الدعوة الخاص بك',
+    copyBtn: 'نسخ',
+    copiedLabel: 'تم النسخ!',
+    linkLabel: 'رابط الدعوة',
+    invitedStatTpl: (n) => `تمت دعوة ${n} شخص`,
+    rewardedStatTpl: (n) => `تم الحصول على ${n} مكافأة`,
+    listEmpty: 'لم تدعُ أحدًا بعد.',
+    listEmptySub: 'سيتم إدراج الأشخاص الذين تدعوهم هنا بمجرد مشاركة رابطك.',
+    pendingStatus: 'قيد الانتظار',
+    rewardedStatus: 'تمت المكافأة',
+    loading: 'جارٍ التحميل…',
+    anonymousUser: 'مستخدم مجهول',
+  },
+  ru: {
+    title: 'Пригласи друга',
+    desc: 'Поделись своим кодом: когда у твоего друга серия достигнет 3 дней, ты получишь +30 XP и 3 дня бесплатного Premium, а он/она — +15 XP.',
+    yourCodeLabel: 'Твой код приглашения',
+    copyBtn: 'Копировать',
+    copiedLabel: 'Скопировано!',
+    linkLabel: 'Ссылка-приглашение',
+    invitedStatTpl: (n) => `Приглашено: ${n}`,
+    rewardedStatTpl: (n) => `Наград получено: ${n}`,
+    listEmpty: 'Вы пока никого не пригласили.',
+    listEmptySub: 'Приглашённые вами люди появятся здесь после того, как вы поделитесь ссылкой.',
+    pendingStatus: 'Ожидание',
+    rewardedStatus: 'Награждён',
+    loading: 'Загрузка…',
+    anonymousUser: 'Анонимный пользователь',
+  },
+  ja: {
+    title: '友達を招待',
+    desc: 'コードをシェアしよう:友達が3日連続の記録を達成すると、あなたに+30 XPと3日間の無料プレミアム、友達に+15 XPが付与されます。',
+    yourCodeLabel: 'あなたの招待コード',
+    copyBtn: 'コピー',
+    copiedLabel: 'コピーしました!',
+    linkLabel: '招待リンク',
+    invitedStatTpl: (n) => `${n}人を招待済み`,
+    rewardedStatTpl: (n) => `${n}件の報酬を獲得`,
+    listEmpty: 'まだ誰も招待していません。',
+    listEmptySub: 'リンクをシェアすると、招待した人がここに表示されます。',
+    pendingStatus: '保留中',
+    rewardedStatus: '報酬付与済み',
+    loading: '読み込み中…',
+    anonymousUser: '匿名ユーザー',
+  },
+  pt: {
+    title: 'Convida um Amigo',
+    desc: 'Partilha o teu código: quando o teu amigo atingir uma sequência de 3 dias, tu ganhas +30 XP e 3 dias de Premium grátis, e ele/ela ganha +15 XP.',
+    yourCodeLabel: 'O teu Código de Convite',
+    copyBtn: 'Copiar',
+    copiedLabel: 'Copiado!',
+    linkLabel: 'Link de Convite',
+    invitedStatTpl: (n) => `${n} pessoas convidadas`,
+    rewardedStatTpl: (n) => `${n} recompensas ganhas`,
+    listEmpty: 'Ainda não convidaste ninguém.',
+    listEmptySub: 'As pessoas que convidares aparecerão aqui assim que partilhares o teu link.',
+    pendingStatus: 'Pendente',
+    rewardedStatus: 'Recompensado',
+    loading: 'A carregar…',
+    anonymousUser: 'Utilizador anónimo',
+  },
+};
+
 // Hesap silme (Google Play Data Safety / Apple hesap silme politikası) —
 // BLOCK_LABELS'teki aynı yerel-i18n deseni (merkezi i18n.tsx'e dokunmadan).
 const DELETE_ACCOUNT_LABELS: Record<
@@ -73,6 +258,7 @@ export default function ProfilePage() {
   const { t, locale } = useLocale();
   const bt = BLOCK_LABELS[locale] ?? BLOCK_LABELS.en;
   const dt = DELETE_ACCOUNT_LABELS[locale] ?? DELETE_ACCOUNT_LABELS.en;
+  const rt = REFERRAL_LABELS[locale] ?? REFERRAL_LABELS.en;
   const router = useRouter();
   const { updateUser, logout } = useAuth();
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -107,6 +293,11 @@ export default function ProfilePage() {
   const [blockedLoading, setBlockedLoading] = useState(true);
   const [blockedActionError, setBlockedActionError] = useState('');
   const [unblockBusyId, setUnblockBusyId] = useState<string | null>(null);
+
+  // ── Referans/Davet Programı (V2 öncelik #8) ──
+  const [referrals, setReferrals] = useState<ReferralsSummary | null>(null);
+  const [referralsLoading, setReferralsLoading] = useState(true);
+  const [copiedField, setCopiedField] = useState<'code' | 'link' | null>(null);
 
   useEffect(() => {
     authApi.getMe()
@@ -158,6 +349,30 @@ export default function ProfilePage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
     loadBlocked();
   }, []);
+
+  useEffect(() => {
+    referralsApi.getMine()
+      .then(setReferrals)
+      .catch(() => {})
+      .finally(() => setReferralsLoading(false));
+  }, []);
+
+  const referralLink = referrals?.referral_code && typeof window !== 'undefined'
+    ? `${window.location.origin}/register?ref=${referrals.referral_code}`
+    : '';
+
+  const handleCopyReferral = async (field: 'code' | 'link') => {
+    const value = field === 'code' ? (referrals?.referral_code ?? '') : referralLink;
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch {
+      // Panoya erişim engellenmişse (izin yok, http vb.) sessizce yok say —
+      // kullanıcı kodu/linki yine de gözle kopyalayabilir.
+    }
+  };
 
   const handleUnblock = async (card: UserCard) => {
     if (!window.confirm(bt.unblockConfirm)) return;
@@ -520,6 +735,98 @@ export default function ProfilePage() {
       </div>
 
       <BadgeShowcase />
+
+      {/* Referans/Davet Programı — V2 öncelik #8, 12 Eylül 2026 */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-4">
+        <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+          <Gift className="w-4 h-4" /> {rt.title}
+        </h2>
+        <p className="text-xs text-gray-400">{rt.desc}</p>
+
+        {referralsLoading ? (
+          <p className="text-sm text-gray-400">{rt.loading}</p>
+        ) : referrals?.referral_code ? (
+          <>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{rt.yourCodeLabel}</label>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono tracking-widest text-gray-800 bg-gray-50">
+                  {referrals.referral_code}
+                </code>
+                <button
+                  type="button"
+                  onClick={() => handleCopyReferral('code')}
+                  className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-100 hover:border-blue-200 rounded-xl px-3 py-2 transition-colors"
+                >
+                  {copiedField === 'code' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedField === 'code' ? rt.copiedLabel : rt.copyBtn}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{rt.linkLabel}</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={referralLink}
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-500 bg-gray-50 truncate"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleCopyReferral('link')}
+                  className="shrink-0 flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 border border-blue-100 hover:border-blue-200 rounded-xl px-3 py-2 transition-colors"
+                >
+                  {copiedField === 'link' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copiedField === 'link' ? rt.copiedLabel : rt.copyBtn}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 text-xs text-gray-500">
+              <span className="font-medium text-gray-700">{rt.invitedStatTpl(referrals.total_invited)}</span>
+              <span className="font-medium text-emerald-600">{rt.rewardedStatTpl(referrals.total_rewarded)}</span>
+            </div>
+
+            {referrals.items.length === 0 ? (
+              <div className="text-center py-3">
+                <p className="text-sm text-gray-400">{rt.listEmpty}</p>
+                <p className="text-xs text-gray-300 mt-1">{rt.listEmptySub}</p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {referrals.items.map((item, idx) => {
+                  const name = item.display_name || item.username || rt.anonymousUser;
+                  return (
+                    <li key={`${item.created_at}-${idx}`} className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-semibold text-gray-500 shrink-0">
+                          {name.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-700 truncate">{name}</p>
+                          {item.username && <p className="text-xs text-gray-400 truncate">@{item.username}</p>}
+                        </div>
+                      </div>
+                      <span
+                        className={`text-[10px] font-semibold rounded-full px-2 py-0.5 shrink-0 ${
+                          item.status === 'rewarded'
+                            ? 'text-emerald-700 bg-emerald-50'
+                            : 'text-amber-700 bg-amber-50'
+                        }`}
+                      >
+                        {item.status === 'rewarded' ? rt.rewardedStatus : rt.pendingStatus}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </>
+        ) : null}
+      </div>
 
       <div className="bg-gray-50 rounded-2xl border border-gray-100 p-5 space-y-3">
         <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('accountInfoTitle')}</h2>

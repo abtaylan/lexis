@@ -10,6 +10,10 @@ export const authApi = {
     native_lang?: string;
     learning_lang?: string;
     learning_langs?: string[];
+    // Referans/Davet Programı (V2 öncelik #8) — web/src/lib/api.ts authApi.register
+    // ile aynı alan. Mobilde deep-link ile otomatik yakalama YOK (v1 kapsamı
+    // dışında bırakıldı) — sadece register.tsx'teki manuel giriş alanından gelir.
+    referral_code?: string;
   }): Promise<{ pending: true; email: string; purpose: 'register'; message?: string }> => {
     const res = await api.post('/auth/register', data);
     return res.data;

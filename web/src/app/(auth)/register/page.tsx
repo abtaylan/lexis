@@ -1,16 +1,31 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, User, Lock, Mail, Globe, GraduationCap, Zap } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Eye, EyeOff, User, Lock, Mail, Globe, GraduationCap, Zap, Gift } from 'lucide-react';
 import { authApi, languagesApi } from '@/lib/api';
 import { Button, Input, Card } from '@/components/ui';
-import { useLocale, LOCALE_META } from '@/lib/i18n';
+import { useLocale, LOCALE_META, type Locale } from '@/lib/i18n';
 import type { Language } from '@/types';
 import { AppleSignInButton } from '@/components/AppleSignInButton';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { SOCIAL_AUTH_STRINGS } from '@/lib/socialAuthStrings';
+
+// Referans/Davet Programı (V2 öncelik #8) — merkezi i18n.tsx sözlüğüne
+// dokunmadan yerel çeviri (profile/page.tsx'teki BLOCK_LABELS deseniyle aynı).
+const INVITE_CODE_LABELS: Record<Locale, { label: string; placeholder: string; appliedHint: string }> = {
+  tr: { label: 'Davet Kodu (opsiyonel)', placeholder: 'Örn. A1B2C3D4', appliedHint: 'Bir arkadaşının davetiyle katılıyorsun 🎉' },
+  en: { label: 'Invite Code (optional)', placeholder: 'e.g. A1B2C3D4', appliedHint: "You're joining via a friend's invite 🎉" },
+  de: { label: 'Einladungscode (optional)', placeholder: 'z. B. A1B2C3D4', appliedHint: 'Du trittst über die Einladung eines Freundes bei 🎉' },
+  fr: { label: "Code d'invitation (optionnel)", placeholder: 'ex. A1B2C3D4', appliedHint: "Tu rejoins via l'invitation d'un ami 🎉" },
+  es: { label: 'Código de invitación (opcional)', placeholder: 'ej. A1B2C3D4', appliedHint: 'Te unes mediante la invitación de un amigo 🎉' },
+  it: { label: 'Codice invito (opzionale)', placeholder: 'es. A1B2C3D4', appliedHint: "Ti stai unendo tramite l'invito di un amico 🎉" },
+  ar: { label: 'رمز الدعوة (اختياري)', placeholder: 'مثال A1B2C3D4', appliedHint: 'أنت تنضم عبر دعوة صديق 🎉' },
+  ru: { label: 'Код приглашения (необязательно)', placeholder: 'напр. A1B2C3D4', appliedHint: 'Вы присоединяетесь по приглашению друга 🎉' },
+  ja: { label: '招待コード(任意)', placeholder: '例: A1B2C3D4', appliedHint: '友達の招待から参加しています 🎉' },
+  pt: { label: 'Código de convite (opcional)', placeholder: 'ex. A1B2C3D4', appliedHint: 'Estás a juntar-te através do convite de um amigo 🎉' },
+};
 
 // Arayüz (UI) çevirisi olmayan diller ana dil seçeneği olarak sunulmamalı —
 // aksi halde LocaleProvider sessizce Türkçe'ye düşüyor (bkz. Bug 2, Ağustos 2026).
@@ -18,12 +33,18 @@ import { SOCIAL_AUTH_STRINGS } from '@/lib/socialAuthStrings';
 // değil sadece kelime havuzu hedef dilini belirliyor.
 const UI_SUPPORTED_CODES = new Set<string>(LOCALE_META.map((l) => l.code));
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, locale } = useLocale();
   const st = SOCIAL_AUTH_STRINGS[locale] ?? SOCIAL_AUTH_STRINGS.tr!;
+  const it2 = INVITE_CODE_LABELS[locale] ?? INVITE_CODE_LABELS.en;
   const [socialError, setSocialError] = useState('');
   const handleSocialError = () => setSocialError(st.socialError);
+
+  // Referans/Davet Programı — ?ref=KOD URL parametresi otomatik yakalanır,
+  // kullanıcı isterse elle de değiştirebilir/silebilir (manuel alan aşağıda).
+  const prefilledRef = (searchParams.get('ref') || '').trim().toUpperCase();
 
   const [form, setForm] = useState({
     email: '',
@@ -32,6 +53,7 @@ export default function RegisterPage() {
     display_name: '',
     native_lang: 'tr',
     learning_langs: ['en'] as string[],
+    referral_code: prefilledRef,
   });
   const [languages, setLanguages] = useState<Language[]>([]);
   const [showPw, setShowPw] = useState(false);
@@ -93,6 +115,7 @@ export default function RegisterPage() {
         native_lang: form.native_lang,
         learning_lang: form.learning_langs[0],
         learning_langs: form.learning_langs,
+        referral_code: form.referral_code.trim() || undefined,
       });
 
       // Hesap oluşturuldu — token burada verilmez, önce e-postaya gönderilen
@@ -238,6 +261,21 @@ export default function RegisterPage() {
           <p className="text-xs text-red-600 dark:text-red-400 -mt-2">{errors.learning_langs}</p>
         )}
 
+        {/* Referans/Davet Programı — ?ref= ile otomatik dolar, elle de girilebilir */}
+        <div>
+          <Input
+            label={it2.label}
+            placeholder={it2.placeholder}
+            value={form.referral_code}
+            onChange={(e) => setForm((p) => ({ ...p, referral_code: e.target.value.toUpperCase() }))}
+            leftIcon={<Gift size={16} />}
+            maxLength={8}
+          />
+          {form.referral_code && (
+            <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">{it2.appliedHint}</p>
+          )}
+        </div>
+
         {errors.form && (
           <div className="rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 px-4 py-3 text-sm text-red-600 dark:text-red-400">
             {errors.form}
@@ -270,5 +308,13 @@ export default function RegisterPage() {
         </Link>
       </p>
     </Card>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={null}>
+      <RegisterContent />
+    </Suspense>
   );
 }

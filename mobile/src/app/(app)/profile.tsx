@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Gift } from 'lucide-react-native';
 import { useLocale, LOCALE_META } from '@/i18n';
 import { authApi } from '@/api/auth';
 import { languagesApi, userLanguagesApi } from '@/api/languages';
+import { referralsApi } from '@/api/referrals';
 import type { Language } from '@/api/types';
 import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/utils/errors';
@@ -36,6 +38,26 @@ export default function ProfileScreen() {
     queryFn: userLanguagesApi.getAll,
   });
   const { data: allLanguages } = useQuery({ queryKey: ['languages'], queryFn: languagesApi.getAll });
+
+  // ── Referans/Davet Programı (V2 öncelik #8) ──
+  const { data: referrals, isLoading: referralsLoading } = useQuery({
+    queryKey: ['my-referrals'],
+    queryFn: referralsApi.getMine,
+  });
+
+  // Üretim web alan adı repoda kesin doğrulanamadığından (bkz. devir dokümanı)
+  // paylaşım metni SADECE kodu içerir — yanlış/kırık bir link paylaşmaktansa
+  // arkadaşın kodu kayıt ekranındaki "Davet Kodu" alanına elle girmesi istenir.
+  const handleShareReferral = async () => {
+    if (!referrals?.referral_code) return;
+    try {
+      await Share.share({
+        message: `${mt('referralSectionDesc')}\n\n${mt('referralYourCodeLabel')}: ${referrals.referral_code}`,
+      });
+    } catch {
+      // Kullanıcı paylaşım sayfasını kapattıysa (iptal) sessizce yok say.
+    }
+  };
 
   const saveMutation = useMutation({
     mutationFn: () => authApi.updateProfile({ display_name: displayName.trim(), daily_goal: Number(dailyGoal) || 5 }),
@@ -129,6 +151,70 @@ export default function ProfileScreen() {
       </Card>
 
       <BadgeShowcase />
+
+      {/* Referans/Davet Programı — V2 öncelik #8, 12 Eylül 2026 */}
+      <Card style={{ marginBottom: spacing.md }}>
+        <View style={[styles.rowBetween, { marginBottom: spacing.sm }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Gift size={16} color={c.text} />
+            <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{mt('referralSectionTitle')}</Text>
+          </View>
+        </View>
+        <Text style={{ color: c.textSecondary, fontSize: 12, marginBottom: spacing.md }}>{mt('referralSectionDesc')}</Text>
+
+        {referralsLoading ? (
+          <Text style={{ color: c.textMuted, fontSize: 13 }}>{t('loading')}</Text>
+        ) : referrals?.referral_code ? (
+          <>
+            <View style={styles.rowBetween}>
+              <Text style={{ color: c.textMuted, fontSize: 12 }}>{mt('referralYourCodeLabel')}</Text>
+              <Text style={{ color: c.text, fontSize: 16, fontWeight: '700', letterSpacing: 2 }}>{referrals.referral_code}</Text>
+            </View>
+
+            <View style={{ marginTop: spacing.md }}>
+              <Button title={mt('referralShareBtn')} onPress={handleShareReferral} />
+            </View>
+
+            <View style={[styles.rowBetween, { marginTop: spacing.md }]}>
+              <Text style={{ color: c.textSecondary, fontSize: 12, fontWeight: '600' }}>
+                {mt('referralInvitedStatTpl').replace('{n}', String(referrals.total_invited))}
+              </Text>
+              <Text style={{ color: c.success, fontSize: 12, fontWeight: '600' }}>
+                {mt('referralRewardedStatTpl').replace('{n}', String(referrals.total_rewarded))}
+              </Text>
+            </View>
+
+            {referrals.items.length === 0 ? (
+              <Text style={{ color: c.textMuted, fontSize: 12, marginTop: spacing.sm }}>{mt('referralListEmpty')}</Text>
+            ) : (
+              referrals.items.map((item, idx) => {
+                const name = item.display_name || item.username || mt('referralAnonymousUser');
+                return (
+                  <View key={`${item.created_at}-${idx}`} style={styles.langRow}>
+                    <Text style={{ flex: 1, color: c.text, fontSize: 13 }}>{name}</Text>
+                    <View
+                      style={[
+                        styles.badge,
+                        { backgroundColor: item.status === 'rewarded' ? c.successSoft : c.primarySoft },
+                      ]}
+                    >
+                      <Text
+                        style={{
+                          color: item.status === 'rewarded' ? c.success : c.primary,
+                          fontSize: 11,
+                          fontWeight: '600',
+                        }}
+                      >
+                        {item.status === 'rewarded' ? mt('referralRewardedStatus') : mt('referralPendingStatus')}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </>
+        ) : null}
+      </Card>
 
       <Card style={{ marginBottom: spacing.md }}>
         <View style={styles.rowBetween}>

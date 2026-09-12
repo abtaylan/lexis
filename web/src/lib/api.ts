@@ -97,6 +97,7 @@ import type {
   CustomLeagueDetailResponse,
   CustomLeagueInviteItem,
   CustomLeagueInvitesListResponse,
+  ReferralsSummary,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -147,6 +148,10 @@ export const authApi = {
     // Coklu dil kaydi (Kullanici Madde 2): verilirse learning_lang yerine
     // bu liste kullanilir, ilk eleman aktif dil olur.
     learning_langs?: string[];
+    // Referans/Davet Programı (V2 öncelik #8) — başka bir kullanıcının
+    // referral_code'u; geçerliyse iki tarafa da 3 günlük seri sonrası ödül
+    // verilir (bkz. process_referral_rewards.py).
+    referral_code?: string;
   }): Promise<RegisterResponse> => {
     const res = await api.post('/auth/register', data);
     return res.data;
@@ -1135,6 +1140,15 @@ export const socialApi = {
     const res = await api.post<ChallengeItem>(`/social/challenges/${challengeId}/submit`, {
       session_id: sessionId,
     });
+    return res.data;
+  },
+};
+
+// ── Referans/Davet Programı (V2 öncelik #8) ─────────────────────
+// Ödül GRANT etme mantığı burada yok — sadece okuma (bkz. backend/app/api/routes/referrals.py).
+export const referralsApi = {
+  getMine: async (): Promise<ReferralsSummary> => {
+    const res = await api.get<ReferralsSummary>('/referrals/me');
     return res.data;
   },
 };

@@ -16,6 +16,27 @@ export interface User {
   created_at: string;
   is_premium?: boolean;
   premium_until?: string;
+  // Referans/Davet Programı (V2 öncelik #8) — trigger'da otomatik atanır,
+  // bkz. supabase/migrations/069_referral_program.sql.
+  referral_code?: string;
+}
+
+// ── Referans/Davet Programı (V2 öncelik #8) ─────────────────────
+// bkz. backend/app/api/routes/referrals.py GET /me (web ile aynı şekil,
+// web/src/types/index.ts ReferralItem/ReferralsSummary ile birebir aynı).
+export interface ReferralItem {
+  display_name: string;
+  username: string;
+  status: 'pending' | 'rewarded';
+  created_at: string;
+  rewarded_at: string | null;
+}
+
+export interface ReferralsSummary {
+  referral_code: string | null;
+  total_invited: number;
+  total_rewarded: number;
+  items: ReferralItem[];
 }
 
 export interface AuthResponse {
