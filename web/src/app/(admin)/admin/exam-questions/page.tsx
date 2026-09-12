@@ -1,10 +1,23 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AxiosError } from 'axios';
 import { Sparkles, Loader2, Check, X, Clock, User, Bot, FileText } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import type { PendingExamQuestion, ExamType, AIQuestionGenerateResult } from '@/types';
 import { useAuth } from '@/store/auth';
+
+// backend HTTPException'ların { detail: string } govdesini `any` kullanmadan
+// okumak icin (bkz. friends/page.tsx'teki ayni desen) -- 12 Eylul 2026'da bu
+// panelde yasanan opak "Soru uretilemedi" hatasi aslinda backend'in dondugu
+// GERCEK sebebi (502 body'sindeki detail) hic okumadan sabit bir tahmin
+// metni gosteriyordu; artik gercek detail varsa o gosteriliyor.
+function errorDetail(err: unknown): string | undefined {
+  if (err instanceof AxiosError) {
+    return (err.response?.data as { detail?: string } | undefined)?.detail;
+  }
+  return undefined;
+}
 
 // Sınav Hazırlık — İstatistik & İçerik Motoru Faz 2b: admin moderasyon
 // kuyruğu (kullanıcı önerileri + AI ile üretilen sorular) + AI'a soru
@@ -61,8 +74,13 @@ function GenerateAiPanel({ onGenerated, disabled }: { onGenerated: () => void; d
       });
       setResult(res);
       onGenerated();
-    } catch {
-      setError('Soru üretilemedi — ANTHROPIC_API_KEY yapılandırılmamış olabilir ya da model geçici bir hata döndürmüş olabilir.');
+    } catch (err) {
+      const detail = errorDetail(err);
+      setError(
+        detail
+          ? `Soru üretilemedi — ${detail}`
+          : 'Soru üretilemedi — ANTHROPIC_API_KEY yapılandırılmamış olabilir ya da model geçici bir hata döndürmüş olabilir.'
+      );
     } finally {
       setLoading(false);
     }

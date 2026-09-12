@@ -133,8 +133,17 @@ def generate_questions(
         "- Sadece submit_questions aracını çağırarak cevap ver, ek metin yazma."
     )
 
-    client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+    # NOT (12 Eylül 2026): admin panelinde bu uç 500 Internal Server Error
+    # döndürmüştü (bkz. devir notu) — sebebi burada sadece APIError
+    # yakalanıp Anthropic istemcisinin OLUŞTURULMASI try bloğunun DIŞINDA
+    # bırakılmış olmasıydı; SDK sürüm uyumsuzluğu/TLS/ağ gibi APIError
+    # OLMAYAN bir hata (örn. anthropic==1.4.0'ın httpx2/truststore tabanlı
+    # istemcisinden gelebilecek bir hata) yakalanmadan route'a sızıp opak
+    # bir 500'e dönüşüyordu. Artık istemci oluşturma + çağrı TEK try
+    # bloğunda ve APIError dışındaki her şey de yakalanıp ExamQuestionGenerationError
+    # olarak (dolayısıyla route'ta 502 + GERÇEK hata metniyle) yükseltiliyor.
     try:
+        client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
         response = client.messages.create(
             model=settings.ANTHROPIC_MODEL,
             max_tokens=4096,
@@ -144,6 +153,11 @@ def generate_questions(
         )
     except APIError as exc:
         raise ExamQuestionGenerationError(f"Anthropic API hatası: {exc}") from exc
+    except Exception as exc:
+        raise ExamQuestionGenerationError(
+            f"AI soru üretimi beklenmeyen hatayla başarısız oldu "
+            f"({type(exc).__name__}): {exc}"
+        ) from exc
 
     tool_use = next(
         (block for block in response.content if getattr(block, "type", None) == "tool_use"),
