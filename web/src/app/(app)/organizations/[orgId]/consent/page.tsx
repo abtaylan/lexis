@@ -13,12 +13,11 @@
 // current_user'ın KENDİ üyeliği için onay set etmesine izin veriyor, bir
 // admin başka bir üye adına onay VEREMEZ.
 //
-// KAPSAM NOTU (report/page.tsx ile aynı): kurum OLUŞTURMA/üye DAVET/
-// listeleme için HİÇ web ekranı yok (V2 öncelik #4 "B2B Kurumsal Lig
-// arayüzü" — bilinçli olarak ayrı ve henüz başlanmadı). Bu yüzden bu sayfa
-// da Sidebar'a EKLENMEDİ — şu an sadece org_id'yi bilen bir üyenin doğrudan
-// URL ile erişebileceği işlevsel bir sayfa. Öncelik #4 (üye listesi)
-// eklendiğinde her üyenin kendi profilinden buraya bir link konabilir.
+// GÜNCELLEME (12 Eylül 2026, öncelik #4 "B2B Kurumsal Lig arayüzü" BİTTİ):
+// artık kurum oluşturma/listeleme/üye yönetimi ekranları var
+// (app/(app)/organizations/page.tsx + [orgId]/page.tsx, Sidebar'a
+// eklendi) — bu sayfaya oradan link veriliyor. Bu dosyanın kendisi
+// değişmedi, sadece artık "linksiz" değil.
 //
 // BİLİNÇLİ SINIR: bu, üyenin organization_members'a EKLENMESİNE onayı
 // değil (bir admin hâlâ e-postayla doğrudan ekleyebiliyor — ayrı, daha

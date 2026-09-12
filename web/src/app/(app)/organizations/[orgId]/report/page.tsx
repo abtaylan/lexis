@@ -6,12 +6,11 @@
 // genelinde dönemsel (bu hafta/ay) bir özet — çalışma süresi, doğruluk, en
 // aktif üyeler, kurum genelinde zayıf konular, kazanılan rozetler.
 //
-// KAPSAM NOTU: organizations.py backend'i var ama kurum OLUŞTURMA/üye DAVET/
-// listeleme için HİÇ web ekranı yok (V2 öncelik #4 "B2B Kurumsal Lig
-// arayüzü" — bilinçli olarak ayrı ve henüz başlanmadı). Bu yüzden bu sayfa
-// Sidebar'a EKLENMEDİ — şu an sadece org_id'yi bilen bir kurum
-// yöneticisinin doğrudan URL ile erişebileceği işlevsel bir rapor. Öncelik
-// #4 (kurum listesi/switcher) eklendiğinde buraya bir link konacak.
+// GÜNCELLEME (12 Eylül 2026, öncelik #4 "B2B Kurumsal Lig arayüzü" BİTTİ):
+// artık kurum oluşturma/listeleme/üye yönetimi ekranları var
+// (app/(app)/organizations/page.tsx + [orgId]/page.tsx, Sidebar'a
+// eklendi) — bu sayfaya oradan link veriliyor. Bu dosyanın kendisi
+// değişmedi, sadece artık "linksiz" değil.
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import {

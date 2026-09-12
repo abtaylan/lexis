@@ -1336,6 +1336,27 @@ export interface OrganizationConsentStatus {
   consented_at: string | null;
 }
 
+// V2 öncelik #4 (12 Eylül 2026) — "B2B Kurumsal Lig Arayüzü": kurum
+// oluşturma/listeleme/üye davet-yönetimi web ekranları. Backend zaten
+// hazırdı (routes/organizations.py) — bu sadece web istemcisi.
+export interface OrganizationListItem {
+  id: string;
+  name: string;
+  plan: string;
+  created_at: string;
+  my_role: 'owner' | 'admin' | 'member' | string;
+}
+
+export interface OrganizationMember {
+  user_id: string;
+  username: string | null;
+  email: string | null;
+  role: 'owner' | 'admin' | 'member' | string;
+  joined_at: string;
+  total_xp: number;
+  consent_given: boolean;
+}
+
 export const organizationsApi = {
   getReport: async (orgId: string, period: 'week' | 'month' = 'week'): Promise<OrganizationReport> => {
     const res = await api.get<OrganizationReport>(`/organizations/${orgId}/report`, { params: { period } });
@@ -1364,5 +1385,26 @@ export const organizationsApi = {
   setConsent: async (orgId: string, consent: boolean): Promise<OrganizationConsentStatus> => {
     const res = await api.put<OrganizationConsentStatus>(`/organizations/${orgId}/consent`, { consent });
     return res.data;
+  },
+
+  // V2 öncelik #4 — kurum oluşturma/listeleme/üye davet-yönetimi
+  list: async (): Promise<OrganizationListItem[]> => {
+    const res = await api.get<{ items: OrganizationListItem[] }>('/organizations');
+    return res.data.items;
+  },
+  create: async (name: string): Promise<OrganizationListItem> => {
+    const res = await api.post<OrganizationListItem>('/organizations', { name });
+    return res.data;
+  },
+  listMembers: async (orgId: string): Promise<OrganizationMember[]> => {
+    const res = await api.get<{ items: OrganizationMember[] }>(`/organizations/${orgId}/members`);
+    return res.data.items;
+  },
+  inviteMember: async (orgId: string, email: string, role: 'admin' | 'member'): Promise<OrganizationMember> => {
+    const res = await api.post<OrganizationMember>(`/organizations/${orgId}/members`, { email, role });
+    return res.data;
+  },
+  removeMember: async (orgId: string, userId: string): Promise<void> => {
+    await api.delete(`/organizations/${orgId}/members/${userId}`);
   },
 };

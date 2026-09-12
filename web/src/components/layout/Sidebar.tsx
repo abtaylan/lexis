@@ -8,6 +8,7 @@ import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
   Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award, FileBarChart2,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -75,6 +76,16 @@ const REPORT_LABEL: Record<Locale, string> = {
   fr: 'Mon rapport', es: 'Mi informe', it: 'Il mio report', ja: 'マイレポート', pt: 'Meu Relatório',
 };
 
+// V2 öncelik #4 (12 Eylül 2026) — "B2B Kurumsal Lig Arayüzü": kurum
+// oluşturma/listeleme/üye yönetimi (app/(app)/organizations/page.tsx +
+// [orgId]/page.tsx). Aynı yerel çeviri deseni. Bu, kurum raporu/onay
+// sayfalarının artık gerçek bir giriş noktası — onlar bu sayfadan link
+// alıyor (bkz. [orgId]/page.tsx).
+const ORGANIZATIONS_LABEL: Record<Locale, string> = {
+  tr: 'Kurumlarım', en: 'My Organizations', ar: 'مؤسساتي', ru: 'Мои организации', de: 'Meine Organisationen',
+  fr: 'Mes organisations', es: 'Mis organizaciones', it: 'Le mie organizzazioni', ja: '所属組織', pt: 'Minhas Organizações',
+};
+
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı navigasyon
 // etiketi. Bu alan sadece native_lang=tr + learning_lang=en kullanıcılarına
 // gösteriliyor (bkz. exam-prep/page.tsx), o yüzden sadece tr/en dolduruldu —
@@ -128,6 +139,7 @@ export function Sidebar() {
     { href: '/quests', label: QUESTS_LABEL[locale], icon: Map },
     { href: '/rewards', label: REWARDS_LABEL[locale], icon: Award },
     { href: '/report', label: REPORT_LABEL[locale], icon: FileBarChart2 },
+    { href: '/organizations', label: ORGANIZATIONS_LABEL[locale], icon: Building2 },
     { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
     // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası
