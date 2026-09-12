@@ -165,9 +165,9 @@ async def get_user_report_route(period: str = "week", current_user=Depends(get_c
     return await get_user_report(current_user.id, period)  # type: ignore[arg-type]
 
 # ── Kullanıcı Raporu Export — İstatistik & Raporlama V2 öncelik #3, madde F ──
-# CSV/XLSX/PDF indirme. V1 kapsamı: sadece Türkçe render (bkz.
-# report_export_service.py modül docstring'i) — 10 dilli rapor sayfası
-# i18n'i buraya taşınmadı, bu ayrı bir "indir" özelliği.
+# CSV/XLSX/PDF indirme. Rapor İÇERİĞİ kullanıcının profiles.native_lang'ına
+# göre render ediliyor (bkz. report_export_service.py modül docstring'i) —
+# ekrandaki rapor sayfasıyla aynı 10 dil, aynı .get(lang, "en") fallback deseni.
 @router.get("/report/export")
 async def export_user_report_route(
     period: str = "week", format: str = "pdf", current_user=Depends(get_current_user)
@@ -180,16 +180,17 @@ async def export_user_report_route(
     report = await get_user_report(current_user.id, period)  # type: ignore[arg-type]
     profile = (
         supabase_admin.table("profiles")
-        .select("username")
+        .select("username, native_lang")
         .eq("id", current_user.id)
         .single()
         .execute()
     ).data or {}
     username = profile.get("username") or current_user.email or "Kullanıcı"
+    lang = profile.get("native_lang") or "tr"
     generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
 
-    doc = build_user_report_document(report, username=username, generated_at=generated_at)
-    body, media_type = render(doc, format)
+    doc = build_user_report_document(report, username=username, generated_at=generated_at, lang=lang)
+    body, media_type = render(doc, format, lang=lang)
     filename = f"lexis-rapor-{period}.{format}"
     return Response(
         content=body,
@@ -216,16 +217,17 @@ async def send_user_report_email_route(
     report = await get_user_report(current_user.id, period)  # type: ignore[arg-type]
     profile = (
         supabase_admin.table("profiles")
-        .select("username")
+        .select("username, native_lang")
         .eq("id", current_user.id)
         .single()
         .execute()
     ).data or {}
     username = profile.get("username") or current_user.email or "Kullanıcı"
+    lang = profile.get("native_lang") or "tr"
     generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
 
-    doc = build_user_report_document(report, username=username, generated_at=generated_at)
-    body, media_type = render(doc, format)
+    doc = build_user_report_document(report, username=username, generated_at=generated_at, lang=lang)
+    body, media_type = render(doc, format, lang=lang)
     filename = f"lexis-rapor-{period}.{format}"
     period_label = "Haftalık" if period == "week" else "Aylık"
 

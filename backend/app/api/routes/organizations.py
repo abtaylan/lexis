@@ -317,9 +317,17 @@ async def export_organization_report_route(
         raise HTTPException(status_code=400, detail=f"Geçersiz format. Şunlardan biri olmalı: {', '.join(SUPPORTED_FORMATS)}")
 
     report = await get_organization_report(org_id, period)  # type: ignore[arg-type]
+    profile = (
+        supabase_admin.table("profiles")
+        .select("native_lang")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    ).data or {}
+    lang = profile.get("native_lang") or "tr"
     generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
-    doc = build_org_report_document(report, generated_at=generated_at)
-    body, media_type = render(doc, format)
+    doc = build_org_report_document(report, generated_at=generated_at, lang=lang)
+    body, media_type = render(doc, format, lang=lang)
     filename = f"lexis-kurum-rapor-{period}.{format}"
     return Response(
         content=body,
@@ -347,9 +355,17 @@ async def send_organization_report_email_route(
         raise HTTPException(status_code=400, detail="Hesabında kayıtlı bir e-posta adresi yok.")
 
     report = await get_organization_report(org_id, period)  # type: ignore[arg-type]
+    profile = (
+        supabase_admin.table("profiles")
+        .select("native_lang")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    ).data or {}
+    lang = profile.get("native_lang") or "tr"
     generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
-    doc = build_org_report_document(report, generated_at=generated_at)
-    body, media_type = render(doc, format)
+    doc = build_org_report_document(report, generated_at=generated_at, lang=lang)
+    body, media_type = render(doc, format, lang=lang)
     filename = f"lexis-kurum-rapor-{period}.{format}"
     period_label = "Haftalık" if period == "week" else "Aylık"
     org_name = report.get("org", {}).get("name") or "kurumun"

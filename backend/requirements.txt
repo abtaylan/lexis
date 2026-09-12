@@ -21,3 +21,5 @@ anthropic==1.4.0
 # İstatistik & Raporlama V2 — rapor export (bkz. app/services/report_export_service.py)
 openpyxl==3.1.5
 reportlab==5.0.0
+arabic-reshaper==3.0.1
+python-bidi==0.6.11

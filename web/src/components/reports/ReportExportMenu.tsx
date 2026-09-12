@@ -7,11 +7,12 @@
 // Raporu" (org report) sayfalarının ortak kullandığı, format seçimi +
 // indir + e-posta ile gönder kontrolü.
 //
-// BİLİNÇLİ KAPSAM SINIRI: üretilen dosyanın İÇERİĞİ her zaman Türkçe'dir
-// (bkz. backend/app/services/report_export_service.py modül docstring'i) —
-// bu, ekrandaki rapor sayfası gibi 10 dilli değil. Sadece bu bileşenin
-// buton/etiket metinleri kullanıcının arayüz diline göre çevriliyor
-// (props üzerinden verilen `labels`).
+// Üretilen dosyanın İÇERİĞİ, kullanıcının profiles.native_lang'ına göre
+// render ediliyor (bkz. backend/app/services/report_export_service.py modül
+// docstring'i) — ekrandaki rapor sayfasıyla aynı 10 dil. Bu bileşenin kendi
+// buton/etiket metinleri ise ayrıca kullanıcının arayüz diline göre çevriliyor
+// (props üzerinden verilen `labels`) — iki ayrı dil kararı aynı sonuca çıkıyor
+// (native_lang), ama farklı kod yollarından geliyor.
 import { useState } from 'react';
 import { Download, Mail, Loader2, Check, AlertCircle } from 'lucide-react';
 import { clsx } from 'clsx';

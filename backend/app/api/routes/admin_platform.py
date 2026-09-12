@@ -861,9 +861,17 @@ async def export_platform_snapshots(
         raise HTTPException(status_code=400, detail=f"Geçersiz format. Şunlardan biri olmalı: {', '.join(SUPPORTED_FORMATS)}")
 
     rows = await get_snapshots(days=days)
+    profile = (
+        supabase_admin.table("profiles")
+        .select("native_lang")
+        .eq("id", admin.id)
+        .single()
+        .execute()
+    ).data or {}
+    lang = profile.get("native_lang") or "tr"
     generated_at = (datetime.now(UTC) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
-    doc = build_platform_snapshots_document(rows, generated_at=generated_at)
-    body, media_type = render(doc, format)
+    doc = build_platform_snapshots_document(rows, generated_at=generated_at, lang=lang)
+    body, media_type = render(doc, format, lang=lang)
     filename = f"lexis-platform-ozet-{days}gun.{format}"
     return Response(
         content=body,
