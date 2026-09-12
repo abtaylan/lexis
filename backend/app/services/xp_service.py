@@ -53,6 +53,11 @@ XPSourceType = Literal[
     # çağrılmaz, XP_AMOUNTS'taki değer bu yüzden sadece "eksik amount"
     # savunması, gerçek miktar HER ZAMAN quest_nodes'tan geliyor).
     "quest_complete",
+    # Referans/Davet Programı (V2 öncelik #8, 12 Eylül 2026) —
+    # process_referral_rewards.py'den çağrılır. Davet eden ve davet edilen
+    # FARKLI miktarlarda alır (amount her zaman açıkça geçilir, bkz. o
+    # script), buradaki değer sadece "eksik amount" savunması.
+    "referral_bonus",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -99,6 +104,11 @@ XP_AMOUNTS: dict[str, int] = {
     "duel_participation": 8,
     "duel_win": 20,
     "quest_complete": 20,
+    # Referral: davet eden 30 (yüksek değerli, seyrek bir aksiyon — leaderboard_
+    # reward/duel_win'in (20) biraz üstü), davet edilen 15 (game_wordle (15)
+    # ile aynı, bir "hoş geldin" bonusu). process_referral_rewards.py bu iki
+    # değeri `amount` parametresiyle açıkça geçer, burası sadece varsayılan.
+    "referral_bonus": 30,
 }
 
 LEVEL_BASE = 50

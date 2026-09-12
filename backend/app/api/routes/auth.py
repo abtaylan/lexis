@@ -25,6 +25,12 @@ class RegisterRequest(BaseModel):
     # bu liste kullanilir, ilk eleman aktif dil olur. Verilmezse eski
     # tek-dil davranisiyla geriye donuk uyumlu kalinir.
     learning_langs: list[str] | None = None
+    # Referans/Davet Programi (V2 oncelik #8, 12 Eylul 2026) -- opsiyonel,
+    # baska bir kullanicinin profiles.referral_code degeri. Gecerliyse
+    # register() sonunda referrals tablosuna 'pending' bir satir yazilir;
+    # gecersiz/bos ise sessizce yoksayilir (kayit asla bu yuzden basarisiz
+    # OLMAZ, bkz. asagidaki try/except).
+    referral_code: str | None = None
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -178,6 +184,35 @@ async def register(req: RegisterRequest):
             }).execute()
         except Exception as e:
             print(f"REGISTER profile update warning: {e}")
+
+        # Referans/Davet Programı (V2 öncelik #8): davet eden kullanıcıyı
+        # bul ve referrals'a 'pending' bir kayıt aç. ÖDÜL BURADA VERİLMEZ —
+        # sadece bağlantı kaydedilir; asıl ödül (XP + Premium, davet edilen
+        # 3 günlük seriye ulaşınca) process_referral_rewards.py'nin ayrı,
+        # periyodik çalışmasıyla verilir (bkz. o script'in docstring'i —
+        # kötüye kullanımı zorlaştırmak için bilinçli bir gecikme).
+        # Geçersiz kod / kendine referans / zaten bağlı (UNIQUE(referred_id))
+        # gibi durumlar sessizce yoksayılır — kayıt asla bu yüzden
+        # başarısız olmaz.
+        if req.referral_code and req.referral_code.strip():
+            try:
+                code = req.referral_code.strip().upper()
+                referrer = (
+                    supabase_admin.table("profiles")
+                    .select("id")
+                    .eq("referral_code", code)
+                    .limit(1)
+                    .execute()
+                    .data
+                )
+                if referrer and referrer[0]["id"] != user_id:
+                    supabase_admin.table("referrals").insert({
+                        "referrer_id": referrer[0]["id"],
+                        "referred_id": user_id,
+                        "referral_code_used": code,
+                    }).execute()
+            except Exception as e:
+                print(f"REGISTER referral link warning: {e}")
 
         # Çoklu öğrenme dili (Kullanıcı Madde 2): user_learning_languages'a ekle.
         # req.learning_langs verilmişse hepsi eklenir (ilki aktif olur); verilmemişse
@@ -540,6 +575,7 @@ async def get_me(current_user=Depends(get_current_user)):
             "created_at": data.get("created_at", ""),
             "is_premium": data.get("is_premium", False),
             "premium_until": data.get("premium_until"),
+            "referral_code": data.get("referral_code"),
         }
     except Exception as e:
         print(f"GET_ME ERROR: {e}")
@@ -696,4 +732,5 @@ async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_u
         "created_at": d.get("created_at", ""),
         "is_premium": d.get("is_premium", False),
         "premium_until": d.get("premium_until"),
+        "referral_code": d.get("referral_code"),
     }
