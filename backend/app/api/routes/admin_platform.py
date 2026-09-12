@@ -43,6 +43,11 @@ barındırıyor:
     çalışma süresi/oturum sayısı YOK, bkz. subscription_segment_service.py
     docstring'i). 12 Eylül 2026 itibarıyla canlı veride premium segment
     BOŞ — insufficient_data bayrağıyla yönetiliyor.
+  - GET /platform-stats/benchmark → Faz 3 madde I — seçilen periyodu bir
+    önceki eşit uzunluktaki periyotla karşılaştırır (bkz.
+    platform_snapshot_service.py::get_snapshot_benchmark). "Takvim" (günlük
+    ısı haritası) ve "filtreleme" (gün aralığı seçici) tarafı saf frontend
+    — mevcut /platform-stats/snapshots uç noktasının verisiyle besleniyor.
 
 Okuma (GET) endpoint'leri get_current_admin (hem 'admin' hem
 'admin_readonly' kabul eder) ile korunuyor; mutasyon yapan endpoint'ler
@@ -66,7 +71,7 @@ from app.services.content_flag_service import (
     scan_content_flags,
     update_content_flag,
 )
-from app.services.platform_snapshot_service import capture_daily_snapshot, get_snapshots
+from app.services.platform_snapshot_service import capture_daily_snapshot, get_snapshot_benchmark, get_snapshots
 from app.services.report_export_service import build_platform_snapshots_document, render, SUPPORTED_FORMATS
 from app.services.subscription_segment_service import get_subscription_segments
 
@@ -894,3 +899,11 @@ async def export_platform_snapshots(
 @router.get("/subscription-segments")
 async def subscription_segments(days: int = 30, admin=Depends(get_current_admin)):
     return await get_subscription_segments(days=days)
+
+
+# ================================================================
+# 12) Platform trend karşılaştırması (periyot benchmark) — Faz 3 madde I
+# ================================================================
+@router.get("/platform-stats/benchmark")
+async def platform_stats_benchmark(days: int = 30, admin=Depends(get_current_admin)):
+    return await get_snapshot_benchmark(days=days)

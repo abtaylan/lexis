@@ -46,6 +46,7 @@ import type {
   ContentFlagScanResult,
   PlatformSnapshotsResponse,
   SubscriptionSegmentsResponse,
+  PlatformSnapshotBenchmark,
   ContentFlagsResponse,
   ContentFlagItem,
   GrammarCategory,
@@ -892,6 +893,13 @@ export const adminApi = {
   // (bkz. admin_platform.py /subscription-segments)
   getSubscriptionSegments: async (days = 30): Promise<SubscriptionSegmentsResponse> => {
     const res = await api.get<SubscriptionSegmentsResponse>('/admin/subscription-segments', { params: { days } });
+    return res.data;
+  },
+
+  // İstatistik & Raporlama Faz 3 madde I — periyot benchmark (takvim/
+  // filtreleme frontend'de, bkz. admin/reports/page.tsx::TrendPanel)
+  getPlatformSnapshotBenchmark: async (days = 30): Promise<PlatformSnapshotBenchmark> => {
+    const res = await api.get<PlatformSnapshotBenchmark>('/admin/platform-stats/benchmark', { params: { days } });
     return res.data;
   },
 };

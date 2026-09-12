@@ -1196,3 +1196,29 @@ export interface SubscriptionSegmentsResponse {
   free: SubscriptionSegmentMetrics;
   by_plan: SubscriptionSegmentPlan[];
 }
+
+// İstatistik & Raporlama V2 öncelik #3, Faz 3 madde I — "Admin filtreleme/
+// benchmark/takvim". Backend: admin_platform.py /admin/platform-stats/
+// benchmark (bkz. platform_snapshot_service.py::get_snapshot_benchmark).
+// "Takvim" (ısı haritası) ve "filtreleme" (gün aralığı) tarafı saf
+// frontend — PlatformDailySnapshot listesiyle (getPlatformSnapshots)
+// besleniyor, ayrı bir tip gerektirmiyor.
+export interface PlatformSnapshotBenchmarkMetrics {
+  days_with_data: number;
+  total_new_signups: number;
+  avg_active_users: number;
+  total_study_minutes: number;
+  total_new_words: number;
+  avg_topic_accuracy: number | null;
+  total_xp_awarded: number;
+  avg_premium_users: number;
+  avg_total_active_profiles: number;
+}
+
+export interface PlatformSnapshotBenchmark {
+  period_days: number;
+  current: PlatformSnapshotBenchmarkMetrics;
+  previous: PlatformSnapshotBenchmarkMetrics;
+  pct_change: Record<string, number | null>;
+  insufficient_data: boolean;
+}

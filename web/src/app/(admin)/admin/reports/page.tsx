@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, HelpCircle, BookOpen, User, Flame, ShieldAlert, RefreshCw, TrendingUp, Crown, Users } from 'lucide-react';
+import { Loader2, HelpCircle, BookOpen, User, Flame, ShieldAlert, RefreshCw, TrendingUp, TrendingDown, Crown, Users, CalendarDays } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import type {
   ContentAccuracySummary, ContentAccuracyAgg, QuestionAccuracyItem, WordAccuracyItem, ExamType,
   ContentFlagItem, ContentFlagType, ContentFlagStatus, PlatformDailySnapshot,
   SubscriptionSegmentMetrics, SubscriptionSegmentsResponse,
+  PlatformSnapshotBenchmark, PlatformSnapshotBenchmarkMetrics,
 } from '@/types';
 
 // İstatistik & Raporlama Faz 2 — içerik doğruluk raporları (11 Eylül 2026).
@@ -43,7 +44,18 @@ import type {
 // kullanıcıyla birlikte dolmaya başlayacak. Bu sayfa admin-only olduğu
 // için (10 dilli web raporlarının aksine) SADECE Türkçe.
 //
-// Sıradaki faz: admin filtreleme/benchmark/takvim (madde I).
+// Faz 3 madde I (12 Eylül 2026, aynı gün, ikinci ekleme) — "Admin
+// filtreleme/benchmark/takvim" (TrendPanel, altta): seçilen gün aralığını
+// (filtreleme) bir önceki eşit uzunluktaki periyotla karşılaştırır
+// (benchmark) + günlük aktiflik ısı haritası (takvim). Backend:
+// admin_platform.py /platform-stats/benchmark (bkz. platform_snapshot_
+// service.py::get_snapshot_benchmark) — takvim/filtreleme tarafı SAF
+// FRONTEND, zaten var olan /platform-stats/snapshots verisiyle besleniyor.
+// platform_daily_snapshots üretimde henüz sadece birkaç gün veri
+// içeriyor (cron 11 Eylül'de başladı) — bu yüzden panel çoğu zaman
+// "yeterli veri yok" gösterecek, gün geçtikçe otomatik dolacak.
+//
+// Faz 3'ün TÜM maddeleri (A-I) bu güncellemeyle BİTTİ.
 
 const EXAM_TYPES: { value: ExamType; label: string }[] = [
   { value: 'yds', label: 'YDS' },
@@ -642,6 +654,157 @@ function SegmentsPanel() {
   );
 }
 
+const BENCHMARK_METRIC_LABELS: { key: keyof PlatformSnapshotBenchmarkMetrics; label: string; suffix?: string }[] = [
+  { key: 'total_new_signups', label: 'Yeni Kayıt' },
+  { key: 'avg_active_users', label: 'Ort. Aktif Kullanıcı' },
+  { key: 'total_study_minutes', label: 'Çalışma (dk)' },
+  { key: 'total_new_words', label: 'Yeni Kelime' },
+  { key: 'avg_topic_accuracy', label: 'Konu Doğruluğu', suffix: '%' },
+  { key: 'total_xp_awarded', label: 'XP' },
+  { key: 'avg_premium_users', label: 'Ort. Premium Kullanıcı' },
+  { key: 'avg_total_active_profiles', label: 'Ort. Toplam Aktif Profil' },
+];
+
+const DAY_RANGE_OPTIONS = [30, 60, 90, 180];
+
+function PctBadge({ value }: { value: number | null }) {
+  if (value === null) return <span className="text-xs text-gray-400 dark:text-slate-500">—</span>;
+  if (value === 0) return <span className="text-xs text-gray-500 dark:text-slate-400">%0</span>;
+  const positive = value > 0;
+  const color = positive
+    ? 'text-emerald-600 dark:text-emerald-400'
+    : 'text-red-600 dark:text-red-400';
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-xs font-semibold ${color}`}>
+      {positive ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+      {positive ? '+' : ''}{value}%
+    </span>
+  );
+}
+
+// today dahil, geriye doğru `days` günlük tarih listesi (YYYY-MM-DD) —
+// takvim ısı haritasının hiç veri olmayan günleri de göstermesi için
+// (backend sadece VAR OLAN snapshot satırlarını döndürüyor, boşlukları
+// biz dolduruyoruz).
+function buildDayRange(days: number): string[] {
+  const result: string[] = [];
+  const today = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    result.push(d.toISOString().slice(0, 10));
+  }
+  return result;
+}
+
+function CalendarHeatmap({ days, snapshots }: { days: number; snapshots: PlatformDailySnapshot[] }) {
+  const byDate = new Map(snapshots.map((s) => [s.snapshot_date, s]));
+  const dayRange = buildDayRange(days);
+  const max = Math.max(1, ...snapshots.map((s) => s.active_users_count));
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {dayRange.map((date) => {
+        const snap = byDate.get(date);
+        const intensity = snap ? snap.active_users_count / max : 0;
+        const bg = !snap || intensity === 0
+          ? 'bg-gray-100 dark:bg-slate-800'
+          : intensity < 0.25
+            ? 'bg-emerald-100 dark:bg-emerald-900/40'
+            : intensity < 0.5
+              ? 'bg-emerald-300 dark:bg-emerald-700/60'
+              : intensity < 0.75
+                ? 'bg-emerald-500 dark:bg-emerald-600'
+                : 'bg-emerald-700 dark:bg-emerald-500';
+        const title = snap
+          ? `${date}: ${snap.active_users_count} aktif kullanıcı, ${snap.total_xp_awarded} XP`
+          : `${date}: veri yok`;
+        return <div key={date} title={title} className={`w-3 h-3 rounded-sm ${bg}`} />;
+      })}
+    </div>
+  );
+}
+
+// Faz 3 madde I — bkz. bu dosyanın üstündeki modül yorumu +
+// platform_snapshot_service.py::get_snapshot_benchmark docstring'i.
+function TrendPanel() {
+  const [days, setDays] = useState(30);
+  const [benchmark, setBenchmark] = useState<PlatformSnapshotBenchmark | null>(null);
+  const [snapshots, setSnapshots] = useState<PlatformDailySnapshot[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    setLoading(true);
+    Promise.all([
+      adminApi.getPlatformSnapshotBenchmark(days),
+      adminApi.getPlatformSnapshots(days),
+    ])
+      .then(([b, s]) => {
+        setBenchmark(b);
+        setSnapshots(s.items);
+      })
+      .finally(() => setLoading(false));
+  };
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- gun araligi degisince yeniden cek (fetch-on-effect deseni)
+  useEffect(load, [days]);
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800">
+      <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Platform Trend &amp; Karşılaştırma</h2>
+        </div>
+        <select
+          value={days}
+          onChange={(e) => setDays(Number(e.target.value))}
+          className="text-xs border border-gray-200 dark:border-slate-700 rounded-lg px-2 py-1.5 bg-white dark:bg-slate-800 text-gray-700 dark:text-slate-200"
+        >
+          {DAY_RANGE_OPTIONS.map((d) => (
+            <option key={d} value={d}>Son {d} gün</option>
+          ))}
+        </select>
+      </div>
+
+      <p className="px-6 pt-4 text-xs text-gray-400 dark:text-slate-500">
+        Seçilen periyodu bir önceki eşit uzunluktaki periyotla karşılaştırır + günlük aktiflik ısı haritası. Platform genelinde snapshot verisi 11 Eylül 2026&apos;dan itibaren birikiyor — geçmiş dönemler için &quot;yeterli veri yok&quot; görebilirsin, bu beklenen ve geçici bir durum.
+      </p>
+
+      {loading ? (
+        <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+      ) : benchmark ? (
+        <div className="p-6 space-y-6">
+          {benchmark.insufficient_data && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-lg px-3 py-2">
+              Yeterli veri yok — karşılaştırma için hem bu periyotta hem önceki periyotta en az birkaç gün snapshot gerekiyor (mevcut: {benchmark.current.days_with_data} / önceki: {benchmark.previous.days_with_data} gün).
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {BENCHMARK_METRIC_LABELS.map(({ key, label, suffix }) => {
+              const value = benchmark.current[key];
+              return (
+                <div key={key}>
+                  <div className="text-xs text-gray-400 dark:text-slate-500">{label}</div>
+                  <div className="font-semibold text-gray-900 dark:text-slate-100">
+                    {value === null ? '—' : `${value}${suffix ?? ''}`}
+                  </div>
+                  <PctBadge value={benchmark.pct_change[key]} />
+                </div>
+              );
+            })}
+          </div>
+
+          <div>
+            <div className="text-xs text-gray-400 dark:text-slate-500 mb-2">Günlük Aktiflik Isı Haritası (aktif kullanıcı sayısına göre)</div>
+            <CalendarHeatmap days={days} snapshots={snapshots} />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AdminReportsPage() {
   const [summary, setSummary] = useState<ContentAccuracySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -682,6 +845,7 @@ export default function AdminReportsPage() {
       <FlagsPanel />
       <SnapshotsPanel />
       <SegmentsPanel />
+      <TrendPanel />
     </div>
   );
 }
