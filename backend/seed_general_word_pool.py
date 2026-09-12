@@ -13,17 +13,31 @@ bulunamazsa o kelime ATLANIR (tabloya yanlış/uydurma veri yazılmaz) ve
 script sonunda "bulunamayan kelimeler" listesi olarak raporlanır.
 
 Kapsam: source_lang='en', target_lang= TARGET_LANGS listesindeki her dil
-(varsayılan: tr + de/fr/es/it/ar/ru/ja — admin panelin "İçerik" sayfasında
-eksik olarak işaretlenen diller). Aynı İngilizce kelime listesi (~300
-kelime) her hedef dil için ayrı ayrı işlenir; anlam o dile çevrilir.
+(varsayılan: tr + de/fr/es/it/ar/ru/ja/pt + ko/zh — admin panelin "İçerik"
+sayfasında eksik olarak işaretlenen diller). Aynı İngilizce kelime listesi
+(~300 kelime) her hedef dil için ayrı ayrı işlenir; anlam o dile çevrilir.
+
+GÜNCELLEME (12 Eylül 2026, V2 öncelik #7 — "Yeni Diller: Korece + Çince"):
+ko/zh eklendi. ÖNEMLİ SINIR: bu script SADECE source_lang='en' üretir —
+yani "İngilizce kelime + Korece/Çince TANIM" (İngilizce öğrenen Korece/
+Çince konuşanlar için) üretir, "Korece/Çince KELİME" (source_lang='ko'/'zh',
+yani Korece/Çince'yi HEDEF DİL olarak öğrenmek için gereken kelime havuzu)
+ÜRETMEZ — bkz. migration 068_add_korean_chinese_languages.sql'deki bilinçli
+sınır notu. Bu script'i (tr/de/fr/es/it/ar/ru/ja/pt gibi) source_lang='en'
+kapsamı için çalıştırmak, Korece/Çince ANA DİLİ olan kullanıcıların
+İngilizce öğrenirken kendi dillerinde tanım görmesini sağlar; Korece/
+Çince'yi bizzat ÖĞRENİLEN dil olarak seçen kullanıcılar için düello/kelime-
+tahmin oyunu içeriği bu script'le gelmez, ayrı bir iş (source_lang='ko'/'zh'
+üreten, muhtemelen farklı bir sözlük kaynağı gerektiren bir script) olarak
+ele alınmalı.
 
 Çalıştırma (tüm diller):
     cd backend
     venv\\Scripts\\activate      # Windows
     python seed_general_word_pool.py
 
-Tek bir dil için çalıştırmak isterseniz (ör. sadece Rusça):
-    python seed_general_word_pool.py ru
+Tek bir dil için çalıştırmak isterseniz (ör. sadece Korece):
+    python seed_general_word_pool.py ko
 
 Var olan (aynı source_lang + target_lang + word, case-insensitive)
 kayıtları tekrar eklemez — script kesintiye uğrarsa güvenle tekrar
@@ -37,7 +51,7 @@ from app.core.database import supabase_admin
 from app.services.dictionary_service import lookup_word
 
 SOURCE_LANG = "en"
-TARGET_LANGS = ["tr", "de", "fr", "es", "it", "ar", "ru", "ja"]
+TARGET_LANGS = ["tr", "de", "fr", "es", "it", "ar", "ru", "ja", "pt", "ko", "zh"]
 
 # Komut satırından tek dil verilirse sadece onu işle (ör: `python seed_general_word_pool.py ru`)
 if len(sys.argv) > 1:
