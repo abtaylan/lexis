@@ -45,6 +45,7 @@ import type {
   WordAccuracyResponse,
   ContentFlagScanResult,
   PlatformSnapshotsResponse,
+  SubscriptionSegmentsResponse,
   ContentFlagsResponse,
   ContentFlagItem,
   GrammarCategory,
@@ -884,6 +885,13 @@ export const adminApi = {
   },
   capturePlatformSnapshot: async (targetDate?: string): Promise<Record<string, unknown>> => {
     const res = await api.post('/admin/platform-stats/snapshots/capture', targetDate ? { target_date: targetDate } : {});
+    return res.data;
+  },
+
+  // İstatistik & Raporlama Faz 3 madde H — abonelik-segment korelasyonu
+  // (bkz. admin_platform.py /subscription-segments)
+  getSubscriptionSegments: async (days = 30): Promise<SubscriptionSegmentsResponse> => {
+    const res = await api.get<SubscriptionSegmentsResponse>('/admin/subscription-segments', { params: { days } });
     return res.data;
   },
 };

@@ -1165,3 +1165,34 @@ export interface PlatformSnapshotsResponse {
   items: PlatformDailySnapshot[];
   total_returned: number;
 }
+
+// İstatistik & Raporlama V2 öncelik #3, Faz 3 madde H — "Abonelik-segment
+// korelasyonu". Backend: admin_platform.py /admin/subscription-segments
+// (bkz. subscription_segment_service.py). study_sessions VE
+// topic_practice_attempts tabloları üretimde BOŞ olduğu için (bkz. o
+// servisin docstring'i) aktiflik/tekrar metrikleri daily_progress'ten
+// geliyor — avg_topic_accuracy_percent şu an her zaman null dönebilir,
+// bu BEKLENEN bir durum, hata değil.
+export interface SubscriptionSegmentMetrics {
+  total_users: number;
+  active_users: number;
+  active_rate_percent: number;
+  avg_words_reviewed_per_active_user: number;
+  avg_new_words_per_active_user: number;
+  avg_topic_accuracy_percent: number | null;
+  avg_xp_per_active_user: number;
+  avg_current_streak: number;
+  insufficient_data: boolean;
+}
+
+export interface SubscriptionSegmentPlan {
+  plan_code: string;
+  active_count: number;
+}
+
+export interface SubscriptionSegmentsResponse {
+  period_days: number;
+  premium: SubscriptionSegmentMetrics;
+  free: SubscriptionSegmentMetrics;
+  by_plan: SubscriptionSegmentPlan[];
+}

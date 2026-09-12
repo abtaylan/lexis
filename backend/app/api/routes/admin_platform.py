@@ -36,6 +36,13 @@ barındırıyor:
     tetikleme/doldurma içindir (ör. bir günü kaçırdıysa).
   - POST /platform-stats/snapshots/capture → dünü (veya body'de verilen
     bir tarihi) manuel olarak yakalar/yeniden hesaplar (idempotent).
+  - GET /subscription-segments → Faz 3 madde H — premium vs free
+    kullanıcı segmentlerinin katılım/performans karşılaştırması (aktiflik
+    oranı, kelime tekrarı, yeni kelime, konu doğruluğu, XP, seri —
+    study_sessions/topic_practice_attempts üretimde BOŞ olduğu için
+    çalışma süresi/oturum sayısı YOK, bkz. subscription_segment_service.py
+    docstring'i). 12 Eylül 2026 itibarıyla canlı veride premium segment
+    BOŞ — insufficient_data bayrağıyla yönetiliyor.
 
 Okuma (GET) endpoint'leri get_current_admin (hem 'admin' hem
 'admin_readonly' kabul eder) ile korunuyor; mutasyon yapan endpoint'ler
@@ -61,6 +68,7 @@ from app.services.content_flag_service import (
 )
 from app.services.platform_snapshot_service import capture_daily_snapshot, get_snapshots
 from app.services.report_export_service import build_platform_snapshots_document, render, SUPPORTED_FORMATS
+from app.services.subscription_segment_service import get_subscription_segments
 
 router = APIRouter()
 
@@ -878,3 +886,11 @@ async def export_platform_snapshots(
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+# ================================================================
+# 11) Abonelik-segment korelasyonu — Faz 3 madde H
+# ================================================================
+@router.get("/subscription-segments")
+async def subscription_segments(days: int = 30, admin=Depends(get_current_admin)):
+    return await get_subscription_segments(days=days)

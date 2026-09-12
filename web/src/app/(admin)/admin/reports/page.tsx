@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, HelpCircle, BookOpen, User, Flame, ShieldAlert, RefreshCw, TrendingUp } from 'lucide-react';
+import { Loader2, HelpCircle, BookOpen, User, Flame, ShieldAlert, RefreshCw, TrendingUp, Crown, Users } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import type {
   ContentAccuracySummary, ContentAccuracyAgg, QuestionAccuracyItem, WordAccuracyItem, ExamType,
   ContentFlagItem, ContentFlagType, ContentFlagStatus, PlatformDailySnapshot,
+  SubscriptionSegmentMetrics, SubscriptionSegmentsResponse,
 } from '@/types';
 
 // İstatistik & Raporlama Faz 2 — içerik doğruluk raporları (11 Eylül 2026).
@@ -27,9 +28,22 @@ import type {
 // otomatik çalışıyor (bu sayfadaki "Tara" butonu hâlâ manuel tetikleme
 // için duruyor). Backend: admin_platform.py /platform-stats/snapshots/*
 // (bkz. migration 066_platform_daily_snapshots.sql,
-// platform_snapshot_service.py). Sıradaki fazlar: e-posta/PDF/CSV/Excel
-// dağıtımı, KVKK onay mekanizması, abonelik-segment korelasyonu, admin
-// filtreleme/benchmark/takvim.
+// platform_snapshot_service.py).
+//
+// Faz 3 madde H (12 Eylül 2026) — "Abonelik-segment korelasyonu"
+// (SegmentsPanel, altta): premium vs free kullanıcıların katılım/
+// performans karşılaştırması. Backend: admin_platform.py
+// /subscription-segments (bkz. subscription_segment_service.py — o
+// dosyanın docstring'i, bu maddeyi tasarlarken keşfedilen ÖNEMLİ bir
+// bulguyu da içeriyor: study_sessions VE topic_practice_attempts
+// tabloları üretimde TAMAMEN BOŞ, bu yüzden metrikler daily_progress/
+// words/xp_events'ten hesaplanıyor). 12 Eylül 2026 itibarıyla canlı
+// veride premium segment 0 kullanıcı — panel bunu "yeterli veri yok"
+// olarak gösteriyor, kod değişikliği gerekmeden ilk gerçek premium
+// kullanıcıyla birlikte dolmaya başlayacak. Bu sayfa admin-only olduğu
+// için (10 dilli web raporlarının aksine) SADECE Türkçe.
+//
+// Sıradaki faz: admin filtreleme/benchmark/takvim (madde I).
 
 const EXAM_TYPES: { value: ExamType; label: string }[] = [
   { value: 'yds', label: 'YDS' },
@@ -530,6 +544,104 @@ function SnapshotsPanel() {
   );
 }
 
+function SegmentMetricCard({
+  title, icon, metrics,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  metrics: SubscriptionSegmentMetrics;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-100 dark:border-slate-800 p-5">
+      <div className="flex items-center gap-2 mb-4">
+        {icon}
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">{title}</h3>
+        <span className="ml-auto text-xs text-gray-400 dark:text-slate-500">{metrics.total_users} kullanıcı</span>
+      </div>
+
+      {metrics.insufficient_data ? (
+        <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 rounded-lg px-3 py-2">
+          Yeterli veri yok (en az 5 kullanıcı gerekiyor, şu an {metrics.total_users}).
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <div className="text-xs text-gray-400 dark:text-slate-500">Aktiflik oranı</div>
+            <div className="font-semibold text-gray-900 dark:text-slate-100">%{metrics.active_rate_percent}</div>
+            <div className="text-xs text-gray-400 dark:text-slate-500">{metrics.active_users}/{metrics.total_users} aktif</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 dark:text-slate-500 mb-1">Konu doğruluğu</div>
+            <AccuracyPill percent={metrics.avg_topic_accuracy_percent} />
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 dark:text-slate-500">Kelime tekrarı / aktif kullanıcı</div>
+            <div className="font-semibold text-gray-900 dark:text-slate-100">{metrics.avg_words_reviewed_per_active_user}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 dark:text-slate-500">Yeni kelime / aktif kullanıcı</div>
+            <div className="font-semibold text-gray-900 dark:text-slate-100">{metrics.avg_new_words_per_active_user}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 dark:text-slate-500">XP / aktif kullanıcı</div>
+            <div className="font-semibold text-gray-900 dark:text-slate-100">{metrics.avg_xp_per_active_user}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-400 dark:text-slate-500">Ortalama güncel seri</div>
+            <div className="font-semibold text-gray-900 dark:text-slate-100">{metrics.avg_current_streak} gün</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Faz 3 madde H — bkz. bu dosyanın üstündeki modül yorumu +
+// subscription_segment_service.py docstring'i (study_sessions/
+// topic_practice_attempts'in üretimde boş olması bulgusu dahil).
+function SegmentsPanel() {
+  const [data, setData] = useState<SubscriptionSegmentsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = () => {
+    setLoading(true);
+    adminApi.getSubscriptionSegments(30).then(setData).finally(() => setLoading(false));
+  };
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount olunca veri cekme (fetch-on-effect) deseni
+  useEffect(load, []);
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800">
+      <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex items-center gap-2">
+        <Crown className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+        <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Abonelik-Segment Karşılaştırması (Premium vs Free)</h2>
+      </div>
+
+      <p className="px-6 pt-4 text-xs text-gray-400 dark:text-slate-500">
+        Son 30 gün, bot hariç. Premium kullanıcıların gerçekten daha aktif/başarılı olup olmadığını gösterir.
+      </p>
+
+      {loading ? (
+        <div className="p-10 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>
+      ) : data ? (
+        <div className="p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <SegmentMetricCard title="Premium" icon={<Crown className="w-4 h-4 text-amber-500" />} metrics={data.premium} />
+            <SegmentMetricCard title="Free" icon={<Users className="w-4 h-4 text-gray-400" />} metrics={data.free} />
+          </div>
+          {data.by_plan.length > 0 && (
+            <div className="text-xs text-gray-500 dark:text-slate-400">
+              <span className="font-medium">Plana göre aktif abonelik: </span>
+              {data.by_plan.map((p) => `${p.plan_code}: ${p.active_count}`).join(', ')}
+            </div>
+          )}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function AdminReportsPage() {
   const [summary, setSummary] = useState<ContentAccuracySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -569,6 +681,7 @@ export default function AdminReportsPage() {
       <WordsPanel />
       <FlagsPanel />
       <SnapshotsPanel />
+      <SegmentsPanel />
     </div>
   );
 }
