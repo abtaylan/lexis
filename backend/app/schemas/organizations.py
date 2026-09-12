@@ -32,6 +32,10 @@ class OrganizationMemberItem(BaseModel):
     role: str
     joined_at: datetime
     total_xp: int = 0
+    # Faz 3 madde G (KVKK onay mekanizması) — bu üye kurum raporlarında
+    # (top_learners) isimli görünmeye açıkça onay verdi mi. bkz.
+    # organization_report_service.py + migration 067.
+    consent_given: bool = False
 
 
 class OrganizationMembersResponse(BaseModel):
@@ -41,3 +45,12 @@ class OrganizationMembersResponse(BaseModel):
 class OrganizationInviteRequest(BaseModel):
     email: str
     role: str = Field(default="member")
+
+
+class OrganizationConsentRequest(BaseModel):
+    consent: bool
+
+
+class OrganizationConsentResponse(BaseModel):
+    consent_given: bool
+    consented_at: datetime | None = None

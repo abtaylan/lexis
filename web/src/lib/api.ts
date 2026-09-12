@@ -1310,6 +1310,14 @@ export interface OrganizationReport {
   top_learners: OrgReportTopLearner[];
   weak_topics: OrgReportWeakTopic[];
   badges_earned_current: number;
+  // Faz 3 madde G (KVKK onay mekanizması) — top_learners'a dahil edilen
+  // (rapor paylaşımına onay vermiş) üye sayısı / toplam üye sayısı.
+  consent_summary: { consented_count: number; total_count: number };
+}
+
+export interface OrganizationConsentStatus {
+  consent_given: boolean;
+  consented_at: string | null;
 }
 
 export const organizationsApi = {
@@ -1328,6 +1336,17 @@ export const organizationsApi = {
     orgId: string, period: 'week' | 'month', format: ReportExportFormat
   ): Promise<{ sent: boolean; to: string }> => {
     const res = await api.post(`/organizations/${orgId}/report/send-email`, null, { params: { period, format } });
+    return res.data;
+  },
+  // Faz 3 madde G (KVKK onay mekanizması) — üyenin kendi rızasıyla,
+  // kurum raporunda (top_learners) isimli görünmeye onay vermesi/geri
+  // çekmesi. Sadece kendi üyeliği için (bkz. backend route docstring'i).
+  getConsent: async (orgId: string): Promise<OrganizationConsentStatus> => {
+    const res = await api.get<OrganizationConsentStatus>(`/organizations/${orgId}/consent`);
+    return res.data;
+  },
+  setConsent: async (orgId: string, consent: boolean): Promise<OrganizationConsentStatus> => {
+    const res = await api.put<OrganizationConsentStatus>(`/organizations/${orgId}/consent`, { consent });
     return res.data;
   },
 };

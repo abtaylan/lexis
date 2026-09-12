@@ -35,6 +35,8 @@ from fastapi.responses import Response
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.schemas.organizations import (
+    OrganizationConsentRequest,
+    OrganizationConsentResponse,
     OrganizationCreate,
     OrganizationInviteRequest,
     OrganizationItem,
@@ -150,7 +152,7 @@ async def list_organization_members(org_id: str, current_user=Depends(get_curren
 
     member_rows = (
         supabase_admin.table("organization_members")
-        .select("user_id, role, joined_at")
+        .select("user_id, role, joined_at, report_consent_at")
         .eq("org_id", org_id)
         .execute()
         .data
@@ -186,6 +188,7 @@ async def list_organization_members(org_id: str, current_user=Depends(get_curren
                 role=m["role"],
                 joined_at=m["joined_at"],
                 total_xp=profiles_by_id.get(m["user_id"], {}).get("total_xp", 0),
+                consent_given=bool(m.get("report_consent_at")),
             )
             for m in member_rows
         ),
@@ -243,6 +246,7 @@ async def invite_member(
         role=membership["role"],
         joined_at=membership["joined_at"],
         total_xp=(profile.data or {}).get("total_xp", 0),
+        consent_given=bool(membership.get("report_consent_at")),  # her zaman False — yeni üye opt-in bekliyor
     )
 
 
@@ -279,6 +283,41 @@ async def remove_member(org_id: str, user_id: str, current_user=Depends(get_curr
     supabase_admin.table("organization_members").delete().eq("org_id", org_id).eq(
         "user_id", user_id
     ).execute()
+
+
+# ── Rapor Paylaşımı Onayı — İstatistik & Raporlama V2 öncelik #3, madde G
+# ("KVKK onay mekanizması") ── Kurum raporu (madde B) "top_learners"
+# bölümü + PDF/CSV/Excel export'u (madde F) üyeleri İSİMLİ gösteriyor —
+# bu, üyenin kendi rızasıyla (opt-in, varsayılan KAPALI) vermesi gereken
+# bir onay. SADECE kendi üyeliği için, kendi adına set edilebilir — bir
+# admin başka bir üye adına onay VEREMEZ (KVKK'nin "açık rıza" ilkesiyle
+# tutarlı olması için _get_membership_or_403 current_user.id ile
+# eşleştiriyor, org_id + hedef user_id'yi request'ten almıyoruz).
+@router.get("/{org_id}/consent", response_model=OrganizationConsentResponse)
+async def get_report_consent(org_id: str, current_user=Depends(get_current_user)):
+    membership = _get_membership_or_403(org_id, current_user.id)
+    consented_at = membership.get("report_consent_at")
+    return OrganizationConsentResponse(consent_given=bool(consented_at), consented_at=consented_at)
+
+
+@router.put("/{org_id}/consent", response_model=OrganizationConsentResponse)
+async def set_report_consent(
+    org_id: str,
+    body: OrganizationConsentRequest,
+    current_user=Depends(get_current_user),
+):
+    _get_membership_or_403(org_id, current_user.id)  # üye mi kontrolü — rol şartı yok, herkes kendi onayını yönetir
+    new_value = datetime.now(timezone.utc).isoformat() if body.consent else None
+    result = (
+        supabase_admin.table("organization_members")
+        .update({"report_consent_at": new_value})
+        .eq("org_id", org_id)
+        .eq("user_id", current_user.id)
+        .execute()
+    )
+    updated = result.data[0] if result.data else {"report_consent_at": new_value}
+    consented_at = updated.get("report_consent_at")
+    return OrganizationConsentResponse(consent_given=bool(consented_at), consented_at=consented_at)
 
 
 # ── Kurum Raporu — İstatistik & Raporlama V2 öncelik #3, madde B ──────

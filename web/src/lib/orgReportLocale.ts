@@ -30,6 +30,8 @@ export interface OrgReportStrings {
   attemptsUnit: string;
   sectionBadges: string;
   badgesEarnedLabel: string;
+  // Faz 3 madde G (KVKK onay mekanizması) — top_learners şeffaflık notu.
+  consentSummaryTpl: string;
   // İstatistik & Raporlama V2 öncelik #3, Faz 3 madde F — export/e-posta
   // kontrolü (bkz. components/reports/ReportExportMenu.tsx).
   exportFormatCsv: string;
@@ -55,6 +57,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: 'Doğruluk Oranı', accuracyLabel: 'Kurum genelinde doğruluk',
     sectionVocabulary: 'Kelime Hazinesi', newWordsLabel: 'Bu dönem eklenen kelime (toplam)',
     sectionTopLearners: 'En Aktif Üyeler', noTopLearnersLabel: 'Bu dönem henüz XP kazanan üye yok.', xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} üye bu raporda isimli görünmeyi onayladı.',
     sectionWeakTopics: 'Kurum Genelinde Zayıf Konular', noWeakTopicsLabel: 'Henüz yeterli veri yok.', attemptsUnit: 'deneme',
     sectionBadges: 'Rozetler', badgesEarnedLabel: 'Bu dönem kazanılan rozet (kurum toplamı)',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
@@ -74,6 +77,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: 'Accuracy Rate', accuracyLabel: 'Org-wide accuracy',
     sectionVocabulary: 'Vocabulary', newWordsLabel: 'Words added this period (total)',
     sectionTopLearners: 'Top Learners', noTopLearnersLabel: 'No member has earned XP this period yet.', xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} members have consented to appear by name in this report.',
     sectionWeakTopics: 'Weakest Topics Org-Wide', noWeakTopicsLabel: 'Not enough data yet.', attemptsUnit: 'attempts',
     sectionBadges: 'Badges', badgesEarnedLabel: 'Badges earned this period (org total)',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
@@ -93,6 +97,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: 'Genauigkeit', accuracyLabel: 'Organisationsweite Genauigkeit',
     sectionVocabulary: 'Wortschatz', newWordsLabel: 'In diesem Zeitraum hinzugefügte Wörter (gesamt)',
     sectionTopLearners: 'Aktivste Mitglieder', noTopLearnersLabel: 'Noch kein Mitglied hat in diesem Zeitraum XP verdient.', xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} Mitglieder haben zugestimmt, in diesem Bericht namentlich zu erscheinen.',
     sectionWeakTopics: 'Schwächste Themen (organisationsweit)', noWeakTopicsLabel: 'Noch nicht genug Daten.', attemptsUnit: 'Versuche',
     sectionBadges: 'Abzeichen', badgesEarnedLabel: 'In diesem Zeitraum verdiente Abzeichen (Organisation gesamt)',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
@@ -112,6 +117,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: 'Taux de précision', accuracyLabel: "Précision à l'échelle de l'organisation",
     sectionVocabulary: 'Vocabulaire', newWordsLabel: 'Mots ajoutés cette période (total)',
     sectionTopLearners: 'Membres les plus actifs', noTopLearnersLabel: "Aucun membre n'a encore gagné d'XP cette période.", xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} membres ont consenti à apparaître nommément dans ce rapport.',
     sectionWeakTopics: "Sujets les plus faibles de l'organisation", noWeakTopicsLabel: 'Pas encore assez de données.', attemptsUnit: 'essais',
     sectionBadges: 'Badges', badgesEarnedLabel: "Badges obtenus cette période (total de l'organisation)",
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
@@ -131,6 +137,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: 'Tasa de precisión', accuracyLabel: 'Precisión de toda la organización',
     sectionVocabulary: 'Vocabulario', newWordsLabel: 'Palabras añadidas este periodo (total)',
     sectionTopLearners: 'Miembros más activos', noTopLearnersLabel: 'Ningún miembro ha ganado XP este periodo todavía.', xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} miembros han dado su consentimiento para aparecer con su nombre en este informe.',
     sectionWeakTopics: 'Temas más débiles de la organización', noWeakTopicsLabel: 'Aún no hay suficientes datos.', attemptsUnit: 'intentos',
     sectionBadges: 'Insignias', badgesEarnedLabel: 'Insignias obtenidas este periodo (total de la organización)',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
@@ -150,6 +157,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: 'Tasso di precisione', accuracyLabel: "Precisione a livello di organizzazione",
     sectionVocabulary: 'Vocabolario', newWordsLabel: 'Parole aggiunte in questo periodo (totale)',
     sectionTopLearners: 'Membri più attivi', noTopLearnersLabel: 'Nessun membro ha ancora guadagnato XP in questo periodo.', xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} membri hanno acconsentito a comparire con il proprio nome in questo report.',
     sectionWeakTopics: "Argomenti più deboli dell'organizzazione", noWeakTopicsLabel: 'Non ci sono ancora abbastanza dati.', attemptsUnit: 'tentativi',
     sectionBadges: 'Badge', badgesEarnedLabel: "Badge ottenuti in questo periodo (totale organizzazione)",
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
@@ -169,6 +177,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: 'نسبة الدقة', accuracyLabel: 'الدقة على مستوى المؤسسة',
     sectionVocabulary: 'المفردات', newWordsLabel: 'الكلمات المضافة هذه الفترة (الإجمالي)',
     sectionTopLearners: 'الأعضاء الأكثر نشاطًا', noTopLearnersLabel: 'لم يكتسب أي عضو XP بعد في هذه الفترة.', xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} من الأعضاء وافقوا على الظهور بالاسم في هذا التقرير.',
     sectionWeakTopics: 'أضعف المواضيع على مستوى المؤسسة', noWeakTopicsLabel: 'لا توجد بيانات كافية بعد.', attemptsUnit: 'محاولة',
     sectionBadges: 'الأوسمة', badgesEarnedLabel: 'الأوسمة المكتسبة هذه الفترة (إجمالي المؤسسة)',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
@@ -188,6 +197,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: 'Точность', accuracyLabel: 'Точность по всей организации',
     sectionVocabulary: 'Словарный запас', newWordsLabel: 'Слов добавлено за этот период (всего)',
     sectionTopLearners: 'Самые активные участники', noTopLearnersLabel: 'Пока ни один участник не заработал XP за этот период.', xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} участников дали согласие на отображение по имени в этом отчёте.',
     sectionWeakTopics: 'Самые слабые темы по организации', noWeakTopicsLabel: 'Пока недостаточно данных.', attemptsUnit: 'попыток',
     sectionBadges: 'Значки', badgesEarnedLabel: 'Значков получено за этот период (всего по организации)',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
@@ -207,6 +217,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: '正答率', accuracyLabel: '組織全体の正答率',
     sectionVocabulary: '語彙', newWordsLabel: '今期追加された単語（合計）',
     sectionTopLearners: '最も活発なメンバー', noTopLearnersLabel: '今期まだXPを獲得したメンバーはいません。', xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} 人のメンバーがこのレポートに氏名を表示することに同意しました。',
     sectionWeakTopics: '組織全体の弱いトピック', noWeakTopicsLabel: 'まだ十分なデータがありません。', attemptsUnit: '回',
     sectionBadges: 'バッジ', badgesEarnedLabel: '今期獲得したバッジ（組織合計）',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
@@ -226,6 +237,7 @@ export const ORG_REPORT_L: Record<Locale, OrgReportStrings> = {
     sectionAccuracy: 'Taxa de Precisão', accuracyLabel: 'Precisão em toda a organização',
     sectionVocabulary: 'Vocabulário', newWordsLabel: 'Palavras adicionadas neste período (total)',
     sectionTopLearners: 'Membros Mais Ativos', noTopLearnersLabel: 'Ainda nenhum membro ganhou XP neste período.', xpUnit: 'XP',
+    consentSummaryTpl: '{consented}/{total} membros consentiram em aparecer com o nome neste relatório.',
     sectionWeakTopics: 'Tópicos Mais Fracos da Organização', noWeakTopicsLabel: 'Ainda não há dados suficientes.', attemptsUnit: 'tentativas',
     sectionBadges: 'Insígnias', badgesEarnedLabel: 'Insígnias conquistadas neste período (total da organização)',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',

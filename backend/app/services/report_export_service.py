@@ -342,7 +342,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "Kurum Özeti", "sec_top_learners": "En Aktif Üyeler", "sec_weak_topics": "Zayıf Konular",
         "kv_org_name": "Kurum", "kv_org_plan": "Plan", "kv_member_count": "Üye Sayısı",
         "kv_active_member_count": "Aktif Üye Sayısı", "kv_org_total_minutes": "Toplam Süre (dakika)",
-        "kv_org_badges": "Bu Dönem Kazanılan Rozet", "col_user": "Kullanıcı", "col_xp_gained": "Kazanılan XP",
+        "kv_org_badges": "Bu Dönem Kazanılan Rozet", "col_user": "Kullanıcı", "col_xp_gained": "Kazanılan XP", "note_consent_summary_tpl": "{consented}/{total} üye bu raporda isimli görünmeyi onayladı.",
         "platform_title": "Lexis Platform Günlük Özet Geçmişi", "platform_subtitle_tpl": "Son {n} gün (bot hariç)",
         "sec_daily_summaries": "Günlük Özetler", "col_date": "Tarih", "col_new_signups": "Yeni Kayıt",
         "col_active_users": "Aktif Kullanıcı", "col_total_minutes": "Toplam Süre (dk)", "col_new_words": "Yeni Kelime",
@@ -374,7 +374,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "Organization Summary", "sec_top_learners": "Top Learners", "sec_weak_topics": "Weak Topics",
         "kv_org_name": "Organization", "kv_org_plan": "Plan", "kv_member_count": "Member Count",
         "kv_active_member_count": "Active Members", "kv_org_total_minutes": "Total Time (minutes)",
-        "kv_org_badges": "Badges Earned This Period", "col_user": "User", "col_xp_gained": "XP Gained",
+        "kv_org_badges": "Badges Earned This Period", "col_user": "User", "col_xp_gained": "XP Gained", "note_consent_summary_tpl": "{consented}/{total} members have consented to appear by name in this report.",
         "platform_title": "Lexis Platform Daily Summary History", "platform_subtitle_tpl": "Last {n} days (bots excluded)",
         "sec_daily_summaries": "Daily Summaries", "col_date": "Date", "col_new_signups": "New Signups",
         "col_active_users": "Active Users", "col_total_minutes": "Total Time (min)", "col_new_words": "New Words",
@@ -406,7 +406,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "Organisationsübersicht", "sec_top_learners": "Aktivste Mitglieder", "sec_weak_topics": "Schwache Themen",
         "kv_org_name": "Organisation", "kv_org_plan": "Plan", "kv_member_count": "Mitgliederzahl",
         "kv_active_member_count": "Aktive Mitglieder", "kv_org_total_minutes": "Gesamtzeit (Minuten)",
-        "kv_org_badges": "In diesem Zeitraum verdiente Abzeichen", "col_user": "Nutzer", "col_xp_gained": "Erhaltene XP",
+        "kv_org_badges": "In diesem Zeitraum verdiente Abzeichen", "col_user": "Nutzer", "col_xp_gained": "Erhaltene XP", "note_consent_summary_tpl": "{consented}/{total} Mitglieder haben zugestimmt, in diesem Bericht namentlich zu erscheinen.",
         "platform_title": "Lexis Plattform-Tagesübersicht-Verlauf", "platform_subtitle_tpl": "Letzte {n} Tage (ohne Bots)",
         "sec_daily_summaries": "Tagesübersichten", "col_date": "Datum", "col_new_signups": "Neuanmeldungen",
         "col_active_users": "Aktive Nutzer", "col_total_minutes": "Gesamtzeit (Min.)", "col_new_words": "Neue Wörter",
@@ -438,7 +438,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "Résumé de l'organisation", "sec_top_learners": "Membres les plus actifs", "sec_weak_topics": "Sujets faibles",
         "kv_org_name": "Organisation", "kv_org_plan": "Plan", "kv_member_count": "Nombre de membres",
         "kv_active_member_count": "Membres actifs", "kv_org_total_minutes": "Temps total (minutes)",
-        "kv_org_badges": "Badges obtenus cette période", "col_user": "Utilisateur", "col_xp_gained": "XP gagnés",
+        "kv_org_badges": "Badges obtenus cette période", "col_user": "Utilisateur", "col_xp_gained": "XP gagnés", "note_consent_summary_tpl": "{consented}/{total} membres ont consenti à apparaître nommément dans ce rapport.",
         "platform_title": "Historique du résumé quotidien de la plateforme Lexis", "platform_subtitle_tpl": "{n} derniers jours (bots exclus)",
         "sec_daily_summaries": "Résumés quotidiens", "col_date": "Date", "col_new_signups": "Nouvelles inscriptions",
         "col_active_users": "Utilisateurs actifs", "col_total_minutes": "Temps total (min)", "col_new_words": "Nouveaux mots",
@@ -470,7 +470,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "Resumen de la organización", "sec_top_learners": "Miembros más activos", "sec_weak_topics": "Temas débiles",
         "kv_org_name": "Organización", "kv_org_plan": "Plan", "kv_member_count": "Número de miembros",
         "kv_active_member_count": "Miembros activos", "kv_org_total_minutes": "Tiempo total (minutos)",
-        "kv_org_badges": "Insignias obtenidas este periodo", "col_user": "Usuario", "col_xp_gained": "XP obtenidos",
+        "kv_org_badges": "Insignias obtenidas este periodo", "col_user": "Usuario", "col_xp_gained": "XP obtenidos", "note_consent_summary_tpl": "{consented}/{total} miembros han dado su consentimiento para aparecer con su nombre en este informe.",
         "platform_title": "Historial de resúmenes diarios de la plataforma Lexis", "platform_subtitle_tpl": "Últimos {n} días (bots excluidos)",
         "sec_daily_summaries": "Resúmenes diarios", "col_date": "Fecha", "col_new_signups": "Nuevos registros",
         "col_active_users": "Usuarios activos", "col_total_minutes": "Tiempo total (min)", "col_new_words": "Palabras nuevas",
@@ -502,7 +502,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "Riepilogo organizzazione", "sec_top_learners": "Membri più attivi", "sec_weak_topics": "Argomenti deboli",
         "kv_org_name": "Organizzazione", "kv_org_plan": "Piano", "kv_member_count": "Numero di membri",
         "kv_active_member_count": "Membri attivi", "kv_org_total_minutes": "Tempo totale (minuti)",
-        "kv_org_badges": "Badge ottenuti in questo periodo", "col_user": "Utente", "col_xp_gained": "XP ottenuti",
+        "kv_org_badges": "Badge ottenuti in questo periodo", "col_user": "Utente", "col_xp_gained": "XP ottenuti", "note_consent_summary_tpl": "{consented}/{total} membri hanno acconsentito a comparire con il proprio nome in questo report.",
         "platform_title": "Cronologia riepiloghi giornalieri della piattaforma Lexis", "platform_subtitle_tpl": "Ultimi {n} giorni (bot esclusi)",
         "sec_daily_summaries": "Riepiloghi giornalieri", "col_date": "Data", "col_new_signups": "Nuove iscrizioni",
         "col_active_users": "Utenti attivi", "col_total_minutes": "Tempo totale (min)", "col_new_words": "Nuove parole",
@@ -534,7 +534,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "ملخص المؤسسة", "sec_top_learners": "الأعضاء الأكثر نشاطًا", "sec_weak_topics": "المواضيع الضعيفة",
         "kv_org_name": "المؤسسة", "kv_org_plan": "الخطة", "kv_member_count": "عدد الأعضاء",
         "kv_active_member_count": "الأعضاء النشطون", "kv_org_total_minutes": "الوقت الإجمالي (دقائق)",
-        "kv_org_badges": "الأوسمة المكتسبة هذه الفترة", "col_user": "المستخدم", "col_xp_gained": "XP المكتسبة",
+        "kv_org_badges": "الأوسمة المكتسبة هذه الفترة", "col_user": "المستخدم", "col_xp_gained": "XP المكتسبة", "note_consent_summary_tpl": "{consented}/{total} من الأعضاء وافقوا على الظهور بالاسم في هذا التقرير.",
         "platform_title": "سجل الملخص اليومي لمنصة Lexis", "platform_subtitle_tpl": "آخر {n} يومًا (باستثناء البوتات)",
         "sec_daily_summaries": "الملخصات اليومية", "col_date": "التاريخ", "col_new_signups": "تسجيلات جديدة",
         "col_active_users": "مستخدمون نشطون", "col_total_minutes": "الوقت الإجمالي (دقائق)", "col_new_words": "كلمات جديدة",
@@ -566,7 +566,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "Сводка организации", "sec_top_learners": "Самые активные участники", "sec_weak_topics": "Слабые темы",
         "kv_org_name": "Организация", "kv_org_plan": "Тариф", "kv_member_count": "Количество участников",
         "kv_active_member_count": "Активные участники", "kv_org_total_minutes": "Общее время (минуты)",
-        "kv_org_badges": "Значков получено за этот период", "col_user": "Пользователь", "col_xp_gained": "Получено XP",
+        "kv_org_badges": "Значков получено за этот период", "col_user": "Пользователь", "col_xp_gained": "Получено XP", "note_consent_summary_tpl": "{consented}/{total} участников дали согласие на отображение по имени в этом отчёте.",
         "platform_title": "История ежедневных сводок платформы Lexis", "platform_subtitle_tpl": "Последние {n} дн. (без ботов)",
         "sec_daily_summaries": "Ежедневные сводки", "col_date": "Дата", "col_new_signups": "Новые регистрации",
         "col_active_users": "Активные пользователи", "col_total_minutes": "Общее время (мин)", "col_new_words": "Новые слова",
@@ -598,7 +598,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "組織概要", "sec_top_learners": "最も活発なメンバー", "sec_weak_topics": "弱いトピック",
         "kv_org_name": "組織", "kv_org_plan": "プラン", "kv_member_count": "メンバー数",
         "kv_active_member_count": "アクティブメンバー数", "kv_org_total_minutes": "合計時間（分）",
-        "kv_org_badges": "この期間に獲得したバッジ", "col_user": "ユーザー", "col_xp_gained": "獲得XP",
+        "kv_org_badges": "この期間に獲得したバッジ", "col_user": "ユーザー", "col_xp_gained": "獲得XP", "note_consent_summary_tpl": "{consented}/{total} 人のメンバーがこのレポートに氏名を表示することに同意しました。",
         "platform_title": "Lexis プラットフォーム日次サマリー履歴", "platform_subtitle_tpl": "過去{n}日間（ボットを除く）",
         "sec_daily_summaries": "日次サマリー", "col_date": "日付", "col_new_signups": "新規登録",
         "col_active_users": "アクティブユーザー", "col_total_minutes": "合計時間（分）", "col_new_words": "新規単語",
@@ -630,7 +630,7 @@ _L: dict[str, dict[str, str]] = {
         "sec_org_summary": "Resumo da Organização", "sec_top_learners": "Membros Mais Ativos", "sec_weak_topics": "Tópicos Fracos",
         "kv_org_name": "Organização", "kv_org_plan": "Plano", "kv_member_count": "Número de Membros",
         "kv_active_member_count": "Membros Ativos", "kv_org_total_minutes": "Tempo Total (minutos)",
-        "kv_org_badges": "Insígnias Conquistadas Neste Período", "col_user": "Utilizador", "col_xp_gained": "XP Ganho",
+        "kv_org_badges": "Insígnias Conquistadas Neste Período", "col_user": "Utilizador", "col_xp_gained": "XP Ganho", "note_consent_summary_tpl": "{consented}/{total} membros consentiram em aparecer com o nome neste relatório.",
         "platform_title": "Histórico de Resumos Diários da Plataforma Lexis", "platform_subtitle_tpl": "Últimos {n} dias (bots excluídos)",
         "sec_daily_summaries": "Resumos Diários", "col_date": "Data", "col_new_signups": "Novos Registos",
         "col_active_users": "Utilizadores Ativos", "col_total_minutes": "Tempo Total (min)", "col_new_words": "Novas Palavras",
@@ -788,6 +788,7 @@ def build_org_report_document(report: dict[str, Any], *, generated_at: str, lang
     vocab = report.get("vocabulary", {})
     top_learners = report.get("top_learners", [])
     weak_topics = report.get("weak_topics", [])
+    consent_summary = report.get("consent_summary", {})
 
     sections = [
         ReportSection(
@@ -810,9 +811,17 @@ def build_org_report_document(report: dict[str, Any], *, generated_at: str, lang
             ],
         ),
         ReportSection(
+            # madde G (KVKK onay mekanizması): top_learners zaten sadece
+            # report_consent_at dolu üyeleri içeriyor (bkz.
+            # organization_report_service.py) — bu not, kurum adminine
+            # ŞEFFAFLIK için kaç üyeden kaçının onaylı olduğunu gösteriyor.
             title=L["sec_top_learners"],
             table_headers=[L["col_user"], L["col_xp_gained"]] if top_learners else None,
             table_rows=[[t.get("username") or t.get("user_id", "—"), str(t.get("xp_gained", 0))] for t in top_learners] or None,
+            note=L["note_consent_summary_tpl"].format(
+                consented=consent_summary.get("consented_count", 0),
+                total=consent_summary.get("total_count", 0),
+            ) if consent_summary.get("total_count") else None,
         ),
         ReportSection(
             title=L["sec_weak_topics"],

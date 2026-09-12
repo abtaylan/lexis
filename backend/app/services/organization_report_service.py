@@ -16,6 +16,16 @@ test kurumu oluşturulup canlı Supabase'de doğrulandı (bkz. devir notu).
 
 Bilinçli kapsam dışı: profiles.country yok, o yüzden "kurumun hangi
 şehir/bölgeden" gibi bir kırılım burada değil.
+
+MADDE G (KVKK onay mekanizması, aynı gün eklendi): `top_learners` bölümü
+üyeleri İSİMLİ gösteriyor ve artık PDF/CSV/Excel'e export edilip
+e-postayla gönderilebiliyor (madde F) — bu yüzden sadece
+`organization_members.report_consent_at IS NOT NULL` olan (yani rapor
+paylaşımına AÇIKÇA onay vermiş) üyeler `top_learners`'a dahil ediliyor.
+Onay vermemiş üyelerin XP'si sayılmıyor/gösterilmiyor (aggregate
+`study`/`accuracy`/`vocabulary` bölümleri isimsiz/toplu olduğu için
+onaydan etkilenmiyor). Dönen dict'e şeffaflık için `consent_summary`
+eklendi — bkz. routes/organizations.py::set_report_consent, migration 067.
 """
 
 from __future__ import annotations
@@ -62,11 +72,12 @@ async def get_organization_report(org_id: str, period: Period = "week") -> dict[
 
     member_rows = (
         supabase_admin.table("organization_members")
-        .select("user_id, role, joined_at")
+        .select("user_id, role, joined_at, report_consent_at")
         .eq("org_id", org_id)
         .execute()
     ).data or []
     member_ids = [m["user_id"] for m in member_rows]
+    consented_ids = {m["user_id"] for m in member_rows if m.get("report_consent_at")}
 
     if not member_ids:
         # Boş kurum — hiçbir alt sorguya gerek yok (supabase-py'de bos bir
@@ -83,6 +94,7 @@ async def get_organization_report(org_id: str, period: Period = "week") -> dict[
             "top_learners": [],
             "weak_topics": [],
             "badges_earned_current": 0,
+            "consent_summary": {"consented_count": 0, "total_count": 0},
         }
 
     profiles_by_id: dict[str, dict] = {}
@@ -162,6 +174,8 @@ async def get_organization_report(org_id: str, period: Period = "week") -> dict[
     ).data or []
     xp_by_user: dict[str, int] = {}
     for row in xp_rows:
+        if row["user_id"] not in consented_ids:
+            continue  # madde G: rapor paylaşımına onay vermemiş üye isimli listelenmiyor
         xp_by_user[row["user_id"]] = xp_by_user.get(row["user_id"], 0) + (row.get("amount") or 0)
     top_learners = sorted(
         (
@@ -217,4 +231,5 @@ async def get_organization_report(org_id: str, period: Period = "week") -> dict[
         "top_learners": top_learners,
         "weak_topics": weak_topics,
         "badges_earned_current": len(badge_rows),
+        "consent_summary": {"consented_count": len(consented_ids), "total_count": len(member_ids)},
     }

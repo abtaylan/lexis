@@ -255,6 +255,15 @@ export default function OrganizationReportPage() {
                 ))}
               </ul>
             )}
+            {/* Faz 3 madde G (KVKK onay mekanizması) — şeffaflık notu: sadece
+                rapor paylaşımına onay veren üyeler burada isimli görünüyor. */}
+            {data.consent_summary.total_count > 0 && (
+              <p className="mt-2 text-[11px] text-gray-400 dark:text-slate-500">
+                {t.consentSummaryTpl
+                  .replace('{consented}', String(data.consent_summary.consented_count))
+                  .replace('{total}', String(data.consent_summary.total_count))}
+              </p>
+            )}
           </Card>
 
           <Card>
