@@ -12,7 +12,28 @@
           "package_name": "app.lexis.mobile"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "856605079231-5ni7uuuvtasnd6kebu2ot4bo6649ja58.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.lexis.mobile",
+            "certificate_hash": "3f4460779c60bde05c37b212668f85ed0c205487"
+          }
+        },
+        {
+          "client_id": "856605079231-ljgcl3b0o4i23f72aeq88skkgl5fol3k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.lexis.mobile",
+            "certificate_hash": "1a7175063f09de08bf8304c22745bd2d1810b0bf"
+          }
+        },
+        {
+          "client_id": "856605079231-jt6reif19ti3nla7c451krr0848r1li9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDQwOt8Ydy0dZ85z5lXJCKwkARGXLCbNus"
@@ -20,7 +41,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "856605079231-jt6reif19ti3nla7c451krr0848r1li9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "856605079231-s8dm5s2gjhvslaktr21ga4e62qarq28n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "app.lexis.mobile"
+              }
+            }
+          ]
         }
       }
     }

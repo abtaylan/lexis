@@ -7,54 +7,30 @@
 // kimlik dogrulamasi (id_token elde etme) + authApi.googleSignIn cagrisi
 // var.
 //
-// GUNCELLEME (12 Eylul 2026, V2 oncelik #6): GOOGLE_WEB_CLIENT_ID artik
-// BOS DEGIL -- web'in zaten canlida kullandigi GERCEK Web Client ID buraya
-// tasindi (bkz. web/src/components/GoogleSignInButton.tsx -- ayni Google
-// Cloud projesi/ayni deger, sir degil, web JS bundle'inda zaten herkese
-// acik). GOOGLE_IOS_CLIENT_ID ise HALA BOS -- asagidaki `configured` bayragi
-// bu yuzden HALA false ve buton HALA gizli: sadece webClientId dolu olmasi
-// Android'i bile calistirmaya YETMEZ (Google Cloud Console'da app.lexis.mobile
-// paketi + SHA-1 parmak izi icin ayri bir "Android" turu OAuth client
-// KAYITLI OLMADAN native Android girisi DEVELOPER_ERROR ile patlar -- bu
-// mevcut google-services.json'da da goruluyor: "oauth_client": [] bomboş,
-// sadece FCM push icin eklenmisti). Yani gercek kalan is BEHCET'IN Google
-// Cloud/Firebase Console'da yapmasi gereken, buradan yapilamayan adimlar:
+// GUNCELLEME (13 Eylul 2026): ADIM 1-3 TAMAMLANDI. Google Cloud Console'da
+// (proje: lexis-291d9) artik 4 OAuth client kayitli: "Lexis Web" (zaten
+// vardi), "Lexis Android" (Play App Signing sertifikasinin SHA-1'iyle --
+// gercek Play Store kullanicilari bu sertifikayla imzalaniyor), "Lexis
+// Android (EAS Internal)" (EAS upload keystore'unun SHA-1'iyle -- EAS'in
+// dogrudan dagittigi/internal build'ler icin, Android tek client'ta ikinci
+// SHA-1 eklemeyi desteklemedigi icin ayri client acildi) ve "Lexis iOS"
+// (bundle ID app.lexis.mobile). Supabase Dashboard -> Authentication ->
+// Providers -> Google -> "Authorized Client IDs" listesine de tum 4 client
+// ID eklendi (asil zorunlu olan sadece webClientId'di -- id_token'in "aud"
+// claim'i webClientId'e esit oluyor -- ama diger client ID'ler de ekstra
+// guvenlik icin listeye eklendi, zarari yok).
 //
-// 1) ANDROID: Google Cloud Console (proje: lexis-291d9, ayni proje numarasi
-//    856605079231) -> Credentials -> "Create Credentials" -> OAuth client ID
-//    -> tur "Android" -> package name `app.lexis.mobile` + SHA-1 sertifika
-//    parmak izi. IKI SHA-1 lazim: (a) yerel debug keystore'un SHA-1'i
-//    (`keytool -list -v -keystore ~/.android/debug.keystore -alias
-//    androiddebugkey -storepass android -keypass android`) VE (b) Play
-//    Console -> Setup -> App integrity -> App signing key certificate'in
-//    SHA-1'i (gercek Play Store kullanicilari o sertifikayla imzalaniyor,
-//    kendi upload key'i DEGIL). Kayittan sonra Firebase Console'dan
-//    google-services.json'u YENIDEN INDIRIP bu repodaki
-//    mobile/google-services.json'un yerine koy (artik "oauth_client" alani
-//    dolu gelecek).
-// 2) IOS: ayni Google Cloud projesinde "iOS" turunde bir OAuth client daha
-//    olustur (bundle ID: app.json'daki ios.bundleIdentifier ile BIREBIR
-//    ayni olmali: app.lexis.mobile). Olusunca iki deger cikar: Client ID
-//    (asagidaki GOOGLE_IOS_CLIENT_ID sabitine yazilacak) ve "iOS URL scheme"
-//    (REVERSED_CLIENT_ID, com.googleusercontent.apps.... formatinda --
-//    app.json'daki google-signin plugin'inin iosUrlScheme TODO'suna yazilacak).
-// 3) SUPABASE: Dashboard -> Authentication -> Providers -> Google ->
-//    "Authorized Client IDs" listesinde asagidaki Web Client ID'nin zaten
-//    KAYITLI oldugunu dogrula (9 Eylul'deki web Google girisi calistigina
-//    gore muhtemelen zaten oradadir -- id_token'in "aud" (audience) claim'i
-//    HER ZAMAN webClientId'e esittir, iOS/Android client ID'leri sadece
-//    platformun kendi Google hesabiyla konusmasi icin, id_token'e girmez --
-//    bu yuzden Supabase tarafinda YENI bir client ID eklemeye GEREK YOK,
-//    sadece mevcut kaydin dogru oldugunu teyit etmek yeterli).
-// 4) Yukaridaki ADIM 1-2 tamamlanip GOOGLE_IOS_CLIENT_ID + app.json'daki
-//    iosUrlScheme doldurulduktan SONRA: bu native modul degisikligi OTA
-//    (`eas update`) ile YAYILAMAZ (bkz. 11 Eylul expo-updates krizi notu) --
-//    tam native build+submit (`eas-build-submit.yml`) gerekiyor.
+// KALAN TEK ADIM: mobile/google-services.json hala eski ("oauth_client": []
+// bos) -- Firebase Console'dan YENIDEN INDIRILIP bu dosyanin yerine
+// konulmasi lazim (Android OAuth client'lari artik Firebase projesine
+// baglandigina gore Firebase'in google-services.json'u artik onlari
+// icerecek). Bu adim tamamlanana kadar Android'de native Google girisi
+// DEVELOPER_ERROR ile patlayabilir.
 //
-// Bu 4 adim da Google Cloud/Firebase/Play Console'da interaktif, kimlik
-// dogrulamali islemler oldugu icin bu ortamdan (device_bash / Claude)
-// YAPILAMIYOR -- gercek "bitti" durumu Behcet bu adimlari tamamlayip iki
-// sabiti + app.json'u doldurdugunda gelecek.
+// SONRASINDA: bu native modul degisikligi OTA (`eas update`) ile
+// YAYILAMAZ (bkz. 11 Eylul expo-updates krizi notu) -- tam native
+// build+submit (`eas-build-submit.yml`) gerekiyor, aksi halde bu buton
+// canli kullanicilara hic gorunmez.
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GoogleSignin, isSuccessResponse, isErrorWithCode, statusCodes } from '@react-native-google-signin/google-signin';
@@ -69,13 +45,9 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 // GUNCELLEME notu) -- sir degil, ID token'in "aud" claim'i bu deger olacak.
 const GOOGLE_WEB_CLIENT_ID = '856605079231-jt6reif19ti3nla7c451krr0848r1li9.apps.googleusercontent.com';
 
-// TODO (Behcet): Google Cloud Console'da olusturulacak "iOS" turu OAuth
-// client'in Client ID'si (yukaridaki ADIM 2). Bos birakildikca asagidaki
-// `configured` bayragi false kalir ve buton (Android dahil, BILINCLI
-// OLARAK) hicbir platformda gorunmez -- Android'in de ayrica kendi Cloud
-// Console kaydina (ADIM 1) ihtiyaci oldugu icin tek basina webClientId
-// yeterli degil, ikisi BIRLIKTE tamamlanip tek seferde acilmasi gerekiyor.
-const GOOGLE_IOS_CLIENT_ID = '';
+// "Lexis iOS" OAuth client'inin Client ID'si (13 Eylul 2026'da Google Cloud
+// Console'da olusturuldu, bundle ID app.lexis.mobile) -- sir degil.
+const GOOGLE_IOS_CLIENT_ID = '856605079231-s8dm5s2gjhvslaktr21ga4e62qarq28n.apps.googleusercontent.com';
 
 interface Props {
   onError: (message: string) => void;
