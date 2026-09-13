@@ -11,6 +11,12 @@ from pydantic import BaseModel, Field
 
 class OrganizationCreate(BaseModel):
     name: str = Field(min_length=2, max_length=100)
+    # 13 Eylül 2026 — self-serve oluşturma kapatıldı (madde 9 B2B satış
+    # paketi kapsamı netleşirken): artık SADECE admin (get_current_admin_full)
+    # bu uca istek atabiliyor, müşterinin kendi Lexis hesabının e-postasını
+    # owner_email olarak verip onu 'owner' yapıyor — admin kurumun üyesi
+    # OLMUYOR (bkz. routes/organizations.py::create_organization).
+    owner_email: str = Field(min_length=3, max_length=255)
 
 
 class OrganizationItem(BaseModel):
@@ -54,3 +60,21 @@ class OrganizationConsentRequest(BaseModel):
 class OrganizationConsentResponse(BaseModel):
     consent_given: bool
     consented_at: datetime | None = None
+
+
+# ── Admin paneli — TÜM kurumların listesi (13 Eylül 2026) ──────────────
+# list_my_organizations (yukarısı) sadece isteği yapanın ÜYE olduğu
+# kurumları döner; admin artık oluşturduğu kurumların üyesi olmadığı
+# için admin panelin göreceği ayrı, daha geniş bir görünüm.
+class AdminOrganizationItem(BaseModel):
+    id: str
+    name: str
+    plan: str
+    created_at: datetime
+    member_count: int
+    owner_email: str | None = None
+    owner_username: str | None = None
+
+
+class AdminOrganizationListResponse(BaseModel):
+    items: list[AdminOrganizationItem]

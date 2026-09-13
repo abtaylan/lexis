@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -11,6 +11,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
+import { organizationsApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { XPBar } from '@/components/layout/XPBar';
 import { ThemeSwitch } from '@/components/ui';
@@ -118,6 +119,18 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const { t, locale } = useLocale();
   const [mobileOpen, setMobileOpen] = useState(false);
+  // "Kurumlarım" artık self-serve değil (13 Eylül 2026, B2B satış
+  // paketi kapsamı netleşirken kapatıldı) — kurum oluşturma admin-only'e
+  // taşındı (bkz. backend routes/organizations.py POST /organizations),
+  // bu yüzden link artık SADECE kullanıcı zaten bir kurumun üyesiyse
+  // gösteriliyor — aksi halde tıklanamaz bir menu maddesi olarak kalırdı.
+  const [hasOrganizations, setHasOrganizations] = useState(false);
+
+  useEffect(() => {
+    organizationsApi.list()
+      .then((orgs) => setHasOrganizations(orgs.length > 0))
+      .catch(() => setHasOrganizations(false));
+  }, []);
 
   // Sayfa değiştiğinde mobil menüyü otomatik kapat — render sırasında state
   // ayarlama (React'ın "adjusting state during render" deseni), effect içinde
@@ -139,7 +152,8 @@ export function Sidebar() {
     { href: '/quests', label: QUESTS_LABEL[locale], icon: Map },
     { href: '/rewards', label: REWARDS_LABEL[locale], icon: Award },
     { href: '/report', label: REPORT_LABEL[locale], icon: FileBarChart2 },
-    { href: '/organizations', label: ORGANIZATIONS_LABEL[locale], icon: Building2 },
+    // Sadece zaten bir kurumun üyesi olan kullanıcıya görünür (yukarıdaki effect).
+    ...(hasOrganizations ? [{ href: '/organizations', label: ORGANIZATIONS_LABEL[locale], icon: Building2 }] : []),
     { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
     // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası

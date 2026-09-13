@@ -5,15 +5,20 @@
 //
 // V2 öncelik #4 (12 Eylül 2026) — "B2B Kurumsal Lig Arayüzü": backend
 // (routes/organizations.py) madde B/F/G ile kurum RAPORU/export/onay
-// tarafını bitirmişti ama kurum OLUŞTURMA/listeleme ekranı hiç yoktu —
-// bu yüzden report/consent sayfaları "linksiz ama işlevsel" bir desende
-// kalmıştı (Sidebar'a bağlanmamıştı). Bu sayfa o boşluğu kapatıyor: artık
-// Sidebar'a EKLENDİ (bkz. components/layout/Sidebar.tsx) — kullanıcı
-// buradan kurum oluşturup [orgId] detay sayfasına geçebiliyor, oradan da
-// mevcut rapor/onay sayfalarına link var.
+// tarafını bitirmişti, bu sayfa kurum LİSTELEME'yi kapatıyor — Sidebar'a
+// EKLENDİ (bkz. components/layout/Sidebar.tsx, sadece zaten üye olan
+// kullanıcıya görünüyor). Kullanıcı buradan kendi kurumlarının [orgId]
+// detay sayfasına geçip mevcut rapor/onay sayfalarına ulaşabiliyor.
+//
+// 13 Eylül 2026 GÜNCELLEMESİ: kurum OLUŞTURMA artık burada YOK — self-
+// serve oluşturma (herhangi bir tüketici kullanıcının ücretsiz kurum
+// açıp owner olabilmesi) madde 9 (B2B satış paketi) kapsamı netleşirken
+// kapatıldı. Oluşturma artık SADECE admin panelden (bkz.
+// app/(admin)/admin/organizations/page.tsx), B2B paketini satın alan
+// müşterinin e-postası owner olarak verilerek yapılıyor.
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Building2, Loader2, AlertCircle, Plus, X, ChevronRight } from 'lucide-react';
+import { Building2, Loader2, AlertCircle, ChevronRight } from 'lucide-react';
 import { organizationsApi, type OrganizationListItem } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { ORG_LIST_L } from '@/lib/orgListLocale';
@@ -39,10 +44,6 @@ export default function OrganizationsListPage() {
 
   const [orgs, setOrgs] = useState<OrganizationListItem[] | null>(null);
   const [error, setError] = useState(false);
-  const [showCreate, setShowCreate] = useState(false);
-  const [name, setName] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState(false);
 
   const roleLabel: Record<string, string> = {
     owner: t.roleOwner,
@@ -61,38 +62,9 @@ export default function OrganizationsListPage() {
     load();
   }, [load]);
 
-  const handleCreate = async () => {
-    if (!name.trim()) return;
-    setCreating(true);
-    setCreateError(false);
-    try {
-      await organizationsApi.create(name.trim());
-      setShowCreate(false);
-      setName('');
-      load();
-    } catch {
-      setCreateError(true);
-    } finally {
-      setCreating(false);
-    }
-  };
-
   return (
     <div className="max-w-2xl">
-      <PageHeader
-        title={t.title}
-        subtitle={t.subtitle}
-        action={
-          <button
-            type="button"
-            onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-3.5 py-2 rounded-xl transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            {t.createBtn}
-          </button>
-        }
-      />
+      <PageHeader title={t.title} subtitle={t.subtitle} />
 
       <Card>
         {error ? (
@@ -141,58 +113,6 @@ export default function OrganizationsListPage() {
           </ul>
         )}
       </Card>
-
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => !creating && setShowCreate(false)}>
-          <div
-            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-sm p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <h2 className="text-base font-bold text-gray-900 dark:text-slate-100">{t.createModalTitle}</h2>
-              <button type="button" onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-slate-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <p className="text-xs text-gray-400 dark:text-slate-500 mb-4">{t.createModalSubtitle}</p>
-
-            <label className="block text-xs font-medium text-gray-600 dark:text-slate-300 mb-1.5">{t.createNameLabel}</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t.createNamePlaceholder}
-              maxLength={100}
-              autoFocus
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-gray-900 dark:text-slate-100 mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-
-            {createError && (
-              <p className="text-xs text-red-600 dark:text-red-400 mb-3">{t.createErrorMsg}</p>
-            )}
-
-            <div className="flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowCreate(false)}
-                disabled={creating}
-                className="px-3.5 py-2 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
-              >
-                {t.createCancelBtn}
-              </button>
-              <button
-                type="button"
-                onClick={handleCreate}
-                disabled={creating || !name.trim()}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
-              >
-                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {creating ? t.createSubmitting : t.createSubmitBtn}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

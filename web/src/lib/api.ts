@@ -907,6 +907,19 @@ export const adminApi = {
     const res = await api.get<PlatformSnapshotBenchmark>('/admin/platform-stats/benchmark', { params: { days } });
     return res.data;
   },
+
+  // Kurumlar — admin-only (13 Eylül 2026, madde 9 B2B satış paketi
+  // kapsamı netleşirken self-serve kurum oluşturma kapatıldı). Kurum
+  // artık sadece admin panelden, B2B paketini satın alan müşterinin
+  // e-postası owner olarak verilerek açılıyor (bkz. routes/organizations.py).
+  listOrganizations: async (): Promise<AdminOrganizationItem[]> => {
+    const res = await api.get<{ items: AdminOrganizationItem[] }>('/organizations/admin');
+    return res.data.items;
+  },
+  createOrganization: async (name: string, ownerEmail: string): Promise<OrganizationListItem> => {
+    const res = await api.post<OrganizationListItem>('/organizations', { name, owner_email: ownerEmail });
+    return res.data;
+  },
 };
 
 // ── Games API (Kelime Tahmin Oyunu) ────────────────────────────
@@ -1353,6 +1366,17 @@ export interface OrganizationConsentStatus {
 // V2 öncelik #4 (12 Eylül 2026) — "B2B Kurumsal Lig Arayüzü": kurum
 // oluşturma/listeleme/üye davet-yönetimi web ekranları. Backend zaten
 // hazırdı (routes/organizations.py) — bu sadece web istemcisi.
+// Admin paneli — TÜM kurumların listesi (13 Eylül 2026, bkz. adminApi.listOrganizations)
+export interface AdminOrganizationItem {
+  id: string;
+  name: string;
+  plan: string;
+  created_at: string;
+  member_count: number;
+  owner_email: string | null;
+  owner_username: string | null;
+}
+
 export interface OrganizationListItem {
   id: string;
   name: string;
@@ -1401,14 +1425,11 @@ export const organizationsApi = {
     return res.data;
   },
 
-  // V2 öncelik #4 — kurum oluşturma/listeleme/üye davet-yönetimi
+  // V2 öncelik #4 — kurum listeleme/üye davet-yönetimi (oluşturma artık
+  // admin-only, bkz. adminApi.createOrganization yukarısı)
   list: async (): Promise<OrganizationListItem[]> => {
     const res = await api.get<{ items: OrganizationListItem[] }>('/organizations');
     return res.data.items;
-  },
-  create: async (name: string): Promise<OrganizationListItem> => {
-    const res = await api.post<OrganizationListItem>('/organizations', { name });
-    return res.data;
   },
   listMembers: async (orgId: string): Promise<OrganizationMember[]> => {
     const res = await api.get<{ items: OrganizationMember[] }>(`/organizations/${orgId}/members`);

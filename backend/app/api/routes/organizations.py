@@ -32,9 +32,11 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
 
-from app.core.auth import get_current_user
+from app.core.auth import get_current_admin, get_current_admin_full, get_current_user
 from app.core.database import supabase_admin
 from app.schemas.organizations import (
+    AdminOrganizationItem,
+    AdminOrganizationListResponse,
     OrganizationConsentRequest,
     OrganizationConsentResponse,
     OrganizationCreate,
@@ -88,9 +90,23 @@ def _find_user_id_by_email(email: str) -> str | None:
 @router.post("", response_model=OrganizationItem, status_code=201)
 async def create_organization(
     org_in: OrganizationCreate,
-    current_user=Depends(get_current_user),
+    current_user=Depends(get_current_admin_full),
 ):
-    """Yeni kurum aç. Oluşturan kullanıcı otomatik 'owner' olur."""
+    """
+    Yeni kurum aç — SADECE ADMİN (13 Eylül 2026, madde 9 B2B satış paketi
+    kapsamı netleşirken kapatıldı: self-serve oluşturma her tüketici
+    kullanıcıya açık kalmıştı, bkz. modül docstring'i). Kurumu, B2B
+    paketini satın alan müşterinin kendi Lexis hesabı (owner_email)
+    'owner' yapılarak admin açar — admin kendisi kurumun üyesi OLMAZ,
+    sadece created_by ile denetim izinde kalır.
+    """
+    owner_user_id = _find_user_id_by_email(org_in.owner_email)
+    if not owner_user_id:
+        raise HTTPException(
+            status_code=404,
+            detail="Bu e-posta ile kayıtlı bir Lexis kullanıcısı bulunamadı.",
+        )
+
     result = (
         supabase_admin.table("organizations")
         .insert({"name": org_in.name, "created_by": current_user.id})
@@ -101,12 +117,82 @@ async def create_organization(
     org = result.data[0]
 
     supabase_admin.table("organization_members").insert(
-        {"org_id": org["id"], "user_id": current_user.id, "role": "owner"}
+        {"org_id": org["id"], "user_id": owner_user_id, "role": "owner"}
     ).execute()
 
     return OrganizationItem(
         id=org["id"], name=org["name"], plan=org["plan"], created_at=org["created_at"], my_role="owner"
     )
+
+
+# ── Admin paneli — TÜM kurumların listesi (13 Eylül 2026) ──────────────
+# list_my_organizations (aşağısı) sadece isteği yapanın ÜYE olduğu
+# kurumları döner — admin artık oluşturduğu kurumların üyesi olmadığı
+# için (yukarısına bkz.) admin panelin göreceği ayrı bir uç gerekiyor.
+# Salt-okunur admin de görebilir (mutasyon değil, get_current_admin).
+@router.get("/admin", response_model=AdminOrganizationListResponse)
+async def list_all_organizations_admin(current_user=Depends(get_current_admin)):
+    org_rows = (
+        supabase_admin.table("organizations")
+        .select("*")
+        .order("created_at", desc=True)
+        .execute()
+        .data
+    ) or []
+    if not org_rows:
+        return AdminOrganizationListResponse(items=[])
+
+    org_ids = [o["id"] for o in org_rows]
+    member_rows = (
+        supabase_admin.table("organization_members")
+        .select("org_id, user_id, role")
+        .in_("org_id", org_ids)
+        .execute()
+        .data
+    ) or []
+
+    member_count_by_org: dict[str, int] = {}
+    owner_user_id_by_org: dict[str, str] = {}
+    for m in member_rows:
+        member_count_by_org[m["org_id"]] = member_count_by_org.get(m["org_id"], 0) + 1
+        if m["role"] == "owner":
+            owner_user_id_by_org[m["org_id"]] = m["user_id"]
+
+    owner_ids = list(set(owner_user_id_by_org.values()))
+    username_by_user_id: dict[str, str] = {}
+    if owner_ids:
+        profile_rows = (
+            supabase_admin.table("profiles")
+            .select("id, username")
+            .in_("id", owner_ids)
+            .execute()
+            .data
+        ) or []
+        username_by_user_id = {p["id"]: p["username"] for p in profile_rows}
+
+    email_by_user_id: dict[str, str] = {}
+    if owner_ids:
+        try:
+            users = list_all_auth_users()
+            for u in users:
+                if u.id in owner_ids:
+                    email_by_user_id[u.id] = u.email
+        except Exception as e:
+            print(f"ORGANIZATIONS admin list email warning: {e}")
+
+    items = [
+        AdminOrganizationItem(
+            id=o["id"],
+            name=o["name"],
+            plan=o["plan"],
+            created_at=o["created_at"],
+            member_count=member_count_by_org.get(o["id"], 0),
+            owner_email=email_by_user_id.get(owner_user_id_by_org.get(o["id"], "")),
+            owner_username=username_by_user_id.get(owner_user_id_by_org.get(o["id"], "")),
+        )
+        for o in org_rows
+    ]
+    return AdminOrganizationListResponse(items=items)
 
 
 @router.get("", response_model=OrganizationListResponse)

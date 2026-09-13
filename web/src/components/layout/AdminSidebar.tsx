@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Users, BarChart3, ArrowLeft, LogOut, ShieldCheck, Activity, CreditCard,
   BookOpen, Share2, Bell, Gamepad2, History, Smartphone, Eye, LayoutDashboard,
-  GraduationCap, FileBarChart,
+  GraduationCap, FileBarChart, Building2,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 
@@ -28,6 +28,9 @@ const adminNav = [
   { href: '/admin/game-analytics', label: 'Oyun Analitiği', icon: Gamepad2 },
   { href: '/admin/audit-log', label: 'Denetim Kaydı', icon: History },
   { href: '/admin/mobile', label: 'Mobil Uygulama', icon: Smartphone },
+  // 13 Eylül 2026 — kurum oluşturma self-serve'den admin-only'e taşınırken
+  // eklendi (bkz. app/(admin)/admin/organizations/page.tsx).
+  { href: '/admin/organizations', label: 'Kurumlar', icon: Building2 },
 ];
 
 export function AdminSidebar() {
