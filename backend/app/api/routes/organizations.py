@@ -37,6 +37,7 @@ from app.core.database import supabase_admin
 from app.schemas.organizations import (
     AdminOrganizationItem,
     AdminOrganizationListResponse,
+    OrganizationAdminUpdate,
     OrganizationConsentRequest,
     OrganizationConsentResponse,
     OrganizationCreate,
@@ -87,6 +88,17 @@ def _find_user_id_by_email(email: str) -> str | None:
     return None
 
 
+def _is_expired(expires_at_raw: str | None) -> bool:
+    """Öncelik #9 (B2B Satış Paketi) — tek bir yerden hesaplanıyor, hem
+    admin hem üye uçları (OrganizationItem/AdminOrganizationItem) aynı
+    mantığı kullansın diye. Frontend'de KASITLI OLARAK Date.now() ile
+    tekrar hesaplanmıyor (React purity kuralı, bkz. [orgId]/page.tsx)."""
+    if not expires_at_raw:
+        return False
+    expires_at = datetime.fromisoformat(str(expires_at_raw).replace("Z", "+00:00"))
+    return expires_at < datetime.now(timezone.utc)
+
+
 @router.post("", response_model=OrganizationItem, status_code=201)
 async def create_organization(
     org_in: OrganizationCreate,
@@ -109,7 +121,14 @@ async def create_organization(
 
     result = (
         supabase_admin.table("organizations")
-        .insert({"name": org_in.name, "created_by": current_user.id})
+        .insert({
+            "name": org_in.name,
+            "created_by": current_user.id,
+            "plan": org_in.plan,
+            "member_limit": org_in.member_limit,
+            "expires_at": org_in.expires_at.isoformat() if org_in.expires_at else None,
+            "notes": org_in.notes,
+        })
         .execute()
     )
     if not result.data:
@@ -121,7 +140,14 @@ async def create_organization(
     ).execute()
 
     return OrganizationItem(
-        id=org["id"], name=org["name"], plan=org["plan"], created_at=org["created_at"], my_role="owner"
+        id=org["id"],
+        name=org["name"],
+        plan=org["plan"],
+        created_at=org["created_at"],
+        my_role="owner",
+        member_limit=org.get("member_limit"),
+        expires_at=org.get("expires_at"),
+        is_expired=_is_expired(org.get("expires_at")),
     )
 
 
@@ -189,10 +215,87 @@ async def list_all_organizations_admin(current_user=Depends(get_current_admin)):
             member_count=member_count_by_org.get(o["id"], 0),
             owner_email=email_by_user_id.get(owner_user_id_by_org.get(o["id"], "")),
             owner_username=username_by_user_id.get(owner_user_id_by_org.get(o["id"], "")),
+            member_limit=o.get("member_limit"),
+            expires_at=o.get("expires_at"),
+            is_expired=_is_expired(o.get("expires_at")),
+            notes=o.get("notes"),
         )
         for o in org_rows
     ]
     return AdminOrganizationListResponse(items=items)
+
+
+# ── Admin paneli — kurumun paket bilgilerini güncelle (13 Eylül 2026) ──
+# Öncelik #9 (B2B Satış Paketi): plan adı/üye limiti/bitiş tarihi/not
+# güncelleme. Sadece gönderilen alanlar değişir (exclude_unset) — admin
+# tek bir alanı (ör. sadece expires_at'i uzatmak) değiştirebilsin diye.
+@router.patch("/{org_id}/admin", response_model=AdminOrganizationItem)
+async def update_organization_admin(
+    org_id: str,
+    body: OrganizationAdminUpdate,
+    current_user=Depends(get_current_admin_full),
+):
+    updates = body.model_dump(exclude_unset=True)
+    if "expires_at" in updates and updates["expires_at"] is not None:
+        updates["expires_at"] = updates["expires_at"].isoformat()
+    if updates:
+        result = (
+            supabase_admin.table("organizations")
+            .update(updates)
+            .eq("id", org_id)
+            .execute()
+        )
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Kurum bulunamadı.")
+        org = result.data[0]
+    else:
+        org_rows = supabase_admin.table("organizations").select("*").eq("id", org_id).execute().data
+        if not org_rows:
+            raise HTTPException(status_code=404, detail="Kurum bulunamadı.")
+        org = org_rows[0]
+
+    member_count = (
+        supabase_admin.table("organization_members")
+        .select("user_id", count="exact")
+        .eq("org_id", org_id)
+        .execute()
+        .count
+        or 0
+    )
+    owner_row = (
+        supabase_admin.table("organization_members")
+        .select("user_id")
+        .eq("org_id", org_id)
+        .eq("role", "owner")
+        .execute()
+        .data
+    ) or []
+    owner_email = owner_username = None
+    if owner_row:
+        owner_user_id = owner_row[0]["user_id"]
+        profile = (
+            supabase_admin.table("profiles").select("username").eq("id", owner_user_id).execute().data
+        ) or []
+        owner_username = profile[0]["username"] if profile else None
+        try:
+            users = list_all_auth_users()
+            owner_email = next((u.email for u in users if u.id == owner_user_id), None)
+        except Exception as e:
+            print(f"ORGANIZATIONS admin update email warning: {e}")
+
+    return AdminOrganizationItem(
+        id=org["id"],
+        name=org["name"],
+        plan=org["plan"],
+        created_at=org["created_at"],
+        member_count=member_count,
+        owner_email=owner_email,
+        owner_username=owner_username,
+        member_limit=org.get("member_limit"),
+        expires_at=org.get("expires_at"),
+        is_expired=_is_expired(org.get("expires_at")),
+        notes=org.get("notes"),
+    )
 
 
 @router.get("", response_model=OrganizationListResponse)
@@ -223,6 +326,9 @@ async def list_my_organizations(current_user=Depends(get_current_user)):
             plan=o["plan"],
             created_at=o["created_at"],
             my_role=role_by_org.get(o["id"], "member"),
+            member_limit=o.get("member_limit"),
+            expires_at=o.get("expires_at"),
+            is_expired=_is_expired(o.get("expires_at")),
         )
         for o in org_rows
     ]
@@ -293,6 +399,38 @@ async def invite_member(
     _require_manage_role(org_id, current_user.id)
     if invite_in.role not in ("admin", "member"):
         raise HTTPException(status_code=400, detail="Geçersiz rol (admin veya member olmalı).")
+
+    # Öncelik #9 (B2B Satış Paketi) — süresi dolmuş ya da üye limiti
+    # dolu bir kuruma yeni üye eklenemez. Mevcut üyelerin erişimi
+    # BİLİNÇLİ OLARAK kesilmiyor, sadece büyüme durduruluyor.
+    org_row = (
+        supabase_admin.table("organizations")
+        .select("member_limit, expires_at")
+        .eq("id", org_id)
+        .single()
+        .execute()
+        .data
+    ) or {}
+    if _is_expired(org_row.get("expires_at")):
+        raise HTTPException(
+            status_code=403,
+            detail="Bu kurumun aboneliği sona erdi, yeni üye eklenemez. Yenilemek için Lexis ekibiyle iletişime geçin.",
+        )
+    member_limit = org_row.get("member_limit")
+    if member_limit is not None:
+        current_count = (
+            supabase_admin.table("organization_members")
+            .select("user_id", count="exact")
+            .eq("org_id", org_id)
+            .execute()
+            .count
+            or 0
+        )
+        if current_count >= member_limit:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Kurumun üye limitine ({member_limit}) ulaşıldı. Yükseltmek için Lexis ekibiyle iletişime geçin.",
+            )
 
     target_user_id = _find_user_id_by_email(invite_in.email)
     if not target_user_id:

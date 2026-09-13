@@ -2,6 +2,16 @@
 backend/app/schemas/organizations.py
 
 V2 Yol Haritası §6.3 (Faz 3d) — B2B / kurumsal ligler şemaları.
+
+13 Eylül 2026 — Öncelik #9 (Kurumsal/Dershane B2B Satış Paketi, migration
+070): kurum artık bir "paket" taşıyor — plan (serbest metin paket adı),
+member_limit (azami üye sayısı, NULL = sınırsız), expires_at (abonelik
+bitiş tarihi, NULL = süresiz), notes (admin'in kendi takibi için serbest
+not — sözleşme/fatura no, iletişim kişisi vb.). Ödeme/tahsilat BİLİNÇLİ
+OLARAK manuel/fatura bazlı kaldı (bkz. migration 070 yorumu) — admin
+müşteriyle kendisi anlaşıyor, buraya sadece sonucu (plan+limit+süre)
+giriyor. `notes` SADECE admin uçlarında (AdminOrganizationItem) döner,
+kurum üyelerinin gördüğü OrganizationItem'da YOK.
 """
 
 from datetime import datetime
@@ -17,6 +27,24 @@ class OrganizationCreate(BaseModel):
     # owner_email olarak verip onu 'owner' yapıyor — admin kurumun üyesi
     # OLMUYOR (bkz. routes/organizations.py::create_organization).
     owner_email: str = Field(min_length=3, max_length=255)
+    # Öncelik #9 (B2B Satış Paketi) — hepsi opsiyonel, admin boş bırakırsa
+    # sınırsız/süresiz bir kurum açılır (mevcut davranışla geriye dönük
+    # uyumlu).
+    plan: str = Field(default="free", max_length=20)
+    member_limit: int | None = Field(default=None, gt=0)
+    expires_at: datetime | None = None
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class OrganizationAdminUpdate(BaseModel):
+    """Admin panelinden mevcut bir kurumun paket bilgilerini güncelleme —
+    hepsi opsiyonel (sadece gönderilen alanlar değişir, bkz. routes'taki
+    `exclude_unset`)."""
+    name: str | None = Field(default=None, min_length=2, max_length=100)
+    plan: str | None = Field(default=None, max_length=20)
+    member_limit: int | None = Field(default=None, gt=0)
+    expires_at: datetime | None = None
+    notes: str | None = Field(default=None, max_length=2000)
 
 
 class OrganizationItem(BaseModel):
@@ -25,6 +53,13 @@ class OrganizationItem(BaseModel):
     plan: str
     created_at: datetime
     my_role: str
+    # Öncelik #9 — kurum üyesi kendi paketinin limitini/süresini görebilir
+    # (davet ekranında "X/Y üye" + süre uyarısı için), ama `notes` YOK.
+    # `is_expired` backend'de hesaplanıp geliyor (frontend'de Date.now()
+    # ile render sırasında hesaplama YAPILMIYOR — React purity kuralı).
+    member_limit: int | None = None
+    expires_at: datetime | None = None
+    is_expired: bool = False
 
 
 class OrganizationListResponse(BaseModel):
@@ -74,6 +109,11 @@ class AdminOrganizationItem(BaseModel):
     member_count: int
     owner_email: str | None = None
     owner_username: str | None = None
+    # Öncelik #9 (B2B Satış Paketi) — sadece admin görür, `notes` dahil.
+    member_limit: int | None = None
+    expires_at: datetime | None = None
+    is_expired: bool = False
+    notes: str | None = None
 
 
 class AdminOrganizationListResponse(BaseModel):

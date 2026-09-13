@@ -14,11 +14,21 @@
 // kendisi kurumun üyesi OLMUYOR. Üye ekleme/çıkarma, kurum raporu vb.
 // hâlâ mevcut tüketici ekranlarından (app/(app)/organizations/[orgId])
 // owner/admin rolündeki gerçek üye tarafından yapılıyor — bu sayfa sadece
-// provizyon (oluşturma) + genel görünüm içindir, üye yönetimine
-// karışmıyor (admin kurumun üyesi olmadığı için o ekranlara zaten giremez).
+// provizyon (oluşturma+paket düzenleme) + genel görünüm içindir, üye
+// yönetimine karışmıyor (admin kurumun üyesi olmadığı için o ekranlara
+// zaten giremez).
+//
+// 13 Eylül 2026 (aynı gün, ikinci güncelleme) — Öncelik #9: "paket"
+// kavramı eklendi (migration 070). Ödeme/tahsilat BİLİNÇLİ OLARAK manuel/
+// fatura bazlı (web'de iyzico zaten kapalı, GVK istisnası mobil IAP'e
+// özgü — B2B geliri ayrı muhasebeleşiyor) — burada sadece admin'in
+// müşteriyle anlaştığı SONUCU (plan adı, üye limiti, abonelik bitiş
+// tarihi, kendi takip notu) giriliyor. `notes` KVKK kapsamında değil,
+// sadece admin'in kendi iç takibi için (sözleşme/fatura no vb.) — hiçbir
+// tüketici ucundan görünmüyor.
 import { useEffect, useState } from 'react';
-import { Building2, Loader2, AlertCircle, Plus, X, Users2 } from 'lucide-react';
-import { adminApi, type AdminOrganizationItem } from '@/lib/api';
+import { Building2, Loader2, AlertCircle, Plus, X, Users2, Pencil, Clock, Ban } from 'lucide-react';
+import { adminApi, type AdminOrganizationItem, type OrganizationCreateAdminInput } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -29,12 +39,75 @@ const PLAN_BADGE_CLASS: Record<string, string> = {
   paid: 'bg-[#EAF3DE] text-[#3B6D11]',
 };
 
+function planBadgeClass(plan: string): string {
+  return PLAN_BADGE_CLASS[plan] ?? 'bg-[#EEEDFE] text-[#534AB7]';
+}
+
+// Bir <input type="date"> value'sunu (YYYY-MM-DD, yerel gün sonu 23:59)
+// ISO datetime'a çevirir — admin "şu güne kadar" diye düşünüyor, o günün
+// SONUNA kadar geçerli olsun istiyoruz (öğleden sonra deneme yaparken
+// "süresi bugün doldu ama daha sabah" gibi bir şaşkınlık olmasın diye).
+function dateInputToIso(dateStr: string): string | null {
+  if (!dateStr) return null;
+  return new Date(`${dateStr}T23:59:59`).toISOString();
+}
+function isoToDateInput(iso: string | null): string {
+  if (!iso) return '';
+  return iso.slice(0, 10);
+}
+
+interface PackageFormValue {
+  plan: string;
+  memberLimit: string; // input value olarak string, boşsa sınırsız
+  expiresAt: string; // <input type="date"> value'su, boşsa süresiz
+  notes: string;
+}
+
+function PackageFields({ value, onChange }: {
+  value: PackageFormValue;
+  onChange: (next: PackageFormValue) => void;
+}) {
+  return (
+    <>
+      <div>
+        <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Paket adı</label>
+        <input type="text" value={value.plan} onChange={(e) => onChange({ ...value, plan: e.target.value })}
+          placeholder="Örn. Temel, Dershane Yıllık" maxLength={20}
+          className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Üye limiti</label>
+          <input type="number" min={1} value={value.memberLimit}
+            onChange={(e) => onChange({ ...value, memberLimit: e.target.value })}
+            placeholder="Sınırsız"
+            className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition" />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Abonelik bitiş tarihi</label>
+          <input type="date" value={value.expiresAt}
+            onChange={(e) => onChange({ ...value, expiresAt: e.target.value })}
+            className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition" />
+        </div>
+      </div>
+      <p className="text-xs text-gray-400 dark:text-slate-500 -mt-1">Boş bırakılırsa sınırsız üye / süresiz abonelik olur.</p>
+      <div>
+        <label className="block text-xs font-medium text-gray-600 dark:text-slate-400 mb-1">Not (sadece sen görürsün)</label>
+        <textarea value={value.notes} onChange={(e) => onChange({ ...value, notes: e.target.value })}
+          placeholder="Sözleşme/fatura no, iletişim kişisi vb." rows={2} maxLength={2000}
+          className="w-full border border-gray-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#534AB7] focus:border-transparent transition resize-none" />
+      </div>
+    </>
+  );
+}
+
 function CreateOrgModal({ onSave, onClose }: {
-  onSave: (name: string, ownerEmail: string) => Promise<void>;
+  onSave: (input: OrganizationCreateAdminInput) => Promise<void>;
   onClose: () => void;
 }) {
   const [name, setName] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
+  const [pkg, setPkg] = useState<PackageFormValue>({ plan: 'Temel', memberLimit: '', expiresAt: '', notes: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -43,14 +116,24 @@ function CreateOrgModal({ onSave, onClose }: {
     if (!name.trim() || !ownerEmail.trim()) { setError('Lütfen kurum adı ve sahibinin e-postasını gir.'); return; }
     setSaving(true);
     setError('');
-    try { await onSave(name.trim(), ownerEmail.trim()); onClose(); }
+    try {
+      await onSave({
+        name: name.trim(),
+        ownerEmail: ownerEmail.trim(),
+        plan: pkg.plan.trim() || 'free',
+        memberLimit: pkg.memberLimit ? Number(pkg.memberLimit) : null,
+        expiresAt: dateInputToIso(pkg.expiresAt),
+        notes: pkg.notes.trim() || null,
+      });
+      onClose();
+    }
     catch (err: unknown) { setError(getErrorMessage(err, 'Kurum oluşturulamadı.')); }
     finally { setSaving(false); }
   };
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-[#EEEDFE] flex items-center justify-center"><Building2 className="w-4 h-4 text-[#534AB7]" /></div>
@@ -72,6 +155,10 @@ function CreateOrgModal({ onSave, onClose }: {
             <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">Bu e-postayla kayıtlı bir Lexis hesabı olmalı — kurum bu kullanıcıya “owner” olarak açılır, sen kurumun üyesi olmazsın.</p>
           </div>
 
+          <div className="h-px bg-gray-100 dark:bg-slate-800 !my-4" />
+
+          <PackageFields value={pkg} onChange={setPkg} />
+
           {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
         </form>
 
@@ -79,6 +166,67 @@ function CreateOrgModal({ onSave, onClose }: {
           <button onClick={onClose} className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800 transition-colors">Vazgeç</button>
           <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#534AB7] hover:bg-[#473fa0] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
             {saving ? 'Oluşturuluyor…' : 'Oluştur'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditOrgModal({ org, onSave, onClose }: {
+  org: AdminOrganizationItem;
+  onSave: (input: Partial<OrganizationCreateAdminInput>) => Promise<void>;
+  onClose: () => void;
+}) {
+  const [pkg, setPkg] = useState<PackageFormValue>({
+    plan: org.plan,
+    memberLimit: org.member_limit ? String(org.member_limit) : '',
+    expiresAt: isoToDateInput(org.expires_at),
+    notes: org.notes ?? '',
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await onSave({
+        plan: pkg.plan.trim() || 'free',
+        memberLimit: pkg.memberLimit ? Number(pkg.memberLimit) : null,
+        expiresAt: dateInputToIso(pkg.expiresAt),
+        notes: pkg.notes.trim() || null,
+      });
+      onClose();
+    }
+    catch (err: unknown) { setError(getErrorMessage(err, 'Güncellenemedi.')); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[#EEEDFE] flex items-center justify-center"><Pencil className="w-4 h-4 text-[#534AB7]" /></div>
+            <div>
+              <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100">Paketi Düzenle</h2>
+              <p className="text-xs text-gray-400 dark:text-slate-500">{org.name}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:bg-gray-100 hover:dark:bg-slate-800 transition-colors"><X className="w-4 h-4" /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="px-6 py-4 space-y-3">
+          <PackageFields value={pkg} onChange={setPkg} />
+          {error && <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 rounded-xl px-3 py-2">{error}</p>}
+        </form>
+
+        <div className="flex gap-3 px-6 pb-6">
+          <button onClick={onClose} className="flex-1 border border-gray-200 dark:border-slate-700 rounded-xl py-2.5 text-sm font-medium text-gray-600 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800 transition-colors">Vazgeç</button>
+          <button onClick={handleSubmit as never} disabled={saving} className="flex-1 bg-[#534AB7] hover:bg-[#473fa0] disabled:opacity-50 text-white rounded-xl py-2.5 text-sm font-medium transition-colors">
+            {saving ? 'Kaydediliyor…' : 'Kaydet'}
           </button>
         </div>
       </div>
@@ -94,6 +242,7 @@ export default function AdminOrganizationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [editingOrg, setEditingOrg] = useState<AdminOrganizationItem | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -107,8 +256,14 @@ export default function AdminOrganizationsPage() {
     load();
   }, []);
 
-  const handleCreate = async (name: string, ownerEmail: string) => {
-    await adminApi.createOrganization(name, ownerEmail);
+  const handleCreate = async (input: OrganizationCreateAdminInput) => {
+    await adminApi.createOrganization(input);
+    load();
+  };
+
+  const handleUpdate = async (input: Partial<OrganizationCreateAdminInput>) => {
+    if (!editingOrg) return;
+    await adminApi.updateOrganization(editingOrg.id, input);
     load();
   };
 
@@ -122,7 +277,7 @@ export default function AdminOrganizationsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Kurumlar</h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
-            B2B paketini satın alan müşteriler için kurum açma — self-serve oluşturma kapalı (13 Eylül 2026).
+            B2B paketini satın alan müşteriler için kurum açma — self-serve oluşturma kapalı (13 Eylül 2026). Ödeme/fatura sürecini kendin yürütüp sonucu (plan/limit/süre) buraya giriyorsun.
           </p>
         </div>
         {!isReadonly && (
@@ -145,26 +300,27 @@ export default function AdminOrganizationsPage() {
           <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300 flex items-center gap-2"><Building2 className="w-4 h-4" />Tüm kurumlar</h2>
           <span className="text-xs font-medium bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 px-2 py-0.5 rounded-full">{orgs.length} kayıt</span>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 dark:border-slate-800">
-              {['Kurum', 'Sahip (owner)', 'Plan', 'Üye sayısı', 'Oluşturulma'].map((h) => (
-                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide">{h}</th>
+              {['Kurum', 'Sahip (owner)', 'Plan', 'Üye', 'Abonelik', 'Oluşturulma', ''].map((h) => (
+                <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide whitespace-nowrap">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {orgs.length === 0 ? (
-              <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400 dark:text-slate-500">Henüz kurum açılmamış.</td></tr>
+              <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400 dark:text-slate-500">Henüz kurum açılmamış.</td></tr>
             ) : orgs.map((o) => (
               <tr key={o.id} className="border-b border-gray-50 dark:border-slate-800 last:border-0 hover:bg-slate-50 hover:dark:bg-slate-800">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-[#EEEDFE] flex items-center justify-center shrink-0"><Building2 className="w-3.5 h-3.5 text-[#534AB7]" /></div>
-                    <span className="font-medium text-gray-900 dark:text-slate-100">{o.name}</span>
+                    <span className="font-medium text-gray-900 dark:text-slate-100 whitespace-nowrap">{o.name}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-xs text-gray-600 dark:text-slate-400">
+                <td className="px-4 py-3 text-xs text-gray-600 dark:text-slate-400 whitespace-nowrap">
                   {o.owner_email ? (
                     <div>
                       <p className="text-gray-900 dark:text-slate-100">{o.owner_username || '—'}</p>
@@ -172,25 +328,45 @@ export default function AdminOrganizationsPage() {
                     </div>
                   ) : '—'}
                 </td>
-                <td className="px-4 py-3">
-                  <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${PLAN_BADGE_CLASS[o.plan] ?? PLAN_BADGE_CLASS.free}`}>{o.plan}</span>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full ${planBadgeClass(o.plan)}`}>{o.plan}</span>
                 </td>
-                <td className="px-4 py-3 text-xs text-gray-600 dark:text-slate-400">
-                  <span className="inline-flex items-center gap-1"><Users2 className="w-3.5 h-3.5" />{o.member_count}</span>
+                <td className="px-4 py-3 text-xs text-gray-600 dark:text-slate-400 whitespace-nowrap">
+                  <span className="inline-flex items-center gap-1"><Users2 className="w-3.5 h-3.5" />{o.member_count}{o.member_limit ? `/${o.member_limit}` : ''}</span>
                 </td>
-                <td className="px-4 py-3 text-xs text-gray-500 dark:text-slate-400">{new Date(o.created_at).toLocaleDateString(DATE_LOCALE)}</td>
+                <td className="px-4 py-3 text-xs whitespace-nowrap">
+                  {o.expires_at ? (
+                    <span className={`inline-flex items-center gap-1 ${o.is_expired ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-600 dark:text-slate-400'}`}>
+                      {o.is_expired ? <Ban className="w-3.5 h-3.5" /> : <Clock className="w-3.5 h-3.5" />}
+                      {o.is_expired ? 'Süresi doldu' : new Date(o.expires_at).toLocaleDateString(DATE_LOCALE)}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 dark:text-slate-500">Süresiz</span>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-500 dark:text-slate-400 whitespace-nowrap">{new Date(o.created_at).toLocaleDateString(DATE_LOCALE)}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {!isReadonly && (
+                    <button type="button" onClick={() => setEditingOrg(o)}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-[#534AB7] hover:text-[#473fa0]">
+                      <Pencil className="w-3.5 h-3.5" />Düzenle
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       <div className="rounded-2xl px-4 py-3 text-xs text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-900/60 flex items-start gap-2">
         <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-        <span>Üye ekleme/çıkarma ve kurum raporları artık sadece owner/admin rolündeki gerçek üyenin kendi hesabından (Kurumlarım → kurum detayı) yönetiliyor — bu panel sadece kurumu açar, üyeliğe karışmaz.</span>
+        <span>Üye ekleme/çıkarma ve kurum raporları artık sadece owner/admin rolündeki gerçek üyenin kendi hesabından (Kurumlarım → kurum detayı) yönetiliyor — bu panel sadece kurumu açar/paketini düzenler, üyeliğe karışmaz. Süresi dolan veya limiti dolan bir kuruma yeni üye eklenemez, mevcut üyelerin erişimi kesilmez.</span>
       </div>
 
       {showCreate && <CreateOrgModal onSave={handleCreate} onClose={() => setShowCreate(false)} />}
+      {editingOrg && <EditOrgModal org={editingOrg} onSave={handleUpdate} onClose={() => setEditingOrg(null)} />}
     </div>
   );
 }

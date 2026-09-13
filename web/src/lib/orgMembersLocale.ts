@@ -40,6 +40,9 @@ export interface OrgMembersStrings {
   inviteErrorNotFound: string;
   inviteErrorDuplicate: string;
   inviteErrorGeneric: string;
+  // Öncelik #9 (B2B Satış Paketi, 13 Eylül 2026)
+  memberLimitTpl: string;
+  orgExpiredWarningTpl: string;
 }
 
 export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
@@ -76,6 +79,8 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'Bu e-posta ile kayıtlı bir Lexis kullanıcısı bulunamadı.',
     inviteErrorDuplicate: 'Bu kullanıcı zaten kurumun üyesi.',
     inviteErrorGeneric: 'Davet gönderilirken bir hata oluştu.',
+    memberLimitTpl: '{count}/{limit} üye',
+    orgExpiredWarningTpl: 'Kurumunuzun aboneliği {date} tarihinde sona erdi. Yenilemek için Lexis ekibiyle iletişime geçin.',
   },
   en: {
     loading: 'Loading…',
@@ -110,6 +115,8 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'No Lexis user was found with this email address.',
     inviteErrorDuplicate: 'This user is already a member of the organization.',
     inviteErrorGeneric: 'An error occurred while sending the invite.',
+    memberLimitTpl: '{count}/{limit} members',
+    orgExpiredWarningTpl: 'Your organization\'s subscription ended on {date}. Contact the Lexis team to renew.',
   },
   de: {
     loading: 'Wird geladen…',
@@ -144,6 +151,8 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'Es wurde kein Lexis-Benutzer mit dieser E-Mail-Adresse gefunden.',
     inviteErrorDuplicate: 'Dieser Benutzer ist bereits Mitglied der Organisation.',
     inviteErrorGeneric: 'Beim Senden der Einladung ist ein Fehler aufgetreten.',
+    memberLimitTpl: '{count}/{limit} Mitglieder',
+    orgExpiredWarningTpl: 'Das Abonnement deiner Organisation endete am {date}. Kontaktiere das Lexis-Team, um es zu verlängern.',
   },
   fr: {
     loading: 'Chargement…',
@@ -178,6 +187,8 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'Aucun utilisateur Lexis trouvé avec cette adresse e-mail.',
     inviteErrorDuplicate: "Cet utilisateur est déjà membre de l'organisation.",
     inviteErrorGeneric: "Une erreur s'est produite lors de l'envoi de l'invitation.",
+    memberLimitTpl: '{count}/{limit} membres',
+    orgExpiredWarningTpl: 'L\'abonnement de votre organisation a pris fin le {date}. Contactez l\'équipe Lexis pour le renouveler.',
   },
   es: {
     loading: 'Cargando…',
@@ -212,6 +223,8 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'No se encontró ningún usuario de Lexis con este correo electrónico.',
     inviteErrorDuplicate: 'Este usuario ya es miembro de la organización.',
     inviteErrorGeneric: 'Ocurrió un error al enviar la invitación.',
+    memberLimitTpl: '{count}/{limit} miembros',
+    orgExpiredWarningTpl: 'La suscripción de tu organización terminó el {date}. Contacta al equipo de Lexis para renovarla.',
   },
   it: {
     loading: 'Caricamento…',
@@ -246,6 +259,8 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'Nessun utente Lexis trovato con questo indirizzo email.',
     inviteErrorDuplicate: 'Questo utente è già membro dell’organizzazione.',
     inviteErrorGeneric: 'Si è verificato un errore durante l’invio dell’invito.',
+    memberLimitTpl: '{count}/{limit} membri',
+    orgExpiredWarningTpl: 'L\'abbonamento della tua organizzazione è terminato il {date}. Contatta il team Lexis per rinnovarlo.',
   },
   ar: {
     loading: 'جارٍ التحميل…',
@@ -280,6 +295,8 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'لم يتم العثور على مستخدم Lexis بهذا البريد الإلكتروني.',
     inviteErrorDuplicate: 'هذا المستخدم عضو بالفعل في المؤسسة.',
     inviteErrorGeneric: 'حدث خطأ أثناء إرسال الدعوة.',
+    memberLimitTpl: '{count}/{limit} عضو',
+    orgExpiredWarningTpl: 'انتهى اشتراك مؤسستك في {date}. تواصل مع فريق Lexis للتجديد.',
   },
   ru: {
     loading: 'Загрузка…',
@@ -314,6 +331,8 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'Пользователь Lexis с таким email не найден.',
     inviteErrorDuplicate: 'Этот пользователь уже состоит в организации.',
     inviteErrorGeneric: 'Произошла ошибка при отправке приглашения.',
+    memberLimitTpl: '{count}/{limit} участников',
+    orgExpiredWarningTpl: 'Подписка вашей организации закончилась {date}. Свяжитесь с командой Lexis для продления.',
   },
   ja: {
     loading: '読み込み中…',
@@ -348,6 +367,8 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'このメールアドレスのLexisユーザーが見つかりませんでした。',
     inviteErrorDuplicate: 'このユーザーはすでに組織のメンバーです。',
     inviteErrorGeneric: '招待の送信中にエラーが発生しました。',
+    memberLimitTpl: '{count}/{limit} 人',
+    orgExpiredWarningTpl: '組織のサブスクリプションは{date}に終了しました。更新するにはLexisチームにお問い合わせください。',
   },
   pt: {
     loading: 'Carregando…',
@@ -382,5 +403,7 @@ export const ORG_MEMBERS_L: Record<Locale, OrgMembersStrings> = {
     inviteErrorNotFound: 'Nenhum usuário Lexis encontrado com este e-mail.',
     inviteErrorDuplicate: 'Este usuário já é membro da organização.',
     inviteErrorGeneric: 'Ocorreu um erro ao enviar o convite.',
+    memberLimitTpl: '{count}/{limit} membros',
+    orgExpiredWarningTpl: 'A assinatura da sua organização terminou em {date}. Entre em contato com a equipe Lexis para renovar.',
   },
 };

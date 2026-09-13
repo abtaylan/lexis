@@ -916,8 +916,29 @@ export const adminApi = {
     const res = await api.get<{ items: AdminOrganizationItem[] }>('/organizations/admin');
     return res.data.items;
   },
-  createOrganization: async (name: string, ownerEmail: string): Promise<OrganizationListItem> => {
-    const res = await api.post<OrganizationListItem>('/organizations', { name, owner_email: ownerEmail });
+  createOrganization: async (input: OrganizationCreateAdminInput): Promise<OrganizationListItem> => {
+    const res = await api.post<OrganizationListItem>('/organizations', {
+      name: input.name,
+      owner_email: input.ownerEmail,
+      plan: input.plan,
+      member_limit: input.memberLimit,
+      expires_at: input.expiresAt,
+      notes: input.notes,
+    });
+    return res.data;
+  },
+  // Öncelik #9 (B2B Satış Paketi) — mevcut bir kurumun paket bilgilerini
+  // (plan/limit/süre/not) güncelleme. Sadece gönderilen alanlar değişir.
+  updateOrganization: async (
+    orgId: string, input: Partial<OrganizationCreateAdminInput>
+  ): Promise<AdminOrganizationItem> => {
+    const res = await api.patch<AdminOrganizationItem>(`/organizations/${orgId}/admin`, {
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.plan !== undefined && { plan: input.plan }),
+      ...(input.memberLimit !== undefined && { member_limit: input.memberLimit }),
+      ...(input.expiresAt !== undefined && { expires_at: input.expiresAt }),
+      ...(input.notes !== undefined && { notes: input.notes }),
+    });
     return res.data;
   },
 };
@@ -1375,6 +1396,22 @@ export interface AdminOrganizationItem {
   member_count: number;
   owner_email: string | null;
   owner_username: string | null;
+  // Öncelik #9 (B2B Satış Paketi, 13 Eylül 2026)
+  member_limit: number | null;
+  expires_at: string | null;
+  is_expired: boolean;
+  notes: string | null;
+}
+
+// adminApi.createOrganization / updateOrganization girişi — plan/limit/
+// süre/not hepsi opsiyonel (create'te boş bırakılırsa sınırsız/süresiz).
+export interface OrganizationCreateAdminInput {
+  name: string;
+  ownerEmail: string;
+  plan?: string;
+  memberLimit?: number | null;
+  expiresAt?: string | null;
+  notes?: string | null;
 }
 
 export interface OrganizationListItem {
@@ -1383,6 +1420,13 @@ export interface OrganizationListItem {
   plan: string;
   created_at: string;
   my_role: 'owner' | 'admin' | 'member' | string;
+  // Öncelik #9 (B2B Satış Paketi, 13 Eylül 2026) — üye kendi kurumunun
+  // limitini/süresini görebilir (notes hariç, bkz. backend şeması).
+  // is_expired backend'de hesaplanır (frontend render sırasında
+  // Date.now() ÇAĞIRMAZ — React purity kuralı).
+  member_limit: number | null;
+  expires_at: string | null;
+  is_expired: boolean;
 }
 
 export interface OrganizationMember {

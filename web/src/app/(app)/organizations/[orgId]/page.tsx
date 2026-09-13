@@ -87,6 +87,12 @@ export default function OrganizationDetailPage() {
   }, [load]);
 
   const canManage = org ? MANAGE_ROLES.has(org.my_role) : false;
+  // Öncelik #9 (B2B Satış Paketi, 13 Eylül 2026) — üye limiti/abonelik
+  // süresi bilgisi backend'den geliyor (bkz. OrganizationListItem).
+  const isOrgExpired = Boolean(org?.is_expired);
+  const isMemberLimitReached = Boolean(
+    org?.member_limit != null && members && members.length >= org.member_limit
+  );
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -201,13 +207,20 @@ export default function OrganizationDetailPage() {
                 <button
                   type="button"
                   onClick={handleInvite}
-                  disabled={inviting || !inviteEmail.trim()}
+                  disabled={inviting || !inviteEmail.trim() || isOrgExpired || isMemberLimitReached}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50"
                 >
                   {inviting ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                   {inviting ? t.inviteSending : t.inviteSubmitBtn}
                 </button>
               </div>
+              {(isOrgExpired || isMemberLimitReached) && (
+                <p className="mt-2.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                  {isOrgExpired
+                    ? t.orgExpiredWarningTpl.replace('{date}', new Date(org!.expires_at as string).toLocaleDateString())
+                    : t.memberLimitTpl.replace('{count}', String(members?.length ?? 0)).replace('{limit}', String(org?.member_limit))}
+                </p>
+              )}
               {inviteMsg && (
                 <p className={`mt-2.5 text-xs font-medium ${inviteMsg.kind === 'ok' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                   {inviteMsg.text}
@@ -220,7 +233,10 @@ export default function OrganizationDetailPage() {
 
           <Card>
             <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-3">
-              {t.membersSectionTitle} · {t.memberCountTpl.replace('{count}', String(members.length))}
+              {t.membersSectionTitle} ·{' '}
+              {org.member_limit != null
+                ? t.memberLimitTpl.replace('{count}', String(members.length)).replace('{limit}', String(org.member_limit))
+                : t.memberCountTpl.replace('{count}', String(members.length))}
             </h2>
             <ul className="divide-y divide-gray-100 dark:divide-slate-800">
               {members.map((m) => {
