@@ -42,7 +42,7 @@ export function Features() {
               <div className="relative z-10 flex h-full flex-col p-9">
                 <div className="relative flex-1">
                   {items.map((item, i) => (
-                    <div key={item.title} className={`crossfade-item ${active === i ? 'is-active' : ''}`}>
+                    <div key={i} className={`crossfade-item ${active === i ? 'is-active' : ''}`}>
                       <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white/10 text-white">
                         <item.icon className="w-7 h-7" />
                       </div>
@@ -73,7 +73,7 @@ export function Features() {
           {/* Mobilde sticky panel yok; ikon her blokta kendi içinde gösterilir. */}
           {items.map((item, i) => (
             <div
-              key={item.title}
+              key={i}
               ref={setRef(i)}
               data-index={i}
               className="min-h-[56vh] lg:min-h-[62vh] flex flex-col justify-center border-t border-gray-100 first:border-t-0"
