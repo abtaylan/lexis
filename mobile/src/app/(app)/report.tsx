@@ -11,9 +11,9 @@ import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft, Clock, Flame, BookOpen, Gamepad2, Target, Map, Award, Trophy,
-  Sparkles, ArrowUp, ArrowDown, Minus, Globe,
+  Sparkles, ArrowUp, ArrowDown, Minus, Globe, Mail, Loader2, Check, AlertCircle,
 } from 'lucide-react-native';
-import { statsApi } from '@/api/stats';
+import { statsApi, type ReportExportFormat } from '@/api/stats';
 import type { UserReport } from '@/api/types';
 import { REPORT_STRINGS } from '@/i18n/reportStrings';
 import { useLocale } from '@/i18n';
@@ -99,6 +99,22 @@ export default function ReportScreen() {
   const c = useThemeColors();
   const t = REPORT_STRINGS[locale] ?? REPORT_STRINGS.tr;
   const [period, setPeriod] = useState<Period>('week');
+  const [exportFormat, setExportFormat] = useState<ReportExportFormat>('pdf');
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  const handleSendEmail = async () => {
+    setEmailBusy(true);
+    setEmailStatus(null);
+    try {
+      const res = await statsApi.sendUserReportEmail(period, exportFormat);
+      setEmailStatus({ kind: 'ok', text: t.exportSentToTpl.replace('{email}', res.to) });
+    } catch {
+      setEmailStatus({ kind: 'err', text: t.exportErrorMsg });
+    } finally {
+      setEmailBusy(false);
+    }
+  };
 
   const { data, isLoading, isError, refetch } = useQuery<UserReport>({
     queryKey: ['user-report', period],
@@ -134,6 +150,41 @@ export default function ReportScreen() {
             {t.monthTab}
           </Text>
         </Pressable>
+      </View>
+
+      <View style={{ marginBottom: spacing.md }}>
+        <View style={styles.exportFormatRow}>
+          {(['pdf', 'xlsx', 'csv'] as ReportExportFormat[]).map((f) => (
+            <Pressable
+              key={f}
+              onPress={() => setExportFormat(f)}
+              style={[
+                styles.exportFormatBtn,
+                { backgroundColor: exportFormat === f ? c.primarySoft : 'transparent', borderColor: c.border },
+              ]}
+            >
+              <Text style={{ color: exportFormat === f ? c.primary : c.textMuted, fontWeight: '600', fontSize: 12 }}>
+                {f === 'pdf' ? t.exportFormatPdf : f === 'xlsx' ? t.exportFormatXlsx : t.exportFormatCsv}
+              </Text>
+            </Pressable>
+          ))}
+          <Pressable onPress={handleSendEmail} disabled={emailBusy} style={[styles.exportEmailBtn, { backgroundColor: c.accentSoft }]}>
+            {emailBusy ? <Loader2 color={c.textSecondary} size={13} /> : <Mail color={c.textSecondary} size={13} />}
+            <Text style={{ color: c.textSecondary, fontWeight: '600', fontSize: 12, marginLeft: 4 }}>
+              {emailBusy ? t.exportSending : t.exportEmailBtn}
+            </Text>
+          </Pressable>
+        </View>
+        {emailStatus && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.xs }}>
+            {emailStatus.kind === 'ok'
+              ? <Check color={c.success} size={13} />
+              : <AlertCircle color={c.danger} size={13} />}
+            <Text style={{ color: emailStatus.kind === 'ok' ? c.success : c.danger, fontSize: 12, fontWeight: '600' }}>
+              {emailStatus.text}
+            </Text>
+          </View>
+        )}
       </View>
 
       {isLoading ? (
@@ -341,6 +392,9 @@ export default function ReportScreen() {
 
 const styles = StyleSheet.create({
   backRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
+  exportFormatRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs },
+  exportFormatBtn: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: radius.sm, borderWidth: 1 },
+  exportEmailBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 10, borderRadius: radius.sm },
   tabRow: { flexDirection: 'row', gap: spacing.sm },
   tabBtn: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.md },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
