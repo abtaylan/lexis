@@ -72,6 +72,11 @@ export const metadata: Metadata = {
     // dokunmadan Vercel'de NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION env değişkeni
     // eklenip yeniden deploy edilmesi yeterli (4 Eylül 2026).
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || undefined,
+    // Pinterest "Web sitenizi üzerinize alın" doğrulaması (14 Eylül 2026) —
+    // Pinterest ayarlarındaki HTML etiketi seçeneğinden alınan meta tag.
+    other: {
+      'p:domain_verify': '96a0b5f5a1ab38df4d897a5ab043eace',
+    },
   },
 };
 
