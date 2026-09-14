@@ -27,7 +27,7 @@ Production'a alınırken `NEXT_PUBLIC_APP_URL` gerçek uygulama alan adına ayar
 
 ## Sosyal medya linkleri
 
-`src/lib/config.ts` içindeki `SOCIAL_LINKS` dizisi: YouTube, Instagram, X, LinkedIn hesapları henüz açılmadığı için (kalan işler listesi, "sosyal medya hesapları" fazı) şu an `href: null` — ikonlar sayfada görünür ama tıklanamaz ("yakında" tooltip'i ile). Hesaplar açıldıkça ilgili ortam değişkenini ekleyip `href`'i doldurun. WhatsApp kullanıcı kararıyla listeye dahil değil.
+`src/lib/config.ts` içindeki `SOCIAL_LINKS` dizisi (14 Eylül 2026 itibarıyla güncel): Telegram, Slack, YouTube, Instagram, X, LinkedIn, Facebook, TikTok, WhatsApp Kanalı, Threads, Pinterest — tüm hesaplar açık ve `href` dolu. İlgili ortam değişkeni tanımlıysa onu, değilse buradaki sabit adresi kullanır. **Slack linki bir davet linki ve 14 Ekim 2026'da sona eriyor** — o tarihte Slack admin panelinden yeni bir davet linki alınıp hem burada hem `backend/app/services/email_service.py::_SOCIAL_LINKS` içinde güncellenmesi gerekiyor.
 
 ## Ekran görüntüleri
 

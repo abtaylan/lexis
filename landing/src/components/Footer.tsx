@@ -3,8 +3,19 @@
 import Image from 'next/image';
 import { Mail, Send } from 'lucide-react';
 import { useLocale } from '@/lib/i18n';
-import { LOGIN_URL, REGISTER_URL, CONTACT_EMAIL, SOCIAL_LINKS, COMPANY_INFO, LEGAL_URLS } from '@/lib/config';
-import { XLogoIcon, SlackLogoIcon, YoutubeLogoIcon, InstagramLogoIcon, LinkedinLogoIcon } from './icons';
+import { LOGIN_URL, REGISTER_URL, CONTACT_EMAIL, SOCIAL_LINKS, LEGAL_URLS } from '@/lib/config';
+import {
+  XLogoIcon,
+  SlackLogoIcon,
+  YoutubeLogoIcon,
+  InstagramLogoIcon,
+  LinkedinLogoIcon,
+  FacebookLogoIcon,
+  TiktokLogoIcon,
+  WhatsappLogoIcon,
+  ThreadsLogoIcon,
+  PinterestLogoIcon,
+} from './icons';
 
 const ICONS = {
   youtube: YoutubeLogoIcon,
@@ -13,6 +24,11 @@ const ICONS = {
   telegram: Send,
   slack: SlackLogoIcon,
   linkedin: LinkedinLogoIcon,
+  facebook: FacebookLogoIcon,
+  tiktok: TiktokLogoIcon,
+  whatsapp: WhatsappLogoIcon,
+  threads: ThreadsLogoIcon,
+  pinterest: PinterestLogoIcon,
 };
 
 export function Footer() {
@@ -95,34 +111,6 @@ export function Footer() {
               <li><a href={LEGAL_URLS.deleteAccount} className="text-gray-600 hover:text-gray-900 transition-colors">Hesap Silme</a></li>
             </ul>
           </div>
-        </div>
-
-        {/* Ödeme yöntemi rozetleri — iyzico incelemesi ve genel güven işareti için.
-            Kaynaklar: iyzico'nun kendi logo paketi + Wikimedia Commons üzerinden
-            doğrulanmış resmi Visa/Mastercard/Amex logoları (29 Ağustos 2026) +
-            TROY'un resmi medya merkezinden (troyodeme.com/tr/troy-hakkinda/medya-merkezi)
-            indirilen resmi logo paketi (30 Ağustos 2026) — iyzico'nun kendi
-            entegrasyonunda da aynı şekilde marka izni alınmadan kullanıldığı
-            için burada da doğrudan eklendi. */}
-        <div className="mt-10 pt-6 border-t border-gray-100 flex items-center gap-4 flex-wrap justify-center sm:justify-start">
-          <Image src="/payment/iyzico.svg" alt="iyzico ile Öde" width={120} height={42} className="h-7 w-auto" />
-          <Image src="/payment/visa.svg" alt="Visa" width={52} height={17} className="h-4 w-auto" />
-          <Image src="/payment/mastercard.svg" alt="Mastercard" width={52} height={32} className="h-6 w-auto" />
-          <Image src="/payment/amex.png" alt="American Express" width={52} height={52} className="h-6 w-auto rounded" />
-          <Image src="/payment/troy.svg" alt="Troy" width={71} height={33} className="h-6 w-auto" />
-        </div>
-
-        {/* iyzico başvurusu ve KVKK için zorunlu işletme kimlik bilgileri.
-            [KÖŞELİ PARANTEZLİ] alanlar src/lib/config.ts içindeki COMPANY_INFO
-            objesinden geliyor — yayına almadan önce gerçek bilgilerle doldurun. */}
-        <div className="mt-10 pt-6 border-t border-gray-100 text-xs text-gray-400 leading-relaxed">
-          <p>
-            {COMPANY_INFO.legalName} · Vergi Dairesi: {COMPANY_INFO.taxOffice} · Vergi No: {COMPANY_INFO.taxNumber}
-          </p>
-          <p className="mt-1">
-            {COMPANY_INFO.address} · {COMPANY_INFO.phone} · {COMPANY_INFO.email}
-            {COMPANY_INFO.kepAddress ? ` · KEP: ${COMPANY_INFO.kepAddress}` : ''}
-          </p>
         </div>
 
         <div className="mt-6 pt-6 border-t border-gray-100 text-xs text-gray-400 flex flex-col sm:flex-row items-center justify-between gap-2">

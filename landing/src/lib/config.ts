@@ -15,20 +15,32 @@ export const REGISTER_URL = `${APP_URL}/register`;
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'lexisappinfo@gmail.com';
 
 export interface SocialLink {
-  key: 'youtube' | 'instagram' | 'x' | 'telegram' | 'slack' | 'linkedin';
+  key: 'youtube' | 'instagram' | 'x' | 'telegram' | 'slack' | 'linkedin' | 'facebook' | 'tiktok' | 'whatsapp' | 'threads' | 'pinterest';
   label: string;
   href: string | null; // null => hesap henüz açılmadı, "yakında" olarak gösterilir
 }
 
-// Tüm sosyal medya hesapları hazır (21 Ağustos 2026) — env değişkeni tanımlıysa
-// onu, tanımlı değilse burada sabitlenen gerçek adresi kullanır.
+// Tüm sosyal medya hesapları hazır (21 Ağustos 2026; 14 Eylül 2026'da Facebook/
+// TikTok/WhatsApp Kanalı/Threads/Pinterest eklendi + YouTube/LinkedIn/Slack
+// adresleri düzeltildi — eskiden yanlış/eski adreslere işaret ediyorlardı).
+// env değişkeni tanımlıysa onu, tanımlı değilse burada sabitlenen gerçek
+// adresi kullanır.
+// NOT (14 Eylül 2026): Slack linki lexisappinfo workspace'inin DAVET linki —
+// 14 Ekim 2026'da sona eriyor, o tarihte Slack admin panelinden yeni bir
+// davet linki alınıp buraya (veya NEXT_PUBLIC_SLACK_URL env değişkenine)
+// güncellenmesi gerekiyor.
 export const SOCIAL_LINKS: SocialLink[] = [
   { key: 'telegram', label: 'Telegram', href: process.env.NEXT_PUBLIC_TELEGRAM_URL || 'https://t.me/lexis_words' },
-  { key: 'slack', label: 'Slack', href: process.env.NEXT_PUBLIC_SLACK_URL || 'https://lexis-dsx6779.slack.com/archives/D0BR7D4LC4E' },
-  { key: 'youtube', label: 'YouTube', href: process.env.NEXT_PUBLIC_YOUTUBE_URL || 'https://www.youtube.com/channel/UC_csIJCN7WDj-yrLab1iNHw' },
+  { key: 'slack', label: 'Slack', href: process.env.NEXT_PUBLIC_SLACK_URL || 'https://join.slack.com/t/lexisappinfo/shared_invite/zt-49wjqh3ec-4D2Xn5X04h9xDm7OQ_duVw' },
+  { key: 'youtube', label: 'YouTube', href: process.env.NEXT_PUBLIC_YOUTUBE_URL || 'https://www.youtube.com/@lexiswordsapp' },
   { key: 'instagram', label: 'Instagram', href: process.env.NEXT_PUBLIC_INSTAGRAM_URL || 'https://www.instagram.com/lexisappinfo/' },
   { key: 'x', label: 'X', href: process.env.NEXT_PUBLIC_X_URL || 'https://x.com/lexis_words' },
-  { key: 'linkedin', label: 'LinkedIn', href: process.env.NEXT_PUBLIC_LINKEDIN_URL || 'https://www.linkedin.com/in/lexis-words-7a605b430/' },
+  { key: 'linkedin', label: 'LinkedIn', href: process.env.NEXT_PUBLIC_LINKEDIN_URL || 'https://www.linkedin.com/company/lexiswords/' },
+  { key: 'facebook', label: 'Facebook', href: process.env.NEXT_PUBLIC_FACEBOOK_URL || 'https://www.facebook.com/profile.php?id=61594442907047' },
+  { key: 'tiktok', label: 'TikTok', href: process.env.NEXT_PUBLIC_TIKTOK_URL || 'https://www.tiktok.com/@lexiswordsapp' },
+  { key: 'whatsapp', label: 'WhatsApp Kanalı', href: process.env.NEXT_PUBLIC_WHATSAPP_URL || 'https://whatsapp.com/channel/0029VbE0RHbKrWR55ZdnoE3n' },
+  { key: 'threads', label: 'Threads', href: process.env.NEXT_PUBLIC_THREADS_URL || 'https://www.threads.com/@lexisappinfo' },
+  { key: 'pinterest', label: 'Pinterest', href: process.env.NEXT_PUBLIC_PINTEREST_URL || 'https://www.pinterest.com/lexisappinfo/' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -54,7 +66,7 @@ export const COMPANY_INFO = {
   // Şahıs mükellefinde ad-soyad unvan yerine geçer (Ticaret Ünvanı yok).
   legalName: 'Ahmet Behçet Taylan',
   ownerName: 'Ahmet Behçet Taylan', // İşletme sahibi / vergi mükellefi
-  taxOffice: 'Küçükköy Vergi Dairesi Müdürlüğü',
+  taxOffice: 'Sultanbeyli Vergi Dairesi Müdürlüğü',
   taxNumber: '', // TBD — GVK mükerrer 20/B istisna dilekçesi onaylanınca doldurulacak
   mersisNo: '', // Şahıs işletmeleri için MERSİS zorunlu değildir, tüzel kişiliğe geçilirse doldurulur.
   address: 'Mimar Sinan Mahallesi Itır Sokak No 13, Sultanbeyli / İstanbul - 34000',

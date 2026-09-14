@@ -41,3 +41,46 @@ export function LinkedinLogoIcon({ className }: { className?: string }) {
     </svg>
   );
 }
+
+export function FacebookLogoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M14.5 21v-7.6h2.55l.38-2.96h-2.93V8.55c0-.86.24-1.44 1.47-1.44h1.57V4.46A20.9 20.9 0 0 0 15.27 4c-2.24 0-3.77 1.37-3.77 3.87v2.57H8.94v2.96h2.56V21z" />
+    </svg>
+  );
+}
+
+export function TiktokLogoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <circle cx="9.5" cy="17" r="3" />
+      <rect x="11.5" y="3" width="2" height="14" />
+      <path d="M13.5 3a5.3 5.3 0 0 0 5 5.3v2A7.3 7.3 0 0 1 13.5 8V3Z" />
+    </svg>
+  );
+}
+
+export function WhatsappLogoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M4 12a8 8 0 1 1 3.2 6.4L4 20l1.3-3.5A7.96 7.96 0 0 1 4 12Z" />
+    </svg>
+  );
+}
+
+export function ThreadsLogoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path d="M12 3c-4.5 0-7 3-7 7v2c0 4 2.5 7 7 7 3.5 0 5.5-2 5.5-4.5 0-2-1.3-3.3-3.3-3.3-1.6 0-2.7 1-2.7 2.3 0 1 .7 1.7 1.7 1.7" />
+    </svg>
+  );
+}
+
+export function PinterestLogoIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M10 17c1-3 1.2-5 1.2-7A2.3 2.3 0 0 1 13.5 7.7c1.3 0 2.3 1 2.3 2.6 0 2.2-1.2 4-3 4-.6 0-1-.2-1.3-.6" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}

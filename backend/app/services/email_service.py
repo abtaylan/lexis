@@ -293,14 +293,22 @@ _LANGUAGE_META: dict[str, tuple[str, str]] = {
 # servise bağımlı olmadan, e-posta istemcilerinin güvenilir şekilde
 # gösterebileceği PNG'ler). label evrensel özel isim olduğu için dile göre
 # çevrilmiyor.
+# NOT (14 Eylül 2026): Slack linki lexisappinfo workspace'inin DAVET linki —
+# 14 Ekim 2026'da sona eriyor, o tarihte yeni bir davet linki alınıp
+# güncellenmesi gerekiyor (bkz. landing/src/lib/config.ts'teki aynı not).
 _SOCIAL_LINKS: list[tuple[str, str, str]] = [
     # (icon dosya adı, label, href) — landing Footer.tsx'teki SOCIAL_LINKS ile aynı sıra.
     ("telegram", "Telegram", "https://t.me/lexis_words"),
-    ("slack", "Slack", "https://lexis-dsx6779.slack.com/archives/D0BR7D4LC4E"),
-    ("youtube", "YouTube", "https://www.youtube.com/channel/UC_csIJCN7WDj-yrLab1iNHw"),
+    ("slack", "Slack", "https://join.slack.com/t/lexisappinfo/shared_invite/zt-49wjqh3ec-4D2Xn5X04h9xDm7OQ_duVw"),
+    ("youtube", "YouTube", "https://www.youtube.com/@lexiswordsapp"),
     ("instagram", "Instagram", "https://www.instagram.com/lexisappinfo/"),
     ("x", "X", "https://x.com/lexis_words"),
-    ("linkedin", "LinkedIn", "https://www.linkedin.com/in/lexis-words-7a605b430/"),
+    ("linkedin", "LinkedIn", "https://www.linkedin.com/company/lexiswords/"),
+    ("facebook", "Facebook", "https://www.facebook.com/profile.php?id=61594442907047"),
+    ("tiktok", "TikTok", "https://www.tiktok.com/@lexiswordsapp"),
+    ("whatsapp", "WhatsApp Kanalı", "https://whatsapp.com/channel/0029VbE0RHbKrWR55ZdnoE3n"),
+    ("threads", "Threads", "https://www.threads.com/@lexisappinfo"),
+    ("pinterest", "Pinterest", "https://www.pinterest.com/lexisappinfo/"),
 ]
 
 
