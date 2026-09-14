@@ -16,6 +16,21 @@ sağlayabilecek free_dictionary+mymemory adımına hiç sıra gelmiyordu.
 general_word_pool seed'i sırasında bulundu; her iki adımda da
 meaning_native'i boş olmayan sonuçlarla filtreleyip, hiçbiri kalmazsa bir
 sonraki sağlayıcıya düşecek şekilde düzeltildi.
+
+GÜNCELLEME (14 Eylül 2026, Korece/Çince seed bug'ı takibi): yukarıdaki
+Madde 1d düzeltmesi, sonraki bir oturumda interaktif kelime ekleme akışı
+için ("çeviri bulunamasa bile en azından İngilizce tanım+örnek gösterilsin,
+kullanıcı elle çevirsin" gerekçesiyle) gevşetilmiş — Cambridge'den dönen
+SONUÇ (meaning_target/examples) varsa meaning_native boş olsa bile hemen
+dönülüyordu, bu da free_dictionary+mymemory adımına HİÇ sıra gelmemesine
+yol açıyordu. general_word_pool seed script'i Korece/Çince için
+çalıştırıldığında (CAMBRIDGE_NATIVE_SLUG'da ko/zh karşılığı yok) 303
+kelimeden 301'i bu yüzden "çeviri boş döndü" ile atlandı. Düzeltme: önce
+GERÇEK bir çeviri (meaning_native dolu) veren sağlayıcı aranıyor (önce
+Cambridge, sonra free_dictionary+mymemory); hiçbiri çeviri veremezse EN SON
+çare olarak Cambridge/free_dictionary'nin çevirisiz sonucu (varsa) dönülüyor
+— interaktif akış için "en azından İngilizce tanım+örnek" garantisi korundu,
+ama artık gerçek çeviri ihtimali asla atlanmıyor.
 """
 from app.services.dictionary_providers import cambridge, free_dictionary, mymemory
 from app.services.dictionary_providers.pos_labels import localize_pos
@@ -26,31 +41,26 @@ async def lookup_word(word: str, learning_lang: str, native_lang: str) -> dict:
     if not word:
         return {"meanings": [], "error": "Kelime boş olamaz."}
 
+    cambridge_meanings: list[dict] = []
+    generic_meanings: list[dict] = []
+
     # ── 1) İngilizce öğreniliyorsa Cambridge ──
     if cambridge.supports(learning_lang):
-        meanings = await cambridge.lookup(word, native_lang)
-        # ÖNEMLİ: "bu sonucu kullan" kararını çeviri (meaning_native) başarısından
-        # ayır. Türkçe/ana dil çevirisi bulunamasa bile İngilizce tanım
-        # (meaning_target) veya örnek cümle varsa sonucu at etme — sadece
-        # gerçekten tamamen boş kayıtları ele. Böylece kullanıcı en azından
-        # İngilizce tanım + örnek cümleyi görür, çeviriyi kendisi girebilir.
-        usable = [
-            m for m in meanings
-            if (m.get("meaning_native") or "").strip()
-            or (m.get("meaning_target") or "").strip()
-            or m.get("examples")
+        cambridge_meanings = await cambridge.lookup(word, native_lang)
+        # Önce GERÇEK çeviri (meaning_native dolu) içeren sonuçları tercih et.
+        cambridge_translated = [
+            m for m in cambridge_meanings if (m.get("meaning_native") or "").strip()
         ]
-        if usable:
-            return {"meanings": usable, "error": None, "source": "cambridge"}
+        if cambridge_translated:
+            return {"meanings": cambridge_translated, "error": None, "source": "cambridge"}
 
     # ── 2) Genel sağlayıcı: tanım (öğrenilen dilde) + çeviri (ana dile) ──
     definitions = await free_dictionary.lookup(word, learning_lang)
     if definitions:
-        meanings = []
         for d in definitions[:5]:
             translated = await mymemory.translate(d["definition"] or word, learning_lang, native_lang)
             pos = d.get("word_type", "")
-            meanings.append({
+            generic_meanings.append({
                 "word_type": pos,
                 "word_type_native": localize_pos(pos, native_lang),
                 "meaning_target": d["definition"],
@@ -59,15 +69,28 @@ async def lookup_word(word: str, learning_lang: str, native_lang: str) -> dict:
                 "meaning_native": translated or "",
                 "examples": [d["example"]] if d.get("example") else [],
             })
-        # NOT: Eskiden burada "meaning_native boş olanları ele" filtresi vardı;
-        # bu, sadece çeviri adımı arızalandığında mükemmel durumdaki İngilizce
-        # tanım + örnek cümleyi de siliyordu. meaning_target zaten definitions'tan
-        # geldiği için her zaman dolu — filtreye gerek yok, meanings listesini
-        # olduğu gibi döndür.
-        if meanings:
-            return {"meanings": meanings, "error": None, "source": "free_dictionary+mymemory"}
+        generic_translated = [
+            m for m in generic_meanings if (m.get("meaning_native") or "").strip()
+        ]
+        if generic_translated:
+            return {"meanings": generic_translated, "error": None, "source": "free_dictionary+mymemory"}
 
-    # ── 3) Son çare: sadece kelimenin doğrudan çevirisi ──
+    # ── 3) Hiçbir sağlayıcı gerçek bir çeviri veremedi: en azından İngilizce
+    #      tanım (meaning_target) veya örnek cümle varsa onu dön — kullanıcı
+    #      en azından bunu görüp çeviriyi kendisi girebilir. Bu artık SADECE
+    #      hem Cambridge hem free_dictionary+mymemory'nin gerçek çeviri
+    #      veremediği durumda devreye giriyor (eskiden Cambridge tek başına
+    #      bunu hemen dönüp ikinci adıma hiç sıra bırakmıyordu).
+    fallback_pool = cambridge_meanings or generic_meanings
+    fallback_usable = [
+        m for m in fallback_pool
+        if (m.get("meaning_target") or "").strip() or m.get("examples")
+    ]
+    if fallback_usable:
+        source = "cambridge" if cambridge_meanings else "free_dictionary"
+        return {"meanings": fallback_usable, "error": None, "source": source}
+
+    # ── 4) Son çare: sadece kelimenin doğrudan çevirisi ──
     translated_word = await mymemory.translate(word, learning_lang, native_lang)
     # ÖNEMLİ: MyMemory, gerçek bir çeviri bulamadığında (veya learning_lang/
     # native_lang beklenmedik şekilde aynıysa, ör. kullanıcı hedef dilde değil

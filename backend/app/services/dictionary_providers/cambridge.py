@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 CAMBRIDGE_NATIVE_SLUG = {
     "tr": "turkish", "de": "german", "fr": "french", "es": "spanish",
     "it": "italian", "ja": "japanese", "ar": "arabic",
+    # 14 Eylul 2026: ko/zh icin Cambridge'in kendi iki dilli sozlukleri
+    # eklendi (daha once haritada yoktu, bu yuzden bu diller icin sadece
+    # Ingilizce tek dilli sayfa taranip hicbir zaman ceviri donmuyordu).
+    "ko": "korean", "zh": "chinese-simplified",
 }
 
 HEADERS = {
