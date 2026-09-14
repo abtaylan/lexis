@@ -56,15 +56,27 @@ bileşenleri kullan, sıfırdan animasyon yazma:
   CTA'larda kullan; imleç yaklaşınca hafifçe kayar. Sadece gerçek fare +
   `prefers-reduced-motion` kapalıyken çalışır, dokunmatikte sessizce normal
   buton kalır.
-- **Sabitlenen panel + crossfade** (Features.tsx örneği): sol sütun
-  `sticky-panel` + `.crossfade-item`/`is-active`, sağ sütunda her blok
-  `IntersectionObserver` ile `rootMargin: '-45% 0 -45% 0'` bandını
-  geçince aktif olur. Yeni bir "scrollytelling" bölümü eklerken bu deseni
-  kopyala.
+- **Sabitlenen panel + crossfade** (Features.tsx, Showcase.tsx masaüstü
+  düzeni): `src/lib/useScrollActive.ts` hook'unu kullan
+  (`const { active, setRef } = useScrollActive()`) — sağ/sol sütundaki her
+  bloğa `ref={setRef(i)} data-index={i}` ver, sabitlenen panelde
+  `.crossfade-item ${active === i ? 'is-active' : ''}` ile göster. Bu hook
+  eski tekrarlanan `useState`+`useRef`+`IntersectionObserver`
+  (`rootMargin: '-45% 0 -45% 0'`) mantığının ortak hâli — yeni bir
+  "scrollytelling" bölümü eklerken bunu tekrar yazma, hook'u import et.
+  Features'ta panel artık `.feature-card` (Hero/Cta ile aynı lacivert kart +
+  RibbonMotif + alttaki 6 parçalı ilerleme çubuğu); Showcase'te panel gerçek
+  ekran görüntülerini `next/image fill` ile aynı şekilde crossfade'liyor.
 - **Görsel wipe reveal**: `.img-reveal` class'ı, ebeveyn `.reveal.is-visible`
   olduğunda `clip-path` ile açılır (bkz. globals.css'teki descendant
   kural) — `Reveal` içine `<div className="img-reveal">` koymak yeterli,
-  ayrıca JS gerekmez.
+  ayrıca JS gerekmez. Sadece mobil/statik kart düzenlerinde kullanılıyor
+  (Showcase'in masaüstü sabit panelinde `.crossfade-item` kullanılıyor).
+- **Akordiyon yükseklik geçişi** (Faq.tsx): abrupt `{isOpen && <div>}` mount
+  YAPMA — `.faq-collapse`/`.faq-collapse-inner` (globals.css,
+  `grid-template-rows: 0fr -> 1fr` + fade) ile yumuşak açılır/kapanır. Yeni
+  bir akordiyon eklerken bu iki class'ı kopyala, JS tarafında sadece
+  `is-open` class'ını toggle'la.
 - **Header'ın koyu/açık geçişi** (Header.tsx): `#top` (Hero) elementini
   `IntersectionObserver` ile izleyip Hero üstündeyken şeffaf/beyaz metin,
   Hero'yu geçince opak/koyu metne döner. Hero'nun id'sini değiştirirsen bu

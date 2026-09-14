@@ -173,12 +173,19 @@ a, button, [class*="transition"] {
   position: absolute;
   inset: 0;
   opacity: 0;
-  transform: scale(0.97);
+  transform: scale(0.96) translateY(14px);
   transition: opacity 0.6s var(--ease-premium), transform 0.6s var(--ease-premium);
 }
 .crossfade-item.is-active {
   opacity: 1;
-  transform: scale(1);
+  transform: scale(1) translateY(0);
+}
+
+/* Features'in sabitlenen panelini Hero/Cta ile ayni lacivert marka diline
+   tasiyan kart -- dekoratif RibbonMotif + ilerleme cubugu barindirir. */
+.feature-card {
+  background: linear-gradient(160deg, var(--navy-800), var(--navy-900));
+  box-shadow: var(--shadow-navy-glow);
 }
 
 /* Showcase görselleri için geçişli (wipe) ortaya çıkış. */
@@ -189,6 +196,26 @@ a, button, [class*="transition"] {
 .img-reveal.is-visible,
 .reveal.is-visible .img-reveal {
   clip-path: inset(0 0 0% 0);
+}
+
+/* SSS akordiyonu -- abrupt mount yerine grid-template-rows ile yukseklik
+   gecisi (0fr -> 1fr); ic sarmalayici ayrica hafif fade-in yapar. */
+.faq-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.45s var(--ease-premium);
+}
+.faq-collapse.is-open {
+  grid-template-rows: 1fr;
+}
+.faq-collapse-inner {
+  overflow: hidden;
+  min-height: 0;
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-premium) 0.05s;
+}
+.faq-collapse.is-open .faq-collapse-inner {
+  opacity: 1;
 }
 
 /* Header scroll'da hafif derinlik kazanır (bkz. src/components/Header.tsx). */
@@ -205,7 +232,9 @@ a, button, [class*="transition"] {
   .ribbon-drift,
   .magnetic,
   .crossfade-item,
-  .img-reveal {
+  .img-reveal,
+  .faq-collapse,
+  .faq-collapse-inner {
     animation: none !important;
     transition: none !important;
     opacity: 1 !important;

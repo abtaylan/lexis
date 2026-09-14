@@ -1,29 +1,22 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
 import { BookOpen, Gamepad2, CalendarDays, Trophy, Users, Globe2 } from 'lucide-react';
 import { useLocale } from '@/lib/i18n';
 import { Reveal } from './Reveal';
-
-const COLORS = [
-  { bg: 'bg-[#EEEDFE]', text: 'text-[#534AB7]' },
-  { bg: 'bg-[#FAEEDA]', text: 'text-[#854F0B]' },
-  { bg: 'bg-[#E6F1FB]', text: 'text-[#185FA5]' },
-  { bg: 'bg-[#FAEEDA]', text: 'text-[#854F0B]' },
-  { bg: 'bg-[#E1F5EE]', text: 'text-[#0F6E56]' },
-  { bg: 'bg-[#EAF3DE]', text: 'text-[#3B6D11]' },
-];
+import { RibbonMotif } from './RibbonMotif';
+import { useScrollActive } from '@/lib/useScrollActive';
 
 /**
- * Özellikler bölümü, klasik kart ızgarası yerine "sabitlenen görsel panel +
- * kaydırınca değişen metin bloğu" (scrollytelling) kurgusuyla anlatılıyor:
- * sağdaki her blok görünüm alanının ortasına geldiğinde soldaki panel o
- * özelliğin ikonuna/rengine çapraz geçişle (crossfade) döner.
+ * Özellikler bölümü "sabitlenen görsel panel + kaydırınca değişen metin
+ * bloğu" (scrollytelling) kurgusuyla anlatılıyor. Panel artık Hero/Cta'daki
+ * lacivert marka kartıyla aynı dilde (.feature-card, globals.css): her blok
+ * görünüm alanının ortasına geldiğinde ikon+numara çapraz geçişle (crossfade)
+ * değişir, alttaki ince çubuk 6 özellik içindeki konumu gösterir. Ortak
+ * scroll-izleme mantığı useScrollActive hook'unda (Showcase ile paylaşılıyor).
  */
 export function Features() {
   const { t } = useLocale();
-  const [active, setActive] = useState(0);
-  const blockRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const { active, setRef } = useScrollActive();
 
   const items = [
     { icon: BookOpen, title: t('f1Title'), desc: t('f1Desc') },
@@ -34,25 +27,6 @@ export function Features() {
     { icon: Globe2, title: t('f6Title'), desc: t('f6Desc') },
   ];
 
-  useEffect(() => {
-    const els = blockRefs.current.filter((el): el is HTMLDivElement => el !== null);
-    if (els.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const idx = Number((entry.target as HTMLElement).dataset.index);
-            if (!Number.isNaN(idx)) setActive(idx);
-          }
-        });
-      },
-      { rootMargin: '-45% 0px -45% 0px', threshold: 0 },
-    );
-    els.forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-  }, []);
-
   return (
     <section id="features" className="mx-auto max-w-6xl px-5 py-24">
       <Reveal className="max-w-2xl mb-16">
@@ -60,18 +34,38 @@ export function Features() {
         <p className="mt-3 text-lg text-gray-500">{t('featuresSubtitle')}</p>
       </Reveal>
 
-      <div className="grid gap-12 lg:grid-cols-[380px_1fr]">
+      <div className="grid gap-12 lg:grid-cols-[400px_1fr]">
         <div className="hidden lg:block">
-          <div className="sticky-panel relative h-[380px]">
-            {items.map((item, i) => (
-              <div key={item.title} className={`crossfade-item ${active === i ? 'is-active' : ''}`}>
-                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${COLORS[i].bg} ${COLORS[i].text}`}>
-                  <item.icon className="w-7 h-7" />
+          <div className="sticky-panel">
+            <div className="feature-card relative h-[420px] rounded-[28px] overflow-hidden">
+              <RibbonMotif className="absolute -right-12 -top-12 w-56 h-80" opacity={0.16} />
+              <div className="relative z-10 flex h-full flex-col p-9">
+                <div className="relative flex-1">
+                  {items.map((item, i) => (
+                    <div key={item.title} className={`crossfade-item ${active === i ? 'is-active' : ''}`}>
+                      <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white/10 text-white">
+                        <item.icon className="w-7 h-7" />
+                      </div>
+                      <div className="mt-7 text-xs font-bold tracking-wide text-white/40 display">
+                        {String(i + 1).padStart(2, '0')} / 06
+                      </div>
+                      <h3 className="display mt-2 text-2xl font-bold text-white leading-snug">{item.title}</h3>
+                    </div>
+                  ))}
                 </div>
-                <div className="mt-6 text-xs font-bold text-gray-300 display">{String(i + 1).padStart(2, '0')} / 06</div>
-                <h3 className="display mt-2 text-2xl font-bold text-gray-900">{item.title}</h3>
+
+                <div className="relative flex items-center gap-1.5 pt-6">
+                  {items.map((_, i) => (
+                    <span
+                      key={i}
+                      className={`h-1 flex-1 rounded-full transition-all duration-500 ${
+                        i === active ? 'bg-gradient-to-r from-[#4C6FFF] to-[#7B5CFA]' : 'bg-white/15'
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
-            ))}
+            </div>
           </div>
         </div>
 
@@ -80,15 +74,16 @@ export function Features() {
           {items.map((item, i) => (
             <div
               key={item.title}
-              ref={(el) => { blockRefs.current[i] = el; }}
+              ref={setRef(i)}
               data-index={i}
               className="min-h-[56vh] lg:min-h-[62vh] flex flex-col justify-center border-t border-gray-100 first:border-t-0"
             >
-              <div className={`lg:hidden w-11 h-11 rounded-xl flex items-center justify-center mb-4 ${COLORS[i].bg} ${COLORS[i].text}`}>
+              <div className="lg:hidden w-11 h-11 rounded-xl flex items-center justify-center mb-4 bg-[var(--navy-900)] text-white">
                 <item.icon className="w-5 h-5" />
               </div>
-              <Reveal>
-                <h3 className="display text-xl lg:text-2xl font-bold text-gray-900">{item.title}</h3>
+              <Reveal variant={i % 2 === 0 ? 'left' : 'right'}>
+                <span className="display text-sm font-bold text-[var(--brand-500)]">{String(i + 1).padStart(2, '0')}</span>
+                <h3 className="display mt-2 text-xl lg:text-2xl font-bold text-gray-900">{item.title}</h3>
                 <p className="mt-3 text-base text-gray-500 leading-relaxed max-w-md">{item.desc}</p>
               </Reveal>
             </div>
