@@ -35,6 +35,7 @@ export function Header() {
 
   const navItems = [
     { href: '#features', label: t('navFeatures') },
+    { href: '#exam-prep', label: t('navExam') },
     { href: '#how', label: t('navHow') },
     { href: '#faq', label: t('navFaq') },
     { href: '#contact', label: t('navContact') },

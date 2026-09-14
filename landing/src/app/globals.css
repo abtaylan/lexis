@@ -188,6 +188,16 @@ a, button, [class*="transition"] {
   box-shadow: var(--shadow-navy-glow);
 }
 
+/* MoreFeatures kartsız ızgarasındaki küçük gradyan vurgu -- marka
+   renklerini (RibbonMotif ile ayni gradyan) tekrar eden bir "chip". */
+.feature-dot {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: linear-gradient(135deg, var(--brand-500), var(--accent-600));
+}
+
 /* Showcase görselleri için geçişli (wipe) ortaya çıkış. */
 .img-reveal {
   clip-path: inset(0 0 100% 0);

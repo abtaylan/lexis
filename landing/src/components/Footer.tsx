@@ -90,6 +90,7 @@ export function Footer() {
               <li><a href={REGISTER_URL} className="text-gray-600 hover:text-gray-900 transition-colors">{t('footerLinkRegister')}</a></li>
               <li><a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">{t('footerLinkFeatures')}</a></li>
               <li><a href="#how" className="text-gray-600 hover:text-gray-900 transition-colors">{t('footerLinkHow')}</a></li>
+              <li><a href="#exam-prep" className="text-gray-600 hover:text-gray-900 transition-colors">{t('footerLinkExam')}</a></li>
             </ul>
           </div>
 
