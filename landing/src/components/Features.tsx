@@ -2,6 +2,7 @@
 
 import { BookOpen, Gamepad2, CalendarDays, Trophy, Users, Globe2 } from 'lucide-react';
 import { useLocale } from '@/lib/i18n';
+import { Reveal } from './Reveal';
 
 export function Features() {
   const { t } = useLocale();
@@ -17,23 +18,22 @@ export function Features() {
 
   return (
     <section id="features" className="mx-auto max-w-6xl px-5 py-20">
-      <div className="max-w-2xl">
+      <Reveal className="max-w-2xl">
         <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">{t('featuresTitle')}</h2>
         <p className="mt-3 text-lg text-gray-500">{t('featuresSubtitle')}</p>
-      </div>
+      </Reveal>
 
-      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 stagger">
-        {items.map((item) => (
-          <div
-            key={item.title}
-            className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all"
-          >
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.color}`}>
-              <item.icon className="w-5 h-5" />
+      <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {items.map((item, i) => (
+          <Reveal key={item.title} delay={i * 70}>
+            <div className="h-full rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${item.color}`}>
+                <item.icon className="w-5 h-5" />
+              </div>
+              <h3 className="mt-4 text-base font-semibold text-gray-900">{item.title}</h3>
+              <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">{item.desc}</p>
             </div>
-            <h3 className="mt-4 text-base font-semibold text-gray-900">{item.title}</h3>
-            <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">{item.desc}</p>
-          </div>
+          </Reveal>
         ))}
       </div>
     </section>

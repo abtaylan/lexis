@@ -40,6 +40,10 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   --shadow: 0 4px 6px rgba(0,0,0,.05), 0 2px 4px rgba(0,0,0,.04);
   --shadow-lg: 0 20px 40px rgba(15,23,42,.10), 0 4px 12px rgba(15,23,42,.06);
+
+  /* Sitedeki tüm hover/tap/reveal geçişlerinin ortak "premium" easing
+     eğrisi — bkz. aşağıdaki [class*="transition"] kuralı ve .reveal. */
+  --ease-premium: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * { box-sizing: border-box; }
@@ -74,6 +78,15 @@ body {
   color: var(--brand-700);
 }
 
+/* Sınıf adında "transition" geçen her eleman (Tailwind'in transition-colors/
+   transition-shadow/transition-all vb. utility'leri dahil) için tutarlı,
+   daha yumuşak/"premium" hissettiren bir easing eğrisi uygular. Tailwind'in
+   kendi timing-function'ının üzerine yazar (aynı özgüllük, kaynak sırası
+   kazanır) — elle her bileşende tekrar tanımlamaya gerek kalmaz. */
+a, button, [class*="transition"] {
+  transition-timing-function: var(--ease-premium);
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -94,6 +107,35 @@ body {
 .stagger > *:nth-child(4) { animation-delay: 240ms; }
 .stagger > *:nth-child(5) { animation-delay: 320ms; }
 .stagger > *:nth-child(6) { animation-delay: 400ms; }
+
+/* Scroll ile görünüme giren bölümler için ortak reveal geçişi
+   (bkz. src/components/Reveal.tsx). */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.7s var(--ease-premium), transform 0.7s var(--ease-premium);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Header scroll'da hafif derinlik kazanır (bkz. src/components/Header.tsx). */
+.header-elevated {
+  box-shadow: var(--shadow-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .animate-fade-in,
+  .animate-float,
+  .stagger > * {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
 
 /* Yasal sayfalar (Gizlilik Politikası, Mesafeli Satış Sözleşmesi, vb.) için
    düz metin tipografisi — bkz. src/components/LegalLayout.tsx */

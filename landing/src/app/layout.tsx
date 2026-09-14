@@ -1,11 +1,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { LocaleProvider } from '@/lib/i18n';
-import { SITE_URL, SOCIAL_LINKS } from '@/lib/config';
+import { SITE_URL, SOCIAL_LINKS, CONTACT_EMAIL } from '@/lib/config';
 
 const TITLE = 'Lexis — Kelime, program ve oyunla dil öğren';
 const DESCRIPTION =
-  'Lexis; kişisel kelime listeni, günlük çalışma programını ve arkadaşlarınla yarışabildiğin oyunları tek bir yerde birleştiren, 9 dilde arayüz sunan ücretsiz dil öğrenme uygulaması.';
+  'Lexis; kişisel kelime listeni, günlük çalışma programını ve arkadaşlarınla yarışabildiğin oyunları tek bir yerde birleştiren, 12 dilde arayüz sunan ücretsiz dil öğrenme uygulaması.';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -81,7 +81,7 @@ export const metadata: Metadata = {
 // verisi olmadığından aggregateRating bilerek eklenmedi — uydurma veri
 // Google'ın spam politikalarını ihlal eder; mağazalarda yeterli yorum
 // birikince (bkz. Play Console / App Store Connect) eklenebilir.
-const jsonLd = {
+const softwareAppJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',
   name: 'Lexis',
@@ -98,6 +98,89 @@ const jsonLd = {
   sameAs: SOCIAL_LINKS.filter((s) => s.href).map((s) => s.href as string),
 };
 
+// Organization + WebSite JSON-LD — Google'ın Lexis'i bir marka/kuruluş
+// olarak tanıyıp bilgi panelinde göstermesi için (14 Eylül 2026). sameAs
+// listesi SoftwareApplication ile aynı kaynaktan (SOCIAL_LINKS) türetildiği
+// için elle senkron tutulması gerekmiyor.
+const organizationJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Lexis',
+  url: SITE_URL,
+  logo: `${SITE_URL}/logo-full.png`,
+  email: CONTACT_EMAIL,
+  sameAs: SOCIAL_LINKS.filter((s) => s.href).map((s) => s.href as string),
+};
+
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Lexis',
+  url: SITE_URL,
+  inLanguage: ['tr', 'en', 'de', 'fr', 'es', 'it', 'ru', 'ar', 'ja', 'pt', 'zh', 'ko'],
+};
+
+// FAQPage JSON-LD — Google arama sonuçlarında "sıkça sorulan sorular" zengin
+// snippet'i olarak görünmesini sağlar. Metinler bilerek Türkçe ve
+// src/lib/i18n.tsx → dictionaries.tr içindeki faqQ*/faqA* anahtarlarının
+// birebir kopyası olarak sabitlendi (varsayılan/indekslenen dil Türkçe) —
+// SSS metni i18n.tsx'te değişirse buradaki metnin de elle güncellenmesi
+// gerekir.
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: [
+    {
+      '@type': 'Question',
+      name: 'Lexis ücretsiz mi?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Evet, Lexis ücretsiz bir hesapla kullanılmaya başlanabilir. Ek özellikler sunan bir Premium plan da mevcuttur.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Hangi dilleri destekliyor?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Uygulama arayüzü 12 dilde (Türkçe, İngilizce, Almanca, Fransızca, İspanyolca, İtalyanca, Portekizce, Arapça, Rusça, Japonca, Korece, Çince) kullanılabilir; öğrenebileceğin diller de aynı dil havuzuna dayanır.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Premium ne sağlıyor?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Premium plan, uygulama içindeki bazı ek özellikleri ve reklamsız deneyimi açar. Güncel plan ve fiyat bilgisi için uygulama içindeki Premium sayfasına bakabilirsin.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Verilerim güvende mi?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Hesap verilerin ve öğrenme geçmişin sana özeldir; başka kullanıcılar yalnızca sen paylaşmayı tercih ettiğin (profil, istatistik özeti gibi) bilgileri görebilir.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Mobil uygulama var mı?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Mobil uygulama şu anda geliştirme aşamasında. Bu sırada web sürümünü telefon tarayıcından da rahatlıkla kullanabilirsin.',
+      },
+    },
+    {
+      '@type': 'Question',
+      name: 'Nasıl iletişime geçebilirim?',
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: 'Aşağıdaki e-posta adresinden veya sosyal medya hesaplarımızdan bize ulaşabilirsin.',
+      },
+    },
+  ],
+};
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
@@ -105,7 +188,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareAppJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          // eslint-disable-next-line react/no-danger
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
         />
       </head>
       <body>

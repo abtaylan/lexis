@@ -7,8 +7,9 @@ import { LOGIN_URL, REGISTER_URL } from '@/lib/config';
 
 export function Hero() {
   const { t, locale } = useLocale();
-  // 9 dilin tamamı için (tr varsayılan + en/de/fr/es/it/ru/ar/ja) ayrı ekran
-  // görüntüleri çekildi (bkz. lexis_kalan_isler_guncel.md, Madde 5 — tamamlandı).
+  // Lexis 12 dilde çalışıyor; ekran görüntüleri ise bunlardan 8'i için ayrı
+  // çekildi (en/de/fr/es/it/ru/ar/ja). tr, pt, zh ve ko bilinçli olarak kök/
+  // varsayılan sete (`public/screenshots/*.png`) düşer.
   const LOCALIZED_SCREENSHOTS = ['en', 'de', 'fr', 'es', 'it', 'ru', 'ar', 'ja'];
   const screenshotSrc = (name: string) =>
     LOCALIZED_SCREENSHOTS.includes(locale) ? `/screenshots/${locale}/${name}.png` : `/screenshots/${name}.png`;

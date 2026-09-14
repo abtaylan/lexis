@@ -59,6 +59,7 @@ export function Footer() {
                 {SOCIAL_LINKS.map((social) => {
                   const Icon = ICONS[social.key];
                   const disabled = !social.href;
+                  const accessibleLabel = disabled ? `${social.label} — ${t('footerComingSoon')}` : social.label;
                   return (
                     <a
                       key={social.key}
@@ -66,7 +67,8 @@ export function Footer() {
                       target={social.href ? '_blank' : undefined}
                       rel={social.href ? 'noopener noreferrer' : undefined}
                       aria-disabled={disabled}
-                      title={disabled ? `${social.label} — ${t('footerComingSoon')}` : social.label}
+                      aria-label={accessibleLabel}
+                      title={accessibleLabel}
                       className={`relative flex items-center justify-center w-9 h-9 rounded-full border transition-colors ${
                         disabled
                           ? 'border-gray-100 text-gray-300 cursor-not-allowed pointer-events-none'

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 import { useLocale } from '@/lib/i18n';
@@ -10,6 +10,14 @@ import { LanguageSwitcher } from './LanguageSwitcher';
 export function Header() {
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const navItems = [
     { href: '#features', label: t('navFeatures') },
@@ -19,14 +27,18 @@ export function Header() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/80 backdrop-blur-md">
+    <header
+      className={`sticky top-0 z-40 border-b bg-white/80 backdrop-blur-md transition-shadow duration-300 ${
+        scrolled ? 'border-gray-200 header-elevated' : 'border-gray-100'
+      }`}
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         <a href="#top" className="flex items-center gap-2 shrink-0">
           <Image src="/logo-icon.png" alt="Lexis" width={32} height={32} className="rounded-lg" />
           <span className="text-lg font-bold text-gray-900">Lexis</span>
         </a>
 
-        <nav className="hidden md:flex items-center gap-7">
+        <nav aria-label="Ana menü" className="hidden md:flex items-center gap-7">
           {navItems.map((item) => (
             <a key={item.href} href={item.href} className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
               {item.label}
@@ -51,7 +63,8 @@ export function Header() {
           type="button"
           onClick={() => setOpen((v) => !v)}
           className="md:hidden flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 hover:bg-gray-100"
-          aria-label="Menu"
+          aria-label={open ? 'Menüyü kapat' : 'Menüyü aç'}
+          aria-expanded={open}
         >
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>

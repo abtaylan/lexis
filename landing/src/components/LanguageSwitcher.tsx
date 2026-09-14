@@ -14,8 +14,15 @@ export function LanguageSwitcher() {
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
     document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, []);
 
   return (
@@ -26,17 +33,20 @@ export function LanguageSwitcher() {
         className="flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:border-gray-300 transition-colors"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-label={`Dil seç: ${current.label}`}
       >
         <span>{current.flag}</span>
         <span className="hidden sm:inline">{current.label}</span>
         <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
       </button>
       {open && (
-        <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-44 max-h-80 overflow-y-auto rounded-2xl border border-gray-100 bg-white py-1.5 shadow-lg z-50">
+        <div role="listbox" className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-44 max-h-80 overflow-y-auto rounded-2xl border border-gray-100 bg-white py-1.5 shadow-lg z-50">
           {LOCALE_META.map((l) => (
             <button
               key={l.code}
               type="button"
+              role="option"
+              aria-selected={l.code === locale}
               onClick={() => { setLocale(l.code); setOpen(false); }}
               className={`flex w-full items-center gap-2 px-3.5 py-2 text-sm text-left transition-colors ${
                 l.code === locale ? 'bg-[var(--accent-50)] text-[var(--accent-600)] font-medium' : 'text-gray-600 hover:bg-gray-50'
