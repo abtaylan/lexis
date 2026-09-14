@@ -1,0 +1,24 @@
+-- 072_exam_questions_explanation_nullable.sql
+--
+-- Canlıda YENİ tespit edilen bir bug (14 Eylül 2026, backlog #10 üzerinde
+-- çalışırken bulundu — bkz. Railway log'u): POST /questions/suggest'in
+-- Pydantic şeması (ExamQuestionSuggestionCreate.explanation) VE web/mobil
+-- formu ("Açıklama (opsiyonel)" etiketiyle) explanation'ı AÇIKÇA opsiyonel
+-- sayıyor, ama exam_questions.explanation sütunu 023_exam_prep.sql'den beri
+-- NOT NULL. Sonuç: açıklama alanını boş bırakan HER kullanıcı soru önerisi
+-- INSERT aşamasında "null value in column explanation violates not-null
+-- constraint" (Postgres 23502) ile patlıyor ve kullanıcıya opak bir 500
+-- dönüyor — bu, Faz 2'den (commit be46ad3) beri var olan, bugüne kadar
+-- fark edilmemiş bir regresyon/tutarsızlık, backlog #10 kapsamında
+-- suggest_question'ı gerçek tarayıcıdan test ederken ortaya çıktı.
+--
+-- Düzeltme: DB kısıtını şema/UI'nin zaten varsaydığı davranışa uydur.
+-- system/ai kaynaklı sorular (seed script'leri, generate_ai_questions)
+-- zaten her zaman explanation dolduruyor — bu satır onları etkilemiyor,
+-- sadece kullanıcı önerilerinde gerçekten boş bırakılabilmesini sağlıyor.
+--
+-- Not: Bu değişiklik Supabase MCP (apply_migration) ile canlıya uygulandı;
+-- bu dosya repo geçmişi/reprodüksiyon amaçlı eklendi (bkz. 022/023'teki
+-- aynı not).
+
+ALTER TABLE public.exam_questions ALTER COLUMN explanation DROP NOT NULL;
