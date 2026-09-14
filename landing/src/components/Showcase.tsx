@@ -30,7 +30,7 @@ export function Showcase() {
   ];
 
   return (
-    <section className="bg-gray-50 border-y border-gray-100 py-24 overflow-hidden">
+    <section className="bg-gray-50 border-y border-gray-100 py-24">
       <div className="mx-auto max-w-6xl px-5">
         <Reveal className="max-w-2xl mx-auto text-center">
           <h2 className="display text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">{t('showcaseTitle')}</h2>

@@ -77,6 +77,25 @@ bileşenleri kullan, sıfırdan animasyon yazma:
   `grid-template-rows: 0fr -> 1fr` + fade) ile yumuşak açılır/kapanır. Yeni
   bir akordiyon eklerken bu iki class'ı kopyala, JS tarafında sadece
   `is-open` class'ını toggle'la.
+- **KRİTİK gotcha — `position: sticky` + `overflow-hidden` ASLA aynı zincirde
+  olmasın**: bir `sticky-panel` (Features, Showcase) barındıran `<section>`
+  veya herhangi bir ATA element'e `overflow-hidden`/`overflow-auto` KOYMA —
+  bu, sticky elementin "yapışacağı" referansı bozar ve panel scroll'un
+  ortasında (görünüm alanının dışına hiç çıkmadan) tamamen KAYBOLUR/kırpılır
+  (14 Eylül'de Showcase'te tam olarak bu bug yaşandı: `<section
+  ...overflow-hidden>` kaldırılınca düzeldi). Reveal/hover taşmalarını
+  gizlemek için overflow-hidden gerekiyorsa, onu sticky-panel'i barındırmayan
+  daha İÇ bir elemente (örn. tek bir kart/figure) koy, section/wrapper
+  seviyesine değil.
+- **"Silik'ten canlıya" ikon canlanma efekti** (HowItWorks.tsx): bir ikonun/
+  adımın sadece fade değil, gerçekten "hayat bulduğu" hissi için
+  `.step-icon`/`.step-number`/`.step-line` (globals.css) deseni kullan —
+  ikon `grayscale(1) opacity(0.45) scale(0.8) rotate(-8deg)` ile silik/küçük
+  başlar, ebeveyn `.reveal.is-visible` olduğunda renklenip `scale(1)
+  rotate(0)`'a döner; numara gri->marka rengine, altındaki ince çizgi
+  `scaleX(0)->scaleX(1)` ile soldan sağa açılır. Basit bir `Reveal` fade'i
+  yeterli olmayan, "statik duruyor" şikayeti gelen bölümlerde bu deseni
+  tercih et.
 - **Header'ın koyu/açık geçişi** (Header.tsx): `#top` (Hero) elementini
   `IntersectionObserver` ile izleyip Hero üstündeyken şeffaf/beyaz metin,
   Hero'yu geçince opak/koyu metne döner. Hero'nun id'sini değiştirirsen bu

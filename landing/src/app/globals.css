@@ -218,6 +218,35 @@ a, button, [class*="transition"] {
   opacity: 1;
 }
 
+/* Nasil Calisir adimlarindaki ikon "canlanma" efekti: silik/gri + kucuk
+   baslar, gorunume girince renklenip normal boyutuna doner (bkz.
+   HowItWorks.tsx). Adim numarasi ayni anda gri -> marka rengine, basligin
+   altindaki ince cizgi (.step-line) soldan saga cizilerek acilir. */
+.step-icon {
+  filter: grayscale(1) opacity(0.45);
+  transform: scale(0.8) rotate(-8deg);
+  transition: filter 0.7s var(--ease-premium), transform 0.7s var(--ease-premium);
+}
+.reveal.is-visible .step-icon {
+  filter: grayscale(0) opacity(1);
+  transform: scale(1) rotate(0deg);
+}
+.step-number {
+  color: var(--gray-300);
+  transition: color 0.6s var(--ease-premium) 0.15s;
+}
+.reveal.is-visible .step-number {
+  color: var(--brand-500);
+}
+.step-line {
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.8s var(--ease-premium) 0.2s;
+}
+.reveal.is-visible .step-line {
+  transform: scaleX(1);
+}
+
 /* Header scroll'da hafif derinlik kazanır (bkz. src/components/Header.tsx). */
 .header-elevated {
   box-shadow: var(--shadow-sm);
@@ -234,7 +263,10 @@ a, button, [class*="transition"] {
   .crossfade-item,
   .img-reveal,
   .faq-collapse,
-  .faq-collapse-inner {
+  .faq-collapse-inner,
+  .step-icon,
+  .step-number,
+  .step-line {
     animation: none !important;
     transition: none !important;
     opacity: 1 !important;
