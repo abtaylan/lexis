@@ -1,20 +1,32 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 
 @import "tailwindcss";
 
 :root {
-  --brand-50: #f0f9ff;
-  --brand-100: #e0f2fe;
-  --brand-200: #bae6fd;
-  --brand-400: #38bdf8;
-  --brand-500: #0ea5e9;
-  --brand-600: #0284c7;
-  --brand-700: #0369a1;
+  /* "brand" ve "accent" artık markanın gerçek logo renklerine (lacivert +
+     mavi->mor gradyan şerit) işaret ediyor — 14 Eylül 2026 yeniden
+     tasarımında bilinçli olarak değiştirildi (önceki değerler jenerik
+     "AI landing page" mavi-mor paletiydi). Bu token'ları kullanan her yer
+     (buton, focus ring, seçim rengi, footer hover'ları, yasal sayfa
+     linkleri) otomatik olarak yeni paleti alır. */
+  --brand-50: #eef1ff;
+  --brand-100: #dee4ff;
+  --brand-200: #b9c4ff;
+  --brand-400: #6d8cff;
+  --brand-500: #4c6fff;
+  --brand-600: #3a56e0;
+  --brand-700: #2c42b0;
 
-  --accent-50: #eeedfe;
-  --accent-500: #6d63d6;
-  --accent-600: #534ab7;
-  --accent-700: #473fa0;
+  --accent-50: #f1eefe;
+  --accent-500: #8f7bff;
+  --accent-600: #7b5cfa;
+  --accent-700: #5e44c4;
+
+  /* Koyu bölümler (Hero, Cta) için markanın logo zeminiyle aynı lacivert —
+     gray-900'dan bilerek ayrı, metin rengiyle karışmasın. */
+  --navy-900: #0b1330;
+  --navy-800: #121b3d;
+  --navy-700: #1b2a5c;
 
   --gray-50: #f8fafc;
   --gray-100: #f1f5f9;
@@ -40,6 +52,7 @@
   --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
   --shadow: 0 4px 6px rgba(0,0,0,.05), 0 2px 4px rgba(0,0,0,.04);
   --shadow-lg: 0 20px 40px rgba(15,23,42,.10), 0 4px 12px rgba(15,23,42,.06);
+  --shadow-navy-glow: 0 30px 80px rgba(76,111,255,.25), 0 10px 30px rgba(0,0,0,.35);
 
   /* Sitedeki tüm hover/tap/reveal geçişlerinin ortak "premium" easing
      eğrisi — bkz. aşağıdaki [class*="transition"] kuralı ve .reveal. */
@@ -49,7 +62,7 @@
 * { box-sizing: border-box; }
 
 html {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   scroll-behavior: smooth;
@@ -59,6 +72,10 @@ body {
   background: var(--bg);
   color: var(--text);
   margin: 0;
+}
+
+.display {
+  font-family: 'Space Grotesk', 'Arial Black', sans-serif;
 }
 
 [dir="rtl"] .ltr-only { direction: ltr; }
@@ -78,11 +95,8 @@ body {
   color: var(--brand-700);
 }
 
-/* Sınıf adında "transition" geçen her eleman (Tailwind'in transition-colors/
-   transition-shadow/transition-all vb. utility'leri dahil) için tutarlı,
-   daha yumuşak/"premium" hissettiren bir easing eğrisi uygular. Tailwind'in
-   kendi timing-function'ının üzerine yazar (aynı özgüllük, kaynak sırası
-   kazanır) — elle her bileşende tekrar tanımlamaya gerek kalmaz. */
+/* Sınıf adında "transition" geçen her eleman için tutarlı, daha
+   yumuşak/"premium" hissettiren bir easing eğrisi uygular. */
 a, button, [class*="transition"] {
   transition-timing-function: var(--ease-premium);
 }
@@ -109,15 +123,72 @@ a, button, [class*="transition"] {
 .stagger > *:nth-child(6) { animation-delay: 400ms; }
 
 /* Scroll ile görünüme giren bölümler için ortak reveal geçişi
-   (bkz. src/components/Reveal.tsx). */
+   (bkz. src/components/Reveal.tsx). Varyantlar data-variant ile seçilir. */
 .reveal {
   opacity: 0;
   transform: translateY(18px);
-  transition: opacity 0.7s var(--ease-premium), transform 0.7s var(--ease-premium);
+  transition: opacity 0.7s var(--ease-premium), transform 0.7s var(--ease-premium), filter 0.7s var(--ease-premium);
 }
+.reveal[data-variant="left"] { transform: translateX(-28px); }
+.reveal[data-variant="right"] { transform: translateX(28px); }
+.reveal[data-variant="scale"] { transform: scale(0.94); }
+.reveal[data-variant="blur"] { transform: translateY(14px); filter: blur(6px); }
 .reveal.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
+  filter: blur(0);
+}
+
+/* Başlıklarda satır/kelime maskeli reveal — bkz. Hero.tsx */
+.mask-reveal {
+  overflow: hidden;
+  display: block;
+}
+.mask-reveal > span {
+  display: block;
+  transform: translateY(105%);
+  animation: maskUp 0.9s var(--ease-premium) forwards;
+}
+@keyframes maskUp {
+  to { transform: translateY(0); }
+}
+
+/* Hero/Cta'daki gradyan şerit motifinin (logo imzası) çok yavaş sürüklenmesi. */
+@keyframes ribbonDrift {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(-1.5%, 1.5%, 0) rotate(0.6deg); }
+}
+.ribbon-drift { animation: ribbonDrift 16s ease-in-out infinite; }
+
+/* Manyetik buton — konum JS ile (transform: translate(x,y)) set edilir,
+   burada sadece geri dönüş/hover geçişi tanımlanır. */
+.magnetic { transition: transform 0.35s var(--ease-premium); }
+
+/* Features hikayeleştirme bölümündeki sabitlenen (sticky) görsel panel. */
+.sticky-panel {
+  position: sticky;
+  top: 96px;
+}
+.crossfade-item {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(0.97);
+  transition: opacity 0.6s var(--ease-premium), transform 0.6s var(--ease-premium);
+}
+.crossfade-item.is-active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Showcase görselleri için geçişli (wipe) ortaya çıkış. */
+.img-reveal {
+  clip-path: inset(0 0 100% 0);
+  transition: clip-path 0.9s var(--ease-premium);
+}
+.img-reveal.is-visible,
+.reveal.is-visible .img-reveal {
+  clip-path: inset(0 0 0% 0);
 }
 
 /* Header scroll'da hafif derinlik kazanır (bkz. src/components/Header.tsx). */
@@ -129,11 +200,18 @@ a, button, [class*="transition"] {
   .reveal,
   .animate-fade-in,
   .animate-float,
-  .stagger > * {
+  .stagger > *,
+  .mask-reveal > span,
+  .ribbon-drift,
+  .magnetic,
+  .crossfade-item,
+  .img-reveal {
     animation: none !important;
     transition: none !important;
     opacity: 1 !important;
     transform: none !important;
+    filter: none !important;
+    clip-path: none !important;
   }
 }
 

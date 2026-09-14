@@ -41,7 +41,7 @@ export function Footer() {
           <div className="lg:col-span-2">
             <div className="flex items-center gap-2">
               <Image src="/logo-icon.png" alt="Lexis" width={28} height={28} className="rounded-lg" />
-              <span className="text-base font-bold text-gray-900">Lexis</span>
+              <span className="display text-base font-bold text-gray-900">Lexis</span>
             </div>
             <p className="mt-3 text-sm text-gray-500 max-w-xs leading-relaxed">{t('footerTagline')}</p>
 

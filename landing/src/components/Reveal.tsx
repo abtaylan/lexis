@@ -6,15 +6,17 @@ interface RevealProps {
   children: React.ReactNode;
   className?: string;
   delay?: number;
+  /** Giriş yönü/tarzı — bkz. globals.css .reveal[data-variant]. */
+  variant?: 'up' | 'left' | 'right' | 'scale' | 'blur';
 }
 
 /**
  * Görünüm alanına girdiğinde (IntersectionObserver ile) içeriği yumuşak bir
- * fade + translateY geçişiyle ortaya çıkarır. `prefers-reduced-motion`
- * tercihine uyar (hareketi tamamen kapatır, içerik anında görünür kalır).
+ * geçişle ortaya çıkarır. `prefers-reduced-motion` tercihine uyar (hareketi
+ * tamamen kapatır, içerik anında görünür kalır).
  * Bkz. src/app/globals.css → .reveal / .reveal.is-visible
  */
-export function Reveal({ children, className = '', delay = 0 }: RevealProps) {
+export function Reveal({ children, className = '', delay = 0, variant = 'up' }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
@@ -43,6 +45,7 @@ export function Reveal({ children, className = '', delay = 0 }: RevealProps) {
   return (
     <div
       ref={ref}
+      data-variant={variant}
       className={`reveal ${visible ? 'is-visible' : ''} ${className}`.trim()}
       style={{ transitionDelay: `${delay}ms` }}
     >

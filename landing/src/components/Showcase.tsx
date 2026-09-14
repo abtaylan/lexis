@@ -20,18 +20,18 @@ export function Showcase() {
   ];
 
   return (
-    <section className="bg-gray-50 border-y border-gray-100 py-20">
+    <section className="bg-gray-50 border-y border-gray-100 py-24 overflow-hidden">
       <div className="mx-auto max-w-6xl px-5">
         <Reveal className="max-w-2xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">{t('showcaseTitle')}</h2>
+          <h2 className="display text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">{t('showcaseTitle')}</h2>
           <p className="mt-3 text-lg text-gray-500">{t('showcaseSubtitle')}</p>
         </Reveal>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-3">
           {items.map((item, i) => (
-            <Reveal key={item.src} delay={i * 90}>
+            <Reveal key={item.src} delay={i * 110} variant={i === 0 ? 'left' : i === 2 ? 'right' : 'scale'}>
               <figure className="rounded-2xl border border-gray-100 bg-white p-2.5 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all">
-                <div className="overflow-hidden rounded-xl bg-gray-100">
+                <div className="img-reveal overflow-hidden rounded-xl bg-gray-100">
                   <Image
                     src={item.src}
                     alt={item.caption}

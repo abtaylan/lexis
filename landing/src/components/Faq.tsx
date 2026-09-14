@@ -22,7 +22,7 @@ export function Faq() {
     <section id="faq" className="bg-gray-50 border-y border-gray-100 py-20">
       <div className="mx-auto max-w-3xl px-5">
         <Reveal className="text-center">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900">{t('faqTitle')}</h2>
+          <h2 className="display text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">{t('faqTitle')}</h2>
           <p className="mt-3 text-lg text-gray-500">{t('faqSubtitle')}</p>
         </Reveal>
 
