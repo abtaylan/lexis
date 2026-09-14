@@ -96,6 +96,112 @@ class ExamQuestionGenerationError(Exception):
     HTTP 502 (upstream/model hatası) ya da 500'e (yapılandırma eksikliği için
     400/500) çevirir."""
 
+# ── V2 backlog #10 (14 Eylül 2026) — kullanıcı soru önerisi AI ön-kontrolü ──
+# generate_questions()'dan farkı: burada model soru ÜRETMİYOR, kullanıcının
+# ZATEN gönderdiği bir soruyu (question_text/options/correct_option/
+# explanation) inceleyip "doğru şık gerçekten doğru mu, soru anlamlı mı"
+# konusunda bir ön-görüş veriyor. Bu görüş ASLA otomatik onay/red tetiklemez
+# — sadece admin'in GET /admin/questions/pending kuyruğunda gördüğü bir
+# etiket+not (bkz. exams.py::suggest_question). Bu yüzden generate_questions'ın
+# aksine BU FONKSİYON HİÇBİR ZAMAN EXCEPTION FIRLATMAZ: kullanıcının soru
+# gönderme isteği, AI doğrulaması çöktü diye asla başarısız olmamalı — hata
+# durumunda sessizce verdict="uncertain" + açıklayıcı not döner, admin normal
+# şekilde manuel inceler.
+
+_VERIFY_TOOL = {
+    "name": "submit_verification",
+    "description": "Bir sınav sorusu önerisinin ön-değerlendirmesini gönderir.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "verdict": {
+                "type": "string",
+                "enum": ["likely_correct", "likely_incorrect", "uncertain"],
+                "description": (
+                    "likely_correct: işaretlenen şık gerçekten doğru ve soru "
+                    "anlamlı görünüyor. likely_incorrect: işaretlenen şık "
+                    "muhtemelen YANLIŞ ya da soru bozuk/anlamsız. uncertain: "
+                    "emin olunamıyor (belirsiz/tartışmalı)."
+                ),
+            },
+            "note": {
+                "type": "string",
+                "description": (
+                    "Admin'e yönelik, Türkçe, 1-2 cümlelik kısa gerekçe. "
+                    "likely_incorrect ise hangi şıkkın neden daha doğru "
+                    "olduğunu belirt."
+                ),
+            },
+        },
+        "required": ["verdict", "note"],
+    },
+}
+
+
+def verify_question(
+    exam_type: str,
+    question_text: str,
+    options: list[dict],
+    correct_option: str,
+    explanation: str | None,
+    topic_tag: str | None = None,
+) -> dict:
+    """Kullanıcının önerdiği bir soruyu AI ile ön-kontrol eder. Her zaman
+    {"verdict": ..., "note": ...} döner — asla exception fırlatmaz (bkz.
+    yukarıdaki modül notu)."""
+    if not settings.ANTHROPIC_API_KEY:
+        return {
+            "verdict": "uncertain",
+            "note": "AI doğrulama şu an kullanılamıyor (ANTHROPIC_API_KEY yapılandırılmamış).",
+        }
+
+    hint = EXAM_TOPIC_HINTS.get(exam_type, "")
+    options_text = "\n".join(f"{opt.get('id')}) {opt.get('text')}" for opt in options)
+    topic_line = f"Konu etiketi: {topic_tag}." if topic_tag else ""
+
+    prompt = (
+        f"Aşağıda bir kullanıcının {exam_type.upper()} sınav hazırlık alanına "
+        f"önerdiği çoktan seçmeli bir soru var. {hint} {topic_line}\n\n"
+        f"Soru: {question_text}\n\n"
+        f"Şıklar:\n{options_text}\n\n"
+        f"Kullanıcının işaretlediği doğru şık: {correct_option}\n"
+        f"Kullanıcının açıklaması: {explanation or '(açıklama girilmemiş)'}\n\n"
+        "Bu soruyu incele: işaretlenen şık gerçekten doğru mu, soru "
+        "anlamlı/kullanılabilir mi? Sadece submit_verification aracını "
+        "çağırarak cevap ver, ek metin yazma."
+    )
+
+    try:
+        client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        response = client.messages.create(
+            model=settings.ANTHROPIC_MODEL,
+            max_tokens=1024,
+            tools=[_VERIFY_TOOL],
+            tool_choice={"type": "tool", "name": "submit_verification"},
+            messages=[{"role": "user", "content": prompt}],
+        )
+        tool_use = next(
+            (block for block in response.content if getattr(block, "type", None) == "tool_use"),
+            None,
+        )
+        if tool_use is None:
+            return {"verdict": "uncertain", "note": "Model yapılandırılmış bir yanıt döndürmedi."}
+
+        verdict = tool_use.input.get("verdict")
+        if verdict not in ("likely_correct", "likely_incorrect", "uncertain"):
+            verdict = "uncertain"
+        note = (tool_use.input.get("note") or "").strip()[:500]
+        return {"verdict": verdict, "note": note or "(not verilmedi)"}
+    except Exception as exc:
+        # generate_questions'ın aksine burada kasıtlı olarak yutuluyor —
+        # bkz. modül notu: kullanıcının soru gönderme isteği bu yüzden asla
+        # başarısız olmamalı.
+        print(f"VERIFY_QUESTION warning: {type(exc).__name__}: {exc}")
+        return {
+            "verdict": "uncertain",
+            "note": f"AI doğrulama sırasında bir hata oluştu ({type(exc).__name__}), admin manuel incelemeli.",
+        }
+
 
 def generate_questions(
     exam_type: str, count: int, topic_tag: str | None = None

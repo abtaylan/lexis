@@ -65,6 +65,7 @@ from app.services.auth_users import list_all_auth_users
 from app.services.exam_question_generator import (
     ExamQuestionGenerationError,
     generate_questions,
+    verify_question,
 )
 from app.services.spaced_repetition import calculate_next_review
 from app.services.xp_service import award_xp
@@ -524,7 +525,47 @@ async def suggest_question(
         raise HTTPException(status_code=500, detail="Soru önerisi kaydedilemedi.")
 
     created = result.data[0]
-    return ExamQuestionSuggestionResponse(id=created["id"], status=created["status"])
+
+    # V2 backlog #10 (14 Eylül 2026): katkı XP'si — soru gönderilir
+    # gönderilmez küçük/anlık bir ödül (bkz. xp_service.py::XP_AMOUNTS
+    # yorumu). try/except: bir XP hatası kullanıcının soru gönderme
+    # isteğini ASLA başarısız kılmamalı — soru zaten kaydedildi.
+    xp_awarded = 0
+    try:
+        xp_result = await award_xp(
+            user_id=current_user.id,
+            source_type="exam_question_suggested",
+            source_id=created["id"],
+        )
+        xp_awarded = xp_result.amount_awarded
+    except Exception as exc:
+        print(f"SUGGEST_QUESTION award_xp warning: {type(exc).__name__}: {exc}")
+
+    # AI ön-kontrolü — ASLA otomatik onay/red tetiklemez, sadece admin
+    # kuyruğunda görünecek bir etiket+not ekler (verify_question hiçbir
+    # zaman exception fırlatmaz, bkz. o fonksiyonun docstring'i).
+    verification = verify_question(
+        exam_type=payload.exam_type.value,
+        question_text=payload.question_text,
+        options=[opt.model_dump() for opt in payload.options],
+        correct_option=payload.correct_option,
+        explanation=payload.explanation,
+        topic_tag=payload.topic_tag,
+    )
+    try:
+        supabase_admin.table("exam_questions").update(
+            {
+                "ai_verdict": verification["verdict"],
+                "ai_verdict_note": verification["note"],
+                "ai_verified_at": datetime.now(UTC).isoformat(),
+            }
+        ).eq("id", created["id"]).execute()
+    except Exception as exc:
+        print(f"SUGGEST_QUESTION ai_verdict update warning: {type(exc).__name__}: {exc}")
+
+    return ExamQuestionSuggestionResponse(
+        id=created["id"], status=created["status"], xp_awarded=xp_awarded
+    )
 
 
 # ── İstatistik & İçerik Motoru Faz 2: admin moderasyon kuyruğu ────────
@@ -567,6 +608,8 @@ async def list_pending_questions(admin=Depends(get_current_admin)):
             source_type=r["source_type"],
             submitted_by=r.get("submitted_by"),
             submitted_by_email=email_map.get(r.get("submitted_by")),
+            ai_verdict=r.get("ai_verdict"),
+            ai_verdict_note=r.get("ai_verdict_note"),
             created_at=r["created_at"],
         )
         for r in rows
@@ -585,7 +628,24 @@ async def approve_question(question_id: str, admin=Depends(get_current_admin_ful
     )
     if not result.data:
         raise HTTPException(status_code=404, detail="Soru bulunamadı.")
+
+    approved = result.data[0]
     log_admin_action(admin.id, admin.email, "exam_question.approve", "exam_question", question_id)
+
+    # V2 backlog #10: onay EK bonusu — sadece gerçek bir kullanıcı katkısıysa
+    # (source_type='user' + submitted_by dolu; AI sorularında ödüllenecek
+    # bir kullanıcı yok). try/except: bir XP hatası admin'in onay
+    # işlemini ASLA başarısız kılmamalı — status zaten güncellendi.
+    if approved.get("source_type") == "user" and approved.get("submitted_by"):
+        try:
+            await award_xp(
+                user_id=approved["submitted_by"],
+                source_type="exam_question_approved",
+                source_id=question_id,
+            )
+        except Exception as exc:
+            print(f"APPROVE_QUESTION award_xp warning: {type(exc).__name__}: {exc}")
+
     return ExamQuestionModerationResponse(id=question_id, status="approved")
 
 

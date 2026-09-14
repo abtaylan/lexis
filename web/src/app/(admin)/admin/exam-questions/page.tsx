@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { AxiosError } from 'axios';
-import { Sparkles, Loader2, Check, X, Clock, User, Bot, FileText } from 'lucide-react';
+import { Sparkles, Loader2, Check, X, Clock, User, Bot, FileText, ShieldCheck, ShieldAlert, ShieldQuestion } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import type { PendingExamQuestion, ExamType, AIQuestionGenerateResult } from '@/types';
 import { useAuth } from '@/store/auth';
@@ -31,6 +31,33 @@ const EXAM_TYPES: { value: ExamType; label: string }[] = [
   { value: 'ielts', label: 'IELTS' },
   { value: 'toefl', label: 'TOEFL' },
 ];
+
+// V2 backlog #10 (14 Eylül 2026) — kullanıcı önerisi gönderilirken çalışan AI
+// ön-kontrolünün sonucu. ASLA otomatik onay/red anlamına gelmez, sadece
+// admin'e bir ön-fikir verir — bkz. backend exam_question_generator.py
+// ::verify_question docstring'i.
+function VerdictBadge({ verdict, note }: { verdict?: string | null; note?: string | null }) {
+  if (!verdict) return null;
+  if (verdict === 'likely_correct') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" title={note ?? undefined}>
+        <ShieldCheck className="w-3 h-3" />AI: muhtemelen doğru
+      </span>
+    );
+  }
+  if (verdict === 'likely_incorrect') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-300" title={note ?? undefined}>
+        <ShieldAlert className="w-3 h-3" />AI: sorunlu olabilir
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400" title={note ?? undefined}>
+      <ShieldQuestion className="w-3 h-3" />AI: belirsiz
+    </span>
+  );
+}
 
 function SourceBadge({ source }: { source: string }) {
   if (source === 'ai') {
@@ -192,6 +219,7 @@ export default function ExamQuestionsAdminPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-slate-500">{q.exam_type}</span>
                   <SourceBadge source={q.source_type} />
+                  <VerdictBadge verdict={q.ai_verdict} note={q.ai_verdict_note} />
                   {q.submitted_by_email && <span className="text-xs text-gray-500 dark:text-slate-400">{q.submitted_by_email}</span>}
                   {q.topic_tag && <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-600 dark:text-slate-400">{q.topic_tag}</span>}
                 </div>
@@ -211,6 +239,11 @@ export default function ExamQuestionsAdminPage() {
                 </div>
 
                 {q.explanation && <p className="text-xs text-gray-500 dark:text-slate-400 italic">{q.explanation}</p>}
+                {q.ai_verdict_note && (
+                  <p className="text-xs text-gray-400 dark:text-slate-500">
+                    <span className="font-semibold">AI notu:</span> {q.ai_verdict_note}
+                  </p>
+                )}
 
                 {!isReadonly && (
                   <div className="flex gap-2 pt-1">

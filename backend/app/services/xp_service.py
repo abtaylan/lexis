@@ -58,6 +58,14 @@ XPSourceType = Literal[
     # FARKLI miktarlarda alır (amount her zaman açıkça geçilir, bkz. o
     # script), buradaki değer sadece "eksik amount" savunması.
     "referral_bonus",
+    # Kullanıcı Soru Önerisi (V2 backlog #10, 14 Eylül 2026) — exams.py
+    # suggest_question/approve_question'dan çağrılır. "_suggested": soru
+    # gönderilir gönderilmez (katılımı teşvik eden küçük anlık ödül).
+    # "_approved": admin soruyu onaylayınca EK olarak verilir (sadece
+    # source_type='user' + submitted_by dolu olan sorular için — AI
+    # sorularında ödül yok, katkıyı yapan kullanıcı yok).
+    "exam_question_suggested",
+    "exam_question_approved",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -109,6 +117,12 @@ XP_AMOUNTS: dict[str, int] = {
     # ile aynı, bir "hoş geldin" bonusu). process_referral_rewards.py bu iki
     # değeri `amount` parametresiyle açıkça geçer, burası sadece varsayılan.
     "referral_bonus": 30,
+    # Kullanıcı Soru Önerisi — gönderince küçük/anlık (flashcard_review (3)
+    # ile game_multiple_choice (3) bandında), onaylanınca ek/büyük
+    # (exam_mock_complete/duel_win/quest_complete (20) ile aynı büyüklükte —
+    # gerçekten havuza giren bir katkı, mock sınav tamamlamayla eşdeğer emek).
+    "exam_question_suggested": 3,
+    "exam_question_approved": 20,
 }
 
 LEVEL_BASE = 50

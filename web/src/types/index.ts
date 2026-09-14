@@ -423,6 +423,7 @@ export interface ExamQuestionSuggestionInput {
 export interface ExamQuestionSuggestionResult {
   id: string;
   status: string;
+  xp_awarded: number;
 }
 
 export interface PendingExamQuestion {
@@ -437,6 +438,8 @@ export interface PendingExamQuestion {
   source_type: string;
   submitted_by?: string;
   submitted_by_email?: string;
+  ai_verdict?: 'likely_correct' | 'likely_incorrect' | 'uncertain' | null;
+  ai_verdict_note?: string | null;
   created_at: string;
 }
 

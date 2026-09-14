@@ -38,6 +38,7 @@ type SuggestStrings = {
   genericError: string;
   successTitle: string;
   successBody: string;
+  xpAwardedTpl: string;
   anotherBtn: string;
 };
 
@@ -65,6 +66,7 @@ const SUGGEST_STRINGS: Partial<Record<Locale, SuggestStrings>> = {
     genericError: 'Bir şeyler ters gitti, tekrar dene.',
     successTitle: 'Teşekkürler!',
     successBody: 'Sorun onay kuyruğuna eklendi. Onaylandığında havuza eklenip diğer kullanıcılarla paylaşılacak.',
+    xpAwardedTpl: '+{xp} XP kazandın — onaylanınca ek XP de eklenecek.',
     anotherBtn: 'Başka Soru Öner',
   },
   en: {
@@ -90,6 +92,7 @@ const SUGGEST_STRINGS: Partial<Record<Locale, SuggestStrings>> = {
     genericError: 'Something went wrong, please try again.',
     successTitle: 'Thank you!',
     successBody: 'Your question was added to the review queue. Once approved, it will join the pool and be shared with other users.',
+    xpAwardedTpl: '+{xp} XP earned — you\'ll get bonus XP once it\'s approved.',
     anotherBtn: 'Suggest Another',
   },
 };
@@ -108,6 +111,7 @@ export default function ExamSuggestPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [xpAwarded, setXpAwarded] = useState(0);
 
   function resetForm() {
     setQuestionText('');
@@ -129,7 +133,7 @@ export default function ExamSuggestPage() {
     setError(null);
     setBusy(true);
     try {
-      await examsApi.suggestQuestion({
+      const res = await examsApi.suggestQuestion({
         exam_type: examType,
         question_text: questionText.trim(),
         options,
@@ -137,6 +141,7 @@ export default function ExamSuggestPage() {
         explanation: explanation.trim() || undefined,
         topic_tag: topicTag.trim() || undefined,
       });
+      setXpAwarded(res.xp_awarded);
       setDone(true);
     } catch {
       setError(st.genericError);
@@ -155,6 +160,11 @@ export default function ExamSuggestPage() {
           <CheckCircle2 className="w-10 h-10 text-emerald-500" />
           <h1 className="text-lg font-bold text-gray-900 dark:text-slate-100 mt-4">{st.successTitle}</h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-2 leading-relaxed">{st.successBody}</p>
+          {xpAwarded > 0 && (
+            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400 mt-2">
+              {st.xpAwardedTpl.replace('{xp}', String(xpAwarded))}
+            </p>
+          )}
           <div className="mt-6 w-full flex flex-col gap-3">
             <button
               onClick={resetForm}

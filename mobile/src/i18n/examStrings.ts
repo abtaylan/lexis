@@ -60,6 +60,7 @@ export type ExamStrings = {
   suggestValidationError: string;
   suggestSuccessTitle: string;
   suggestSuccessBody: string;
+  suggestXpAwardedTpl: string;
   suggestAnotherBtn: string;
   grammarEntryLabel: string;
   grammarListTitle: string;
@@ -138,6 +139,7 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     suggestValidationError: 'Lütfen soruyu, dört şıkkı da ve doğru şıkkı doldur.',
     suggestSuccessTitle: 'Teşekkürler!',
     suggestSuccessBody: 'Sorun onay kuyruğuna eklendi. Onaylandığında havuza eklenip diğer kullanıcılarla paylaşılacak.',
+    suggestXpAwardedTpl: '+{xp} XP kazandın — onaylanınca ek XP de eklenecek.',
     suggestAnotherBtn: 'Başka Soru Öner',
     grammarEntryLabel: 'Gramer Rehberi',
     grammarListTitle: 'Gramer Rehberi',
@@ -214,6 +216,7 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     suggestValidationError: 'Please fill in the question, all four options, and the correct option.',
     suggestSuccessTitle: 'Thank you!',
     suggestSuccessBody: 'Your question was added to the review queue. Once approved, it will join the pool and be shared with other users.',
+    suggestXpAwardedTpl: '+{xp} XP earned — you will get bonus XP once it is approved.',
     suggestAnotherBtn: 'Suggest Another',
     grammarEntryLabel: 'Grammar Guide',
     grammarListTitle: 'Grammar Guide',

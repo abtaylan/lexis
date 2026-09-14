@@ -742,6 +742,7 @@ export interface ExamQuestionSuggestionInput {
 export interface ExamQuestionSuggestionResult {
   id: string;
   status: string;
+  xp_awarded: number;
 }
 
 export interface GrammarExampleSentence {

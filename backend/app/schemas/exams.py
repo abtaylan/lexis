@@ -137,6 +137,7 @@ class ExamQuestionSuggestionCreate(BaseModel):
 class ExamQuestionSuggestionResponse(BaseModel):
     id: str
     status: str
+    xp_awarded: int = 0
 
 
 class PendingExamQuestion(BaseModel):
@@ -154,6 +155,8 @@ class PendingExamQuestion(BaseModel):
     source_type: str
     submitted_by: str | None = None
     submitted_by_email: str | None = None
+    ai_verdict: str | None = None
+    ai_verdict_note: str | None = None
     created_at: datetime
 
 

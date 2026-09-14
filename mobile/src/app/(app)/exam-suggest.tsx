@@ -35,6 +35,7 @@ export default function ExamSuggestScreen() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  const [xpAwarded, setXpAwarded] = useState(0);
 
   function resetForm() {
     setQuestionText('');
@@ -56,7 +57,7 @@ export default function ExamSuggestScreen() {
     setError(null);
     setBusy(true);
     try {
-      await examsApi.suggestQuestion({
+      const res = await examsApi.suggestQuestion({
         exam_type: examType,
         question_text: questionText.trim(),
         options,
@@ -64,6 +65,7 @@ export default function ExamSuggestScreen() {
         explanation: explanation.trim() || undefined,
         topic_tag: topicTag.trim() || undefined,
       });
+      setXpAwarded(res.xp_awarded);
       setDone(true);
     } catch {
       setError(et.genericError);
@@ -83,6 +85,11 @@ export default function ExamSuggestScreen() {
           <Text style={{ color: c.textSecondary, marginTop: spacing.sm, textAlign: 'center', lineHeight: 20 }}>
             {et.suggestSuccessBody}
           </Text>
+          {xpAwarded > 0 && (
+            <Text style={{ color: c.amber, fontWeight: '700', marginTop: spacing.sm, textAlign: 'center' }}>
+              {et.suggestXpAwardedTpl.replace('{xp}', String(xpAwarded))}
+            </Text>
+          )}
           <View style={{ marginTop: spacing.xl, width: '100%', gap: spacing.sm }}>
             <Button title={et.suggestAnotherBtn} onPress={resetForm} />
             <Button title={et.backBtn} variant="secondary" onPress={() => router.back()} />
