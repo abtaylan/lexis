@@ -235,6 +235,7 @@ export default function ForgotPasswordPage() {
           label={t.emailLabel}
           type="email"
           placeholder={t.emailPlaceholder}
+          autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           leftIcon={<Mail size={16} />}

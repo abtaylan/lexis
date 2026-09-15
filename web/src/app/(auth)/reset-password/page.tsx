@@ -333,6 +333,7 @@ function ResetPasswordContent() {
           label={t.newPasswordLabel}
           type={showPw ? 'text' : 'password'}
           placeholder={t.newPasswordPlaceholder}
+          autoComplete="new-password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           leftIcon={<Lock size={16} />}
@@ -348,6 +349,7 @@ function ResetPasswordContent() {
           label={t.confirmLabel}
           type={showPw ? 'text' : 'password'}
           placeholder={t.confirmPlaceholder}
+          autoComplete="new-password"
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           leftIcon={<Lock size={16} />}

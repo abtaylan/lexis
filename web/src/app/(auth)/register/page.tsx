@@ -171,6 +171,7 @@ function RegisterContent() {
         <Input
           label={t('fullNameLabel')}
           placeholder="Ahmet Yılmaz"
+          autoComplete="name"
           value={form.display_name}
           onChange={set('display_name')}
           leftIcon={<User size={16} />}
@@ -180,6 +181,7 @@ function RegisterContent() {
           label={t('emailLabel')}
           type="email"
           placeholder="ornek@email.com"
+          autoComplete="email"
           value={form.email}
           onChange={set('email')}
           leftIcon={<Mail size={16} />}
@@ -189,6 +191,7 @@ function RegisterContent() {
         <Input
           label={t('usernameLabel')}
           placeholder="kullaniciadi"
+          autoComplete="username"
           value={form.username}
           onChange={set('username')}
           leftIcon={<User size={16} />}
@@ -199,6 +202,7 @@ function RegisterContent() {
           label={t('passwordLabel')}
           type={showPw ? 'text' : 'password'}
           placeholder={t('passwordHintText')}
+          autoComplete="new-password"
           value={form.password}
           onChange={set('password')}
           leftIcon={<Lock size={16} />}

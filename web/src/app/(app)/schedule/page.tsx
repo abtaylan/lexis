@@ -4,11 +4,13 @@ import { useEffect, useState } from 'react';
 import {
   Plus, Trash2, X, Clock, CalendarDays, ExternalLink, Loader2,
   Sparkles, Flame, Zap, Coffee, Check, Headphones, BookOpen,
-  GraduationCap, Save, Star, User as UserIcon, Bell, CalendarClock,
+  GraduationCap, Save, Star, User as UserIcon, Bell, CalendarClock, FileText,
 } from 'lucide-react';
 import { scheduleApi, examReminderApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
+import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/lib/errors';
+import { ScheduleExportModal } from '@/components/schedule/ScheduleExportModal';
 import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem, ExamReminder } from '@/types';
 
 // Haftanın günlerini index'lemek için (0=Pazar…6=Cumartesi) — weekdays[i]
@@ -595,12 +597,14 @@ function ExamRemindersCard() {
 
 export default function SchedulePage() {
   const { t } = useLocale();
+  const { user } = useAuth();
   const weekdays = t('weekdayLabels').split(',');
   const [items, setItems] = useState<ScheduleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [showExport, setShowExport] = useState(false);
 
   // NOT: lib/scheduleTemplates.ts, öğrenme diline göre çok dilli şablon
   // çözümü için bilinçli olarak "hazır ama bağlanmamış" tutuluyor (bkz. o
@@ -672,6 +676,11 @@ export default function SchedulePage() {
           <button onClick={() => setShowTemplates(true)} className="flex items-center gap-2 bg-[#EEEDFE] hover:bg-[#e0ddfc] text-[#534AB7] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
             <Sparkles className="w-4 h-4" />{t('templatesBtn')}
           </button>
+          {items.length > 0 && (
+            <button onClick={() => setShowExport(true)} className="flex items-center gap-2 bg-[#FDEEEA] hover:bg-[#fbe0d6] text-[#9A3412] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+              <FileText className="w-4 h-4" />{t('exportPdfBtn')}
+            </button>
+          )}
           <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition-colors">
             <Plus className="w-4 h-4" />{t('addActivityBtn')}
           </button>
@@ -752,6 +761,14 @@ export default function SchedulePage() {
       {showModal && <ScheduleModal onSave={handleCreate} onClose={() => setShowModal(false)} />}
       {showTemplates && <TemplateModal templates={templates} hasExisting={items.length > 0} onApply={applyTemplate} onClose={() => setShowTemplates(false)} />}
       {showSaveTemplate && <SaveTemplateModal items={items} onSaved={() => {}} onClose={() => setShowSaveTemplate(false)} />}
+      {showExport && (
+        <ScheduleExportModal
+          items={items}
+          weekdays={weekdays}
+          ownerName={user?.display_name || user?.username || 'Lexis'}
+          onClose={() => setShowExport(false)}
+        />
+      )}
     </div>
   );
 }

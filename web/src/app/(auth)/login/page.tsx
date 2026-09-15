@@ -93,6 +93,7 @@ export default function LoginPage() {
           label={t('emailLabel')}
           type="email"
           name="email"
+          autoComplete="username"
           value={form.email}
           onChange={handleChange}
           leftIcon={<Mail size={16} />}
@@ -105,6 +106,7 @@ export default function LoginPage() {
             label={t('passwordLabel')}
             type={showPw ? 'text' : 'password'}
             name="password"
+            autoComplete="current-password"
             value={form.password}
             onChange={handleChange}
             leftIcon={<Lock size={16} />}

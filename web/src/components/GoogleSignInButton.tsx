@@ -90,7 +90,7 @@ export function GoogleSignInButton({ locale, onError }: GoogleSignInButtonProps)
         onLoad={() => setReady(true)}
         onError={() => setUnavailable(true)}
       />
-      <div ref={containerRef} className="w-full flex justify-center [&>div]:w-full [&_iframe]:!w-full" />
+      <div ref={containerRef} className="w-full h-11 flex items-center justify-center [&>div]:w-full [&_iframe]:!w-full" />
       {unavailable && !ready && (
         <p className="text-[11px] text-slate-400 text-center -mt-1">
           Google ile giriş yüklenemedi — tarayıcı eklentisi (reklam/izleyici engelleyici) engelliyor olabilir.
