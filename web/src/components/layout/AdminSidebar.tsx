@@ -87,8 +87,15 @@ export function AdminSidebar() {
         />
       )}
 
+      {/*
+        Sidebar.tsx'teki "sol bar sabit kalıyor" düzeltmesiyle aynı kök sebep
+        — `overflow-y-auto` buradaydı ama `min-h-screen` (sadece alt sınır)
+        yüzünden hiç devreye girmiyordu, kutu içeriğe göre viewport'un
+        ötesine büyüyordu. `h-screen` ile yükseklik viewport'a sabitlendi,
+        artık taşan nav öğeleri gerçekten kaydırılabiliyor.
+      */}
       <aside
-        className={`flex flex-col w-60 min-h-screen bg-[#1e1b2e] text-gray-300 dark:text-slate-600 px-4 py-6 fixed left-0 top-0 z-50 overflow-y-auto transition-transform duration-200 ease-in-out ${
+        className={`flex flex-col w-60 h-screen bg-[#1e1b2e] text-gray-300 dark:text-slate-600 px-4 py-6 fixed left-0 top-0 z-50 overflow-y-auto transition-transform duration-200 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0`}
       >

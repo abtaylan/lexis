@@ -195,8 +195,21 @@ export function Sidebar() {
         />
       )}
 
+      {/*
+        KULLANICI RAPORU (15 Eylül 2026, mobil ekran videosu): "sol bar
+        kısmı sabit kalıyor hareket etmiyor" — kök neden: bu aside `fixed`
+        konumlu ama yüksekliği `min-h-screen` (yalnızca ALT sınır) idi ve
+        `overflow-y-auto` YOKTU. Nav listesi (Dashboard…Çıkış Yap, ~20 madde)
+        ekran yüksekliğini aştığında kutu içeriğe göre otomatik büyüyor,
+        `fixed` olduğu için de taşan kısım viewport'un dışında kalıp hiçbir
+        şekilde kaydırılamıyordu (sabit kalıyor, hareket etmiyor). Çözüm:
+        `min-h-screen` → `h-screen` (yüksekliği viewport'a SABİTLE) +
+        `overflow-y-auto` (taşan kısmı bar'ın kendi içinde kaydırılabilir
+        yap). Menü artık kendi içinde parmakla/scroll ile kaydırılabiliyor,
+        dışarıdaki sayfa scroll'undan etkilenmiyor.
+      */}
       <aside
-        className={`flex flex-col w-60 min-h-screen bg-white dark:bg-slate-900 border-r border-gray-100 dark:border-slate-800 px-4 py-6 fixed left-0 top-0 z-50 transition-transform duration-200 ease-in-out ${
+        className={`flex flex-col w-60 h-screen overflow-y-auto bg-white dark:bg-slate-900 border-r border-gray-100 dark:border-slate-800 px-4 py-6 fixed left-0 top-0 z-50 transition-transform duration-200 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full'
         } md:translate-x-0`}
       >
