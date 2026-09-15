@@ -6,10 +6,10 @@ expire_premium.py / send_schedule_reminders.py ile aynı desen: VPS'te gerçek
 bir sistem cron'u ile günde bir kez çalıştırılmak üzere tasarlanmış, bağımsız
 bir script.
 
-ÖNEMLİ: Bu, hatırlatma DEĞİL — sadece "günün kelimesi" / "quiz sorusu"
-içeriğini Telegram kanalına ve Slack'e paylaşır. Diğer platformlar (X,
-Instagram, WhatsApp) için paylaşım kullanıcı tarafından elle yapılıyor,
-bu script onları kapsamıyor.
+ÖNEMLİ: Bu, hatırlatma DEĞİL — sadece "günün kelimesi" / "quiz sorusu" /
+"YDS-YÖKDİL sınav sorusu" içeriğini Telegram kanalına ve Slack'e paylaşır.
+Diğer platformlar (X, Instagram, WhatsApp) için paylaşım kullanıcı tarafından
+elle yapılıyor, bu script onları kapsamıyor.
 
 Kullanim:
   cd backend
@@ -23,11 +23,13 @@ Nasil calisir:
   1. Bugun icin zaten bir kayit var mi kontrol edilir (social_posts.post_date
      UNIQUE) — varsa cikilir (ayni gun icinde birden fazla cron tetiklenmesine
      karsi dedup).
-  2. Icerik turu, bir onceki paylasimin turune gore donusumlu belirlenir
-     (onceki 'word' ise bugun 'quiz', onceki 'quiz' ise bugun 'word'; hic
-     paylasim yoksa 'word' ile baslanir).
-  3. general_word_pool'dan (en->tr, tek dolu havuz) uygun icerik secilir,
-     Telegram + Slack'e gonderilir, sonuc social_posts'a kaydedilir.
+  2. Icerik turu, CONTENT_CYCLE listesindeki 3'lu donusume gore belirlenir:
+     word -> quiz -> exam_question -> word -> ... (hic paylasim yoksa
+     "word" ile baslanir; taninmayan/eski bir content_type gorulurse de
+     donguye "word"ten yeniden baslanir).
+  3. Ilgili kaynaktan icerik secilir (word: daily_word_content, quiz:
+     general_word_pool, exam_question: exam_questions), Telegram + Slack'e
+     gonderilir, sonuc social_posts'a kaydedilir.
 
 SOCIAL_POST_MODE=fixed (varsayilan) iken gercek paylasim yapilmaz, sadece
 log'a yazilir — gercek Telegram/Slack kimlik bilgileri olmadan da guvenle
@@ -39,13 +41,22 @@ from datetime import datetime
 
 from app.core.database import supabase_admin
 from app.services.job_log import job_run
-from app.services.social_content import generate_word_card, pick_quiz, pick_word
+from app.services.social_content import (
+    generate_word_card,
+    pick_daily_word,
+    pick_exam_question,
+    pick_quiz,
+)
 from app.services.social_publisher import (
+    post_exam_question_to_slack,
+    post_exam_question_to_telegram,
     post_quiz_to_slack,
     post_quiz_to_telegram,
     post_word_to_slack,
     post_word_to_telegram,
 )
+
+CONTENT_CYCLE = ["word", "quiz", "exam_question"]
 
 
 def _already_posted_today() -> bool:
@@ -69,8 +80,12 @@ def _next_content_type() -> str:
         .data
     )
     if not last:
-        return "word"
-    return "quiz" if last[0]["content_type"] == "word" else "word"
+        return CONTENT_CYCLE[0]
+    try:
+        idx = CONTENT_CYCLE.index(last[0]["content_type"])
+    except ValueError:
+        return CONTENT_CYCLE[0]
+    return CONTENT_CYCLE[(idx + 1) % len(CONTENT_CYCLE)]
 
 
 def main() -> dict:
@@ -82,23 +97,40 @@ def main() -> dict:
     row = {"post_date": date.today().isoformat(), "content_type": content_type}
 
     if content_type == "word":
-        chosen = pick_word()
+        chosen = pick_daily_word()
         if not chosen:
-            print("Genel havuzda kelime bulunamadı, çıkılıyor.")
+            print("daily_word_content içinde kelime bulunamadı, çıkılıyor.")
             return {"posted": False, "reason": "no_word_available", "content_type": content_type}
 
-        image_bytes = generate_word_card(chosen["word"], chosen["meaning"], chosen.get("example"))
-        telegram_ok = post_word_to_telegram(chosen["word"], chosen["meaning"], chosen.get("example"), image_bytes)
-        slack_ok = post_word_to_slack(chosen["word"], chosen["meaning"], chosen.get("example"))
+        image_bytes = generate_word_card(
+            chosen["word"], chosen["meaning_native"], chosen.get("example_1_target"), chosen.get("level")
+        )
+        telegram_ok = post_word_to_telegram(
+            chosen["word"],
+            chosen["meaning_native"],
+            chosen.get("example_1_target"),
+            image_bytes,
+            example_2=chosen.get("example_2_target"),
+            grammar_note=chosen.get("grammar_note_native"),
+            level=chosen.get("level"),
+        )
+        slack_ok = post_word_to_slack(
+            chosen["word"],
+            chosen["meaning_native"],
+            chosen.get("example_1_target"),
+            example_2=chosen.get("example_2_target"),
+            grammar_note=chosen.get("grammar_note_native"),
+            level=chosen.get("level"),
+        )
 
         row.update(
             {
-                "general_word_id": chosen["id"],
+                "content_ref_id": chosen["id"],
                 "telegram_sent": telegram_ok,
                 "slack_sent": slack_ok,
             }
         )
-    else:
+    elif content_type == "quiz":
         quiz = pick_quiz()
         if not quiz:
             print("Genel havuzda quiz için yeterli kelime bulunamadı, çıkılıyor.")
@@ -113,6 +145,38 @@ def main() -> dict:
                 "question_text": quiz["question_text"],
                 "options": quiz["options"],
                 "correct_answer": quiz["correct_answer"],
+                "telegram_sent": telegram_ok,
+                "slack_sent": slack_ok,
+            }
+        )
+    else:  # "exam_question"
+        exam_q = pick_exam_question()
+        if not exam_q:
+            print("exam_questions içinde uygun YDS/YÖKDİL sorusu bulunamadı, çıkılıyor.")
+            return {"posted": False, "reason": "no_exam_question_available", "content_type": content_type}
+
+        telegram_ok = post_exam_question_to_telegram(
+            exam_q["exam_type"],
+            exam_q["question_text"],
+            exam_q["options"],
+            exam_q["correct_answer"],
+            exam_q.get("explanation"),
+        )
+        slack_ok = post_exam_question_to_slack(
+            exam_q["exam_type"],
+            exam_q["question_text"],
+            exam_q["options"],
+            exam_q["correct_answer"],
+            exam_q.get("explanation"),
+        )
+
+        row.update(
+            {
+                "content_ref_id": exam_q["id"],
+                "exam_type": exam_q["exam_type"],
+                "question_text": exam_q["question_text"],
+                "options": exam_q["options"],
+                "correct_answer": exam_q["correct_answer"],
                 "telegram_sent": telegram_ok,
                 "slack_sent": slack_ok,
             }
