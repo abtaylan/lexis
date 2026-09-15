@@ -1,11 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Users, BarChart3, ArrowLeft, LogOut, ShieldCheck, Activity, CreditCard,
   BookOpen, Share2, Bell, Gamepad2, History, Smartphone, Eye, LayoutDashboard,
-  GraduationCap, FileBarChart, Building2,
+  GraduationCap, FileBarChart, Building2, Menu, X,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 
@@ -37,6 +38,15 @@ export function AdminSidebar() {
   const pathname = usePathname();
   const router   = useRouter();
   const { user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Sayfa değiştiğinde mobil menüyü otomatik kapat — Sidebar.tsx'teki (ana
+  // uygulama kenar çubuğu) ile birebir aynı desen (bkz. o dosyadaki not).
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
+    setMobileOpen(false);
+  }
 
   const handleLogout = () => { logout(); router.push('/login'); };
 
@@ -44,16 +54,63 @@ export function AdminSidebar() {
   const isReadonly = user?.role === 'admin_readonly';
 
   return (
-    <aside className="flex flex-col w-60 min-h-screen bg-[#1e1b2e] text-gray-300 dark:text-slate-600 px-4 py-6 fixed left-0 top-0 overflow-y-auto">
+    <>
+      {/*
+        KULLANICI İSTEĞİ (15 Eylül 2026, "her şeyi düzelt") — bu dosyada hiç
+        mobil/hamburger desteği yoktu (aside sabit `w-60 fixed`, her genişlikte
+        kalıcı görünür), ana uygulama kenar çubuğundaki (Sidebar.tsx) mobil
+        kayma hatasıyla aynı köke sahipti ama daha da eksikti: sidebar kendisi
+        de daraltılmıyordu. Aşağıdaki mobil üst çubuk + off-canvas davranışı
+        Sidebar.tsx ile birebir aynı desen.
+      */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-14 bg-[#1e1b2e] border-b border-white/10 flex items-center px-4 z-40">
+        <button
+          type="button"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Menüyü aç"
+          className="p-2 -ml-2 text-gray-300 hover:bg-white/10 rounded-lg transition-colors"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="w-6 h-6 rounded-lg bg-[#534AB7] flex items-center justify-center shrink-0 ml-2">
+          <ShieldCheck className="w-3.5 h-3.5 text-white" />
+        </div>
+        <span className="ml-1.5 text-base font-bold text-white tracking-tight">Lexis</span>
+        <span className="ml-1.5 text-[10px] text-gray-400 uppercase tracking-wider">Yönetim</span>
+      </div>
+
+      {mobileOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/30 z-40"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`flex flex-col w-60 min-h-screen bg-[#1e1b2e] text-gray-300 dark:text-slate-600 px-4 py-6 fixed left-0 top-0 z-50 overflow-y-auto transition-transform duration-200 ease-in-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0`}
+      >
       {/* Logo */}
-      <div className="mb-6 px-2 flex items-center gap-2">
-        <div className="w-8 h-8 rounded-xl bg-[#534AB7] flex items-center justify-center shrink-0">
-          <ShieldCheck className="w-4 h-4 text-white" />
+      <div className="mb-6 px-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-[#534AB7] flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4 text-white" />
+          </div>
+          <div className="min-w-0">
+            <span className="text-base font-bold text-white tracking-tight">Lexis</span>
+            <span className="block text-[10px] text-gray-400 dark:text-slate-500 -mt-0.5 uppercase tracking-wider">Yönetim Paneli</span>
+          </div>
         </div>
-        <div className="min-w-0">
-          <span className="text-base font-bold text-white tracking-tight">Lexis</span>
-          <span className="block text-[10px] text-gray-400 dark:text-slate-500 -mt-0.5 uppercase tracking-wider">Yönetim Paneli</span>
-        </div>
+        <button
+          type="button"
+          onClick={() => setMobileOpen(false)}
+          aria-label="Menüyü kapat"
+          className="md:hidden p-1.5 text-gray-400 hover:bg-white/10 rounded-lg transition-colors shrink-0"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       {isReadonly && (
@@ -100,6 +157,7 @@ export function AdminSidebar() {
           <LogOut className="w-4 h-4 shrink-0" />Çıkış Yap
         </button>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

@@ -37,7 +37,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-800">
       <AdminSidebar />
-      <main className="flex-1 ml-60 min-h-screen overflow-y-auto">
+      {/*
+        KULLANICI İSTEĞİ (15 Eylül 2026, "her şeyi düzelt") — (app)/layout.tsx'te
+        bulunan mobil kayma hatasıyla aynı kök neden: `ml-60` md: öneki
+        olmadan uygulanıyordu. AdminSidebar artık mobilde off-canvas (bkz.
+        AdminSidebar.tsx), bu yüzden aynı düzeltme burada da gerekli.
+      */}
+      <main className="flex-1 md:ml-60 min-h-screen overflow-y-auto pt-14 md:pt-0">
         {children}
       </main>
     </div>

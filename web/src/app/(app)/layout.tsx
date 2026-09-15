@@ -35,7 +35,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      <main className="flex-1 ml-60 min-h-screen overflow-y-auto">
+      {/*
+        KULLANICI RAPORU (15 Eylül 2026, mobil ekran videosu): "mobil cihazda,
+        web olarak giriş yapınca, sitede kayma oluyor" — kök neden burada
+        bulundu. `ml-60` md: öneki OLMADAN uygulanıyordu; Sidebar mobilde
+        (md altında) fixed + off-canvas (bkz. Sidebar.tsx: `-translate-x-full`,
+        sadece `md:translate-x-0`'da kalıcı görünür) ve layout akışında YER
+        KAPLAMIYOR, ama <main> her genişlikte 240px'lik sol boşluğu ayırmaya
+        devam ediyordu — dar bir mobil ekranda içeriğin büyük kısmı sağa itilip
+        ekran dışına taşıyordu (video tam olarak bunu gösteriyor). Aynı şekilde
+        Sidebar.tsx'teki mobil üst çubuk `md:hidden fixed top-0 h-14` — sabit
+        konumlu olduğu için altındaki içerik `pt-14` ile aşağı itilmezse ilk
+        56px'lik kısım çubuğun arkasında kalır. İkisi de sadece md altında
+        (mobilde) devreye giriyor; md ve üstünde (masaüstü) davranış aynı kaldı.
+      */}
+      <main className="flex-1 md:ml-60 min-h-screen overflow-y-auto pt-14 md:pt-0">
         {children}
         {/*
           Tüm (app) sayfalarının altında tek noktadan reklam gösterimi.
