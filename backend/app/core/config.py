@@ -110,6 +110,10 @@ class Settings(BaseSettings):
     TELEGRAM_CHANNEL_ID: str = ""  # örn. "@lexis_kelime" ya da "-1001234567890"
     SLACK_WEBHOOK_URL: str = ""
 
+    # Kullanıcı isteği (16 Eylül 2026): yeni üye / hesap silme günlük
+    # bildirim e-postası kime gitsin (bkz. notify_membership_changes.py).
+    ADMIN_NOTIFICATION_EMAIL: str = "ahmetbehcettaylan@gmail.com"
+
     # ── Dış tetikleyicili cron endpoint'leri (app/api/routes/cron.py) ──
     # Bu sandbox'ın (ve Claude scheduled task'larının) Supabase dışında
     # gerçek internet erişimi yok — SMTP (send_schedule_reminders.py) ve

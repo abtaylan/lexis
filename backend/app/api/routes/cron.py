@@ -189,3 +189,29 @@ async def run_send_exam_reminders(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# Kullanıcı isteği (16 Eylül 2026) — günlük üyelik bildirimi ("yeni üye olan
+# veya üyelikten çıkanları her gün bana bildiren bir sistem"). Yukarıdaki
+# job'larla aynı sebep/desen: Resend (e-posta) gerçek dış ağ erişimi
+# gerektiriyor, bu yüzden burada, dışarıdan (GitHub Actions) tetikleniyor.
+# Script: backend/notify_membership_changes.py.
+@router.post("/notify-membership-changes")
+async def run_notify_membership_changes(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    if already_ran_today("notify_membership_changes"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
+    def _run() -> dict:
+        import notify_membership_changes
+
+        with job_run("notify_membership_changes") as run:
+            result = notify_membership_changes.main()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}

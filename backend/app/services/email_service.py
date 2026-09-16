@@ -535,3 +535,91 @@ def send_report_export_email(
         print(f"REPORT EXPORT EMAIL SEND ERROR via SMTP ({to_email}): {e}")
         log_notification("email", "report_export", to_email, "failed", {"filename": attachment_filename, "error": str(e), "via": "smtp"})
         return False
+
+
+def send_membership_digest_email(
+    to_email: str,
+    report_date: str,
+    new_users: list[dict],
+    deleted_users: list[dict],
+) -> bool:
+    """
+    Gunluk uyelik bildirimi (kullanici istegi, 16 Eylul 2026) -- "yeni uye
+    olan veya uyelikten cikanlari her gun bana bildiren bir sistem". Diger
+    admin bildirimleriyle ayni OTP_MODE/RESEND altyapisini kullanir (bkz.
+    send_schedule_reminder_email). Cagiran taraf: notify_membership_changes.py.
+
+    new_users / deleted_users: her biri {"email": str, "display_name": str|None}
+    iceren, zaten siralanmis bir liste -- bos liste "0 kisi" olarak gosterilir.
+    """
+    subject = f"Lexis Gunluk Uyelik Raporu - {report_date} ({len(new_users)} yeni, {len(deleted_users)} ayrilan)"
+
+    def _list_html(users: list[dict], empty_text: str) -> str:
+        if not users:
+            return f'<p style="color:#94a3b8; font-size:13px; margin:4px 0 0;">{empty_text}</p>'
+        rows = "".join(
+            f'<li style="margin-bottom:4px;">{(u.get("display_name") or "(isim yok)")} '
+            f'&mdash; <span style="color:#64748b;">{u.get("email") or "(e-posta yok)"}</span></li>'
+            for u in users
+        )
+        return f'<ul style="margin:8px 0 0; padding-left:20px; font-size:14px; color:#0f172a;">{rows}</ul>'
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px;">
+      <h2 style="color:#0284c7; margin-bottom: 4px;">Lexis -- Gunluk Uyelik Raporu</h2>
+      <p style="color:#64748b; font-size: 13px; margin-top:0;">{report_date} (son 24 saat, bot hesaplari haric)</p>
+
+      <p style="color:#16a34a; font-weight:bold; font-size:15px; margin-bottom:0;">
+        Yeni uye olanlar ({len(new_users)})
+      </p>
+      {_list_html(new_users, "Bugun yeni uye olan yok.")}
+
+      <p style="color:#dc2626; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
+        Hesabini silenler ({len(deleted_users)})
+      </p>
+      {_list_html(deleted_users, "Bugun hesabini silen olmadi.")}
+
+      <p style="color:#94a3b8; font-size: 11px; margin-top: 24px;">
+        Bu otomatik bir rapordur -- kapsami: yeni kayit (profiles) ve tam hesap silme
+        (account_deletions). Premium abonelik iptalleri bu rapora dahil degildir.
+      </p>
+    </div>
+    """
+
+    if settings.OTP_MODE != "real":
+        print(f"[MEMBERSHIP-DIGEST-DEV] {to_email} -> {report_date}: +{len(new_users)} yeni, -{len(deleted_users)} silinen")
+        log_notification("email", "membership_digest", to_email, "skipped", {"reason": "OTP_MODE=fixed"})
+        return True
+
+    if not settings.RESEND_API_KEY and (not settings.SMTP_USER or not settings.SMTP_PASSWORD):
+        print(f"[MEMBERSHIP-DIGEST] Mail saglayicisi ayarlanmamis, rapor gonderilemedi: {to_email}")
+        log_notification("email", "membership_digest", to_email, "failed", {"reason": "no email provider configured"})
+        return False
+
+    if settings.RESEND_API_KEY:
+        try:
+            _send_via_resend(to_email, subject, html_body)
+            log_notification("email", "membership_digest", to_email, "sent", {"new": len(new_users), "deleted": len(deleted_users), "via": "resend"})
+            return True
+        except Exception as e:
+            print(f"MEMBERSHIP DIGEST EMAIL SEND ERROR via Resend ({to_email}): {e}")
+            log_notification("email", "membership_digest", to_email, "failed", {"error": str(e), "via": "resend"})
+            return False
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        with _IPv4SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+        log_notification("email", "membership_digest", to_email, "sent", {"new": len(new_users), "deleted": len(deleted_users), "via": "smtp"})
+        return True
+    except Exception as e:
+        print(f"MEMBERSHIP DIGEST EMAIL SEND ERROR via SMTP ({to_email}): {e}")
+        log_notification("email", "membership_digest", to_email, "failed", {"error": str(e), "via": "smtp"})
+        return False

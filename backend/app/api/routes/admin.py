@@ -227,6 +227,30 @@ async def delete_user_permanently(user_id: str, admin=Depends(get_current_admin_
             detail="Bir admin hesabı doğrudan silinemez — önce rolünü 'user' yap.",
         )
 
+    # Kullanıcı isteği (16 Eylül 2026): günlük üyelik bildirimi (bkz.
+    # notify_membership_changes.py) için, auth.users satırı kalıcı
+    # silinmeden ÖNCE e-posta/isim account_deletions'a arşivleniyor (bkz.
+    # migration 074) — best-effort, hata silme işlemini durdurmasın.
+    deletion_email = None
+    try:
+        au = supabase_admin.auth.admin.get_user_by_id(user_id)
+        if au and au.user:
+            deletion_email = au.user.email
+    except Exception:
+        logger.warning("ACCOUNT_DELETIONS: e-posta alınamadı (user_id=%s)", user_id, exc_info=True)
+    try:
+        supabase_admin.table("account_deletions").insert(
+            {
+                "user_id": user_id,
+                "email": deletion_email,
+                "display_name": profile.data.get("display_name"),
+                "deleted_by": "admin",
+                "admin_actor_email": admin.email,
+            }
+        ).execute()
+    except Exception as e:
+        logger.warning("ACCOUNT_DELETIONS LOG WARNING (user_id=%s): %s", user_id, e)
+
     try:
         _purge_user_dependent_rows(user_id)
         supabase_admin.auth.admin.delete_user(user_id)

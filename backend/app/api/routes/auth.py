@@ -625,6 +625,25 @@ async def delete_account(current_user=Depends(get_current_user)):
         supabase_admin.table("user_badges").delete().eq("user_id", uid).execute()
         supabase_admin.table("xp_events").delete().eq("user_id", uid).execute()
 
+        # Kullanıcı isteği (16 Eylül 2026): günlük üyelik bildirimi (bkz.
+        # notify_membership_changes.py) için, auth.users satırı kalıcı
+        # silinmeden HEMEN ÖNCE e-posta/isim account_deletions'a arşivleniyor
+        # (bkz. migration 074) — best-effort, hata silme işlemini durdurmasın.
+        try:
+            display_name = (
+                supabase_admin.table("profiles").select("display_name").eq("id", uid).single().execute().data or {}
+            ).get("display_name")
+            supabase_admin.table("account_deletions").insert(
+                {
+                    "user_id": uid,
+                    "email": current_user.email,
+                    "display_name": display_name,
+                    "deleted_by": "self",
+                }
+            ).execute()
+        except Exception as e:
+            print(f"ACCOUNT_DELETIONS LOG WARNING (user={uid}): {e}")
+
         # Geri kalan her şey (profiles ve ondan cascade olan blocks, follows,
         # friendships, conversations+messages, daily_progress, notifications,
         # study_schedule, study_sessions+quiz_results, subscriptions,

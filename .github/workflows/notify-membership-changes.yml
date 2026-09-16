@@ -1,0 +1,28 @@
+name: Lexis - daily membership notification
+
+on:
+  schedule:
+    # 09:00 Türkiye saati (UTC+3, DST yok) civarı, 10 dakikada bir 6 deneme
+    # (06:00-06:50 UTC) — daily-word-email.yml ile aynı gerekçe: GitHub
+    # Actions'ın günde tek bir sabit dakikadaki cron tick'i bazen sessizce
+    # hiç çalışmayabiliyor, backend tarafında already_ran_today ile günde
+    # tek gönderim garantisi var.
+    - cron: '5,15,25,35,45,55 6 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  trigger-notify-membership-changes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/notify-membership-changes
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/notify-membership-changes" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "İstek başarısız (HTTP $http_code)"
+            exit 1
+          fi
