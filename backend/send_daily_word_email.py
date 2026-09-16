@@ -54,6 +54,15 @@ Nasıl çalışır:
   6. Kullanılan kelimenin last_sent_at'i, geldiği tabloda (daily_word_content
      veya general_word_pool) bir kez güncellenir.
 
+16 EYLÜL 2026 BUG DÜZELTMESİ (Resend paneli incelemesinde keşfedildi: bounce
+oranı %71'e fırlamıştı): simulate_bot_activity.py'nin 10 Eylül'de oluşturduğu
+119 sahte "bot" hesabı (profiles.is_bot=true, e-postaları
+@bots.lexis.internal — gerçekte teslim edilemez) bu sorguda hiç
+filtrelenmiyordu, her gün hepsine "günün kelimesi" e-postası gönderilmeye
+çalışılıyor ve hepsi bounce ediyordu (Resend'de 10 Eylül'den itibaren
+görülen ani bounce artışının kök nedeni buydu). Artık sorguya
+.eq("is_bot", False) eklendi.
+
 Kullanım (manuel test):
   cd backend
   venv\\Scripts\\activate   (Linux/Mac: source venv/bin/activate)
@@ -168,6 +177,7 @@ def main() -> dict:
         .select("id, native_lang, learning_lang")
         .eq("is_active", True)
         .eq("email_daily_word_enabled", True)
+        .eq("is_bot", False)
         .execute()
     ).data or []
 
