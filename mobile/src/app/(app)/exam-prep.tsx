@@ -294,7 +294,7 @@ export default function ExamPrepScreen() {
           ))}
         </View>
         <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
-          <Button title={et.startBtn} onPress={handleStart} loading={busy} />
+          <Button title={et.startBtn} onPress={() => handleStart()} loading={busy} />
           <Button title={et.backBtn} variant="ghost" onPress={() => setStage('select-type')} />
         </View>
       </ScreenContainer>
