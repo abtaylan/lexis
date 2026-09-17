@@ -7,7 +7,14 @@
 //    çağırır ve navigasyon /login'e yönlendirir (bkz. store/auth.tsx).
 import axios from 'axios';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { secureStorage } from '@/utils/storage';
+
+// admin panelde "kayit platformu" + kullanici bazli giris istatistikleri
+// icin (bkz. backend/app/services/login_events_service.py, migration
+// 075_signup_platform_and_login_events). Expo web export'u da 'web' olarak
+// isaretlenir (Platform.OS === 'web'), gercek native build'lerde ios/android.
+const CLIENT_PLATFORM = Platform.OS === 'ios' ? 'ios' : Platform.OS === 'android' ? 'android' : 'web';
 
 export const TOKEN_KEY = 'lexis_access_token';
 export const REFRESH_TOKEN_KEY = 'lexis_refresh_token';
@@ -21,7 +28,7 @@ const BASE_URL =
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api/v1`,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json', 'X-Client-Platform': CLIENT_PLATFORM },
   timeout: 20000,
 });
 

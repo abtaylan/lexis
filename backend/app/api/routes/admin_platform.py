@@ -907,3 +907,85 @@ async def subscription_segments(days: int = 30, admin=Depends(get_current_admin)
 @router.get("/platform-stats/benchmark")
 async def platform_stats_benchmark(days: int = 30, admin=Depends(get_current_admin)):
     return await get_snapshot_benchmark(days=days)
+
+
+# ================================================================
+# 13) Istemci platform kullanim istatistikleri (web/ios/android)
+#     Kullanici istegi (17 Eylul 2026): kayit olunan platform +
+#     kullanicilarin sisteme hangi platformdan kac kez girdigi.
+#     Kaynak: profiles.signup_platform (migration 075) + login_events
+#     tablosu (her basarili giris/kayit tamamlanma aninda bir satir,
+#     bkz. login_events_service.log_login_event ve auth.py cagri
+#     noktalari).
+# ================================================================
+@router.get("/platform-usage/summary")
+async def platform_usage_summary(admin=Depends(get_current_admin)):
+    """Genel dagilim: kac kullanici hangi platformdan kayit olmus + toplamda
+    hangi platformdan kac giris yapilmis (tum kullanicilar toplami)."""
+    profiles_result = supabase_admin.table("profiles").select("signup_platform").execute()
+    signup_counts = {"web": 0, "ios": 0, "android": 0, "bilinmiyor": 0}
+    for p in (profiles_result.data or []):
+        key = p.get("signup_platform") or "bilinmiyor"
+        signup_counts[key] = signup_counts.get(key, 0) + 1
+
+    events_result = supabase_admin.table("login_events").select("platform").execute()
+    login_counts = {"web": 0, "ios": 0, "android": 0}
+    for e in (events_result.data or []):
+        p = e.get("platform")
+        if p in login_counts:
+            login_counts[p] += 1
+
+    total_logins = sum(login_counts.values())
+    most_used = max(login_counts, key=login_counts.get) if total_logins > 0 else None
+
+    return {
+        "signup_platform_distribution": signup_counts,
+        "login_platform_distribution": login_counts,
+        "total_logins": total_logins,
+        "most_used_platform": most_used,
+    }
+
+
+@router.get("/platform-usage/users")
+async def platform_usage_users(admin=Depends(get_current_admin)):
+    """Kullanici bazli detay: her kullanicinin toplam giris sayisi + web/
+    ios/android kirilimi (spesifik kullanici kullanimi), toplam girise gore
+    azalan sirayla."""
+    events_result = supabase_admin.table("login_events").select("user_id, platform").execute()
+
+    per_user: dict[str, dict[str, int]] = {}
+    for e in (events_result.data or []):
+        uid = e.get("user_id")
+        platform = e.get("platform")
+        if not uid or platform not in ("web", "ios", "android"):
+            continue
+        bucket = per_user.setdefault(uid, {"web": 0, "ios": 0, "android": 0})
+        bucket[platform] += 1
+
+    if not per_user:
+        return {"users": []}
+
+    profiles_result = (
+        supabase_admin.table("profiles")
+        .select("id, display_name, username, signup_platform")
+        .in_("id", list(per_user.keys()))
+        .execute()
+    )
+    profile_map = {p["id"]: p for p in (profiles_result.data or [])}
+
+    users = []
+    for uid, counts in per_user.items():
+        profile = profile_map.get(uid, {})
+        total = counts["web"] + counts["ios"] + counts["android"]
+        users.append({
+            "user_id": uid,
+            "display_name": profile.get("display_name", ""),
+            "username": profile.get("username", ""),
+            "signup_platform": profile.get("signup_platform"),
+            "total_logins": total,
+            "web_logins": counts["web"],
+            "ios_logins": counts["ios"],
+            "android_logins": counts["android"],
+        })
+    users.sort(key=lambda u: u["total_logins"], reverse=True)
+    return {"users": users}

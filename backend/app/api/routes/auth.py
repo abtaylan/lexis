@@ -2,14 +2,14 @@ import base64
 import json
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from supabase import create_client
 
 from app.core.auth import get_current_user
 from app.core.config import settings
 from app.core.database import supabase_admin
-from app.services import learning_languages, otp_service
+from app.services import learning_languages, login_events_service, otp_service
 from app.services.auth_users import list_all_auth_users
 
 router = APIRouter()
@@ -107,6 +107,12 @@ def _decode_jwt_payload(token: str) -> dict:
     except Exception:
         return {}
 
+def _client_platform(request: Request) -> str:
+    """Istemcinin gonderdigi X-Client-Platform header'ini (web/ios/android)
+    okur ve login_events_service.normalize_platform ile guvenli bir degere
+    indirger (eksik/taninmayan durumda 'web')."""
+    return login_events_service.normalize_platform(request.headers.get("x-client-platform"))
+
 def _find_auth_user_by_email(email: str):
     """
     supabase-py'nin admin API'sinde get_user_by_email doğrudan yok — bu yüzden
@@ -121,7 +127,7 @@ def _find_auth_user_by_email(email: str):
     return None
 
 @router.post("/register", status_code=201)
-async def register(req: RegisterRequest):
+async def register(req: RegisterRequest, request: Request):
     try:
         # KRİTİK: sign_up da supabase_admin ÜZERİNDE çağrılırsa (autoconfirm açık
         # olduğu için sign_up doğrudan bir session döndürüyor) supabase_admin'in
@@ -181,6 +187,7 @@ async def register(req: RegisterRequest):
                 "native_lang": req.native_lang or "tr",
                 "learning_lang": req.learning_lang or "en",
                 "username": req.username or req.email.split("@")[0],
+                "signup_platform": _client_platform(request),
             }).execute()
         except Exception as e:
             print(f"REGISTER profile update warning: {e}")
@@ -257,7 +264,7 @@ async def register(req: RegisterRequest):
         raise HTTPException(status_code=400, detail=_friendly_auth_error(str(e)))
 
 @router.post("/login")
-async def login(req: LoginRequest):
+async def login(req: LoginRequest, request: Request):
     try:
         access_token, refresh_token = _bootstrap_session(req.email, req.password)
         if not access_token:
@@ -278,6 +285,7 @@ async def login(req: LoginRequest):
                 "email": payload.get("email", req.email),
                 "display_name": (payload.get("user_metadata") or {}).get("display_name", ""),
             }
+            login_events_service.log_login_event(payload.get("sub", ""), _client_platform(request))
             return {
                 "access_token": access_token,
                 "refresh_token": refresh_token,
@@ -304,7 +312,7 @@ async def login(req: LoginRequest):
         raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
 
 @router.post("/apple")
-async def apple_sign_in(req: AppleSignInRequest):
+async def apple_sign_in(req: AppleSignInRequest, request: Request):
     """
     Apple ile Giris (native, expo-apple-authentication). Supabase Auth'un
     yerlesik Apple saglayicisi kullaniliyor: sign_in_with_id_token, Apple'in
@@ -365,6 +373,7 @@ async def apple_sign_in(req: AppleSignInRequest):
             "email": payload.get("email", email),
             "display_name": (payload.get("user_metadata") or {}).get("display_name", ""),
         }
+        login_events_service.log_login_event(user_id, _client_platform(request))
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -377,7 +386,7 @@ async def apple_sign_in(req: AppleSignInRequest):
         raise HTTPException(status_code=401, detail="Apple ile giris basarisiz. Lutfen tekrar deneyin.")
 
 @router.post("/google")
-async def google_sign_in(req: GoogleSignInRequest):
+async def google_sign_in(req: GoogleSignInRequest, request: Request):
     """
     Google ile Giris (web, Google Identity Services). apple_sign_in ile
     BIREBIR AYNI desen: Supabase Auth'un yerlesik Google saglayicisi
@@ -441,6 +450,7 @@ async def google_sign_in(req: GoogleSignInRequest):
             "email": payload.get("email", email),
             "display_name": (payload.get("user_metadata") or {}).get("display_name", ""),
         }
+        login_events_service.log_login_event(user_id, _client_platform(request))
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -453,7 +463,7 @@ async def google_sign_in(req: GoogleSignInRequest):
         raise HTTPException(status_code=401, detail="Google ile giris basarisiz. Lutfen tekrar deneyin.")
 
 @router.post("/verify-otp")
-async def verify_otp(req: VerifyOtpRequest):
+async def verify_otp(req: VerifyOtpRequest, request: Request):
     row = otp_service.verify_otp(email=req.email, purpose=req.purpose, code=req.code)
 
     access_token = row.get("session_access_token")
@@ -473,6 +483,9 @@ async def verify_otp(req: VerifyOtpRequest):
         "email": payload.get("email", row.get("email", req.email)),
         "display_name": (payload.get("user_metadata") or {}).get("display_name", ""),
     }
+
+    if req.purpose in ("login", "register"):
+        login_events_service.log_login_event(payload.get("sub", ""), _client_platform(request))
 
     return {
         "access_token": access_token,

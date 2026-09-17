@@ -5,10 +5,10 @@ import {
   ShieldCheck, ShieldOff, UserX, UserCheck, Loader2, Users, Plus, X,
   ChevronRight, BookOpen, CheckCircle2, RefreshCw, Archive, Target,
   Calendar, Globe, GraduationCap, KeyRound, Eye, Trash2, AlertTriangle,
-  ArrowUpDown, ArrowUp, ArrowDown,
+  ArrowUpDown, ArrowUp, ArrowDown, Smartphone,
 } from 'lucide-react';
 import { adminApi, languagesApi } from '@/lib/api';
-import type { AdminUser, AdminUserDetail, Language } from '@/types';
+import type { AdminUser, AdminUserDetail, Language, PlatformUsageSummary } from '@/types';
 import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -22,11 +22,27 @@ import { getErrorMessage } from '@/lib/errors';
 
 const DATE_LOCALE = 'tr-TR';
 
-type SortKey = 'display_name' | 'email' | 'username' | 'password_masked' | 'role' | 'is_active' | 'created_at' | null;
+type SortKey = 'display_name' | 'email' | 'username' | 'password_masked' | 'role' | 'is_active' | 'signup_platform' | 'created_at' | null;
 
 const ROLE_LABELS: Record<string, string> = {
   admin: 'admin', admin_readonly: 'salt-okunur admin', user: 'user',
 };
+
+// Kayit platformu (migration 075_signup_platform_and_login_events) --
+// kullanici istegi (17 Eylul 2026): "kayit olduğu platform: android-ios-web".
+const PLATFORM_LABELS: Record<string, string> = { web: 'Web', ios: 'iOS', android: 'Android' };
+const PLATFORM_BADGE_STYLES: Record<string, string> = {
+  web: 'bg-[#E6F1FB] text-[#185FA5]',
+  ios: 'bg-[#EEEDFE] text-[#534AB7]',
+  android: 'bg-[#EAF3DE] text-[#3B6D11]',
+};
+
+function PlatformBadge({ platform }: { platform?: string | null }) {
+  if (!platform || !(platform in PLATFORM_LABELS)) {
+    return <span className="inline-flex text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500">—</span>;
+  }
+  return <span className={`inline-flex text-xs font-medium px-2 py-0.5 rounded-full ${PLATFORM_BADGE_STYLES[platform]}`}>{PLATFORM_LABELS[platform]}</span>;
+}
 
 interface NewUserForm {
   display_name: string;
@@ -253,11 +269,32 @@ function UserDetailPanel({ userId, onClose }: { userId: string; onClose: () => v
             </div>
 
             <div>
+              {/* Giris istatistikleri -- kullanici istegi (17 Eylul 2026):
+                  "bir user sisteme toplamda kac defa girdi, bunun kaci web
+                  kaci ios kaci android" (migration 075 + login_events). */}
+              <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">Giriş İstatistikleri</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { l: 'Toplam giriş', v: detail.platform_usage.total_logins, bg: 'bg-gray-100 dark:bg-slate-800', t: 'text-gray-600 dark:text-slate-300' },
+                  { l: 'Web', v: detail.platform_usage.web_logins, bg: 'bg-[#E6F1FB]', t: 'text-[#185FA5]' },
+                  { l: 'iOS', v: detail.platform_usage.ios_logins, bg: 'bg-[#EEEDFE]', t: 'text-[#534AB7]' },
+                  { l: 'Android', v: detail.platform_usage.android_logins, bg: 'bg-[#EAF3DE]', t: 'text-[#3B6D11]' },
+                ].map(({ l, v, bg, t: color }) => (
+                  <div key={l} className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3 flex items-center gap-3">
+                    <div className={`min-w-7 h-7 px-2 rounded-lg ${bg} ${color} flex items-center justify-center shrink-0 text-xs font-bold`}>{v}</div>
+                    <p className="text-xs text-gray-500 dark:text-slate-400">{l}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div>
               <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">Hesap Bilgileri</p>
               <div>
                 {[
                   { l: 'Kullanıcı adı', v: detail.username || '—', i: <Users className="w-3.5 h-3.5" /> },
                   { l: 'Şifre', v: detail.password_masked || '••••••••••', i: <KeyRound className="w-3.5 h-3.5" /> },
+                  { l: 'Kayıt platformu', v: detail.signup_platform ? (PLATFORM_LABELS[detail.signup_platform] || detail.signup_platform) : 'bilinmiyor', i: <Smartphone className="w-3.5 h-3.5" /> },
                   { l: 'Ana dil', v: detail.native_lang || '—', i: <Globe className="w-3.5 h-3.5" /> },
                   { l: 'Öğrenilen dil', v: detail.learning_lang || '—', i: <GraduationCap className="w-3.5 h-3.5" /> },
                   { l: 'Günlük hedef', v: `${detail.daily_goal ?? 5} kelime`, i: <Target className="w-3.5 h-3.5" /> },
@@ -284,6 +321,7 @@ export default function AdminUsersPage() {
   const isReadonly = currentUser?.role === 'admin_readonly';
 
   const [users, setUsers]     = useState<AdminUser[]>([]);
+  const [platformSummary, setPlatformSummary] = useState<PlatformUsageSummary | null>(null);
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
@@ -319,6 +357,7 @@ export default function AdminUsersPage() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
     load();
+    adminApi.getPlatformUsageSummary().then(setPlatformSummary).catch(() => setPlatformSummary(null));
     languagesApi.getAll().then(setLanguages).catch(() => setLanguages([
       { code: 'en', name_native: 'English', name_en: 'English', flag_emoji: '🇬🇧', is_active: true },
       { code: 'tr', name_native: 'Türkçe', name_en: 'Turkish', flag_emoji: '🇹🇷', is_active: true },
@@ -384,6 +423,7 @@ export default function AdminUsersPage() {
     { label: 'Şifre', key: 'password_masked' },
     { label: 'Rol', key: 'role' },
     { label: 'Durum', key: 'is_active' },
+    { label: 'Platform', key: 'signup_platform' },
     { label: 'Kayıt tarihi', key: 'created_at' },
     { label: '', key: null },
   ];
@@ -405,6 +445,22 @@ export default function AdminUsersPage() {
       {isReadonly && (
         <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-2xl px-4 py-3 text-sm">
           <Eye className="w-4 h-4 shrink-0" />Salt görüntüleme modundasınız — kullanıcı ekleme/düzenleme işlemleri kapalı.
+        </div>
+      )}
+
+      {platformSummary && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { l: 'Web girişi', v: platformSummary.login_platform_distribution.web, bg: 'bg-[#E6F1FB]', t: 'text-[#185FA5]', icon: <Globe className="w-4 h-4" /> },
+            { l: 'iOS girişi', v: platformSummary.login_platform_distribution.ios, bg: 'bg-[#EEEDFE]', t: 'text-[#534AB7]', icon: <Smartphone className="w-4 h-4" /> },
+            { l: 'Android girişi', v: platformSummary.login_platform_distribution.android, bg: 'bg-[#EAF3DE]', t: 'text-[#3B6D11]', icon: <Smartphone className="w-4 h-4" /> },
+            { l: 'Toplam giriş', v: platformSummary.total_logins, bg: 'bg-gray-100 dark:bg-slate-800', t: 'text-gray-600 dark:text-slate-300', icon: <Users className="w-4 h-4" /> },
+          ].map(({ l, v, bg, t: color, icon }) => (
+            <div key={l} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl ${bg} ${color} flex items-center justify-center shrink-0`}>{icon}</div>
+              <div><p className="text-lg font-bold text-gray-900 dark:text-slate-100">{v}</p><p className="text-xs text-gray-500 dark:text-slate-400">{l}</p></div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -466,6 +522,7 @@ export default function AdminUsersPage() {
                       {u.is_active ? 'Aktif' : 'Pasif'}
                     </span>
                   </td>
+                  <td className="px-4 py-3"><PlatformBadge platform={u.signup_platform} /></td>
                   <td className="px-4 py-3 text-xs text-gray-400 dark:text-slate-500">{new Date(u.created_at).toLocaleDateString(DATE_LOCALE, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end">

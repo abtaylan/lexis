@@ -60,6 +60,28 @@ async def list_users(admin=Depends(get_current_admin)):
     return {"users": enriched, "total": len(enriched)}
 
 
+def _user_platform_usage(user_id: str) -> dict:
+    """Bu kullanicinin toplam giris sayisi + web/ios/android kirilimi
+    (login_events, bkz. migration 075 ve login_events_service)."""
+    events = (
+        supabase_admin.table("login_events")
+        .select("platform")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    counts = {"web": 0, "ios": 0, "android": 0}
+    for e in (events.data or []):
+        p = e.get("platform")
+        if p in counts:
+            counts[p] += 1
+    return {
+        "total_logins": counts["web"] + counts["ios"] + counts["android"],
+        "web_logins": counts["web"],
+        "ios_logins": counts["ios"],
+        "android_logins": counts["android"],
+    }
+
+
 # ── Kullanıcı detayı ──────────────────────────────────────────
 @router.get("/users/{user_id}")
 async def get_user_detail(user_id: str, admin=Depends(get_current_admin)):
@@ -100,6 +122,7 @@ async def get_user_detail(user_id: str, admin=Depends(get_current_admin)):
         "words_today":   sum(1 for w in word_list if (w.get("created_at") or "")[:10] == today),
         "active_words":  sum(1 for w in word_list if w.get("list_type") == "active"),
         "passive_words": sum(1 for w in word_list if w.get("list_type") == "passive"),
+        "platform_usage": _user_platform_usage(user_id),
     }
 
 

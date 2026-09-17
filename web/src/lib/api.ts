@@ -56,6 +56,8 @@ import type {
   AdminUser,
   AdminUserDetail,
   AdminStats,
+  PlatformUsageSummary,
+  PlatformUsageUserRow,
   Language,
   DictionaryResult,
   AnalyticsData,
@@ -104,7 +106,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export const api = axios.create({
   baseURL: `${BASE_URL}/api/v1`,
-  headers: { 'Content-Type': 'application/json' },
+  // X-Client-Platform: admin panelde "kayit platformu" + kullanici bazli
+  // giris istatistikleri icin (bkz. backend/app/services/login_events_service.py,
+  // migration 075_signup_platform_and_login_events).
+  headers: { 'Content-Type': 'application/json', 'X-Client-Platform': 'web' },
 });
 
 api.interceptors.request.use((config) => {
@@ -740,6 +745,16 @@ export const adminApi = {
   getUserDetail: async (id: string): Promise<AdminUserDetail> => {
     const res = await api.get<AdminUserDetail>(`/admin/users/${id}`);
     return res.data;
+  },
+  // Platform kullanim istatistikleri (kayit platformu + giris kirilimi,
+  // bkz. migration 075_signup_platform_and_login_events).
+  getPlatformUsageSummary: async (): Promise<PlatformUsageSummary> => {
+    const res = await api.get<PlatformUsageSummary>('/admin/platform-usage/summary');
+    return res.data;
+  },
+  getPlatformUsageUsers: async (): Promise<PlatformUsageUserRow[]> => {
+    const res = await api.get<{ users: PlatformUsageUserRow[] }>('/admin/platform-usage/users');
+    return res.data.users;
   },
   createUser: async (data: {
     email: string;

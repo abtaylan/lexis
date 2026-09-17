@@ -510,6 +510,16 @@ export interface AdminUser {
   password_masked?: string;
   created_at: string;
   last_seen_at?: string;
+  // Kayit sirasinda X-Client-Platform header'indan yazilir (migration 075).
+  // Eski kullanicilarda null (bilinmiyor).
+  signup_platform?: 'web' | 'ios' | 'android' | null;
+}
+
+export interface UserPlatformUsage {
+  total_logins: number;
+  web_logins: number;
+  ios_logins: number;
+  android_logins: number;
 }
 
 export interface AdminUserDetail extends AdminUser {
@@ -519,6 +529,25 @@ export interface AdminUserDetail extends AdminUser {
   words_today: number;
   active_words: number;
   passive_words: number;
+  platform_usage: UserPlatformUsage;
+}
+
+export interface PlatformUsageSummary {
+  signup_platform_distribution: { web: number; ios: number; android: number; bilinmiyor: number };
+  login_platform_distribution: { web: number; ios: number; android: number };
+  total_logins: number;
+  most_used_platform: 'web' | 'ios' | 'android' | null;
+}
+
+export interface PlatformUsageUserRow {
+  user_id: string;
+  display_name: string;
+  username: string;
+  signup_platform: 'web' | 'ios' | 'android' | null;
+  total_logins: number;
+  web_logins: number;
+  ios_logins: number;
+  android_logins: number;
 }
 
 export interface AdminStats {
