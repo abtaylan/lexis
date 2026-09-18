@@ -15,6 +15,8 @@ Model: Anthropic Messages API, zorunlu tool-use ile yapılandırılmış JSON
 çıktısı alınır (serbest metin parse etmek yerine — daha güvenilir).
 """
 
+import json
+
 from anthropic import Anthropic, APIError
 
 from app.core.config import settings
@@ -274,6 +276,20 @@ def generate_questions(
         raise ExamQuestionGenerationError("Model tool_use bloğu döndürmedi.")
 
     raw_questions = tool_use.input.get("questions") or []
+    if isinstance(raw_questions, str):
+        # 18 Eylul 2026: model bazen "questions" alanina native dizi yerine
+        # JSON-encode edilmis bir STRING koyuyor (gozlemlendi: tr/b2, tr/c2 --
+        # stop_reason='tool_use' oldugu halde raw_questions bir string olup
+        # karakter karakter iterasyona giriyor, hicbir soru validasyondan
+        # gecmiyordu). Bu durumda stringi JSON olarak parse edip gercek
+        # listeyi kurtarmayi dene; olmazsa bos listeye dus (asagidaki
+        # dongude zaten dict-olmayanlar elenir).
+        try:
+            raw_questions = json.loads(raw_questions)
+        except (json.JSONDecodeError, TypeError):
+            raw_questions = []
+    if not isinstance(raw_questions, list):
+        raw_questions = []
     validated: list[dict] = []
     for q in raw_questions:
         # 18 Eylul 2026: generate_placement_questions'da yakalanan hatayla
@@ -484,6 +500,20 @@ def _generate_placement_batch(
         raise ExamQuestionGenerationError(f"Model tool_use blogu dondurmedi ({level}).")
 
     raw_questions = tool_use.input.get("questions") or []
+    if isinstance(raw_questions, str):
+        # 18 Eylul 2026: model bazen "questions" alanina native dizi yerine
+        # JSON-encode edilmis bir STRING koyuyor (gozlemlendi: tr/b2, tr/c2 --
+        # stop_reason='tool_use' oldugu halde raw_questions bir string olup
+        # karakter karakter iterasyona giriyor, hicbir soru validasyondan
+        # gecmiyordu). Bu durumda stringi JSON olarak parse edip gercek
+        # listeyi kurtarmayi dene; olmazsa bos listeye dus (asagidaki
+        # dongude zaten dict-olmayanlar elenir).
+        try:
+            raw_questions = json.loads(raw_questions)
+        except (json.JSONDecodeError, TypeError):
+            raw_questions = []
+    if not isinstance(raw_questions, list):
+        raw_questions = []
     validated: list[dict] = []
     for q in raw_questions:
         # 18 Eylul 2026: bazen model "questions" dizisine dict yerine string
