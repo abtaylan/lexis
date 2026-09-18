@@ -623,3 +623,166 @@ def send_membership_digest_email(
         print(f"MEMBERSHIP DIGEST EMAIL SEND ERROR via SMTP ({to_email}): {e}")
         log_notification("email", "membership_digest", to_email, "failed", {"error": str(e), "via": "smtp"})
         return False
+
+
+def send_weekly_admin_report_email(to_email: str, report_date: str, stats: dict) -> bool:
+    """
+    Haftalik admin ozet raporu (kullanici istegi, 18 Eylul 2026) -- yeni
+    kullanici + kaynagi, web/mobil kullanim orani, sisteme donus sikligi,
+    yeni kayitlarin aktivasyon orani, bolum/modul kullanim dagilimi, sistem
+    geneli yanlis soru/sik oranlari, ogrenilen dil dagilimi, premium geliri
+    ve reklam geliri (takip edilmiyor -- acikca belirtiliyor). Diger admin
+    bildirimleriyle ayni OTP_MODE/RESEND/SMTP altyapisini kullanir (bkz.
+    send_membership_digest_email). Cagiran taraf: weekly_admin_report.py.
+
+    stats: weekly_admin_report.py::main() icinde hesaplanan sozluk -- bkz. o
+    dosyadaki alan adlari icin dokumantasyon.
+    """
+    subject = f"Lexis Haftalik Rapor - {report_date} ({stats.get('new_users_total', 0)} yeni uye)"
+
+    def _kv_rows(counts: dict, empty_text: str) -> str:
+        if not counts:
+            return f'<p style="color:#94a3b8; font-size:13px; margin:4px 0 0;">{empty_text}</p>'
+        rows = "".join(
+            f'<li style="margin-bottom:3px;">{k}: <strong>{v}</strong></li>'
+            for k, v in sorted(counts.items(), key=lambda kv: kv[1], reverse=True)
+        )
+        return f'<ul style="margin:8px 0 0; padding-left:20px; font-size:14px; color:#0f172a;">{rows}</ul>'
+
+    new_by_platform = stats.get("new_by_platform") or {}
+    logins_by_platform = stats.get("logins_by_platform") or {}
+    module_counts = stats.get("module_counts") or {}
+    wrong_option_counts = stats.get("exam_wrong_option_counts") or {}
+    lang_counts = stats.get("lang_counts") or {}
+    premium_by_plan = stats.get("premium_active_by_plan") or {}
+
+    activation_rate = stats.get("activation_rate")
+    activation_text = (
+        f"{stats.get('activation_count', 0)} / {stats.get('new_users_total', 0)} yeni uye "
+        f"({activation_rate}%) kayit sonrasi en az bir aktivite yapti (Quiz haric -- takip edilmiyor)."
+        if activation_rate is not None
+        else "Bu hafta yeni uye olmadi."
+    )
+
+    exam_total = stats.get("exam_total_attempts", 0)
+    exam_wrong_rate = stats.get("exam_wrong_rate")
+    exam_section = (
+        f'<p style="margin:4px 0;">Toplam deneme: <strong>{exam_total}</strong>, '
+        f'yanlis oranı: <strong>{exam_wrong_rate}%</strong> ({stats.get("exam_wrong_count", 0)} yanlis)</p>'
+        f'<p style="color:#94a3b8; font-size:12px; margin:4px 0;">Yanlis isaretlenen siklar:</p>'
+        f"{_kv_rows(wrong_option_counts, 'Bu hafta yanlis isaretlenen sik yok.')}"
+        if exam_total
+        else '<p style="color:#94a3b8; font-size:13px; margin:4px 0 0;">Bu hafta sinav sorusu denemesi yok.</p>'
+    )
+    if 0 < exam_total < 20:
+        exam_section += (
+            '<p style="color:#f59e0b; font-size:11px; margin:6px 0 0;">'
+            "Not: orneklem kucuk (20'den az deneme) -- oranlar guvenilir olmayabilir.</p>"
+        )
+
+    mrr = stats.get("premium_mrr_estimate", 0)
+    premium_section = f"""
+      <p style="margin:4px 0;">Aktif abonelik (subscriptions tablosu): <strong>{sum(premium_by_plan.values())}</strong>,
+      tahmini aylik gelir: <strong>{mrr} {stats.get('premium_currency', 'TRY')}</strong></p>
+      {_kv_rows(premium_by_plan, 'Aktif abonelik yok.')}
+      <p style="color:#94a3b8; font-size:11px; margin:6px 0 0;">
+        Bu rakam sadece subscriptions tablosundaki kayitlara gore hesaplaniyor -- Premium artik
+        mobil IAP uzerinden satiliyor, App Store/Play Store satin almalarinin bu tabloya dogru
+        yansidigi ayrica dogrulanmali.
+      </p>
+    """
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+      <h2 style="color:#0284c7; margin-bottom: 4px;">Lexis -- Haftalik Rapor</h2>
+      <p style="color:#64748b; font-size: 13px; margin-top:0;">{stats.get('period_label', report_date)}</p>
+
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-bottom:0;">
+        Yeni uyeler ({stats.get('new_users_total', 0)})
+      </p>
+      {_kv_rows(new_by_platform, 'Bu hafta yeni uye olmadi.')}
+      <p style="color:#64748b; font-size:12px; margin-top:8px;">{activation_text}</p>
+
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
+        Web / mobil kullanim ve donus sikligi
+      </p>
+      {_kv_rows(logins_by_platform, 'Bu hafta giris kaydi yok.')}
+      <p style="color:#64748b; font-size:12px; margin-top:8px;">
+        {stats.get('distinct_login_users', 0)} farkli kullanici giris yapti, ortalama kullanici basina
+        {stats.get('avg_logins_per_user', 0)} giris; {stats.get('returning_users', 0)} kullanici birden
+        fazla kez geri geldi.
+      </p>
+
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
+        Bolum kullanimi (bu hafta)
+      </p>
+      {_kv_rows(module_counts, 'Bu hafta hicbir bolumde kayit yok.')}
+      <p style="color:#94a3b8; font-size:11px; margin:4px 0 0;">
+        Not: Quiz modulu bu listede yok -- sunucu tarafinda hicbir tabloya yazmiyor (bilinen kapsam disi).
+      </p>
+
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
+        Sinav sorulari -- yanlis/sik oranlari (bu hafta)
+      </p>
+      {exam_section}
+
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
+        Ogrenilen diller (anlik dagilim)
+      </p>
+      {_kv_rows(lang_counts, 'Veri yok.')}
+
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
+        Premium geliri
+      </p>
+      {premium_section}
+
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
+        Reklam geliri
+      </p>
+      <p style="color:#94a3b8; font-size:13px; margin:4px 0 0;">
+        AdMob geliri sistemde otomatik takip edilmiyor -- AdMob panelinden manuel kontrol gerekiyor.
+      </p>
+
+      <p style="color:#94a3b8; font-size: 11px; margin-top: 24px;">
+        Bu otomatik bir rapordur, {stats.get('period_label', report_date)} donemini kapsar.
+      </p>
+    </div>
+    """
+
+    if settings.OTP_MODE != "real":
+        print(f"[WEEKLY-ADMIN-REPORT-DEV] {to_email} -> {report_date}: {stats.get('new_users_total', 0)} yeni uye")
+        log_notification("email", "weekly_admin_report", to_email, "skipped", {"reason": "OTP_MODE=fixed"})
+        return True
+
+    if not settings.RESEND_API_KEY and (not settings.SMTP_USER or not settings.SMTP_PASSWORD):
+        print(f"[WEEKLY-ADMIN-REPORT] Mail saglayicisi ayarlanmamis, rapor gonderilemedi: {to_email}")
+        log_notification("email", "weekly_admin_report", to_email, "failed", {"reason": "no email provider configured"})
+        return False
+
+    if settings.RESEND_API_KEY:
+        try:
+            _send_via_resend(to_email, subject, html_body)
+            log_notification("email", "weekly_admin_report", to_email, "sent", {"new_users": stats.get("new_users_total", 0), "via": "resend"})
+            return True
+        except Exception as e:
+            print(f"WEEKLY ADMIN REPORT EMAIL SEND ERROR via Resend ({to_email}): {e}")
+            log_notification("email", "weekly_admin_report", to_email, "failed", {"error": str(e), "via": "resend"})
+            return False
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        with _IPv4SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+        log_notification("email", "weekly_admin_report", to_email, "sent", {"new_users": stats.get("new_users_total", 0), "via": "smtp"})
+        return True
+    except Exception as e:
+        print(f"WEEKLY ADMIN REPORT EMAIL SEND ERROR via SMTP ({to_email}): {e}")
+        log_notification("email", "weekly_admin_report", to_email, "failed", {"error": str(e), "via": "smtp"})
+        return False

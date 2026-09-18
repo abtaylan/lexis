@@ -215,3 +215,30 @@ async def run_notify_membership_changes(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# Kullanici istegi (18 Eylul 2026) -- haftalik admin ozet raporu (yeni
+# uyeler + kaynagi, web/mobil kullanim, bolum kullanimi, sinav sik oranlari,
+# dil dagilimi, premium/reklam geliri). Yukaridaki job'larla ayni sebep/
+# desen: Resend (e-posta) gercek dis ag erisimi gerektiriyor, bu yuzden
+# burada, disaridan (GitHub Actions) tetikleniyor.
+# Script: backend/weekly_admin_report.py.
+@router.post("/weekly-admin-report")
+async def run_weekly_admin_report(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    if already_ran_today("weekly_admin_report"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
+    def _run() -> dict:
+        import weekly_admin_report
+
+        with job_run("weekly_admin_report") as run:
+            result = weekly_admin_report.main()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
