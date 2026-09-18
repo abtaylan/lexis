@@ -1,0 +1,13 @@
+-- 077_exam_type_placement.sql
+--
+-- Coklu Dil Seviye Tespit Sinavi (placement test) icin exam_type enum'una
+-- 'placement' eklenir. HATA (18 Eylul 2026, kullanici pasted output):
+-- backend/app/schemas/exams.py::ExamType (Python enum) 076'dan ONCEKI bir
+-- commit'te 'placement' ile genisletilmisti, ama exam_questions.exam_type
+-- kolonunun DB tarafindaki gercek tipi bir Postgres ENUM'u (public.exam_type,
+-- bkz. 023_exam_prep.sql) -- sadece Python tarafinda enum genisletmek
+-- yetersizdi, INSERT sirasinda "invalid input value for enum exam_type:
+-- placement" (22P02) hatasi verdi. Bu migration o eksigi tamamliyor.
+--
+-- IF NOT EXISTS: migration yanlislikla iki kez calistirilirsa hata vermez.
+ALTER TYPE public.exam_type ADD VALUE IF NOT EXISTS 'placement';
