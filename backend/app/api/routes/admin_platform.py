@@ -73,7 +73,9 @@ from app.services.content_flag_service import (
 )
 from app.services.platform_snapshot_service import capture_daily_snapshot, get_snapshot_benchmark, get_snapshots
 from app.services.report_export_service import build_platform_snapshots_document, render, SUPPORTED_FORMATS
+from app.services.organization_report_service import get_organization_report
 from app.services.subscription_segment_service import get_subscription_segments
+from app.services.user_report_service import get_user_report
 
 router = APIRouter()
 
@@ -989,3 +991,43 @@ async def platform_usage_users(admin=Depends(get_current_admin)):
         })
     users.sort(key=lambda u: u["total_logins"], reverse=True)
     return {"users": users}
+
+
+# ── Admin panel — İstatistikler sayfası görünüm seçici (kullanıcı/kurum
+# bazlı görünüm) ve Raporlar sayfası entegrasyonu, kullanıcı isteği (18
+# Eylül 2026) — "İstatistik & Analitik Kataloğu" doc, Ek kapsam madde 1-2.
+# Mevcut kullanıcı raporu (routes/stats.py::get_user_report_route) sadece
+# current_user için çalışıyordu (kendi raporun); burada admin'in HERHANGİ
+# BİR kullanıcının raporunu görebilmesi için aynı get_user_report()
+# servisini admin yetkisiyle, path'ten gelen user_id ile çağıran bir
+# endpoint ekleniyor. Ayrı bir hesaplama yazılmıyor -- servis fonksiyonu
+# zaten kullanıcı/kurum ayrımını user_id/org_id parametresiyle yapıyor.
+@router.get("/users/{user_id}/report")
+async def admin_user_report(
+    user_id: str, period: str = "week", admin=Depends(get_current_admin)
+):
+    if period not in ("week", "month"):
+        raise HTTPException(status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı.")
+    exists = (
+        supabase_admin.table("profiles").select("id").eq("id", user_id).limit(1).execute()
+    )
+    if not exists.data:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+    return await get_user_report(user_id, period)  # type: ignore[arg-type]
+
+
+# Kurum raporu -- organizations.py::get_organization_report_route ile aynı
+# servisi çağırır ama _require_manage_role (sadece o kurumun owner/admin
+# üyesi) yerine platform admin yetkisiyle, HERHANGİ bir kurum için.
+@router.get("/organizations/{org_id}/report")
+async def admin_organization_report(
+    org_id: str, period: str = "week", admin=Depends(get_current_admin)
+):
+    if period not in ("week", "month"):
+        raise HTTPException(status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı.")
+    exists = (
+        supabase_admin.table("organizations").select("id").eq("id", org_id).limit(1).execute()
+    )
+    if not exists.data:
+        raise HTTPException(status_code=404, detail="Kurum bulunamadı.")
+    return await get_organization_report(org_id, period)  # type: ignore[arg-type]

@@ -9,6 +9,7 @@ import type {
   SubscriptionSegmentMetrics, SubscriptionSegmentsResponse,
   PlatformSnapshotBenchmark, PlatformSnapshotBenchmarkMetrics,
 } from '@/types';
+import { UserReportExplorer, OrgReportExplorer } from '@/components/admin/ReportExplorer';
 
 // İstatistik & Raporlama Faz 2 — içerik doğruluk raporları (11 Eylül 2026).
 // Backend: admin_platform.py /content-accuracy/{summary,questions,words}
@@ -846,6 +847,11 @@ export default function AdminReportsPage() {
       <SnapshotsPanel />
       <SegmentsPanel />
       <TrendPanel />
+
+      {/* Kullanıcı isteği (18 Eylül 2026) — Ek kapsam madde 2: Raporlar
+          sayfasına kullanıcı/kurum bazlı rapor seçenekleri. */}
+      <UserReportExplorer />
+      <OrgReportExplorer />
     </div>
   );
 }

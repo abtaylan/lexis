@@ -797,6 +797,19 @@ export const adminApi = {
     return res.data;
   },
 
+  // Admin panel — İstatistikler sayfası görünüm seçici + Raporlar sayfası
+  // entegrasyonu (kullanıcı isteği, 18 Eylül 2026). Aynı UserReport/
+  // OrganizationReport tipini kullanıcının kendi "Raporum" sayfasıyla
+  // paylaşır -- admin herhangi bir kullanıcı/kurum için görebiliyor.
+  getUserReport: async (userId: string, period: 'week' | 'month' = 'week'): Promise<UserReport> => {
+    const res = await api.get<UserReport>(`/admin/users/${userId}/report`, { params: { period } });
+    return res.data;
+  },
+  getOrganizationReportAdmin: async (orgId: string, period: 'week' | 'month' = 'week'): Promise<OrganizationReport> => {
+    const res = await api.get<OrganizationReport>(`/admin/organizations/${orgId}/report`, { params: { period } });
+    return res.data;
+  },
+
   // ── Madde 1d — kapsamlı yönetim platformu ────────────────────
   getSystemHealth: async (): Promise<SystemHealth> => {
     const res = await api.get<SystemHealth>('/admin/system-health');

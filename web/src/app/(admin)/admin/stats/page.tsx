@@ -9,6 +9,7 @@ import {
 import { adminApi } from '@/lib/api';
 import type { AdminStats, DetailedStats } from '@/types';
 import { useThemeMode } from '@/store/theme';
+import { UserReportExplorer, OrgReportExplorer } from '@/components/admin/ReportExplorer';
 
 // NOT: Bu sayfa önceden artık var olmayan bir i18n API'sine (useT/t) bağlıydı
 // — bkz. app/(admin)/layout.tsx'teki not. Admin panel iç kullanım için
@@ -18,6 +19,7 @@ export default function AdminStatsPage() {
   const [detailed, setDetailed] = useState<DetailedStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
+  const [view, setView] = useState<'system' | 'user' | 'org'>('system');
   const { scheme } = useThemeMode();
   // Recharts inline stil kabul ediyor, Tailwind `dark:` class'ı değil —
   // bu yüzden ızgara/eksen/tooltip renkleri burada elle tema'ya bağlanıyor.
@@ -60,9 +62,36 @@ export default function AdminStatsPage() {
     <div className="p-8 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">İstatistikler</h1>
-        <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Platform geneli kullanım özeti</p>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">Platform geneli, kullanıcı bazlı veya kurum bazlı görünüm seç</p>
       </div>
 
+      {/* Görünüm seçici (kullanıcı isteği, 18 Eylül 2026 — Ek kapsam madde 1) */}
+      <div className="inline-flex rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden text-sm">
+        {([
+          { key: 'system' as const, label: 'Sistem geneli' },
+          { key: 'user' as const, label: 'Kullanıcı' },
+          { key: 'org' as const, label: 'Kurum' },
+        ]).map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setView(key)}
+            className={`px-4 py-2 font-medium transition-colors ${
+              view === key
+                ? 'bg-[#534AB7] text-white'
+                : 'bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'user' && <UserReportExplorer />}
+      {view === 'org' && <OrgReportExplorer />}
+
+      {view === 'system' && (
+      <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map(({ label, value, bg, text, icon }) => (
           <div key={label} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
@@ -154,6 +183,8 @@ export default function AdminStatsPage() {
           ) : <p className="text-sm text-gray-400 dark:text-slate-500">Henüz yeterli veri yok (7+ gün önce kayıtlı kullanıcı bekleniyor).</p>}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
