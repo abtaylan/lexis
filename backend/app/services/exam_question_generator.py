@@ -276,7 +276,15 @@ def generate_questions(
     raw_questions = tool_use.input.get("questions") or []
     validated: list[dict] = []
     for q in raw_questions:
+        # 18 Eylul 2026: generate_placement_questions'da yakalanan hatayla
+        # ayni sinif -- model "questions" icine dict olmayan bir eleman
+        # koyarsa .get() AttributeError firlatip tum uretimi cokertmesin.
+        if not isinstance(q, dict):
+            continue
         options = q.get("options") or []
+        if not isinstance(options, list):
+            continue
+        options = [opt for opt in options if isinstance(opt, dict)]
         ids = {opt.get("id") for opt in options}
         if len(options) != 4 or ids != {"a", "b", "c", "d"}:
             continue  # bozuk/eksik şık seti — sessizce atla, moderasyon kuyruğuna eksik veri girmesin
@@ -478,7 +486,17 @@ def _generate_placement_batch(
     raw_questions = tool_use.input.get("questions") or []
     validated: list[dict] = []
     for q in raw_questions:
+        # 18 Eylul 2026: bazen model "questions" dizisine dict yerine string
+        # (ornegin dict'i JSON'a cevirip string olarak koymus) veya baska
+        # beklenmedik bir tip koyabiliyor -- .get() cagrisi AttributeError
+        # ile tum batch'i (ve indirekt olarak tum dili) cokertmesin diye
+        # dict olmayan girdileri sessizce atla.
+        if not isinstance(q, dict):
+            continue
         options = q.get("options") or []
+        if not isinstance(options, list):
+            continue
+        options = [opt for opt in options if isinstance(opt, dict)]
         ids = {opt.get("id") for opt in options}
         if len(options) != 4 or ids != {"a", "b", "c", "d"}:
             continue
