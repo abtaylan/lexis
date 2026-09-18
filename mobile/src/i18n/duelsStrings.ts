@@ -53,6 +53,17 @@ export type DuelsStrings = {
   // ── Oda — ortak ──
   youLabel: string;
   scoreLabel: string;
+
+  // ── Mod seçimi (oda oluşturma) + wordle turu (18 Eylül 2026) ──
+  // Kullanıcı isteği: "adam asmacada düello olmalı" — backend zaten
+  // hazırdı ama hiçbir istemciden erişilemiyordu (mode parametresi hiç
+  // gönderilmiyordu). Şimdi oda oluştururken mod seçilebiliyor.
+  modeQuizLabel: string;
+  modeWordleLabel: string;
+  livesLabel: string;
+  wordleCompleteLabel: string;
+  wordleFirstFinishLabel: string;
+  wordleFailedLabel: string;
 };
 
 export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
@@ -74,6 +85,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: 'Sıradaki tur hazırlanıyor…',
     finishedTitle: 'Düello Bitti', backToLobbyBtn: 'Lobiye Dön',
     youLabel: '(sen)', scoreLabel: 'puan',
+    modeQuizLabel: 'Klasik (Çoktan Seçmeli)', modeWordleLabel: 'Adam Asmaca',
+    livesLabel: 'Can', wordleCompleteLabel: 'Kelimeyi tamamladın! 🎉',
+    wordleFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', wordleFailedLabel: 'Hakların bitti.',
   },
   en: {
     title: 'Duel', subtitle: 'A live vocabulary competition with multiple players at once.',
@@ -93,6 +107,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: 'Preparing the next round…',
     finishedTitle: 'Duel Over', backToLobbyBtn: 'Back to Lobby',
     youLabel: '(you)', scoreLabel: 'pts',
+    modeQuizLabel: 'Quiz (Multiple Choice)', modeWordleLabel: 'Word Guess',
+    livesLabel: 'Lives', wordleCompleteLabel: 'You completed the word! 🎉',
+    wordleFirstFinishLabel: 'First to finish! +bonus 🏆', wordleFailedLabel: 'Out of guesses.',
   },
   de: {
     title: 'Duell', subtitle: 'Ein Live-Vokabelwettbewerb mit mehreren Spielern gleichzeitig.',
@@ -112,6 +129,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: 'Nächste Runde wird vorbereitet…',
     finishedTitle: 'Duell beendet', backToLobbyBtn: 'Zurück zur Lobby',
     youLabel: '(du)', scoreLabel: 'Pkt.',
+    modeQuizLabel: 'Quiz (Multiple-Choice)', modeWordleLabel: 'Wort erraten',
+    livesLabel: 'Leben', wordleCompleteLabel: 'Du hast das Wort vervollständigt! 🎉',
+    wordleFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', wordleFailedLabel: 'Keine Versuche mehr.',
   },
   fr: {
     title: 'Duel', subtitle: 'Une compétition de vocabulaire en direct avec plusieurs joueurs à la fois.',
@@ -131,6 +151,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: 'Préparation de la prochaine manche…',
     finishedTitle: 'Duel terminé', backToLobbyBtn: 'Retour au lobby',
     youLabel: '(toi)', scoreLabel: 'pts',
+    modeQuizLabel: 'Quiz (choix multiple)', modeWordleLabel: 'Deviner le mot',
+    livesLabel: 'Vies', wordleCompleteLabel: 'Tu as complété le mot ! 🎉',
+    wordleFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', wordleFailedLabel: "Plus d'essais.",
   },
   es: {
     title: 'Duelo', subtitle: 'Una competencia de vocabulario en vivo con varios jugadores a la vez.',
@@ -150,6 +173,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: 'Preparando la siguiente ronda…',
     finishedTitle: 'Duelo terminado', backToLobbyBtn: 'Volver al lobby',
     youLabel: '(tú)', scoreLabel: 'pts',
+    modeQuizLabel: 'Cuestionario (opción múltiple)', modeWordleLabel: 'Adivinar la palabra',
+    livesLabel: 'Vidas', wordleCompleteLabel: '¡Completaste la palabra! 🎉',
+    wordleFirstFinishLabel: '¡Primero en terminar! +bono 🏆', wordleFailedLabel: 'Sin intentos.',
   },
   it: {
     title: 'Duello', subtitle: 'Una gara di vocabolario dal vivo con più giocatori contemporaneamente.',
@@ -169,6 +195,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: 'Preparazione del prossimo turno…',
     finishedTitle: 'Duello finito', backToLobbyBtn: 'Torna alla lobby',
     youLabel: '(tu)', scoreLabel: 'pt',
+    modeQuizLabel: 'Quiz (scelta multipla)', modeWordleLabel: 'Indovina la parola',
+    livesLabel: 'Vite', wordleCompleteLabel: 'Hai completato la parola! 🎉',
+    wordleFirstFinishLabel: 'Primo a finire! +bonus 🏆', wordleFailedLabel: 'Tentativi esauriti.',
   },
   ar: {
     title: 'مبارزة', subtitle: 'مسابقة مفردات مباشرة مع عدة لاعبين في آن واحد.',
@@ -188,6 +217,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: 'يتم تجهيز الجولة التالية…',
     finishedTitle: 'انتهت المبارزة', backToLobbyBtn: 'العودة إلى الصالة',
     youLabel: '(أنت)', scoreLabel: 'نقطة',
+    modeQuizLabel: 'مسابقة (اختيار من متعدد)', modeWordleLabel: 'تخمين الكلمة',
+    livesLabel: 'محاولات', wordleCompleteLabel: 'أكملت الكلمة! 🎉',
+    wordleFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', wordleFailedLabel: 'نفدت محاولاتك.',
   },
   ru: {
     title: 'Дуэль', subtitle: 'Живое соревнование по словарному запасу с несколькими игроками одновременно.',
@@ -207,6 +239,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: 'Подготовка следующего раунда…',
     finishedTitle: 'Дуэль окончена', backToLobbyBtn: 'Вернуться в лобби',
     youLabel: '(ты)', scoreLabel: 'очк.',
+    modeQuizLabel: 'Викторина (с вариантами)', modeWordleLabel: 'Угадай слово',
+    livesLabel: 'Жизни', wordleCompleteLabel: 'Вы завершили слово! 🎉',
+    wordleFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', wordleFailedLabel: 'Попытки закончились.',
   },
   ja: {
     title: 'デュエル', subtitle: '複数のプレイヤーと同時に対戦するライブ単語バトル。',
@@ -226,6 +261,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: '次のラウンドを準備中…',
     finishedTitle: 'デュエル終了', backToLobbyBtn: 'ロビーに戻る',
     youLabel: '(あなた)', scoreLabel: '点',
+    modeQuizLabel: 'クイズ（選択式）', modeWordleLabel: '単語当て',
+    livesLabel: 'ライフ', wordleCompleteLabel: '単語を完成させました！🎉',
+    wordleFirstFinishLabel: '最速クリア！+ボーナス 🏆', wordleFailedLabel: '挑戦回数が尽きました。',
   },
   pt: {
     title: 'Duelo', subtitle: 'Uma competição de vocabulário ao vivo com vários jogadores ao mesmo tempo.',
@@ -245,5 +283,8 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     waitingRoundLabel: 'Preparando a próxima rodada…',
     finishedTitle: 'Duelo Encerrado', backToLobbyBtn: 'Voltar ao Lobby',
     youLabel: '(você)', scoreLabel: 'pts',
+    modeQuizLabel: 'Quiz (Múltipla Escolha)', modeWordleLabel: 'Adivinhar Palavra',
+    livesLabel: 'Vidas', wordleCompleteLabel: 'Você completou a palavra! 🎉',
+    wordleFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', wordleFailedLabel: 'Sem mais tentativas.',
   },
 };

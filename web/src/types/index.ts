@@ -921,10 +921,20 @@ export interface DuelStatusResponse extends DuelResponse {
   participants: DuelParticipantItem[];
 }
 
+export type DuelMode = 'multiple_choice' | 'wordle';
+
 export interface DuelRoundPublic {
   round_index: number;
-  definition: string;
-  options: string[];
+  mode: DuelMode;
+  // multiple_choice alanlari:
+  definition?: string | null;
+  options?: string[] | null;
+  // wordle alanlari (18 Eylul 2026) -- bu kullanicinin BU turdaki kendi
+  // ilerlemesi (bkz. backend duels.py::_round_public_response).
+  revealed?: string | null;
+  guessed_letters?: string[] | null;
+  wrong_guesses?: number | null;
+  max_wrong_guesses?: number | null;
   started_at?: string | null;
   ends_at?: string | null;
 }
@@ -933,6 +943,22 @@ export interface DuelAnswerResponse {
   is_correct: boolean;
   correct_option: string;
   score: number;
+}
+
+// 18 Eylul 2026 -- POST /duels/{id}/rounds/guess-letter yaniti (wordle
+// modu). mobile/src/api/types.ts ile birebir ayni alanlar.
+export interface DuelGuessLetterResponse {
+  letter: string;
+  correct: boolean;
+  revealed: string;
+  guessed_letters: string[];
+  wrong_guesses: number;
+  max_wrong_guesses: number;
+  is_complete: boolean;
+  is_round_over: boolean;
+  word: string | null;
+  score: number;
+  first_to_finish: boolean;
 }
 
 export interface DuelInviteItem {

@@ -19,7 +19,7 @@ import { Swords, Plus, Users, Loader2, RefreshCw, UserPlus, Check, X, Clock, Tra
 import { duelsApi, socialApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useAuth } from '@/store/auth';
-import type { DuelResponse, DuelInviteItem, FriendshipItem } from '@/types';
+import type { DuelResponse, DuelInviteItem, DuelMode, FriendshipItem } from '@/types';
 
 function errorDetail(err: unknown): string | undefined {
   if (err instanceof AxiosError) {
@@ -40,6 +40,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: 'seni davet etti', outgoingInviteLabel: 'davet edildi',
     acceptBtn: 'Kabul Et', declineBtn: 'Reddet', cancelInviteBtn: 'İptal Et', waitingBadge: 'Bekliyor',
     deleteRoomBtn: 'Odayı Sil',
+    modeQuizLabel: 'Klasik (Çoktan Seçmeli)', modeWordleLabel: 'Adam Asmaca',
   },
   en: {
     title: 'Duel', subtitle: 'A live vocabulary competition with multiple players at once.',
@@ -52,6 +53,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: 'invited you', outgoingInviteLabel: 'invited',
     acceptBtn: 'Accept', declineBtn: 'Decline', cancelInviteBtn: 'Cancel', waitingBadge: 'Waiting',
     deleteRoomBtn: 'Delete Room',
+    modeQuizLabel: 'Quiz (Multiple Choice)', modeWordleLabel: 'Word Guess',
   },
   de: {
     title: 'Duell', subtitle: 'Ein Live-Vokabelwettbewerb mit mehreren Spielern gleichzeitig.',
@@ -64,6 +66,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: 'hat dich eingeladen', outgoingInviteLabel: 'eingeladen',
     acceptBtn: 'Annehmen', declineBtn: 'Ablehnen', cancelInviteBtn: 'Abbrechen', waitingBadge: 'Wartet',
     deleteRoomBtn: 'Raum löschen',
+    modeQuizLabel: 'Quiz (Multiple-Choice)', modeWordleLabel: 'Wort erraten',
   },
   fr: {
     title: 'Duel', subtitle: 'Une compétition de vocabulaire en direct avec plusieurs joueurs à la fois.',
@@ -76,6 +79,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: "t'a invité", outgoingInviteLabel: 'invité',
     acceptBtn: 'Accepter', declineBtn: 'Refuser', cancelInviteBtn: 'Annuler', waitingBadge: 'En attente',
     deleteRoomBtn: 'Supprimer la salle',
+    modeQuizLabel: 'Quiz (choix multiple)', modeWordleLabel: 'Deviner le mot',
   },
   es: {
     title: 'Duelo', subtitle: 'Una competencia de vocabulario en vivo con varios jugadores a la vez.',
@@ -88,6 +92,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: 'te invitó', outgoingInviteLabel: 'invitado',
     acceptBtn: 'Aceptar', declineBtn: 'Rechazar', cancelInviteBtn: 'Cancelar', waitingBadge: 'Esperando',
     deleteRoomBtn: 'Eliminar sala',
+    modeQuizLabel: 'Cuestionario (opción múltiple)', modeWordleLabel: 'Adivinar la palabra',
   },
   it: {
     title: 'Duello', subtitle: 'Una gara di vocabolario dal vivo con più giocatori contemporaneamente.',
@@ -100,6 +105,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: 'ti ha invitato', outgoingInviteLabel: 'invitato',
     acceptBtn: 'Accetta', declineBtn: 'Rifiuta', cancelInviteBtn: 'Annulla', waitingBadge: 'In attesa',
     deleteRoomBtn: 'Elimina stanza',
+    modeQuizLabel: 'Quiz (scelta multipla)', modeWordleLabel: 'Indovina la parola',
   },
   ar: {
     title: 'مبارزة', subtitle: 'مسابقة مفردات مباشرة مع عدة لاعبين في آن واحد.',
@@ -112,6 +118,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: 'دعاك', outgoingInviteLabel: 'مدعو',
     acceptBtn: 'قبول', declineBtn: 'رفض', cancelInviteBtn: 'إلغاء', waitingBadge: 'قيد الانتظار',
     deleteRoomBtn: 'حذف الغرفة',
+    modeQuizLabel: 'مسابقة (اختيار من متعدد)', modeWordleLabel: 'تخمين الكلمة',
   },
   ru: {
     title: 'Дуэль', subtitle: 'Живое соревнование по словарному запасу с несколькими игроками одновременно.',
@@ -124,6 +131,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: 'пригласил(а) тебя', outgoingInviteLabel: 'приглашён',
     acceptBtn: 'Принять', declineBtn: 'Отклонить', cancelInviteBtn: 'Отменить', waitingBadge: 'Ожидание',
     deleteRoomBtn: 'Удалить комнату',
+    modeQuizLabel: 'Викторина (с вариантами)', modeWordleLabel: 'Угадай слово',
   },
   ja: {
     title: 'デュエル', subtitle: '複数のプレイヤーと同時に対戦するライブ単語バトル。',
@@ -136,6 +144,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: 'があなたを招待しました', outgoingInviteLabel: '招待済み',
     acceptBtn: '承認', declineBtn: '拒否', cancelInviteBtn: 'キャンセル', waitingBadge: '待機中',
     deleteRoomBtn: 'ルームを削除',
+    modeQuizLabel: 'クイズ（選択式）', modeWordleLabel: '単語当て',
   },
   pt: {
     title: 'Duelo', subtitle: 'Uma competição de vocabulário ao vivo com vários jogadores ao mesmo tempo.',
@@ -148,6 +157,7 @@ const L: Record<Locale, Record<string, string>> = {
     incomingInviteLabel: 'convidou você', outgoingInviteLabel: 'convidado',
     acceptBtn: 'Aceitar', declineBtn: 'Recusar', cancelInviteBtn: 'Cancelar', waitingBadge: 'Aguardando',
     deleteRoomBtn: 'Excluir Sala',
+    modeQuizLabel: 'Quiz (Múltipla Escolha)', modeWordleLabel: 'Adivinhar Palavra',
   },
 };
 
@@ -161,6 +171,10 @@ export default function DuelsLobbyPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  // 18 Eylul 2026 -- kullanici istegi: "adam asmacada duello olmali" -- backend
+  // hazirdi ama hicbir istemciden mode gonderilmiyordu, bu yuzden wordle odasi
+  // hic olusturulamiyordu. Simdi oda olustururken (ve arkadasa davette) secilebiliyor.
+  const [createMode, setCreateMode] = useState<DuelMode>('multiple_choice');
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
 
@@ -211,7 +225,7 @@ export default function DuelsLobbyPage() {
   const handleCreate = async () => {
     setCreating(true);
     try {
-      const duel = await duelsApi.create();
+      const duel = await duelsApi.create(createMode);
       router.push(`/duels/${duel.id}`);
     } catch (err) {
       setError(errorDetail(err) || t.error);
@@ -247,7 +261,7 @@ export default function DuelsLobbyPage() {
     if (!selectedFriendUsername) return;
     setInviting(true);
     try {
-      await duelsApi.invite(selectedFriendUsername);
+      await duelsApi.invite(selectedFriendUsername, createMode);
       setSelectedFriendUsername('');
       await loadInvites();
     } catch (err) {
@@ -323,6 +337,28 @@ export default function DuelsLobbyPage() {
             {t.createBtn}
           </button>
         </div>
+      </div>
+
+      {/* 18 Eylul 2026 -- oda modu secici (quiz/wordle). Yeni oda olustururken
+          VE arkadasa davet gonderirken (createMode paylasilir) kullanilir. */}
+      <div className="flex items-center gap-2">
+        {(['multiple_choice', 'wordle'] as DuelMode[]).map((m) => {
+          const active = createMode === m;
+          return (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setCreateMode(m)}
+              className={`flex-1 px-3 py-2 rounded-lg border text-xs font-semibold transition-colors ${
+                active
+                  ? 'bg-blue-600 border-blue-600 text-white'
+                  : 'bg-white dark:bg-slate-900 border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              {m === 'wordle' ? t.modeWordleLabel : t.modeQuizLabel}
+            </button>
+          );
+        })}
       </div>
 
       {/* Arkadaşını Davet Et (Faz 3f) */}

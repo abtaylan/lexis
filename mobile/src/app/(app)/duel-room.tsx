@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { AxiosError } from 'axios';
 import { Swords, Play, LogOut, Check, X, Trophy } from 'lucide-react-native';
 import { duelsApi } from '@/api/duels';
-import type { DuelAnswerResponse, DuelRoundPublic, DuelStatusResponse } from '@/api/types';
+import type { DuelAnswerResponse, DuelGuessLetterResponse, DuelRoundPublic, DuelStatusResponse } from '@/api/types';
 import { DUELS_STRINGS } from '@/i18n/duelsStrings';
 import { useLocale } from '@/i18n';
 import { useAuth } from '@/store/auth';
@@ -35,6 +35,13 @@ function errorDetail(err: unknown): string | undefined {
 
 const POLL_MS = 2000;
 
+// 18 Eylul 2026 -- mode='wordle' duellolari icin harf klavyesi. game.tsx'teki
+// (tek oyunculu hangman) AYNI klavye setleri -- bilincli kod tekrari, bu
+// dosyanin geri kalaninda da gecerli olan "route/ekran modulleri arasinda
+// capraz bagimlilik kurma" ilkesiyle tutarli.
+const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'فقكلمنهوي'];
+
 export default function DuelRoomScreen() {
   const { id: duelId } = useLocalSearchParams<{ id: string }>();
   const { locale } = useLocale();
@@ -50,12 +57,22 @@ export default function DuelRoomScreen() {
   const [selected, setSelected] = useState<string | null>(null);
   const [answerResult, setAnswerResult] = useState<DuelAnswerResponse | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  // 18 Eylul 2026 -- mode='wordle' turu icin ilerleme (bkz. asagidaki
+  // handleGuessLetter). guessResultRef, answerResultRef ile AYNI "en son
+  // deger" deseni -- tick() icindeki polling closure'inin GUNCEL degeri
+  // gormesi icin (stale-closure duzeltmesi, bkz. dosya basindaki not).
+  const [guessResult, setGuessResult] = useState<DuelGuessLetterResponse | null>(null);
+  const [letterBusy, setLetterBusy] = useState(false);
 
   const lastRoundIndex = useRef<number | null>(null);
   const answerResultRef = useRef<DuelAnswerResponse | null>(null);
+  const guessResultRef = useRef<DuelGuessLetterResponse | null>(null);
   useEffect(() => {
     answerResultRef.current = answerResult;
   }, [answerResult]);
+  useEffect(() => {
+    guessResultRef.current = guessResult;
+  }, [guessResult]);
 
   const tick = useCallback(async () => {
     if (!duelId) return;
@@ -70,6 +87,7 @@ export default function DuelRoomScreen() {
           lastRoundIndex.current = r.round_index;
           setSelected(null);
           setAnswerResult(null);
+          setGuessResult(null);
         }
         if (!r.started_at) {
           const started = await duelsApi.beginRound(duelId);
@@ -77,7 +95,9 @@ export default function DuelRoomScreen() {
         } else {
           setRound(r);
           const ended = r.ends_at ? new Date(r.ends_at).getTime() <= Date.now() : false;
-          if (ended || answerResultRef.current) {
+          // wordle modunda "bu tur benim icin bitti" -- guessResultRef.current?.is_round_over
+          // (tamamladi VEYA hakki tukendi), quiz modunda answerResultRef.current (cevapladi).
+          if (ended || answerResultRef.current || guessResultRef.current?.is_round_over) {
             duelsApi.advanceRound(duelId).catch(() => {});
           }
         }
@@ -137,6 +157,29 @@ export default function DuelRoomScreen() {
     }
   };
 
+  // 18 Eylul 2026 -- mode='wordle' turu icin tek harf tahmini. game.tsx'teki
+  // handleGuessLetter ile ayni mantik: sonuc dogrudan round'un revealed/
+  // guessed_letters/wrong_guesses alanlarina optimistik olarak yansitilir
+  // (bir sonraki 2sn'lik poll'u beklemeden), guessResult ise "bu tur bitti
+  // mi" / "ilk bitiren ben miyim" bilgisini tasir.
+  const handleGuessLetter = async (letter: string) => {
+    if (!round || !duelId || letterBusy || guessResult?.is_round_over) return;
+    setLetterBusy(true);
+    try {
+      const res = await duelsApi.guessLetter(duelId, letter);
+      setGuessResult(res);
+      setRound((prev) =>
+        prev
+          ? { ...prev, revealed: res.revealed, guessed_letters: res.guessed_letters, wrong_guesses: res.wrong_guesses }
+          : prev
+      );
+    } catch (err) {
+      setError(errorDetail(err) || t.error);
+    } finally {
+      setLetterBusy(false);
+    }
+  };
+
   if (loading && !duel) {
     return (
       <ScreenContainer>
@@ -158,6 +201,8 @@ export default function DuelRoomScreen() {
   if (!duel) return <ScreenContainer>{null}</ScreenContainer>;
 
   const isHost = duel.created_by === user?.id;
+  const isWordle = duel.mode === 'wordle';
+  const keyboardRows = duel.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
   const secondsLeft = round?.ends_at ? Math.max(0, Math.ceil((new Date(round.ends_at).getTime() - now) / 1000)) : null;
   const sortedParticipants = [...duel.participants].sort((a, b) => b.score - a.score);
 
@@ -231,13 +276,96 @@ export default function DuelRoomScreen() {
             </Text>
           )}
 
-          {round && (
+          {round && isWordle && (
+            <>
+              <View style={styles.livesRow}>
+                <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginRight: 4 }}>{t.livesLabel}</Text>
+                {Array.from({ length: round.max_wrong_guesses ?? 6 }).map((_, i) => (
+                  <Text key={i} style={{ fontSize: 16 }}>
+                    {i < (round.max_wrong_guesses ?? 6) - (round.wrong_guesses ?? 0) ? '❤️' : '🤍'}
+                  </Text>
+                ))}
+              </View>
+
+              <View style={styles.revealRow}>
+                {(round.revealed ?? '').replace(/\s+/g, '').split('').map((ch, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.letterBox,
+                      { borderColor: ch === '_' ? c.border : c.success, backgroundColor: ch === '_' ? c.background : c.successSoft },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: ch === '_' ? 'transparent' : c.success, textTransform: 'uppercase' }}>
+                      {ch === '_' ? '·' : ch}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              {guessResult?.is_round_over && (
+                <Card
+                  style={{
+                    backgroundColor: guessResult.is_complete ? c.successSoft : c.dangerSoft,
+                    borderColor: guessResult.is_complete ? c.successSoft : c.dangerSoft,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: guessResult.is_complete ? c.success : c.danger, fontWeight: '700' }}>
+                    {guessResult.is_complete
+                      ? guessResult.first_to_finish
+                        ? t.wordleFirstFinishLabel
+                        : t.wordleCompleteLabel
+                      : t.wordleFailedLabel}
+                  </Text>
+                  {!guessResult.is_complete && guessResult.word && (
+                    <Text style={{ color: c.danger, marginTop: 4 }}>{t.correctAnswerPrefix} {guessResult.word}</Text>
+                  )}
+                </Card>
+              )}
+
+              {!guessResult?.is_round_over && (
+                <View style={{ alignItems: 'center', gap: 6 }}>
+                  {keyboardRows.map((row, i) => (
+                    <View key={i} style={{ flexDirection: 'row', gap: 5 }}>
+                      {row.split('').map((letter) => {
+                        const lower = letter.toLowerCase();
+                        const guessedLetters = round.guessed_letters ?? [];
+                        const isGuessed = guessedLetters.includes(lower);
+                        const isCorrectGuess = isGuessed && (round.revealed ?? '').toLowerCase().includes(lower);
+                        return (
+                          <Pressable
+                            key={letter}
+                            disabled={isGuessed || letterBusy}
+                            onPress={() => handleGuessLetter(lower)}
+                            style={[
+                              styles.key,
+                              {
+                                backgroundColor: isGuessed ? (isCorrectGuess ? c.successSoft : c.border) : c.surface,
+                                borderColor: isGuessed ? 'transparent' : c.border,
+                              },
+                            ]}
+                          >
+                            <Text style={{ fontSize: 13, fontWeight: '600', color: isGuessed ? (isCorrectGuess ? c.success : c.textMuted) : c.text }}>
+                              {letter}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+              )}
+            </>
+          )}
+
+          {round && !isWordle && (
             <>
               <Text style={{ color: c.text, fontSize: 16, fontWeight: '600', textAlign: 'center', paddingVertical: spacing.xs }}>
                 {round.definition}
               </Text>
               <View style={{ gap: spacing.sm }}>
-                {round.options.map((opt) => {
+                {(round.options ?? []).map((opt) => {
                   const isSelected = selected === opt;
                   const isCorrectOpt = !!answerResult && opt === answerResult.correct_option;
                   let borderColor = c.border;
@@ -340,4 +468,9 @@ const styles = StyleSheet.create({
   leaveBtn: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm + 2 },
   optionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderRadius: radius.md, paddingHorizontal: spacing.md, paddingVertical: spacing.md },
   finishedRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: spacing.sm },
+  // 18 Eylul 2026 -- wordle turu (game.tsx'teki AYNI stiller).
+  livesRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
+  revealRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
+  letterBox: { width: 32, height: 40, borderWidth: 2, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  key: { width: 28, height: 36, borderRadius: radius.sm, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

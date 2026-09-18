@@ -3,17 +3,23 @@
 import { api } from './client';
 import type {
   DuelAnswerResponse,
+  DuelGuessLetterResponse,
   DuelInviteItem,
   DuelInvitesListResponse,
   DuelListResponse,
+  DuelMode,
   DuelResponse,
   DuelRoundPublic,
   DuelStatusResponse,
 } from './types';
 
 export const duelsApi = {
-  create: async (): Promise<DuelResponse> => {
-    const res = await api.post<DuelResponse>('/duels', {});
+  // 18 Eylul 2026 -- mode eklendi ('multiple_choice' | 'wordle', bkz.
+  // backend schemas/duels.py::DuelCreate). Onceden burasi hep varsayilan
+  // (multiple_choice) moda sabitti -- wordle duellosu HICBIR istemciden
+  // olusturulamiyordu (backend hazir ama erisilemezdi).
+  create: async (mode: DuelMode = 'multiple_choice', max_players = 8, round_count = 10): Promise<DuelResponse> => {
+    const res = await api.post<DuelResponse>('/duels', { mode, max_players, round_count });
     return res.data;
   },
   list: async (): Promise<DuelListResponse> => {
@@ -54,8 +60,13 @@ export const duelsApi = {
     return res.data;
   },
   // -- Arkadasa davet (Faz 3f, 10 Eylul 2026 -- "arkadasa davet gonderme") --
-  invite: async (username: string, max_players = 2, round_count = 10): Promise<DuelInviteItem> => {
-    const res = await api.post<DuelInviteItem>('/duels/invite', { username, max_players, round_count });
+  invite: async (
+    username: string,
+    mode: DuelMode = 'multiple_choice',
+    max_players = 2,
+    round_count = 10
+  ): Promise<DuelInviteItem> => {
+    const res = await api.post<DuelInviteItem>('/duels/invite', { username, mode, max_players, round_count });
     return res.data;
   },
   listInvites: async (): Promise<DuelInvitesListResponse> => {
@@ -77,5 +88,11 @@ export const duelsApi = {
   // silebilir. Backend: POST /duels/{id}/cancel (bkz. duels.py cancel_duel)
   cancel: async (duelId: string): Promise<void> => {
     await api.post(`/duels/${duelId}/cancel`);
+  },
+  // 18 Eylul 2026 -- mode='wordle' duellolarina ozel: su anki turda TEK
+  // bir harf tahmini gonderir (bkz. backend duels.py::submit_round_guess_letter).
+  guessLetter: async (duelId: string, letter: string): Promise<DuelGuessLetterResponse> => {
+    const res = await api.post<DuelGuessLetterResponse>(`/duels/${duelId}/rounds/guess-letter`, { letter });
+    return res.data;
   },
 };

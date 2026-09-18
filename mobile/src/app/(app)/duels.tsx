@@ -6,7 +6,7 @@ import { Swords, Plus, Users, UserPlus, Check, X, Clock, Trash2 } from 'lucide-r
 import { duelsApi } from '@/api/duels';
 import { socialApi } from '@/api/social';
 import { useAuth } from '@/store/auth';
-import type { DuelResponse, DuelInviteItem, FriendshipItem } from '@/api/types';
+import type { DuelResponse, DuelInviteItem, DuelMode, FriendshipItem } from '@/api/types';
 import { DUELS_STRINGS } from '@/i18n/duelsStrings';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -37,6 +37,10 @@ export default function DuelsLobbyScreen() {
   const ds = DUELS_STRINGS[locale] ?? DUELS_STRINGS.tr;
 
   const [selectedFriendUsername, setSelectedFriendUsername] = useState<string | null>(null);
+  // 18 Eylul 2026 -- kullanici istegi: "adam asmacada duello olmali" -- backend
+  // hazirdi ama hicbir istemciden mode gonderilmiyordu, bu yuzden wordle odasi
+  // hic olusturulamiyordu. Simdi oda olustururken (ve arkadasa davette) secilebiliyor.
+  const [createMode, setCreateMode] = useState<DuelMode>('multiple_choice');
 
   const duelsQuery = useQuery({ queryKey: ['duels-list'], queryFn: duelsApi.list });
   const friendsQuery = useQuery({ queryKey: ['friends-list'], queryFn: socialApi.getFriends });
@@ -45,7 +49,7 @@ export default function DuelsLobbyScreen() {
   const invites = invitesQuery.data?.items ?? [];
 
   const createMutation = useMutation({
-    mutationFn: duelsApi.create,
+    mutationFn: (mode: DuelMode) => duelsApi.create(mode),
     onSuccess: (duel) => {
       qc.invalidateQueries({ queryKey: ['duels-list'] });
       router.push({ pathname: '/(app)/duel-room', params: { id: duel.id } });
@@ -60,7 +64,7 @@ export default function DuelsLobbyScreen() {
   });
 
   const inviteMutation = useMutation({
-    mutationFn: (username: string) => duelsApi.invite(username),
+    mutationFn: (username: string) => duelsApi.invite(username, createMode),
     onSuccess: () => {
       setSelectedFriendUsername(null);
       qc.invalidateQueries({ queryKey: ['duel-invites'] });
@@ -106,8 +110,28 @@ export default function DuelsLobbyScreen() {
         </View>
       </View>
 
+      <View style={styles.modeToggleRow}>
+        {(['multiple_choice', 'wordle'] as DuelMode[]).map((m) => {
+          const active = createMode === m;
+          return (
+            <Pressable
+              key={m}
+              onPress={() => setCreateMode(m)}
+              style={[
+                styles.modeChip,
+                { backgroundColor: active ? c.primary : c.surface, borderColor: active ? c.primary : c.border },
+              ]}
+            >
+              <Text style={{ color: active ? '#fff' : c.textSecondary, fontSize: 12, fontWeight: '700' }}>
+                {m === 'wordle' ? ds.modeWordleLabel : ds.modeQuizLabel}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <Pressable
-        onPress={() => createMutation.mutate()}
+        onPress={() => createMutation.mutate(createMode)}
         disabled={createMutation.isPending}
         style={({ pressed }) => [
           styles.createBtn,
@@ -290,6 +314,8 @@ const styles = StyleSheet.create({
   headerRow: { marginBottom: spacing.md },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   headerIcon: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  modeToggleRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  modeChip: { flex: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 1.5, borderRadius: radius.md, paddingVertical: spacing.sm },
   createBtn: {
     flexDirection: 'row',
     alignItems: 'center',

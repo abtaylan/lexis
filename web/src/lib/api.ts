@@ -34,6 +34,8 @@ import type {
   WeakDifficultyResult,
   ExamFinishResult,
   PlacementStatusResult,
+  DuelMode,
+  DuelGuessLetterResponse,
   AddWordFromQuestionResult,
   ExamQuestionSuggestionInput,
   ExamQuestionSuggestionResult,
@@ -1305,8 +1307,12 @@ export const notificationsApi = {
 
 // ── Düello API (V2 §6.3 Faz 3a/3e — Gerçek Zamanlı Düello) ──
 export const duelsApi = {
-  create: async (max_players = 8, round_count = 10): Promise<DuelResponse> => {
-    const res = await api.post<DuelResponse>('/duels', { max_players, round_count });
+  // 18 Eylul 2026 -- mode eklendi ('multiple_choice' | 'wordle'). Onceden
+  // burasi hep varsayilan (multiple_choice) moda sabitti -- wordle
+  // duellosu HICBIR istemciden olusturulamiyordu (backend hazir ama
+  // erisilemezdi, bkz. backend duels.py).
+  create: async (mode: DuelMode = 'multiple_choice', max_players = 8, round_count = 10): Promise<DuelResponse> => {
+    const res = await api.post<DuelResponse>('/duels', { mode, max_players, round_count });
     return res.data;
   },
   list: async (): Promise<DuelListResponse> => {
@@ -1347,8 +1353,13 @@ export const duelsApi = {
     return res.data;
   },
   // -- Arkadasa davet (Faz 3f, 10 Eylul 2026 -- "arkadasa davet gonderme") --
-  invite: async (username: string, max_players = 2, round_count = 10): Promise<DuelInviteItem> => {
-    const res = await api.post<DuelInviteItem>('/duels/invite', { username, max_players, round_count });
+  invite: async (
+    username: string,
+    mode: DuelMode = 'multiple_choice',
+    max_players = 2,
+    round_count = 10
+  ): Promise<DuelInviteItem> => {
+    const res = await api.post<DuelInviteItem>('/duels/invite', { username, mode, max_players, round_count });
     return res.data;
   },
   listInvites: async (): Promise<DuelInvitesListResponse> => {
@@ -1368,6 +1379,12 @@ export const duelsApi = {
   // -- Faz 3f: oda sahibi bekleyen odayi silebilsin --
   cancel: async (duelId: string): Promise<void> => {
     await api.post(`/duels/${duelId}/cancel`);
+  },
+  // 18 Eylul 2026 -- mode='wordle' duellolarina ozel: su anki turda TEK
+  // bir harf tahmini gonderir (bkz. backend duels.py::submit_round_guess_letter).
+  guessLetter: async (duelId: string, letter: string): Promise<DuelGuessLetterResponse> => {
+    const res = await api.post<DuelGuessLetterResponse>(`/duels/${duelId}/rounds/guess-letter`, { letter });
+    return res.data;
   },
 };
 
