@@ -572,10 +572,21 @@ def _generate_placement_batch(
     return validated
 
 
-def generate_placement_questions(learning_lang: str, count: int = 50) -> list[dict]:
+def generate_placement_questions(
+    learning_lang: str, count: int = 50, levels: list[str] | None = None
+) -> list[dict]:
     """Belirtilen ogrenilen dil icin `count` adet (varsayilan 50) CEFR
     bandina yayilmis, gercek seviyeyi ortaya cikarmayi amaclayan coktan
     secmeli seviye tespit sorusu uretir.
+
+    `levels` verilirse (orn. ["a1", "b1"]) SADECE o CEFR seviyeleri icin
+    soru uretilir -- 6 seviyenin tamami degil. Her seviyenin hedef soru
+    sayisi yine `count`'a gore hesaplanan sabit dagilimdan (orn. count=50 ->
+    8,8,8,8,9,9) gelir, sadece hangi seviyelerin uretilecegi filtrelenir.
+    Bu, seed_placement_exam_questions.py'nin idempotentlik kontrolunun artik
+    dil basina degil SEVIYE BASINA calismasini saglar (bkz. 18 Eylul 2026
+    -- 'tr' dilinde a1/b1/c1 eksik kalinca dil TOPTAN yeniden uretilince a2
+    seviyesi zaten yeterliyken tekrar uretilip mukerrer soru birikmisti).
 
     18 Eylul 2026 GUNCELLEME: tek buyuk API cagrisi (50 soru, max_tokens=8192)
     bazi dillerde (orn. Ingilizce) modelin ciktisinin kesilmesine ve
@@ -604,11 +615,19 @@ def generate_placement_questions(learning_lang: str, count: int = 50) -> list[di
         )
     )
 
-    levels = ["a1", "a2", "b1", "b2", "c1", "c2"]
-    base, remainder = divmod(count, len(levels))
-    # ilk `len(levels) - remainder` seviye `base`, kalan `remainder` seviye
-    # `base + 1` soru alir (orn. count=50 -> 8,8,8,8,9,9 -- toplam 50).
-    level_counts = [base + (1 if i >= len(levels) - remainder else 0) for i in range(len(levels))]
+    all_levels = ["a1", "a2", "b1", "b2", "c1", "c2"]
+    base, remainder = divmod(count, len(all_levels))
+    # ilk `len(all_levels) - remainder` seviye `base`, kalan `remainder`
+    # seviye `base + 1` soru alir (orn. count=50 -> 8,8,8,8,9,9 -- toplam 50).
+    # Bu esleme her zaman TUM 6 seviye icin hesaplanir ki `levels` ile bir
+    # alt kume istendiginde bile ayni seviyenin hedef sayisi degismesin.
+    level_count_by_level = {
+        lvl: base + (1 if i >= len(all_levels) - remainder else 0)
+        for i, lvl in enumerate(all_levels)
+    }
+    target_levels = [lvl for lvl in all_levels if levels is None or lvl in levels]
+    level_counts = [level_count_by_level[lvl] for lvl in target_levels]
+    levels = target_levels
 
     # 18 Eylul 2026: bir seviyenin sifir soruyla donmesi (once stringlestirme
     # bug'i, simdi ise sadece modelin o cagrida stokastik olarak bos dizi

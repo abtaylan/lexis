@@ -25,10 +25,15 @@ tablosu olmadigindan model genel CEFR gramer kapsamina gore uretir --
 bu bilincli bir sinir, ayni general_word_pool script'inin docstring'indeki
 gibi.
 
-Idempotentlik: bir dil icin zaten >=50 placement sorusu varsa (herhangi
-bir status'te -- pending dahil, cunku amac tekrar tekrar ayni dili
-uretip kuyrugu sismek degil) o dil ATLANIR. Script kesintiye ugrarsa
-guvenle tekrar calistirilabilir.
+Idempotentlik (18 Eylul 2026 GUNCELLEME -- SEVIYE BAZLI): dil toplami
+degil, HER CEFR SEVIYESI (a1..c2) ayri ayri kontrol edilir -- bir seviyede
+zaten >=6 soru varsa (herhangi bir status'te -- pending dahil) o seviye
+ATLANIR, sadece gercekten eksik seviyeler yeniden uretilir. (Eskiden dil
+toplami >=50 degilse TUM 6 seviye yeniden uretiliyordu; bu, bir dilde
+AI'nin bazi seviyelerde basarisiz oldugu durumlarda zaten yeterli olan
+seviyelerin de gereksiz yere tekrar tekrar uretilip mukerrer soru
+birikmesine yol acmisti.) Script kesintiye ugrarsa guvenle tekrar
+calistirilabilir.
 
 Calistirma (tum diller, sirayla -- her dil bir AI cagrisi, ucret/sure
 gerektirir):
@@ -50,7 +55,8 @@ from app.services.exam_question_generator import (
 )
 
 QUESTIONS_PER_LANG = 50
-MIN_EXISTING_TO_SKIP = 50
+CEFR_LEVELS = ["a1", "a2", "b1", "b2", "c1", "c2"]
+MIN_PER_LEVEL_TO_SKIP = 6  # 18 Eylul 2026: dil-toplami yerine SEVIYE BASINA idempotentlik esigi (asagiya bkz.)
 
 LEARNING_LANGS = list(LANGUAGE_NAMES.keys())  # en, tr, de, fr, es, it, ar, ru, ja, pt, ko, zh
 
@@ -58,28 +64,46 @@ if len(sys.argv) > 1:
     LEARNING_LANGS = [sys.argv[1]]
 
 
-def existing_placement_count(learning_lang: str) -> int:
+def existing_placement_levels(learning_lang: str) -> dict[str, int]:
+    """CEFR seviyesi basina mevcut soru sayisini dondurur.
+
+    18 Eylul 2026 GUNCELLEME: eskiden tek bir toplam sayi (existing_placement_count)
+    donduruluyordu ve dil toplami >=50 degilse TUM 6 seviye yeniden uretiliyordu --
+    bu, 'tr' dilinde a1/b1/c1 seviyeleri eksik kalinca, zaten yeterli olan a2
+    seviyesinin de tekrar tekrar uretilip mukerrer soru birikmesine yol acti
+    (bkz. git log). Artik seviye basina kontrol ediyoruz, sadece gercekten
+    eksik olan seviyeler yeniden uretiliyor."""
     result = (
         supabase_admin.table("exam_questions")
-        .select("id", count="exact")
+        .select("difficulty_level")
         .eq("exam_type", "placement")
         .eq("learning_lang", learning_lang)
         .execute()
     )
-    return result.count or 0
+    counts: dict[str, int] = {lvl: 0 for lvl in CEFR_LEVELS}
+    for row in result.data or []:
+        lvl = row.get("difficulty_level")
+        if lvl in counts:
+            counts[lvl] += 1
+    return counts
 
 
 def seed_language(learning_lang: str) -> None:
     language_name = LANGUAGE_NAMES.get(learning_lang, learning_lang)
     print(f"\n=== {learning_lang} ({language_name}) seviye tespit sinavi ===")
 
-    existing = existing_placement_count(learning_lang)
-    if existing >= MIN_EXISTING_TO_SKIP:
-        print(f"  Zaten {existing} soru var (>= {MIN_EXISTING_TO_SKIP}), atlaniyor.")
+    existing_by_level = existing_placement_levels(learning_lang)
+    missing_levels = [lvl for lvl in CEFR_LEVELS if existing_by_level[lvl] < MIN_PER_LEVEL_TO_SKIP]
+    if not missing_levels:
+        print(f"  Tum seviyelerde yeterli soru var {existing_by_level}, atlaniyor.")
         return
+    if len(missing_levels) < len(CEFR_LEVELS):
+        print(f"  Mevcut: {existing_by_level} -- sadece eksik seviyeler uretilecek: {missing_levels}")
 
     try:
-        questions = generate_placement_questions(learning_lang, count=QUESTIONS_PER_LANG)
+        questions = generate_placement_questions(
+            learning_lang, count=QUESTIONS_PER_LANG, levels=missing_levels
+        )
     except ExamQuestionGenerationError as exc:
         print(f"  [HATA] AI soru uretimi basarisiz: {exc}")
         return
