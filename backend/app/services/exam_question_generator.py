@@ -16,6 +16,7 @@ Model: Anthropic Messages API, zorunlu tool-use ile yapılandırılmış JSON
 """
 
 import json
+import re
 
 from anthropic import Anthropic, APIError
 
@@ -98,6 +99,30 @@ class ExamQuestionGenerationError(Exception):
     """AI ile soru üretimi başarısız olduğunda fırlatılır — route bunu
     HTTP 502 (upstream/model hatası) ya da 500'e (yapılandırma eksikliği için
     400/500) çevirir."""
+
+
+def _parse_stringified_questions(raw: str) -> list | None:
+    """Model "questions" alanina native dizi yerine JSON-encode edilmis bir
+    STRING koydugunda (bkz. asagidaki cagri yerlerindeki notlar) bu stringi
+    gercek bir Python listesine cevirmeyi dener.
+
+    18 Eylul 2026 (it/c2 vakasi): duz json.loads() cogu zaman yetersiz kaldi
+    -- model bu "elle yazilmis" JSON stringinde SIK SIK trailing comma
+    birakiyor (orn. bir dizinin son elemanindan sonra, kapanan `]`'den
+    hemen once bir virgul kalmasi: `..."d"},\n],`), ki bu standart JSON'da
+    gecersizdir ve json.loads() ValueError firlatir. Once duz parse'i dene,
+    olmazsa yaygin trailing-comma hatasini regex ile temizleyip tekrar dene.
+    Ikisi de basarisiz olursa None doner (cagiran taraf bos listeye duser)."""
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        pass
+    # `]` veya `}`'den hemen once gelen tek bir virgulu temizle.
+    repaired = re.sub(r",(\s*[\]}])", r"\1", raw)
+    try:
+        return json.loads(repaired)
+    except (json.JSONDecodeError, TypeError):
+        return None
 
 # ── V2 backlog #10 (14 Eylül 2026) — kullanıcı soru önerisi AI ön-kontrolü ──
 # generate_questions()'dan farkı: burada model soru ÜRETMİYOR, kullanıcının
@@ -284,10 +309,8 @@ def generate_questions(
         # gecmiyordu). Bu durumda stringi JSON olarak parse edip gercek
         # listeyi kurtarmayi dene; olmazsa bos listeye dus (asagidaki
         # dongude zaten dict-olmayanlar elenir).
-        try:
-            raw_questions = json.loads(raw_questions)
-        except (json.JSONDecodeError, TypeError):
-            raw_questions = []
+        parsed = _parse_stringified_questions(raw_questions)
+        raw_questions = parsed if parsed is not None else []
     if not isinstance(raw_questions, list):
         raw_questions = []
     validated: list[dict] = []
@@ -508,10 +531,8 @@ def _generate_placement_batch(
         # gecmiyordu). Bu durumda stringi JSON olarak parse edip gercek
         # listeyi kurtarmayi dene; olmazsa bos listeye dus (asagidaki
         # dongude zaten dict-olmayanlar elenir).
-        try:
-            raw_questions = json.loads(raw_questions)
-        except (json.JSONDecodeError, TypeError):
-            raw_questions = []
+        parsed = _parse_stringified_questions(raw_questions)
+        raw_questions = parsed if parsed is not None else []
     if not isinstance(raw_questions, list):
         raw_questions = []
     validated: list[dict] = []
