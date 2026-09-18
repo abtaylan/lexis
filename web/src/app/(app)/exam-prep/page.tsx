@@ -46,6 +46,7 @@ type ExamStrings = {
   modeMockDesc: string;
   startBtn: string;
   backBtn: string;
+  exitConfirmMsg: string;
   loadingLabel: string;
   genericError: string;
   timeLeftTpl: string;
@@ -92,6 +93,7 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     modeMockDesc: 'Süreli tam deneme — gerçek sınav temposunu hisset',
     startBtn: 'Başla',
     backBtn: 'Geri',
+    exitConfirmMsg: 'Sınavdan çıkmak istediğine emin misin? İlerlemen kaybolabilir.',
     loadingLabel: 'Yükleniyor…',
     genericError: 'Bir şeyler ters gitti, tekrar dene.',
     timeLeftTpl: 'Kalan süre: {time}',
@@ -135,6 +137,7 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     modeMockDesc: 'A timed full mock — feel the real exam pace',
     startBtn: 'Start',
     backBtn: 'Back',
+    exitConfirmMsg: 'Are you sure you want to exit the exam? Your progress may be lost.',
     loadingLabel: 'Loading…',
     genericError: 'Something went wrong, please try again.',
     timeLeftTpl: 'Time left: {time}',
@@ -502,6 +505,16 @@ export default function ExamPrepPage() {
     return (
       <div className="p-6 max-w-xl mx-auto">
         <div className="flex items-center justify-between mb-4">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(et.exitConfirmMsg)) router.push('/dashboard');
+            }}
+            className="flex items-center gap-1 text-sm font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-700 hover:dark:text-slate-200 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {et.backBtn}
+          </button>
           <span className="text-sm font-semibold text-gray-500 dark:text-slate-400">
             {question?.question_index && session
               ? et.questionCounterTpl.replace('{current}', String(question.question_index)).replace('{total}', String(session.total_questions))

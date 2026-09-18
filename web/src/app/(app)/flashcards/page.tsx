@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { CheckCircle2, XCircle, RotateCcw, Loader2, Layers, ChevronRight, BookPlus } from 'lucide-react';
+import { CheckCircle2, XCircle, RotateCcw, Loader2, Layers, ChevronRight, BookPlus, ArrowLeft } from 'lucide-react';
 import { wordsApi, languagesApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
@@ -214,6 +214,16 @@ export default function FlashcardsPage() {
       {/* Üst bar */}
       <div className="w-full flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(t('exitConfirmMsg'))) router.push('/dashboard');
+            }}
+            className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-400 dark:text-slate-500 hover:bg-gray-50 hover:dark:bg-slate-800 hover:text-gray-600 hover:dark:text-slate-300 transition-colors"
+            title={t('exitBtn')}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
           <div className="w-8 h-8 rounded-xl bg-[#E6F1FB] flex items-center justify-center">
             <Layers className="w-4 h-4 text-[#185FA5]" />
           </div>

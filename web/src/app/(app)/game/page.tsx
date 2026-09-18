@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   CheckCircle2,
   XCircle,
@@ -73,6 +73,7 @@ type Strings = {
   poolGeneralLabel: string;
   poolGeneralDesc: string;
   backBtn: string;
+  exitConfirmMsg: string;
   startBtn: string;
   loadingLabel: string;
   genericError: string;
@@ -145,6 +146,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: 'Genel Havuz',
     poolGeneralDesc: 'Geniş kelime havuzundan rastgele sorular',
     backBtn: 'Geri',
+    exitConfirmMsg: 'Oyundan çıkmak istediğine emin misin? İlerlemen kaybolabilir.',
     startBtn: 'Oyunu Başlat',
     loadingLabel: 'Yükleniyor…',
     genericError: 'Bir şeyler ters gitti, tekrar dene.',
@@ -214,6 +216,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: 'General Pool',
     poolGeneralDesc: 'Random questions from a large word pool',
     backBtn: 'Back',
+    exitConfirmMsg: 'Are you sure you want to exit the game? Your progress may be lost.',
     startBtn: 'Start Game',
     loadingLabel: 'Loading…',
     genericError: 'Something went wrong, please try again.',
@@ -283,6 +286,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: 'المجموعة العامة',
     poolGeneralDesc: 'أسئلة عشوائية من مجموعة كبيرة من الكلمات',
     backBtn: 'رجوع',
+    exitConfirmMsg: 'هل أنت متأكد أنك تريد الخروج من اللعبة؟ قد يُفقد تقدمك.',
     startBtn: 'ابدأ اللعبة',
     loadingLabel: 'جارٍ التحميل…',
     genericError: 'حدث خطأ ما، حاول مرة أخرى.',
@@ -352,6 +356,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: 'Общий пул',
     poolGeneralDesc: 'Случайные вопросы из большого пула слов',
     backBtn: 'Назад',
+    exitConfirmMsg: 'Вы уверены, что хотите выйти из игры? Ваш прогресс может быть потерян.',
     startBtn: 'Начать игру',
     loadingLabel: 'Загрузка…',
     genericError: 'Что-то пошло не так, попробуйте снова.',
@@ -421,6 +426,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: 'Allgemeiner Pool',
     poolGeneralDesc: 'Zufällige Fragen aus einem großen Wortpool',
     backBtn: 'Zurück',
+    exitConfirmMsg: 'Möchtest du das Spiel wirklich verlassen? Dein Fortschritt könnte verloren gehen.',
     startBtn: 'Spiel starten',
     loadingLabel: 'Wird geladen…',
     genericError: 'Etwas ist schiefgelaufen, versuche es erneut.',
@@ -490,6 +496,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: 'Pool général',
     poolGeneralDesc: "Questions aléatoires issues d'un grand pool de mots",
     backBtn: 'Retour',
+    exitConfirmMsg: 'Voulez-vous vraiment quitter la partie ? Votre progression pourrait être perdue.',
     startBtn: 'Démarrer le jeu',
     loadingLabel: 'Chargement…',
     genericError: 'Une erreur est survenue, réessaie.',
@@ -559,6 +566,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: 'Grupo general',
     poolGeneralDesc: 'Preguntas aleatorias de un gran grupo de palabras',
     backBtn: 'Atrás',
+    exitConfirmMsg: '¿Seguro que quieres salir del juego? Podrías perder tu progreso.',
     startBtn: 'Iniciar juego',
     loadingLabel: 'Cargando…',
     genericError: 'Algo salió mal, inténtalo de nuevo.',
@@ -628,6 +636,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: 'Pool generale',
     poolGeneralDesc: 'Domande casuali da un ampio pool di parole',
     backBtn: 'Indietro',
+    exitConfirmMsg: 'Sei sicuro di voler uscire dal gioco? I tuoi progressi potrebbero andare persi.',
     startBtn: 'Inizia il gioco',
     loadingLabel: 'Caricamento…',
     genericError: 'Qualcosa è andato storto, riprova.',
@@ -697,6 +706,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: '一般プール',
     poolGeneralDesc: '大きな単語プールからランダムに出題',
     backBtn: '戻る',
+    exitConfirmMsg: '本当にゲームを終了しますか？進捗が失われる可能性があります。',
     startBtn: 'ゲーム開始',
     loadingLabel: '読み込み中…',
     genericError: '問題が発生しました。もう一度お試しください。',
@@ -766,6 +776,7 @@ const STRINGS: Record<Locale, Strings> = {
     poolGeneralLabel: 'Conjunto Geral',
     poolGeneralDesc: 'Perguntas aleatórias de um grande conjunto de palavras',
     backBtn: 'Voltar',
+    exitConfirmMsg: 'Tem a certeza de que quer sair do jogo? O teu progresso pode perder-se.',
     startBtn: 'Começar Jogo',
     loadingLabel: 'A carregar…',
     genericError: 'Algo correu mal, tenta novamente.',
@@ -859,6 +870,7 @@ type Stage = 'mode' | 'direction' | 'setup' | 'loading' | 'playing' | 'error' | 
 export default function GamePage() {
   const { locale } = useLocale();
   const t = STRINGS[locale];
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
 
@@ -1665,6 +1677,16 @@ export default function GamePage() {
       <div className="p-6 flex flex-col items-center gap-6 max-w-xl mx-auto">
         <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.confirm(t.exitConfirmMsg)) router.push('/dashboard');
+              }}
+              className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-400 dark:text-slate-500 hover:bg-gray-50 hover:dark:bg-slate-800 hover:text-gray-600 hover:dark:text-slate-300 transition-colors"
+              title={t.backBtn}
+            >
+              <ArrowLeft className="w-4 h-4" />
+            </button>
             <div className="w-8 h-8 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
               <Gamepad2 className="w-4 h-4 text-[#534AB7]" />
             </div>
@@ -1767,6 +1789,16 @@ export default function GamePage() {
     <div className="p-6 flex flex-col items-center gap-6 max-w-xl mx-auto">
       <div className="w-full flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(t.exitConfirmMsg)) router.push('/dashboard');
+            }}
+            className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-400 dark:text-slate-500 hover:bg-gray-50 hover:dark:bg-slate-800 hover:text-gray-600 hover:dark:text-slate-300 transition-colors"
+            title={t.backBtn}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
           <div className="w-8 h-8 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
             <Gamepad2 className="w-4 h-4 text-[#534AB7]" />
           </div>

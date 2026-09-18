@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { CheckCircle2, XCircle, Loader2, Trophy, RotateCcw, Brain } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { CheckCircle2, XCircle, Loader2, Trophy, RotateCcw, Brain, ArrowLeft } from 'lucide-react';
 import { wordsApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import type { Word } from '@/types';
@@ -87,6 +88,7 @@ function DoneScreen({ score, total, onRestart }: { score: number; total: number;
 
 // ── Ana Sayfa ─────────────────────────────────────────────────
 export default function QuizPage() {
+  const router = useRouter();
   const { t } = useLocale();
   const [cards, setCards] = useState<QuizCard[]>([]);
   const [index, setIndex] = useState(0);
@@ -183,6 +185,16 @@ export default function QuizPage() {
       {/* Üst bar */}
       <div className="w-full flex items-center justify-between">
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(t('exitConfirmMsg'))) router.push('/dashboard');
+            }}
+            className="flex items-center justify-center w-8 h-8 rounded-xl text-gray-400 dark:text-slate-500 hover:bg-gray-50 hover:dark:bg-slate-800 hover:text-gray-600 hover:dark:text-slate-300 transition-colors"
+            title={t('exitBtn')}
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
           <div className="w-8 h-8 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
             <Brain className="w-4 h-4 text-[#534AB7]" />
           </div>

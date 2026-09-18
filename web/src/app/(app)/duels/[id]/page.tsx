@@ -26,7 +26,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
-import { Swords, Loader2, Play, LogOut, Check, X, Trophy } from 'lucide-react';
+import { Swords, Loader2, Play, LogOut, Check, X, Trophy, ArrowLeft } from 'lucide-react';
 import { duelsApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -45,6 +45,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: 'Yükleniyor…', error: 'Bir şeyler ters gitti.',
     waitingTitle: 'Bekleme Odası', waitingSub: 'Diğer oyuncular bekleniyor…',
     startBtn: 'Başlat', needMoreLabel: 'Başlamak için en az 2 oyuncu gerekiyor.',
+    backToListBtn: 'Listeye dön',
     leaveBtn: 'Odadan Ayrıl', hostOnlyLabel: 'Sadece oda sahibi başlatabilir.',
     roundLabel: 'Tur', answeredLabel: 'Cevap gönderildi, tur bekleniyor…',
     correctLabel: 'Doğru! 🎉', wrongLabel: 'Yanlış.', correctAnswerPrefix: 'Doğru cevap:',
@@ -55,6 +56,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: 'Loading…', error: 'Something went wrong.',
     waitingTitle: 'Waiting Room', waitingSub: 'Waiting for other players…',
     startBtn: 'Start', needMoreLabel: 'At least 2 players are needed to start.',
+    backToListBtn: 'Back to list',
     leaveBtn: 'Leave Room', hostOnlyLabel: 'Only the host can start.',
     roundLabel: 'Round', answeredLabel: 'Answer submitted, waiting for the round…',
     correctLabel: 'Correct! 🎉', wrongLabel: 'Wrong.', correctAnswerPrefix: 'Correct answer:',
@@ -65,6 +67,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: 'Wird geladen…', error: 'Etwas ist schiefgelaufen.',
     waitingTitle: 'Warteraum', waitingSub: 'Warten auf weitere Spieler…',
     startBtn: 'Starten', needMoreLabel: 'Es werden mindestens 2 Spieler benötigt.',
+    backToListBtn: 'Zurück zur Liste',
     leaveBtn: 'Raum verlassen', hostOnlyLabel: 'Nur der Gastgeber kann starten.',
     roundLabel: 'Runde', answeredLabel: 'Antwort gesendet, warte auf die Runde…',
     correctLabel: 'Richtig! 🎉', wrongLabel: 'Falsch.', correctAnswerPrefix: 'Richtige Antwort:',
@@ -75,6 +78,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: 'Chargement…', error: "Une erreur s'est produite.",
     waitingTitle: "Salle d'attente", waitingSub: "En attente d'autres joueurs…",
     startBtn: 'Démarrer', needMoreLabel: 'Au moins 2 joueurs sont nécessaires pour démarrer.',
+    backToListBtn: 'Retour à la liste',
     leaveBtn: 'Quitter la salle', hostOnlyLabel: "Seul l'hôte peut démarrer.",
     roundLabel: 'Manche', answeredLabel: 'Réponse envoyée, en attente de la manche…',
     correctLabel: 'Correct ! 🎉', wrongLabel: 'Incorrect.', correctAnswerPrefix: 'Bonne réponse :',
@@ -85,6 +89,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: 'Cargando…', error: 'Algo salió mal.',
     waitingTitle: 'Sala de espera', waitingSub: 'Esperando a otros jugadores…',
     startBtn: 'Comenzar', needMoreLabel: 'Se necesitan al menos 2 jugadores para comenzar.',
+    backToListBtn: 'Volver a la lista',
     leaveBtn: 'Salir de la sala', hostOnlyLabel: 'Solo el anfitrión puede comenzar.',
     roundLabel: 'Ronda', answeredLabel: 'Respuesta enviada, esperando la ronda…',
     correctLabel: '¡Correcto! 🎉', wrongLabel: 'Incorrecto.', correctAnswerPrefix: 'Respuesta correcta:',
@@ -95,6 +100,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: 'Caricamento…', error: 'Qualcosa è andato storto.',
     waitingTitle: "Sala d'attesa", waitingSub: 'In attesa di altri giocatori…',
     startBtn: 'Inizia', needMoreLabel: 'Servono almeno 2 giocatori per iniziare.',
+    backToListBtn: 'Torna alla lista',
     leaveBtn: 'Esci dalla stanza', hostOnlyLabel: "Solo l'host può iniziare.",
     roundLabel: 'Turno', answeredLabel: 'Risposta inviata, in attesa del turno…',
     correctLabel: 'Corretto! 🎉', wrongLabel: 'Sbagliato.', correctAnswerPrefix: 'Risposta corretta:',
@@ -105,6 +111,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: 'جارٍ التحميل…', error: 'حدث خطأ ما.',
     waitingTitle: 'غرفة الانتظار', waitingSub: 'في انتظار لاعبين آخرين…',
     startBtn: 'ابدأ', needMoreLabel: 'يلزم لاعبان على الأقل للبدء.',
+    backToListBtn: 'العودة إلى القائمة',
     leaveBtn: 'مغادرة الغرفة', hostOnlyLabel: 'فقط صاحب الغرفة يمكنه البدء.',
     roundLabel: 'جولة', answeredLabel: 'تم إرسال الإجابة، بانتظار الجولة…',
     correctLabel: 'إجابة صحيحة! 🎉', wrongLabel: 'إجابة خاطئة.', correctAnswerPrefix: 'الإجابة الصحيحة:',
@@ -115,6 +122,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: 'Загрузка…', error: 'Что-то пошло не так.',
     waitingTitle: 'Комната ожидания', waitingSub: 'Ожидание других игроков…',
     startBtn: 'Начать', needMoreLabel: 'Для начала нужно как минимум 2 игрока.',
+    backToListBtn: 'Назад к списку',
     leaveBtn: 'Покинуть комнату', hostOnlyLabel: 'Начать может только хозяин комнаты.',
     roundLabel: 'Раунд', answeredLabel: 'Ответ отправлен, ожидание раунда…',
     correctLabel: 'Правильно! 🎉', wrongLabel: 'Неправильно.', correctAnswerPrefix: 'Правильный ответ:',
@@ -125,6 +133,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: '読み込み中…', error: '問題が発生しました。',
     waitingTitle: '待機ルーム', waitingSub: '他のプレイヤーを待っています…',
     startBtn: '開始', needMoreLabel: '開始するには2人以上のプレイヤーが必要です。',
+    backToListBtn: 'リストに戻る',
     leaveBtn: 'ルームを退出', hostOnlyLabel: 'ホストのみ開始できます。',
     roundLabel: 'ラウンド', answeredLabel: '回答を送信しました、ラウンドを待っています…',
     correctLabel: '正解! 🎉', wrongLabel: '不正解。', correctAnswerPrefix: '正解:',
@@ -135,6 +144,7 @@ const L: Record<Locale, Record<string, string>> = {
     loading: 'Carregando…', error: 'Algo deu errado.',
     waitingTitle: 'Sala de Espera', waitingSub: 'Aguardando outros jogadores…',
     startBtn: 'Iniciar', needMoreLabel: 'São necessários pelo menos 2 jogadores para iniciar.',
+    backToListBtn: 'Voltar à lista',
     leaveBtn: 'Sair da Sala', hostOnlyLabel: 'Somente o anfitrião pode iniciar.',
     roundLabel: 'Rodada', answeredLabel: 'Resposta enviada, aguardando a rodada…',
     correctLabel: 'Correto! 🎉', wrongLabel: 'Errado.', correctAnswerPrefix: 'Resposta correta:',
@@ -301,6 +311,14 @@ export default function DuelRoomPage() {
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-8 space-y-6">
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => router.push('/duels')}
+          className="flex items-center justify-center w-9 h-9 rounded-xl text-gray-400 dark:text-slate-500 hover:bg-gray-50 hover:dark:bg-slate-800 hover:text-gray-600 hover:dark:text-slate-300 transition-colors shrink-0"
+          title={t.backToListBtn}
+        >
+          <ArrowLeft className="w-4 h-4" />
+        </button>
         <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-500/10 flex items-center justify-center shrink-0">
           <Swords className="w-5 h-5 text-blue-600 dark:text-blue-400" />
         </div>

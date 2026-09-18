@@ -73,7 +73,8 @@ type TranslationKey =
 | 'premiumPageSubtitle' | 'premiumPlansLoadError' | 'premiumCheckoutFormError' | 'premiumCheckoutStartError'
 | 'premiumCancelConfirm' | 'premiumCancelError' | 'premiumSuccessMsg' | 'premiumFailedMsg' | 'premiumPeriodEndTpl'
 | 'premiumCancelBtn' | 'premiumBestValueBadge' | 'premiumSubscribeBtnTpl' | 'premiumFeaturesTitle'
-| 'premiumFeature1' | 'premiumFeature2' | 'premiumFeature3' | 'premiumFeature4' | 'premiumNoAdsNegative';
+| 'premiumFeature1' | 'premiumFeature2' | 'premiumFeature3' | 'premiumFeature4' | 'premiumNoAdsNegative'
+| 'exitBtn' | 'exitConfirmMsg';
 
 type Dictionary = Record<TranslationKey, string>;
 
@@ -170,7 +171,7 @@ premiumFailedMsg: 'Ödeme tamamlanamadı. Tekrar deneyebilirsin.', premiumPeriod
 premiumCancelBtn: 'Aboneliği İptal Et', premiumBestValueBadge: 'En avantajlı', premiumSubscribeBtnTpl: '{interval} Abone Ol',
 premiumFeaturesTitle: 'Premium ile neler değişir?', premiumFeature1: 'Kelime öğrenirken reklam görmezsin',
 premiumFeature2: 'Kelime tahmin oyununda ekstra XP', premiumFeature3: 'Haftalık/aylık lider tablosu ödüllerine katılım önceliği',
-premiumFeature4: 'Tüm günlük aktivite modüllerine sınırsız erişim', premiumNoAdsNegative: 'Premium olmayan hesaplarda kenar reklamları gösterilir',
+premiumFeature4: 'Tüm günlük aktivite modüllerine sınırsız erişim', premiumNoAdsNegative: 'Premium olmayan hesaplarda kenar reklamları gösterilir', exitBtn: 'Çık', exitConfirmMsg: 'Çıkmak istediğine emin misin? İlerlemen kaybolabilir.',
 },
 en: {
 dashboard: 'Dashboard', words: 'Words', flashcards: 'Flashcards', quiz: 'Quiz', schedule: 'Schedule', stats: 'Statistics', profile: 'Profile',
@@ -264,7 +265,7 @@ premiumFailedMsg: 'Payment could not be completed. You can try again.', premiumP
 premiumCancelBtn: 'Cancel Subscription', premiumBestValueBadge: 'Best value', premiumSubscribeBtnTpl: 'Subscribe {interval}',
 premiumFeaturesTitle: 'What changes with Premium?', premiumFeature1: 'No ads while learning words',
 premiumFeature2: 'Extra XP in the word-guessing game', premiumFeature3: 'Priority for weekly/monthly leaderboard rewards',
-premiumFeature4: 'Unlimited access to all daily activity modules', premiumNoAdsNegative: 'Side ads are shown on non-premium accounts',
+premiumFeature4: 'Unlimited access to all daily activity modules', premiumNoAdsNegative: 'Side ads are shown on non-premium accounts', exitBtn: 'Exit', exitConfirmMsg: 'Are you sure you want to exit? Your progress may be lost.',
 },
 ar: {
 dashboard: 'لوحة التحكم', words: 'الكلمات', flashcards: 'البطاقات التعليمية', quiz: 'اختبار', schedule: 'البرنامج', stats: 'الإحصائيات', profile: 'الملف الشخصي',
@@ -358,7 +359,7 @@ premiumFailedMsg: 'تعذر إتمام الدفع. يمكنك المحاولة �
 premiumCancelBtn: 'إلغاء الاشتراك', premiumBestValueBadge: 'الأفضل قيمة', premiumSubscribeBtnTpl: 'اشترك {interval}',
 premiumFeaturesTitle: 'ماذا يتغير مع بريميوم؟', premiumFeature1: 'لا إعلانات أثناء تعلم الكلمات',
 premiumFeature2: 'نقاط خبرة إضافية في لعبة تخمين الكلمات', premiumFeature3: 'أولوية في جوائز لوحة المتصدرين الأسبوعية/الشهرية',
-premiumFeature4: 'وصول غير محدود إلى جميع وحدات النشاط اليومي', premiumNoAdsNegative: 'تُعرض إعلانات جانبية في الحسابات غير المميزة',
+premiumFeature4: 'وصول غير محدود إلى جميع وحدات النشاط اليومي', premiumNoAdsNegative: 'تُعرض إعلانات جانبية في الحسابات غير المميزة', exitBtn: 'خروج', exitConfirmMsg: 'هل أنت متأكد أنك تريد الخروج؟ قد يُفقد تقدمك.',
 },
 ru: {
 dashboard: 'Панель', words: 'Слова', flashcards: 'Карточки', quiz: 'Тест', schedule: 'Расписание', stats: 'Статистика', profile: 'Профиль',
@@ -452,7 +453,7 @@ premiumFailedMsg: 'Оплату не удалось завершить. Вы м�
 premiumCancelBtn: 'Отменить подписку', premiumBestValueBadge: 'Самый выгодный', premiumSubscribeBtnTpl: 'Подписаться ({interval})',
 premiumFeaturesTitle: 'Что даёт Premium?', premiumFeature1: 'Без рекламы во время изучения слов',
 premiumFeature2: 'Дополнительный опыт (XP) в игре угадай слово', premiumFeature3: 'Приоритет в еженедельных/ежемесячных наградах таблицы лидеров',
-premiumFeature4: 'Неограниченный доступ ко всем ежедневным модулям активности', premiumNoAdsNegative: 'На аккаунтах без Premium показывается боковая реклама',
+premiumFeature4: 'Неограниченный доступ ко всем ежедневным модулям активности', premiumNoAdsNegative: 'На аккаунтах без Premium показывается боковая реклама', exitBtn: 'Выйти', exitConfirmMsg: 'Вы уверены, что хотите выйти? Ваш прогресс может быть потерян.',
 },
 de: {
 dashboard: 'Dashboard', words: 'Wörter', flashcards: 'Karteikarten', quiz: 'Quiz', schedule: 'Zeitplan', stats: 'Statistik', profile: 'Profil',
@@ -546,7 +547,7 @@ premiumFailedMsg: 'Zahlung konnte nicht abgeschlossen werden. Du kannst es erneu
 premiumCancelBtn: 'Abo kündigen', premiumBestValueBadge: 'Bestes Angebot', premiumSubscribeBtnTpl: '{interval} abonnieren',
 premiumFeaturesTitle: 'Was ändert sich mit Premium?', premiumFeature1: 'Keine Werbung beim Vokabellernen',
 premiumFeature2: 'Extra-XP im Wortratespiel', premiumFeature3: 'Vorrang bei wöchentlichen/monatlichen Bestenlisten-Belohnungen',
-premiumFeature4: 'Unbegrenzter Zugriff auf alle täglichen Aktivitätsmodule', premiumNoAdsNegative: 'Bei Nicht-Premium-Konten wird Seitenwerbung angezeigt',
+premiumFeature4: 'Unbegrenzter Zugriff auf alle täglichen Aktivitätsmodule', premiumNoAdsNegative: 'Bei Nicht-Premium-Konten wird Seitenwerbung angezeigt', exitBtn: 'Beenden', exitConfirmMsg: 'Möchtest du wirklich beenden? Dein Fortschritt könnte verloren gehen.',
 },
 fr: {
 dashboard: 'Tableau de bord', words: 'Mots', flashcards: 'Cartes mémo', quiz: 'Quiz', schedule: 'Programme', stats: 'Statistiques', profile: 'Profil',
@@ -640,7 +641,7 @@ premiumFailedMsg: 'Le paiement n’a pas pu être finalisé. Tu peux réessayer.
 premiumCancelBtn: 'Annuler l’abonnement', premiumBestValueBadge: 'Meilleure offre', premiumSubscribeBtnTpl: 'S’abonner ({interval})',
 premiumFeaturesTitle: 'Qu’est-ce qui change avec Premium ?', premiumFeature1: 'Pas de publicité pendant l’apprentissage des mots',
 premiumFeature2: 'XP supplémentaire dans le jeu de devinette de mots', premiumFeature3: 'Priorité pour les récompenses du classement hebdomadaire/mensuel',
-premiumFeature4: 'Accès illimité à tous les modules d’activité quotidiens', premiumNoAdsNegative: 'Des publicités latérales sont affichées sur les comptes non premium',
+premiumFeature4: 'Accès illimité à tous les modules d’activité quotidiens', premiumNoAdsNegative: 'Des publicités latérales sont affichées sur les comptes non premium', exitBtn: 'Quitter', exitConfirmMsg: 'Voulez-vous vraiment quitter ? Votre progression pourrait être perdue.',
 },
 es: {
 dashboard: 'Panel', words: 'Palabras', flashcards: 'Tarjetas', quiz: 'Cuestionario', schedule: 'Horario', stats: 'Estadísticas', profile: 'Perfil',
@@ -734,7 +735,7 @@ premiumFailedMsg: 'No se pudo completar el pago. Puedes intentarlo de nuevo.', p
 premiumCancelBtn: 'Cancelar suscripción', premiumBestValueBadge: 'Mejor oferta', premiumSubscribeBtnTpl: 'Suscribirse ({interval})',
 premiumFeaturesTitle: '¿Qué cambia con Premium?', premiumFeature1: 'Sin anuncios mientras aprendes palabras',
 premiumFeature2: 'XP extra en el juego de adivinar palabras', premiumFeature3: 'Prioridad en las recompensas de la clasificación semanal/mensual',
-premiumFeature4: 'Acceso ilimitado a todos los módulos de actividad diaria', premiumNoAdsNegative: 'Se muestran anuncios laterales en las cuentas no premium',
+premiumFeature4: 'Acceso ilimitado a todos los módulos de actividad diaria', premiumNoAdsNegative: 'Se muestran anuncios laterales en las cuentas no premium', exitBtn: 'Salir', exitConfirmMsg: '¿Seguro que quieres salir? Podrías perder tu progreso.',
 },
 it: {
 dashboard: 'Dashboard', words: 'Parole', flashcards: 'Flashcard', quiz: 'Quiz', schedule: 'Programma', stats: 'Statistiche', profile: 'Profilo',
@@ -828,7 +829,7 @@ premiumFailedMsg: 'Il pagamento non è stato completato. Puoi riprovare.', premi
 premiumCancelBtn: 'Annulla abbonamento', premiumBestValueBadge: 'Migliore offerta', premiumSubscribeBtnTpl: 'Abbonati ({interval})',
 premiumFeaturesTitle: 'Cosa cambia con Premium?', premiumFeature1: 'Nessuna pubblicità durante l’apprendimento delle parole',
 premiumFeature2: 'XP extra nel gioco di indovinare le parole', premiumFeature3: 'Priorità per i premi della classifica settimanale/mensile',
-premiumFeature4: 'Accesso illimitato a tutti i moduli di attività giornaliera', premiumNoAdsNegative: 'Sugli account non premium vengono mostrati annunci laterali',
+premiumFeature4: 'Accesso illimitato a tutti i moduli di attività giornaliera', premiumNoAdsNegative: 'Sugli account non premium vengono mostrati annunci laterali', exitBtn: 'Esci', exitConfirmMsg: 'Sei sicuro di voler uscire? I tuoi progressi potrebbero andare persi.',
 },
 ja: {
 dashboard: 'ダッシュボード', words: '単語', flashcards: 'フラッシュカード', quiz: 'クイズ', schedule: 'スケジュール', stats: '統計', profile: 'プロフィール',
@@ -922,7 +923,7 @@ premiumFailedMsg: '決済を完了できませんでした。もう一度お試�
 premiumCancelBtn: 'サブスクリプションを解約', premiumBestValueBadge: '最もお得', premiumSubscribeBtnTpl: '{interval}プランに登録',
 premiumFeaturesTitle: 'プレミアムで何が変わる？', premiumFeature1: '単語学習中に広告が表示されない',
 premiumFeature2: '単語当てゲームで追加XPを獲得', premiumFeature3: '週間/月間ランキング報酬への参加優先権',
-premiumFeature4: 'すべての毎日のアクティビティモジュールへの無制限アクセス', premiumNoAdsNegative: 'プレミアム未加入のアカウントにはサイド広告が表示されます',
+premiumFeature4: 'すべての毎日のアクティビティモジュールへの無制限アクセス', premiumNoAdsNegative: 'プレミアム未加入のアカウントにはサイド広告が表示されます', exitBtn: '終了', exitConfirmMsg: '本当に終了しますか？進捗が失われる可能性があります。',
 },
 pt: {
 dashboard: 'Painel', words: 'Palavras', flashcards: 'Cartões', quiz: 'Questionário', schedule: 'Horário', stats: 'Estatísticas',
@@ -1015,7 +1016,7 @@ premiumFailedMsg: 'Não foi possível concluir o pagamento. Podes tentar novamen
 premiumCancelBtn: 'Cancelar Subscrição', premiumBestValueBadge: 'Melhor oferta', premiumSubscribeBtnTpl: 'Subscrever ({interval})',
 premiumFeaturesTitle: 'O que muda com o Premium?', premiumFeature1: 'Sem anúncios enquanto aprendes palavras', premiumFeature2: 'XP extra no jogo de adivinhar palavras',
 premiumFeature3: 'Prioridade nas recompensas da tabela classificativa semanal/mensal', premiumFeature4: 'Acesso ilimitado a todos os módulos de atividade diária',
-premiumNoAdsNegative: 'São mostrados anúncios laterais nas contas não premium',
+premiumNoAdsNegative: 'São mostrados anúncios laterais nas contas não premium', exitBtn: 'Sair', exitConfirmMsg: 'Tem a certeza de que quer sair? O teu progresso pode perder-se.',
 },
 };
 
