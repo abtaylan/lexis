@@ -1,0 +1,24 @@
+name: Lexis - iOS guncelleme bildirimi (tek seferlik)
+
+# BILINCLI OLARAK otomatik (push/schedule) DEGIL -- tum iOS kullanicilarina
+# tek seferlik bir duyuru push'u, App Store'daki 1.0.2 surumu Apple
+# onayindan gecip canliya cikinca elle (workflow_dispatch) tetiklenir.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  trigger-ios-update-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/send-ios-update-notification
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/send-ios-update-notification" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "Istek basarisiz (HTTP $http_code)"
+            exit 1
+          fi

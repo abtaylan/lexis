@@ -268,3 +268,29 @@ async def run_monthly_user_report(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# Kullanici istegi (18 Eylul 2026) -- iOS App Store'da 1.0.2 (acilis cokmesi
+# duzeltmesi) yayina girdiginde tum kayitli iOS push token'larina tek seferlik
+# "yeni surum yayinda, hemen guncelleyin" bildirimi. Yukaridaki job'larla ayni
+# sebep/desen: Expo Push API gercek dis ag erisimi gerektiriyor, bu yuzden
+# burada, disaridan (GitHub Actions, workflow_dispatch -- SADECE elle) tetik-
+# leniyor. Script: backend/send_ios_update_notification.py. Diger job'lardan
+# FARKI: bu gunluk/periyodik degil, tek seferlik bir yayin duyurusu oldugu
+# icin already_ran_today guard'i YOK -- tetikleme zaten elle yapiliyor.
+@router.post("/send-ios-update-notification")
+async def run_send_ios_update_notification(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    def _run() -> dict:
+        import send_ios_update_notification
+
+        with job_run("send_ios_update_notification") as run:
+            result = send_ios_update_notification.main()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
