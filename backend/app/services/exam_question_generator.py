@@ -522,6 +522,21 @@ def _generate_placement_batch(
         )
 
     if not validated:
+        # 18 Eylul 2026: bir dil TUM seviyelerde sifir soru uretirse (ornek:
+        # 'tr' calistirmasi) sebebi anlasilamiyordu -- model gecerli JSON
+        # dondurmus olabilir ama beklenmedik bir sekilde (orn. stop_reason
+        # 'max_tokens' ile yarida kesilmis, ya da hicbir soru objesi
+        # validasyondan gecmemis olabilir). Teshis icin stop_reason ve ham
+        # ciktinin bir ozetini stderr'e yaziyoruz -- API anahtari gibi hicbir
+        # hassas veri icermez, sadece model ciktisi.
+        import sys
+
+        print(
+            f"[DEBUG] {learning_lang}/{level}: stop_reason={response.stop_reason!r} "
+            f"raw_questions_count={len(raw_questions)} "
+            f"raw_questions_sample={raw_questions[:2]!r}",
+            file=sys.stderr,
+        )
         raise ExamQuestionGenerationError(f"Model {level} seviyesi icin gecerli formatta soru uretmedi.")
 
     return validated
