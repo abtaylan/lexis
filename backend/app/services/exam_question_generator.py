@@ -561,8 +561,16 @@ def _generate_placement_batch(
         # hassas veri icermez, sadece model ciktisi.
         import sys
 
+        block_summaries = [
+            (getattr(b, "type", None), getattr(b, "text", None) if getattr(b, "type", None) == "text" else None)
+            for b in response.content
+        ]
         print(
             f"[DEBUG] {learning_lang}/{level}: stop_reason={response.stop_reason!r} "
+            f"usage={response.usage!r} "
+            f"content_blocks={block_summaries!r} "
+            f"tool_use.input_keys={list(tool_use.input.keys())!r} "
+            f"tool_use.input_repr={tool_use.input!r} "
             f"raw_questions_count={len(raw_questions)} "
             f"raw_questions_sample={raw_questions[:2]!r}",
             file=sys.stderr,
