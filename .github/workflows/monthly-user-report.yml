@@ -1,0 +1,29 @@
+name: Lexis - monthly user report
+
+on:
+  schedule:
+    # Ayin 1'i, 09:00 Turkiye saati (UTC+3, DST yok) civari, 10 dakikada bir
+    # 6 deneme (06:00-06:50 UTC, ayin 1'i) -- diger gunluk/haftalik
+    # workflow'larla ayni gerekce: GitHub Actions'in ayda tek bir sabit
+    # dakikadaki cron tick'i bazen sessizce hic calismayabiliyor, backend
+    # tarafinda already_ran_today (gunluk takvim gunu bazinda) ile ayda tek
+    # gonderim garantisi var.
+    - cron: '5,15,25,35,45,55 6 1 * *'
+  workflow_dispatch: {}
+
+jobs:
+  trigger-monthly-user-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/monthly-user-report
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/monthly-user-report" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "Istek basarisiz (HTTP $http_code)"
+            exit 1
+          fi

@@ -398,3 +398,142 @@ async def get_user_report(user_id: str, period: Period = "week") -> dict[str, An
             user_id, active_lang, current_start, now, profile.get("total_xp") or 0
         ),
     }
+
+
+async def get_user_growth_report(
+    user_id: str, start: datetime, end: datetime | None = None
+) -> dict[str, Any]:
+    """
+    Kullanici istegi (18 Eylul 2026) -- "kayittan bugune" veya keyfi bir
+    tarih araliginda gelisim raporu (Faz 5, madde 3/4). get_user_report()
+    ile ayni veri kaynaklarini kullanir ama sabit hafta/ay periyodu yerine
+    KEYFI [start, end) araligini kabul eder ve "onceki donem" kiyaslamasi
+    YAPMAZ -- keyfi bir araligin "onceki esit uzunluktaki donemi" kavrami
+    ozellikle "kayittan bugune" durumunda anlamsiz (onceki donem hesaba
+    katilan hicbir zamana denk gelmeyebilir). Hem aylik kullanici raporu
+    e-postasi (monthly_user_report.py) hem de ileride admin/kullanici
+    tarafinda gosterilecek tarih araligi gelisim raporu ekrani (Faz 5,
+    madde 3) tarafindan cagrilmasi icin tasarlandi.
+
+    total_xp / xp_percentile HER ZAMAN "su an" (guncel) degerlerdir --
+    aralik gecmiste olsa bile kullanicinin BUGUNKU platform sirasini
+    gosterir, geriye donuk bir yuzdelik dilim hesaplanmaz (o veri
+    saklanmiyor).
+    """
+    end = end or datetime.now(timezone.utc)
+    profile = _get_profile(user_id)
+    active_lang = profile.get("learning_lang", "en")
+    start_iso = start.isoformat()
+    end_iso = end.isoformat()
+
+    sessions = (
+        supabase_admin.table("study_sessions")
+        .select("duration_secs")
+        .eq("user_id", user_id)
+        .eq("learning_lang", active_lang)
+        .gte("started_at", start_iso)
+        .lt("started_at", end_iso)
+        .execute()
+    ).data or []
+    study_minutes = round(sum(s.get("duration_secs") or 0 for s in sessions) / 60)
+
+    progress_rows = (
+        supabase_admin.table("daily_progress")
+        .select("streak_day")
+        .eq("user_id", user_id)
+        .eq("learning_lang", active_lang)
+        .order("date", desc=True)
+        .limit(1)
+        .execute()
+    ).data or []
+    current_streak = progress_rows[0]["streak_day"] if progress_rows else 0
+
+    words = (
+        supabase_admin.table("words")
+        .select("status, created_at")
+        .eq("user_id", user_id)
+        .eq("source_lang", active_lang)
+        .execute()
+    ).data or []
+    total_words = len(words)
+    learned_words = sum(1 for w in words if w["status"] == "learned")
+    learned_pct = round((learned_words / total_words) * 100) if total_words else 0
+    new_words_in_range = sum(1 for w in words if start_iso <= w["created_at"] < end_iso)
+
+    games = (
+        supabase_admin.table("game_sessions")
+        .select("score")
+        .eq("user_id", user_id)
+        .eq("learning_lang", active_lang)
+        .gte("started_at", start_iso)
+        .lt("started_at", end_iso)
+        .execute()
+    ).data or []
+    games_avg_score = round(sum(g.get("score") or 0 for g in games) / len(games), 1) if games else 0
+
+    topic_attempts = (
+        supabase_admin.table("topic_practice_attempts")
+        .select("topic_tag, is_correct, created_at")
+        .eq("user_id", user_id)
+        .gte("created_at", start_iso)
+        .lt("created_at", end_iso)
+        .execute()
+    ).data or []
+    accuracy = (
+        round(sum(1 for t in topic_attempts if t["is_correct"]) / len(topic_attempts) * 100)
+        if topic_attempts
+        else None
+    )
+    by_topic: dict[str, dict[str, int]] = {}
+    for t in topic_attempts:
+        bucket = by_topic.setdefault(t["topic_tag"], {"total": 0, "correct": 0})
+        bucket["total"] += 1
+        if t["is_correct"]:
+            bucket["correct"] += 1
+    topic_accuracy = [
+        {"topic_tag": tag, "attempts": d["total"], "accuracy": round(d["correct"] / d["total"] * 100)}
+        for tag, d in by_topic.items()
+        if d["total"] >= _MIN_TOPIC_ATTEMPTS
+    ]
+    weak_topics = sorted(topic_accuracy, key=lambda x: x["accuracy"])[:3]
+    strong_topics = sorted(topic_accuracy, key=lambda x: -x["accuracy"])[:3]
+
+    quest_progress = (
+        supabase_admin.table("user_quest_progress")
+        .select("completed_at")
+        .eq("user_id", user_id)
+        .execute()
+    ).data or []
+    quests_completed_in_range = sum(
+        1 for q in quest_progress if q.get("completed_at") and start_iso <= q["completed_at"] < end_iso
+    )
+
+    badge_rows = (
+        supabase_admin.table("user_badges")
+        .select("badge_code, earned_at")
+        .eq("user_id", user_id)
+        .execute()
+    ).data or []
+    badges_in_range = sum(1 for b in badge_rows if start_iso <= b["earned_at"] < end_iso)
+
+    platform = _get_platform_comparison(user_id, active_lang, start, end, profile.get("total_xp") or 0)
+
+    return {
+        "range": {"start": start_iso, "end": end_iso},
+        "learning_lang": active_lang,
+        "study_minutes": study_minutes,
+        "streak_current": current_streak,
+        "vocabulary": {
+            "total_words": total_words,
+            "learned_words": learned_words,
+            "learned_pct": learned_pct,
+            "new_words_in_range": new_words_in_range,
+        },
+        "games": {"sessions": len(games), "avg_score": games_avg_score},
+        "exam": {"accuracy": accuracy, "weak_topics": weak_topics, "strong_topics": strong_topics},
+        "quests_completed_in_range": quests_completed_in_range,
+        "badges_earned_in_range": badges_in_range,
+        "league_current_tier": profile.get("current_league_tier"),
+        "total_xp": profile.get("total_xp") or 0,
+        "platform": platform,
+    }

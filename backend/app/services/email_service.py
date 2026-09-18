@@ -786,3 +786,126 @@ def send_weekly_admin_report_email(to_email: str, report_date: str, stats: dict)
         print(f"WEEKLY ADMIN REPORT EMAIL SEND ERROR via SMTP ({to_email}): {e}")
         log_notification("email", "weekly_admin_report", to_email, "failed", {"error": str(e), "via": "smtp"})
         return False
+
+
+def send_monthly_user_report_email(
+    to_email: str,
+    display_name: str | None,
+    report_date: str,
+    since_signup: dict,
+    last_30_days: dict | None,
+) -> bool:
+    """
+    Aylik kullanici gelisim raporu (kullanici istegi, 18 Eylul 2026) --
+    "tum userlara her ay kendi istatistikleri, gelisim durumu, sistemdeki
+    diger userlara gore sirlamasindaki yeri ile rapor gonderilecek". Ilk
+    rapor (last_30_days=None, hesap 30 gunden yeni) sadece "kayittan
+    bugune" bolumunu gosterir; sonraki aylarda hem "kayittan bugune" hem
+    "son 30 gun" ayri ayri gosterilir. Diger admin bildirimleriyle ayni
+    OTP_MODE/RESEND/SMTP altyapisini kullanir (bkz. send_membership_digest_email
+    / send_weekly_admin_report_email). Cagiran taraf: monthly_user_report.py.
+
+    since_signup: user_report_service.get_user_growth_report() ciktisi.
+    last_30_days: user_report_service.get_user_report(period="month") ciktisi
+    (None ise "ilk rapor" gorunumu).
+    """
+    name = display_name or "Lexis kullanicisi"
+    subject = f"Lexis Aylik Gelisim Raporun - {report_date}"
+
+    def _topic_list(topics: list[dict], label: str) -> str:
+        if not topics:
+            return ""
+        items = "".join(
+            f'<li>{t["topic_tag"]}: %{t["accuracy"]} ({t["attempts"]} deneme)</li>' for t in topics
+        )
+        return f'<p style="margin:6px 0 2px; font-size:13px; color:#64748b;">{label}</p><ul style="margin:0; padding-left:20px; font-size:13px;">{items}</ul>'
+
+    percentile = since_signup.get("platform", {}).get("xp_percentile")
+    percentile_text = (
+        f"Platformdaki kullanicilarin %{percentile}'inden daha fazla XP kazandin."
+        if percentile is not None
+        else "Sirlamani gormek icin daha fazla aktif kullanici verisi gerekiyor."
+    )
+
+    since_block = f"""
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-bottom:0;">Kayit tarihinden bugune</p>
+      <ul style="margin:8px 0 0; padding-left:20px; font-size:14px; color:#0f172a;">
+        <li>Toplam calisma suresi: <strong>{since_signup.get('study_minutes', 0)} dakika</strong></li>
+        <li>Kelime hazinesi: <strong>{since_signup.get('vocabulary', {}).get('total_words', 0)}</strong> kelime,
+          %{since_signup.get('vocabulary', {}).get('learned_pct', 0)} ogrenildi</li>
+        <li>Guncel seri: <strong>{since_signup.get('streak_current', 0)} gun</strong></li>
+        <li>Tamamlanan gorev: <strong>{since_signup.get('quests_completed_in_range', 0)}</strong>,
+          kazanilan rozet: <strong>{since_signup.get('badges_earned_in_range', 0)}</strong></li>
+        <li>Toplam XP: <strong>{since_signup.get('total_xp', 0)}</strong>, lig: <strong>{since_signup.get('league_current_tier') or '-'}</strong></li>
+      </ul>
+      {_topic_list(since_signup.get('exam', {}).get('weak_topics', []), 'En cok zorlandigin konular')}
+      {_topic_list(since_signup.get('exam', {}).get('strong_topics', []), 'En guclu oldugun konular')}
+      <p style="color:#16a34a; font-weight:bold; font-size:13px; margin-top:10px;">{percentile_text}</p>
+    """
+
+    last_month_block = ""
+    if last_30_days:
+        study = last_30_days.get("study", {})
+        vocab = last_30_days.get("vocabulary", {})
+        games = last_30_days.get("games", {})
+        exam = last_30_days.get("exam", {})
+        last_month_block = f"""
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">Son 30 gun</p>
+      <ul style="margin:8px 0 0; padding-left:20px; font-size:14px; color:#0f172a;">
+        <li>Calisma suresi: <strong>{study.get('minutes_current', 0)} dakika</strong>
+          ({'+' if (study.get('minutes_change_pct') or 0) >= 0 else ''}{study.get('minutes_change_pct')}% onceki aya gore)</li>
+        <li>Yeni eklenen kelime: <strong>{vocab.get('new_words_current', 0)}</strong></li>
+        <li>Oyun ortalama skoru: <strong>{games.get('avg_score_current', 0)}</strong></li>
+        <li>Sinav/konu dogrulugu: <strong>{f"%{exam.get('accuracy_current')}" if exam.get('accuracy_current') is not None else 'veri yok'}</strong></li>
+      </ul>
+        """
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+      <h2 style="color:#0284c7; margin-bottom: 4px;">Merhaba {name}, iste gelisim raporun!</h2>
+      <p style="color:#64748b; font-size: 13px; margin-top:0;">{report_date}</p>
+      {since_block}
+      {last_month_block}
+      <p style="color:#94a3b8; font-size: 11px; margin-top: 24px;">
+        Bu otomatik, aylik bir rapordur. E-posta tercihlerini profil ayarlarindan degistirebilirsin.
+      </p>
+    </div>
+    """
+
+    if settings.OTP_MODE != "real":
+        print(f"[MONTHLY-USER-REPORT-DEV] {to_email} -> {report_date}: xp_percentile={percentile}")
+        log_notification("email", "monthly_user_report", to_email, "skipped", {"reason": "OTP_MODE=fixed"})
+        return True
+
+    if not settings.RESEND_API_KEY and (not settings.SMTP_USER or not settings.SMTP_PASSWORD):
+        print(f"[MONTHLY-USER-REPORT] Mail saglayicisi ayarlanmamis, rapor gonderilemedi: {to_email}")
+        log_notification("email", "monthly_user_report", to_email, "failed", {"reason": "no email provider configured"})
+        return False
+
+    if settings.RESEND_API_KEY:
+        try:
+            _send_via_resend(to_email, subject, html_body)
+            log_notification("email", "monthly_user_report", to_email, "sent", {"via": "resend"})
+            return True
+        except Exception as e:
+            print(f"MONTHLY USER REPORT EMAIL SEND ERROR via Resend ({to_email}): {e}")
+            log_notification("email", "monthly_user_report", to_email, "failed", {"error": str(e), "via": "resend"})
+            return False
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        with _IPv4SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+        log_notification("email", "monthly_user_report", to_email, "sent", {"via": "smtp"})
+        return True
+    except Exception as e:
+        print(f"MONTHLY USER REPORT EMAIL SEND ERROR via SMTP ({to_email}): {e}")
+        log_notification("email", "monthly_user_report", to_email, "failed", {"error": str(e), "via": "smtp"})
+        return False

@@ -242,3 +242,29 @@ async def run_weekly_admin_report(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# Kullanici istegi (18 Eylul 2026) -- tum aktif kullanicilara aylik gelisim
+# raporu e-postasi (kendi istatistikleri + gelisim + platform siralamasi).
+# Yukaridaki job'larla ayni sebep/desen: Resend (e-posta) gercek dis ag
+# erisimi gerektiriyor, bu yuzden burada, disaridan (GitHub Actions)
+# tetikleniyor. Script: backend/monthly_user_report.py.
+@router.post("/monthly-user-report")
+async def run_monthly_user_report(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    if already_ran_today("monthly_user_report"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
+    def _run() -> dict:
+        import monthly_user_report
+
+        with job_run("monthly_user_report") as run:
+            result = monthly_user_report.main()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
