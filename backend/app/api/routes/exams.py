@@ -57,6 +57,8 @@ from app.schemas.exams import (
     PendingExamQuestion,
     RelatedGrammarTopic,
     TopicPracticeAttemptCreate,
+    MyMistakePatternItem,
+    MyMistakePatternsResult,
     WeakTopicItem,
     WeakTopicsResult,
 )
@@ -869,3 +871,87 @@ async def weak_topics(days: int = 7, limit: int = 5, current_user=Depends(get_cu
     ]
     return WeakTopicsResult(period_days=days, items=items)
 
+
+# ================================================================
+# Şık (seçenek) hata deseni — 18 Eylül 2026 (İstatistik & Analitik
+# Kataloğu §7, Faz 1). Kullanıcının yanlış yaptığı sorularda hangi
+# çeldiriciye yöneldiğini gösterir — exam_attempts.selected_option zaten
+# tutuluyor, sadece burada agregasyon yapılıyor.
+# ================================================================
+
+
+@router.get("/stats/my-mistake-patterns", response_model=MyMistakePatternsResult)
+async def my_mistake_patterns(limit: int = 20, current_user=Depends(get_current_user)):
+    if not _exam_area_enabled(current_user.id):
+        return MyMistakePatternsResult(items=[])
+
+    limit = max(1, min(limit, 50))
+    session_ids = _user_session_ids_since(
+        current_user.id, "1970-01-01T00:00:00+00:00"
+    )
+    if not session_ids:
+        return MyMistakePatternsResult(items=[])
+
+    attempts = (
+        supabase_admin.table("exam_attempts")
+        .select("question_id, selected_option, is_correct")
+        .in_("session_id", session_ids)
+        .execute()
+        .data
+    ) or []
+    if not attempts:
+        return MyMistakePatternsResult(items=[])
+
+    by_question: dict[str, list[dict]] = {}
+    for a in attempts:
+        by_question.setdefault(a["question_id"], []).append(a)
+
+    # Sadece en az bir yanlışın olduğu sorular ilgi çekici.
+    wrong_question_ids = [
+        qid for qid, rows in by_question.items() if any(not r["is_correct"] for r in rows)
+    ]
+    if not wrong_question_ids:
+        return MyMistakePatternsResult(items=[])
+
+    questions = (
+        supabase_admin.table("exam_questions")
+        .select("id, question_text, topic_tag, options")
+        .in_("id", wrong_question_ids)
+        .execute()
+        .data
+    ) or []
+    question_by_id = {q["id"]: q for q in questions}
+
+    items: list[MyMistakePatternItem] = []
+    for qid in wrong_question_ids:
+        q = question_by_id.get(qid)
+        if not q:
+            continue
+        rows = by_question[qid]
+        wrong_rows = [r for r in rows if not r["is_correct"]]
+        wrong_options = [r["selected_option"] for r in wrong_rows if r.get("selected_option")]
+        if not wrong_options:
+            continue
+        # En çok tekrarlanan yanlış şık.
+        pick_counts: dict[str, int] = {}
+        for opt in wrong_options:
+            pick_counts[opt] = pick_counts.get(opt, 0) + 1
+        top_wrong_id = max(pick_counts, key=lambda k: pick_counts[k])
+        option_text = next(
+            (o["text"] for o in (q.get("options") or []) if o.get("id") == top_wrong_id), None
+        )
+        items.append(
+            MyMistakePatternItem(
+                question_id=qid,
+                question_text=q["question_text"],
+                topic_tag=q.get("topic_tag"),
+                wrong_count=len(wrong_rows),
+                total_attempts=len(rows),
+                most_picked_wrong_option_id=top_wrong_id,
+                most_picked_wrong_option_text=option_text,
+                repeated_same_mistake=len(set(wrong_options)) == 1 and len(wrong_options) > 1,
+            )
+        )
+
+    items.sort(key=lambda it: -it.wrong_count)
+    return MyMistakePatternsResult(items=items[:limit])

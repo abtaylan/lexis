@@ -240,3 +240,30 @@ class WeakTopicsResult(BaseModel):
 
     period_days: int
     items: list[WeakTopicItem]
+
+
+# ================================================================
+# Şık (seçenek) hata deseni — 18 Eylül 2026 (İstatistik & Analitik
+# Kataloğu §7, Faz 1). NOT: soru bazında sistem geneli şık dağılımı
+# (option_counts) admin tarafında zaten `exam_question_stats` view'ı +
+# GET /admin/content-accuracy/questions ile mevcuttu — burada sadece
+# kullanıcıya özel "hangi yanlışı tekrarlıyor" görünümü ekleniyor.
+# ================================================================
+
+
+class MyMistakePatternItem(BaseModel):
+    question_id: str
+    question_text: str
+    topic_tag: str | None = None
+    wrong_count: int
+    total_attempts: int
+    most_picked_wrong_option_id: str | None = None
+    most_picked_wrong_option_text: str | None = None
+    repeated_same_mistake: bool  # her yanlış denemede hep aynı şık mı işaretlendi
+
+
+class MyMistakePatternsResult(BaseModel):
+    """GET /exams/stats/my-mistake-patterns cevabı — kullanıcının en az bir
+    kez yanlış yaptığı sorularda hangi çeldiriciye yöneldiğini gösterir."""
+
+    items: list[MyMistakePatternItem]
