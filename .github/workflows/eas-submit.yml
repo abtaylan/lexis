@@ -1,0 +1,46 @@
+name: EAS Submit (manuel, mevcut build)
+
+# Var olan bitmis bir EAS build'ini (yeniden derlemeden) Play Store'a submit
+# eder. eas-build-submit.yml build+submit'i birlikte yapiyor; bu workflow
+# sadece submit adimini calistirir -- ornegin submit track/profil hatasi
+# yuzunden yanlis kanala giden bir build'i dogru kanala tekrar submit etmek
+# icin, build kredisi harcamadan.
+on:
+  workflow_dispatch:
+    inputs:
+      buildId:
+        description: "Submit edilecek EAS build ID'si"
+        required: true
+        type: string
+      platform:
+        description: "Platform"
+        required: true
+        type: choice
+        options: [android, ios]
+        default: android
+
+jobs:
+  submit:
+    name: Submit (${{ inputs.platform }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+
+      - name: EAS submit
+        run: eas submit --platform ${{ inputs.platform }} --id ${{ inputs.buildId }} --profile production --non-interactive
