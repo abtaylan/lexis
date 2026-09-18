@@ -11,9 +11,15 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Loader2, User as UserIcon, Building2 } from 'lucide-react';
+import {
+  ResponsiveContainer, BarChart, Bar, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+} from 'recharts';
 import { adminApi } from '@/lib/api';
-import type { UserReport, OrganizationReport, AdminOrganizationItem, UserGrowthReport } from '@/lib/api';
+import type {
+  UserReport, OrganizationReport, AdminOrganizationItem, UserGrowthReport, UserGrowthReportDailyPoint,
+} from '@/lib/api';
 import type { AdminUser } from '@/types';
+import { useThemeMode } from '@/store/theme';
 
 function PeriodToggle({ period, onChange }: { period: 'week' | 'month'; onChange: (p: 'week' | 'month') => void }) {
   return (
@@ -36,6 +42,190 @@ function PeriodToggle({ period, onChange }: { period: 'week' | 'month'; onChange
   );
 }
 
+// Recharts inline stil kabul ediyor, Tailwind `dark:` class'ı değil — admin
+// panelin sistem-geneli sayfasındaki (app/(admin)/admin/stats/page.tsx)
+// chartTheme deseniyle birebir aynı renkler burada da kullanılıyor (grafik
+// ekleme, kullanıcı isteği 18 Eylül 2026 — "bu tablo daha da genişlemeli
+// ... grafik vs falan da ekle").
+type ChartTheme = {
+  grid: string; axis: string; axisAlt: string; tooltipBg: string; tooltipBorder: string; tooltipText: string;
+};
+
+function useChartTheme(): ChartTheme {
+  const { scheme } = useThemeMode();
+  return scheme === 'dark'
+    ? { grid: '#334155', axis: '#64748b', axisAlt: '#94a3b8', tooltipBg: '#0f172a', tooltipBorder: '#334155', tooltipText: '#e2e8f0' }
+    : { grid: '#f1f5f9', axis: '#94a3b8', axisAlt: '#475569', tooltipBg: '#ffffff', tooltipBorder: '#e2e8f0', tooltipText: '#1e293b' };
+}
+
+function tooltipStyle(t: ChartTheme) {
+  return {
+    contentStyle: { fontSize: 12, borderRadius: 12, border: `1px solid ${t.tooltipBorder}`, backgroundColor: t.tooltipBg, color: t.tooltipText },
+    labelStyle: { color: t.tooltipText },
+  };
+}
+
+function topicLabel(tag: string): string {
+  return tag.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+// Konu doğruluğu için sabit, hiç temalanmayan durum renkleri (dataviz skill'i
+// — "status palette (fixed, never themed)"): kategorik bir seri değil, her
+// çubuk KENDİ eşik değerine göre boyanıyor, bu yüzden çubuklar arası CVD
+// ayrımı gerekmiyor — yine de her çubuk hem etiketli (konu adı + %) hem de
+// altta bir renk lejandıyla destekleniyor (renk asla tek başına anlam
+// taşımıyor).
+const ACCURACY_COLORS = { weak: '#d03b3b', mid: '#fab219', strong: '#0ca30c' } as const;
+
+function accuracyColor(value: number): string {
+  if (value < 50) return ACCURACY_COLORS.weak;
+  if (value < 75) return ACCURACY_COLORS.mid;
+  return ACCURACY_COLORS.strong;
+}
+
+type TopicAccuracyItem = { topic_tag: string; attempts: number; accuracy: number };
+
+function TopicAccuracyChart({
+  weak, strong, chartTheme,
+}: {
+  weak: TopicAccuracyItem[]; strong: TopicAccuracyItem[]; chartTheme: ChartTheme;
+}) {
+  const merged = useMemo(() => {
+    const byTag = new Map<string, TopicAccuracyItem>();
+    [...weak, ...strong].forEach((t) => byTag.set(t.topic_tag, t));
+    return Array.from(byTag.values()).sort((a, b) => a.accuracy - b.accuracy);
+  }, [weak, strong]);
+
+  if (!merged.length) {
+    return <p className="text-xs text-gray-400 dark:text-slate-500">Henüz yeterli konu verisi yok.</p>;
+  }
+
+  return (
+    <div>
+      <div style={{ height: Math.max(merged.length * 32, 80) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={merged} layout="vertical" margin={{ left: 10, right: 28, top: 4, bottom: 4 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} horizontal={false} />
+            <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `%${v}`} tick={{ fontSize: 10, fill: chartTheme.axis }} />
+            <YAxis type="category" dataKey="topic_tag" tickFormatter={topicLabel} tick={{ fontSize: 11, fill: chartTheme.axisAlt }} width={110} />
+            <Tooltip
+              {...tooltipStyle(chartTheme)}
+              labelFormatter={(v) => topicLabel(String(v))}
+              formatter={(value, _name, item) => [`%${value} (${item.payload.attempts} deneme)`, 'Doğruluk']}
+            />
+            <Bar dataKey="accuracy" radius={[0, 6, 6, 0]} name="Doğruluk">
+              {merged.map((t) => <Cell key={t.topic_tag} fill={accuracyColor(t.accuracy)} />)}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2 text-[11px] text-gray-400 dark:text-slate-500">
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full shrink-0" style={{ background: ACCURACY_COLORS.weak }} />Zayıf (&lt;%50)</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full shrink-0" style={{ background: ACCURACY_COLORS.mid }} />Orta (%50-74)</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full shrink-0" style={{ background: ACCURACY_COLORS.strong }} />Güçlü (%75+)</span>
+      </div>
+    </div>
+  );
+}
+
+// "Sen" / "Platform ortalaması" karşılaştırması — admin/stats sayfasındaki
+// mevcut düz div tabanlı ilerleme çubuğu deseniyle aynı (recharts değil):
+// "Sen" dolu mor, "Ortalama" nötr gri — iki farklı renk tonu KIYASLANMIYOR
+// (CVD'ye duyarlı bir kategorik çift değil), her satır zaten kendi metin
+// etiketini taşıyor.
+function ComparisonMeter({
+  label, you, avg, formatValue,
+}: {
+  label: string; you: number; avg: number | null; formatValue?: (n: number) => string;
+}) {
+  const fmt = formatValue ?? ((n: number) => `${n}`);
+  const max = Math.max(you, avg ?? 0, 1);
+  return (
+    <div>
+      <p className="text-xs font-medium text-gray-600 dark:text-slate-300 mb-1.5">{label}</p>
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          <span className="w-16 text-[11px] text-gray-400 dark:text-slate-500 shrink-0">Sen</span>
+          <div className="flex-1 h-2.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
+            <div className="h-2.5 rounded-full bg-[#534AB7] transition-all duration-700" style={{ width: `${(you / max) * 100}%` }} />
+          </div>
+          <span className="w-14 text-right text-[11px] font-medium text-gray-700 dark:text-slate-300 shrink-0">{fmt(you)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-16 text-[11px] text-gray-400 dark:text-slate-500 shrink-0">Ortalama</span>
+          <div className="flex-1 h-2.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
+            {avg !== null && <div className="h-2.5 rounded-full bg-gray-300 dark:bg-slate-600 transition-all duration-700" style={{ width: `${(avg / max) * 100}%` }} />}
+          </div>
+          <span className="w-14 text-right text-[11px] text-gray-400 dark:text-slate-500 shrink-0">{avg !== null ? fmt(avg) : '—'}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Kelime hazinesi ilerleme çubuğu — admin/stats sayfasındaki "Aktiflik
+// oranı" çubuğuyla BİREBİR aynı renk/desen (#3B6D11 yeşil, gri track).
+function VocabularyBar({ total, learned, pct: learnedPct }: { total: number; learned: number; pct: number }) {
+  return (
+    <div>
+      <div className="flex justify-between text-xs text-gray-500 dark:text-slate-400 mb-1.5">
+        <span>{learned} / {total} kelime öğrenildi</span>
+        <span className="font-semibold text-[#3B6D11]">%{learnedPct}</span>
+      </div>
+      <div className="h-2.5 rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
+        <div className="h-2.5 rounded-full bg-[#3B6D11] transition-all duration-700" style={{ width: `${Math.min(learnedPct, 100)}%` }} />
+      </div>
+    </div>
+  );
+}
+
+// Tarih aralığı gelişim raporunda (GrowthReportCards) günlük/haftalık trend
+// grafikleri — backend'in zaten çekilmiş session/kelime satırlarından
+// türettiği sıfır-doldurmalı seri (bkz. user_report_service.py::
+// get_user_growth_report). Tek seri olduğu için (dataviz skill'i: "a single
+// series needs no legend box") her mini grafiğin kendi başlığı seriyi
+// adlandırıyor, ayrı bir lejant yok. İki metrik farklı ölçekte olduğu için
+// (dakika vs kelime sayısı) ÇİFT EKSENLİ TEK grafik yerine iki AYRI grafik
+// kullanılıyor (dataviz skill'i: "never a dual-axis chart").
+function DailyTrendCharts({ daily, chartTheme }: { daily: UserGrowthReportDailyPoint[]; chartTheme: ChartTheme }) {
+  const hasData = daily.some((d) => d.study_minutes > 0 || d.new_words > 0);
+  if (!daily.length || !hasData) {
+    return <p className="text-xs text-gray-400 dark:text-slate-500">Bu aralıkta henüz grafiğe yetecek veri yok.</p>;
+  }
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div>
+        <p className="text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-2">Çalışma süresi (dakika)</p>
+        <div className="h-40">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={daily} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.axis }} tickFormatter={(d: string) => d.slice(5)} />
+              <YAxis tick={{ fontSize: 10, fill: chartTheme.axis }} allowDecimals={false} width={28} />
+              <Tooltip {...tooltipStyle(chartTheme)} />
+              <Line type="monotone" dataKey="study_minutes" stroke="#534AB7" strokeWidth={2} dot={false} name="Dakika" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+      <div>
+        <p className="text-[11px] font-medium text-gray-500 dark:text-slate-400 mb-2">Yeni kelime</p>
+        <div className="h-40">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={daily} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: chartTheme.axis }} tickFormatter={(d: string) => d.slice(5)} />
+              <YAxis tick={{ fontSize: 10, fill: chartTheme.axis }} allowDecimals={false} width={28} />
+              <Tooltip {...tooltipStyle(chartTheme)} />
+              <Line type="monotone" dataKey="new_words" stroke="#0F6E56" strokeWidth={2} dot={false} name="Yeni kelime" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
     <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4">
@@ -46,28 +236,11 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
   );
 }
 
-function TopicList({ title, topics }: { title: string; topics: { topic_tag: string; attempts: number; accuracy: number }[] }) {
-  if (!topics.length) return null;
-  return (
-    <div>
-      <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1">{title}</p>
-      <ul className="space-y-1">
-        {topics.map((t) => (
-          <li key={t.topic_tag} className="text-sm text-gray-700 dark:text-slate-300 flex justify-between">
-            <span>{t.topic_tag}</span>
-            <span className="text-gray-400 dark:text-slate-500">%{t.accuracy} ({t.attempts})</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 function pct(n: number | null): string {
   return n === null ? '—' : `${n >= 0 ? '+' : ''}${n}%`;
 }
 
-export function UserReportCards({ report }: { report: UserReport }) {
+export function UserReportCards({ report, chartTheme }: { report: UserReport; chartTheme: ChartTheme }) {
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -85,21 +258,48 @@ export function UserReportCards({ report }: { report: UserReport }) {
         <StatCard label="Lig" value={report.league.current_tier || '—'} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <TopicList title="En zayıf konular" topics={report.exam.weak_topics} />
-        <TopicList title="En güçlü konular" topics={report.exam.strong_topics} />
+      <div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1.5">Kelime hazinesi ilerlemesi</p>
+        <VocabularyBar total={report.vocabulary.total_words} learned={report.vocabulary.learned_words} pct={report.vocabulary.learned_pct} />
       </div>
 
-      <div className="bg-[#EEEDFE] dark:bg-slate-800 rounded-xl p-4 text-sm text-[#534AB7] dark:text-slate-300">
-        {report.platform.xp_percentile !== null
-          ? `Platformdaki kullanıcıların %${report.platform.xp_percentile}'inden daha fazla XP kazanmış (kıyaslanan aktif kohort: ${report.platform.cohort_size} kullanıcı).`
-          : 'Yüzdelik dilim için yeterli platform verisi yok.'}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-0.5">Konu doğruluğu</p>
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 mb-2">
+          Sınav ve konu pratiğinde yeterli denemesi olan konular, doğruluk oranına göre sıralı.
+        </p>
+        <TopicAccuracyChart weak={report.exam.weak_topics} strong={report.exam.strong_topics} chartTheme={chartTheme} />
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-0.5">Platform karşılaştırması</p>
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 mb-3">
+          {report.platform.xp_percentile !== null
+            ? `Platformdaki kullanıcıların %${report.platform.xp_percentile}'inden daha fazla XP kazanmış (kıyaslanan aktif kohort: ${report.platform.cohort_size} kullanıcı).`
+            : 'Yüzdelik dilim için yeterli platform verisi yok.'}
+        </p>
+        {report.platform.cohort_size === 0 || report.platform.active_peers_current === 0 ? (
+          <p className="text-xs text-gray-400 dark:text-slate-500">Henüz karşılaştırılacak yeterli platform verisi yok.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <ComparisonMeter label="Çalışma süresi (dk)" you={report.study.minutes_current} avg={report.platform.avg_minutes_current} />
+            <ComparisonMeter label="Yeni kelime" you={report.vocabulary.new_words_current} avg={report.platform.avg_new_words_current} />
+            <ComparisonMeter
+              label="Doğruluk" you={report.exam.accuracy_current ?? 0} avg={report.platform.avg_accuracy_current}
+              formatValue={(n) => `%${n}`}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-export function OrgReportCards({ report }: { report: OrganizationReport }) {
+export function OrgReportCards({ report, chartTheme }: { report: OrganizationReport; chartTheme: ChartTheme }) {
+  const learnerData = useMemo(
+    () => report.top_learners.map((m) => ({ name: m.username || 'İsimsiz üye', xp: m.xp_gained })),
+    [report.top_learners]
+  );
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -110,20 +310,28 @@ export function OrgReportCards({ report }: { report: OrganizationReport }) {
       </div>
 
       <div>
-        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-2">En aktif üyeler</p>
-        {report.top_learners.length ? (
-          <ul className="space-y-1">
-            {report.top_learners.map((m) => (
-              <li key={m.user_id} className="text-sm text-gray-700 dark:text-slate-300 flex justify-between bg-slate-50 dark:bg-slate-800 rounded-lg px-3 py-1.5">
-                <span>{m.username || 'İsimsiz üye'}</span>
-                <span className="text-gray-400 dark:text-slate-500">{m.xp_gained} XP</span>
-              </li>
-            ))}
-          </ul>
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-0.5">En aktif üyeler</p>
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 mb-2">Bu dönemde en çok XP kazanan üyeler.</p>
+        {learnerData.length ? (
+          <div style={{ height: Math.max(learnerData.length * 32, 80) }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={learnerData} layout="vertical" margin={{ left: 10, right: 28, top: 4, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} horizontal={false} />
+                <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: chartTheme.axis }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: chartTheme.axisAlt }} width={110} />
+                <Tooltip {...tooltipStyle(chartTheme)} formatter={(value) => [`${value} XP`, 'Kazanılan']} />
+                <Bar dataKey="xp" fill="#534AB7" radius={[0, 6, 6, 0]} name="XP" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         ) : <p className="text-sm text-gray-400 dark:text-slate-500">Veri yok.</p>}
       </div>
 
-      <TopicList title="Kurum geneli zayıf konular" topics={report.weak_topics} />
+      <div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-0.5">Kurum geneli zayıf konular</p>
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 mb-2">Üyelerin ortalamada en çok zorlandığı konular.</p>
+        <TopicAccuracyChart weak={report.weak_topics} strong={[]} chartTheme={chartTheme} />
+      </div>
 
       <p className="text-xs text-gray-400 dark:text-slate-500">
         Rapor paylaşımına onay veren üye: {report.consent_summary.consented_count} / {report.consent_summary.total_count}
@@ -132,7 +340,7 @@ export function OrgReportCards({ report }: { report: OrganizationReport }) {
   );
 }
 
-export function GrowthReportCards({ report }: { report: UserGrowthReport }) {
+export function GrowthReportCards({ report, chartTheme }: { report: UserGrowthReport; chartTheme: ChartTheme }) {
   const start = report.range.start.slice(0, 10);
   const end = report.range.end.slice(0, 10);
   return (
@@ -149,15 +357,46 @@ export function GrowthReportCards({ report }: { report: UserGrowthReport }) {
         <StatCard label="Toplam XP" value={report.total_xp} sub={report.league_current_tier || undefined} />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <TopicList title="En zayıf konular" topics={report.exam.weak_topics} />
-        <TopicList title="En güçlü konular" topics={report.exam.strong_topics} />
+      <div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-1.5">Kelime hazinesi ilerlemesi</p>
+        <VocabularyBar total={report.vocabulary.total_words} learned={report.vocabulary.learned_words} pct={report.vocabulary.learned_pct} />
       </div>
 
-      <div className="bg-[#EEEDFE] dark:bg-slate-800 rounded-xl p-4 text-sm text-[#534AB7] dark:text-slate-300">
-        {report.platform.xp_percentile !== null
-          ? `Platformdaki kullanıcıların %${report.platform.xp_percentile}'inden daha fazla XP kazanmış (güncel durum).`
-          : 'Yüzdelik dilim için yeterli platform verisi yok.'}
+      <div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-0.5">Zaman içindeki gelişim</p>
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 mb-2">
+          Seçilen tarih aralığındaki günlük çalışma süresi ve eklenen yeni kelime sayısı (uzun aralıklarda haftalık toplamlara düşer).
+        </p>
+        <DailyTrendCharts daily={report.daily} chartTheme={chartTheme} />
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-0.5">Konu doğruluğu</p>
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 mb-2">
+          Sınav ve konu pratiğinde yeterli denemesi olan konular, doğruluk oranına göre sıralı.
+        </p>
+        <TopicAccuracyChart weak={report.exam.weak_topics} strong={report.exam.strong_topics} chartTheme={chartTheme} />
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mb-0.5">Platform karşılaştırması</p>
+        <p className="text-[11px] text-gray-400 dark:text-slate-500 mb-3">
+          {report.platform.xp_percentile !== null
+            ? `Platformdaki kullanıcıların %${report.platform.xp_percentile}'inden daha fazla XP kazanmış (güncel durum, kıyaslanan aktif kohort: ${report.platform.cohort_size} kullanıcı).`
+            : 'Yüzdelik dilim için yeterli platform verisi yok.'}
+        </p>
+        {report.platform.cohort_size === 0 || report.platform.active_peers_current === 0 ? (
+          <p className="text-xs text-gray-400 dark:text-slate-500">Henüz karşılaştırılacak yeterli platform verisi yok.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <ComparisonMeter label="Çalışma süresi (dk)" you={report.study_minutes} avg={report.platform.avg_minutes_current} />
+            <ComparisonMeter label="Yeni kelime" you={report.vocabulary.new_words_in_range} avg={report.platform.avg_new_words_current} />
+            <ComparisonMeter
+              label="Doğruluk" you={report.exam.accuracy ?? 0} avg={report.platform.avg_accuracy_current}
+              formatValue={(n) => `%${n}`}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -175,6 +414,7 @@ export function UserReportExplorer() {
   const [growthReport, setGrowthReport] = useState<UserGrowthReport | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState('');
+  const chartTheme = useChartTheme();
 
   useEffect(() => {
     adminApi.getUsers().then(setUsers).catch(() => {}).finally(() => setLoadingUsers(false));
@@ -284,8 +524,8 @@ export function UserReportExplorer() {
       {!selected && !loadingUsers && <p className="text-sm text-gray-400 dark:text-slate-500">Bir kullanıcı seçmek için yukarıdan ara.</p>}
       {loadingReport && <div className="p-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>}
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-      {selected && mode !== 'growth' && report && !loadingReport && <UserReportCards report={report} />}
-      {selected && mode === 'growth' && growthReport && !loadingReport && <GrowthReportCards report={growthReport} />}
+      {selected && mode !== 'growth' && report && !loadingReport && <UserReportCards report={report} chartTheme={chartTheme} />}
+      {selected && mode === 'growth' && growthReport && !loadingReport && <GrowthReportCards report={growthReport} chartTheme={chartTheme} />}
     </div>
   );
 }
@@ -298,6 +538,7 @@ export function OrgReportExplorer() {
   const [report, setReport] = useState<OrganizationReport | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState('');
+  const chartTheme = useChartTheme();
 
   useEffect(() => {
     adminApi.listOrganizations().then(setOrgs).catch(() => {}).finally(() => setLoadingOrgs(false));
@@ -342,7 +583,7 @@ export function OrgReportExplorer() {
       {!selectedId && !loadingOrgs && <p className="text-sm text-gray-400 dark:text-slate-500">Bir kurum seçmek için yukarıdan seç.</p>}
       {loadingReport && <div className="p-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>}
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-      {selectedId && report && !loadingReport && <OrgReportCards report={report} />}
+      {selectedId && report && !loadingReport && <OrgReportCards report={report} chartTheme={chartTheme} />}
     </div>
   );
 }

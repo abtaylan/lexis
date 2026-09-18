@@ -428,7 +428,7 @@ async def get_user_growth_report(
 
     sessions = (
         supabase_admin.table("study_sessions")
-        .select("duration_secs")
+        .select("duration_secs, started_at")
         .eq("user_id", user_id)
         .eq("learning_lang", active_lang)
         .gte("started_at", start_iso)
@@ -459,6 +459,50 @@ async def get_user_growth_report(
     learned_words = sum(1 for w in words if w["status"] == "learned")
     learned_pct = round((learned_words / total_words) * 100) if total_words else 0
     new_words_in_range = sum(1 for w in words if start_iso <= w["created_at"] < end_iso)
+
+    # Gunluk trend grafigi (kullanici istegi, 18 Eylul 2026 -- "bu tablo daha
+    # da genislemeli ... grafik vs falan da ekle"). Zaten cekilmis olan
+    # sessions/words satirlarindan gun-gun sifir-doldurmali bir seri
+    # cikariliyor -- YENI bir sorgu YOK. Cok uzun araliklarda (ör. "kayittan
+    # bugune", aylarca) yanit boyutu patlamasin diye MAX_DAILY_POINTS'i asan
+    # araliklarda haftalik kovalara dusuluyor.
+    daily_minutes: dict[str, float] = {}
+    for s in sessions:
+        started_at = s.get("started_at")
+        if not started_at:
+            continue
+        day_key = started_at[:10]
+        daily_minutes[day_key] = daily_minutes.get(day_key, 0) + (s.get("duration_secs") or 0) / 60
+
+    daily_new_words: dict[str, int] = {}
+    for w in words:
+        created_at = w.get("created_at") or ""
+        if start_iso <= created_at < end_iso:
+            day_key = created_at[:10]
+            daily_new_words[day_key] = daily_new_words.get(day_key, 0) + 1
+
+    _MAX_DAILY_POINTS = 120
+    _range_days = max((end.date() - start.date()).days + 1, 1)
+    _bucket_days = 7 if _range_days > _MAX_DAILY_POINTS else 1
+    daily: list[dict[str, Any]] = []
+    _cursor = start.date()
+    _end_date = end.date()
+    while _cursor <= _end_date:
+        _bucket_end = min(_cursor + timedelta(days=_bucket_days - 1), _end_date)
+        _minutes_sum = 0.0
+        _words_sum = 0
+        _d = _cursor
+        while _d <= _bucket_end:
+            _key = _d.isoformat()
+            _minutes_sum += daily_minutes.get(_key, 0)
+            _words_sum += daily_new_words.get(_key, 0)
+            _d += timedelta(days=1)
+        daily.append({
+            "date": _cursor.isoformat(),
+            "study_minutes": round(_minutes_sum),
+            "new_words": _words_sum,
+        })
+        _cursor = _bucket_end + timedelta(days=1)
 
     games = (
         supabase_admin.table("game_sessions")
@@ -536,4 +580,5 @@ async def get_user_growth_report(
         "league_current_tier": profile.get("current_league_tier"),
         "total_xp": profile.get("total_xp") or 0,
         "platform": platform,
+        "daily": daily,
     }

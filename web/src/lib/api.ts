@@ -529,6 +529,16 @@ export interface UserGrowthReportTopicAccuracy {
   accuracy: number;
 }
 
+// Gunluk trend noktasi (kullanici istegi, 18 Eylul 2026 -- rapor kartlarina
+// grafik eklendi). Kisa araliklarda gun-gun, uzun araliklarda ("kayittan
+// bugune") haftalik kovalara dusuyor -- bkz. backend
+// user_report_service.py::get_user_growth_report.
+export interface UserGrowthReportDailyPoint {
+  date: string;
+  study_minutes: number;
+  new_words: number;
+}
+
 export interface UserGrowthReport {
   range: { start: string; end: string };
   learning_lang: string;
@@ -554,6 +564,7 @@ export interface UserGrowthReport {
     xp_percentile: number | null;
     same_country_cohort: boolean;
   };
+  daily: UserGrowthReportDailyPoint[];
 }
 
 export const statsApi = {
