@@ -17,7 +17,8 @@
         "UIBackgroundModes": [
           "remote-notification"
         ],
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSUserTrackingUsageDescription": "Bu veriler, sana daha ilgili reklamlar göstermek için kullanılır."
       }
     },
     "android": {
@@ -44,6 +45,7 @@
       "expo-router",
       "expo-iap",
       "expo-apple-authentication",
+      "expo-tracking-transparency",
       [
         "@react-native-google-signin/google-signin",
         {
