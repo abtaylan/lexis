@@ -37,6 +37,8 @@ from app.schemas.duels import (
     DuelAnswerRequest,
     DuelAnswerResponse,
     DuelCreate,
+    DuelGuessLetterRequest,
+    DuelGuessLetterResponse,
     DuelInviteCreate,
     DuelInviteItem,
     DuelInvitesListResponse,
@@ -59,6 +61,16 @@ router = APIRouter()
 ROUND_CANDIDATE_FETCH_LIMIT = 300
 ROUND_DURATION_SECONDS = 15
 ANSWER_SCORE_POINTS = 10
+
+# Faz 3h (18 Eylul 2026 kullanici istegi -- "adam asmacada duello olmali")
+# -- mode='wordle' duellolarina ozel sabitler. games.py::MAX_WRONG_GUESSES
+# ile AYNI deger (tek-oyunculu adam asmaca ile tutarli oyun hissi).
+# Sure quiz turundan (15sn, tek tikla cevap) daha uzun -- harf harf
+# tahmin gerektirdigi icin.
+MAX_WRONG_GUESSES = 6
+WORDLE_ROUND_DURATION_SECONDS = 45
+WORDLE_COMPLETE_POINTS = 10
+WORDLE_FIRST_FINISH_BONUS = 5
 
 # Faz 3f (10 Eylul 2026 kullanici istegi -- "rakip bulunamiyor") -- bekleyen
 # odaya rakip yoksa bot otomatik katilir, ve turlarda cevap vermeyen bot
@@ -343,6 +355,130 @@ def _definition_for_round(round_row: dict) -> str:
     return (row.data or {}).get("definition") or ""
 
 
+def _reveal_pattern(word: str, guessed_letters: list[str]) -> str:
+    """games.py::_reveal_pattern ile BIREBIR AYNI -- 'apple', ['a','p'] ->
+    'a p p _ _'. Duel'in kendi round-servis modulunde kucuk bir saf
+    fonksiyonu tekrar tanimlamak (games.py'den import etmek yerine),
+    route modulleri arasinda capraz bagimlilik olusturmamak icin bilincli
+    bir tercih -- ayni ilke bu dosyanin baska yerlerinde de var (ornegin
+    _definition_for_round, games.py'deki desenle ayni ama bagimsiz)."""
+    guessed_lower = {g.lower() for g in guessed_letters}
+    chars = []
+    for ch in word:
+        if not ch.isalpha() or ch.lower() in guessed_lower:
+            chars.append(ch)
+        else:
+            chars.append("_")
+    return " ".join(chars)
+
+
+def _fetch_round_word_text(round_row: dict) -> str:
+    """duel_rounds.general_word_id NOT NULL FK oldugu icin tek SELECT."""
+    row = (
+        supabase_admin.table("general_word_pool")
+        .select("word")
+        .eq("id", round_row["general_word_id"])
+        .single()
+        .execute()
+    )
+    word = (row.data or {}).get("word")
+    if not word:
+        raise HTTPException(status_code=404, detail="Tur kelimesi bulunamadi.")
+    return word
+
+
+def _generate_wordle_rounds(duel_id: str, learning_lang: str, round_count: int) -> int:
+    """mode='wordle' duellolari icin tur uretimi -- _generate_rounds ile
+    AYNI havuz/kademe (_difficulty_band_for_round, _fetch_band_candidates)
+    mantigini kullanir, ama distractor/options GEREKMEZ -- her turda
+    SADECE bir kelime secilir. duel_rounds.options/correct_option NOT
+    NULL oldugu icin (bkz. 037_duels_schema.sql) semaya YENI migration
+    eklemeden bu iki alani su sekilde doldurur: options=[] (bos dizi,
+    gecerli jsonb), correct_option=secilen kelime (kayit/analiz icin --
+    quiz turundeki 'kullanicinin isaretledigi sik' alaniyla ayni ruhta,
+    round-servis uclari bu degeri wordle icin ASLA istemciye erken
+    donmez, bkz. _round_public_response)."""
+    band_pools = {
+        level: _fetch_band_candidates(learning_lang, level) for level in DIFFICULTY_PROGRESSION
+    }
+    combined_unique: dict[str, dict] = {}
+    for pool in band_pools.values():
+        for w in pool:
+            combined_unique.setdefault(w["word"].strip().lower(), w)
+    combined_pool = list(combined_unique.values())
+
+    if not combined_pool:
+        return 0
+
+    actual_round_count = min(round_count, len(combined_pool))
+    used_words: set[str] = set()
+    rounds_to_insert = []
+
+    for index in range(actual_round_count):
+        band = _difficulty_band_for_round(index, actual_round_count)
+        band_pool = [w for w in band_pools[band] if w["word"] not in used_words]
+        if not band_pool:
+            band_pool = [w for w in combined_pool if w["word"] not in used_words]
+        if not band_pool:
+            break
+
+        chosen = random.choice(band_pool)
+        used_words.add(chosen["word"])
+
+        rounds_to_insert.append(
+            {
+                "duel_id": duel_id,
+                "round_index": index,
+                "general_word_id": chosen["id"],
+                "options": [],
+                "correct_option": chosen["word"],
+            }
+        )
+
+    supabase_admin.table("duel_rounds").insert(rounds_to_insert).execute()
+    return len(rounds_to_insert)
+
+
+def _round_public_response(duel: dict, round_row: dict, user_id: str) -> DuelRoundPublic:
+    """get_current_round/begin_current_round icin ORTAK yanit olusturucu --
+    duel['mode']'a gore dallanir. wordle modunda bu KULLANICIYA ait
+    duel_answers ilerleme satirini (varsa) okuyup revealed/guessed_letters/
+    wrong_guesses'i doldurur; satir yoksa (henuz hic harf tahmin
+    edilmemis) bos/varsayilan degerlerle (tum kelime '_' olarak) doner."""
+    if duel["mode"] != "wordle":
+        return DuelRoundPublic(
+            round_index=round_row["round_index"],
+            mode=duel["mode"],
+            definition=_definition_for_round(round_row),
+            options=round_row["options"],
+            started_at=round_row.get("started_at"),
+            ends_at=round_row.get("ends_at"),
+        )
+
+    word_text = _fetch_round_word_text(round_row)
+    answer_row = (
+        supabase_admin.table("duel_answers")
+        .select("guessed_letters, wrong_guesses")
+        .eq("duel_round_id", round_row["id"])
+        .eq("user_id", user_id)
+        .execute()
+        .data
+    )
+    guessed_letters = (answer_row[0]["guessed_letters"] if answer_row else []) or []
+    wrong_guesses = (answer_row[0]["wrong_guesses"] if answer_row else 0) or 0
+
+    return DuelRoundPublic(
+        round_index=round_row["round_index"],
+        mode="wordle",
+        revealed=_reveal_pattern(word_text, guessed_letters),
+        guessed_letters=guessed_letters,
+        wrong_guesses=wrong_guesses,
+        max_wrong_guesses=MAX_WRONG_GUESSES,
+        started_at=round_row.get("started_at"),
+        ends_at=round_row.get("ends_at"),
+    )
+
+
 def _bot_profile_ids() -> set[str]:
     """Tum bot (is_bot=true) profil id'lerini doner -- oda doldurma ve
     katilimci filtreleme icin kucuk, sik cagrilan bir yardimci (bot
@@ -479,6 +615,118 @@ def _auto_answer_bots(duel_id: str, round_row: dict, active_ids: list[str]) -> N
         _submit_bot_answer(duel_id, round_row, bot["id"], bot.get("bot_difficulty") or "orta")
 
 
+def _submit_bot_hangman_progress(duel_id: str, round_row: dict, bot_id: str, difficulty: str) -> None:
+    """mode='wordle' icin _submit_bot_answer'in karsiligi -- bot katilimci
+    icin bu turu BASTAN SONA simule eder (gercek guess-letter endpoint'i
+    HTTP cagrisi gerektirdigi icin bot'lar oraya ugramaz, ayni tamamlanma/
+    skor mantigi burada tekrarlanir -- kasitli kod tekrari, _submit_bot_
+    answer ile ayni gerekce). accuracy, dogru harfi secme olasiligi olarak
+    kullanilir; yanlis secildiginde kelimede OLMAYAN rastgele bir harf
+    secilir."""
+    word_text = _fetch_round_word_text(round_row)
+    accuracy = BOT_ANSWER_ACCURACY.get(difficulty, BOT_ANSWER_ACCURACY["orta"])
+    word_letters = sorted({c.lower() for c in word_text if c.isalpha()})
+    alphabet = "abcdefghijklmnopqrstuvwxyz"
+    remaining_correct = list(word_letters)
+    random.shuffle(remaining_correct)
+    guessed: list[str] = []
+    wrong_guesses = 0
+
+    while remaining_correct and wrong_guesses < MAX_WRONG_GUESSES:
+        if random.random() < accuracy:
+            letter = remaining_correct.pop()
+        else:
+            wrong_candidates = [c for c in alphabet if c not in word_letters and c not in guessed]
+            if not wrong_candidates:
+                letter = remaining_correct.pop()
+            else:
+                letter = random.choice(wrong_candidates)
+        if letter not in guessed:
+            guessed.append(letter)
+            if letter not in word_letters:
+                wrong_guesses += 1
+
+    revealed = _reveal_pattern(word_text, guessed)
+    is_complete = "_" not in revealed
+    round_over = is_complete or wrong_guesses >= MAX_WRONG_GUESSES
+
+    first_to_finish = False
+    if is_complete:
+        prior_finishers = (
+            supabase_admin.table("duel_answers")
+            .select("id", count="exact")
+            .eq("duel_round_id", round_row["id"])
+            .eq("is_correct", True)
+            .execute()
+            .count
+            or 0
+        )
+        first_to_finish = prior_finishers == 0
+
+    supabase_admin.table("duel_answers").insert(
+        {
+            "duel_round_id": round_row["id"],
+            "user_id": bot_id,
+            "selected_option": word_text if round_over else None,
+            "is_correct": is_complete,
+            "guessed_letters": guessed,
+            "wrong_guesses": wrong_guesses,
+        }
+    ).execute()
+
+    if is_complete:
+        participant = (
+            supabase_admin.table("duel_participants")
+            .select("score")
+            .eq("duel_id", duel_id)
+            .eq("user_id", bot_id)
+            .single()
+            .execute()
+        )
+        score = (participant.data or {}).get("score", 0) + WORDLE_COMPLETE_POINTS
+        if first_to_finish:
+            score += WORDLE_FIRST_FINISH_BONUS
+        supabase_admin.table("duel_participants").update({"score": score}).eq(
+            "duel_id", duel_id
+        ).eq("user_id", bot_id).execute()
+
+
+def _auto_complete_hangman_bots(duel_id: str, round_row: dict, active_ids: list[str]) -> None:
+    """advance_round basinda cagrilir -- _auto_answer_bots'un wordle
+    karsiligi: bu turu henuz BITIRMEMIS (ne tamamlamis ne hakki tukenmis)
+    bot katilimcilar icin turu simule eder."""
+    if not active_ids:
+        return
+    bot_rows = (
+        supabase_admin.table("profiles")
+        .select("id, bot_difficulty")
+        .in_("id", active_ids)
+        .eq("is_bot", True)
+        .execute()
+        .data
+    ) or []
+    if not bot_rows:
+        return
+
+    progress_rows = (
+        supabase_admin.table("duel_answers")
+        .select("user_id, is_correct, wrong_guesses")
+        .eq("duel_round_id", round_row["id"])
+        .execute()
+        .data
+    ) or []
+    finished_ids = {
+        r["user_id"]
+        for r in progress_rows
+        if r.get("is_correct") or (r.get("wrong_guesses") or 0) >= MAX_WRONG_GUESSES
+    }
+
+    for bot in bot_rows:
+        if bot["id"] in finished_ids:
+            continue
+        _submit_bot_hangman_progress(duel_id, round_row, bot["id"], bot.get("bot_difficulty") or "orta")
+
+
 @router.post("", response_model=DuelResponse, status_code=201)
 async def create_duel(
     duel_in: DuelCreate,
@@ -493,6 +741,7 @@ async def create_duel(
         .insert(
             {
                 "learning_lang": learning_lang,
+                "mode": duel_in.mode,
                 "created_by": current_user.id,
                 "max_players": duel_in.max_players,
                 "round_count": duel_in.round_count,
@@ -659,7 +908,10 @@ async def start_duel(
     if _participant_count(duel_id) < 2:
         raise HTTPException(status_code=400, detail="Başlamak için en az 2 katılımcı gerekiyor.")
 
-    generated = _generate_rounds(duel_id, duel["learning_lang"], duel["round_count"])
+    if duel["mode"] == "wordle":
+        generated = _generate_wordle_rounds(duel_id, duel["learning_lang"], duel["round_count"])
+    else:
+        generated = _generate_rounds(duel_id, duel["learning_lang"], duel["round_count"])
     if generated == 0:
         raise HTTPException(
             status_code=400,
@@ -688,13 +940,7 @@ async def get_current_round(
     if duel["status"] != "active":
         raise HTTPException(status_code=400, detail="Düello aktif değil.")
     round_row = _get_round_or_404(duel_id, duel["current_round_index"])
-    return DuelRoundPublic(
-        round_index=round_row["round_index"],
-        definition=_definition_for_round(round_row),
-        options=round_row["options"],
-        started_at=round_row.get("started_at"),
-        ends_at=round_row.get("ends_at"),
-    )
+    return _round_public_response(duel, round_row, current_user.id)
 
 
 @router.post("/{duel_id}/rounds/begin", response_model=DuelRoundPublic)
@@ -714,7 +960,8 @@ async def begin_current_round(
 
     if not round_row.get("started_at"):
         now = datetime.now(UTC)
-        ends_at = now + timedelta(seconds=ROUND_DURATION_SECONDS)
+        duration = WORDLE_ROUND_DURATION_SECONDS if duel["mode"] == "wordle" else ROUND_DURATION_SECONDS
+        ends_at = now + timedelta(seconds=duration)
         updated = (
             supabase_admin.table("duel_rounds")
             .update({"started_at": now.isoformat(), "ends_at": ends_at.isoformat()})
@@ -723,13 +970,7 @@ async def begin_current_round(
         )
         round_row = updated.data[0]
 
-    return DuelRoundPublic(
-        round_index=round_row["round_index"],
-        definition=_definition_for_round(round_row),
-        options=round_row["options"],
-        started_at=round_row.get("started_at"),
-        ends_at=round_row.get("ends_at"),
-    )
+    return _round_public_response(duel, round_row, current_user.id)
 
 
 @router.post("/{duel_id}/rounds/answer", response_model=DuelAnswerResponse)
@@ -799,6 +1040,123 @@ async def submit_round_answer(
     )
 
 
+@router.post("/{duel_id}/rounds/guess-letter", response_model=DuelGuessLetterResponse)
+async def submit_round_guess_letter(
+    duel_id: str,
+    guess_in: DuelGuessLetterRequest,
+    current_user=Depends(get_current_user),
+):
+    """mode='wordle' duellolarina ozel (18 Eylul 2026 kullanici istegi --
+    "adam asmacada duello"): su anki turda TEK bir harf tahmini gonderir.
+    games.py::guess_letter ile AYNI harf-harf mantigi, farki: burada
+    BIRDEN FAZLA katilimci AYNI kelimede BAGIMSIZ ilerler (yaris) --
+    ilerleme duel_answers.guessed_letters/wrong_guesses'te (duel_round_id,
+    user_id basina TEK satir, bkz. 076_duel_wordle_mode.sql) birikir.
+    Kelimeyi ilk tamamlayan katilimciya WORDLE_FIRST_FINISH_BONUS eklenir."""
+    duel = _get_duel_or_404(duel_id)
+    if duel["status"] != "active":
+        raise HTTPException(status_code=400, detail="Düello aktif değil.")
+    if duel["mode"] != "wordle":
+        raise HTTPException(status_code=400, detail="Bu uç nokta sadece wordle modu içindir.")
+    round_row = _get_round_or_404(duel_id, duel["current_round_index"])
+
+    if not round_row.get("started_at"):
+        raise HTTPException(status_code=400, detail="Tur henüz başlamadı.")
+    ends_at = datetime.fromisoformat(round_row["ends_at"])
+    if datetime.now(UTC) > ends_at:
+        raise HTTPException(status_code=400, detail="Bu tur için süre doldu.")
+
+    letter = guess_in.letter.strip().lower()
+    if not letter:
+        raise HTTPException(status_code=422, detail="Geçerli bir harf girin.")
+
+    word_text = _fetch_round_word_text(round_row)
+
+    existing_rows = (
+        supabase_admin.table("duel_answers")
+        .select("id, guessed_letters, wrong_guesses, is_correct")
+        .eq("duel_round_id", round_row["id"])
+        .eq("user_id", current_user.id)
+        .execute()
+        .data
+    )
+    existing = existing_rows[0] if existing_rows else None
+    if existing and (
+        existing.get("is_correct") or (existing.get("wrong_guesses") or 0) >= MAX_WRONG_GUESSES
+    ):
+        raise HTTPException(status_code=400, detail="Bu turu bu düelloda zaten tamamladınız.")
+
+    guessed = list((existing or {}).get("guessed_letters") or [])
+    wrong_guesses = int((existing or {}).get("wrong_guesses") or 0)
+    correct = letter in word_text.lower()
+
+    if letter not in guessed:
+        guessed.append(letter)
+        if not correct:
+            wrong_guesses += 1
+
+    revealed = _reveal_pattern(word_text, guessed)
+    is_complete = "_" not in revealed
+    is_round_over = is_complete or wrong_guesses >= MAX_WRONG_GUESSES
+    first_to_finish = False
+
+    if is_complete:
+        prior_finishers = (
+            supabase_admin.table("duel_answers")
+            .select("id", count="exact")
+            .eq("duel_round_id", round_row["id"])
+            .eq("is_correct", True)
+            .execute()
+            .count
+            or 0
+        )
+        first_to_finish = prior_finishers == 0
+
+    row_payload = {
+        "duel_round_id": round_row["id"],
+        "user_id": current_user.id,
+        "selected_option": word_text if is_round_over else None,
+        "is_correct": is_complete,
+        "guessed_letters": guessed,
+        "wrong_guesses": wrong_guesses,
+    }
+    if existing:
+        supabase_admin.table("duel_answers").update(row_payload).eq("id", existing["id"]).execute()
+    else:
+        supabase_admin.table("duel_answers").insert(row_payload).execute()
+
+    participant = (
+        supabase_admin.table("duel_participants")
+        .select("score")
+        .eq("duel_id", duel_id)
+        .eq("user_id", current_user.id)
+        .single()
+        .execute()
+    )
+    score = (participant.data or {}).get("score", 0)
+    if is_complete:
+        score += WORDLE_COMPLETE_POINTS
+        if first_to_finish:
+            score += WORDLE_FIRST_FINISH_BONUS
+        supabase_admin.table("duel_participants").update({"score": score}).eq(
+            "duel_id", duel_id
+        ).eq("user_id", current_user.id).execute()
+
+    return DuelGuessLetterResponse(
+        letter=letter,
+        correct=correct,
+        revealed=revealed,
+        guessed_letters=guessed,
+        wrong_guesses=wrong_guesses,
+        max_wrong_guesses=MAX_WRONG_GUESSES,
+        is_complete=is_complete,
+        is_round_over=is_round_over,
+        word=word_text if is_round_over else None,
+        score=score,
+        first_to_finish=first_to_finish,
+    )
+
+
 @router.post("/{duel_id}/rounds/advance", response_model=DuelStatusResponse)
 async def advance_round(
     duel_id: str,
@@ -819,16 +1177,34 @@ async def advance_round(
     active_ids = _active_participant_ids(duel_id)
     # Faz 3f: bu turu henuz cevaplamamis bot katilimcilar icin otomatik
     # cevap uret -- boylece sadece gercek kullanicilar cevaplayinca degil,
-    # bot'lar da "cevaplamis" sayilinca tur ilerleyebilir.
-    _auto_answer_bots(duel_id, round_row, active_ids)
-    answered_count = (
-        supabase_admin.table("duel_answers")
-        .select("user_id", count="exact")
-        .eq("duel_round_id", round_row["id"])
-        .execute()
-        .count
-        or 0
-    )
+    # bot'lar da "cevaplamis" sayilinca tur ilerleyebilir. Faz 3h (wordle):
+    # "cevaplamis" burada "turu BITIRMIS" (tamamladi VEYA hakki tukendi)
+    # anlamina gelir -- sadece bir satirin VAR OLMASI yetmez, cunku bir
+    # satir ilk harf tahmininde (henuz bitirmeden) zaten olusuyor.
+    if duel["mode"] == "wordle":
+        _auto_complete_hangman_bots(duel_id, round_row, active_ids)
+        progress_rows = (
+            supabase_admin.table("duel_answers")
+            .select("user_id, is_correct, wrong_guesses")
+            .eq("duel_round_id", round_row["id"])
+            .execute()
+            .data
+        ) or []
+        answered_count = sum(
+            1
+            for r in progress_rows
+            if r.get("is_correct") or (r.get("wrong_guesses") or 0) >= MAX_WRONG_GUESSES
+        )
+    else:
+        _auto_answer_bots(duel_id, round_row, active_ids)
+        answered_count = (
+            supabase_admin.table("duel_answers")
+            .select("user_id", count="exact")
+            .eq("duel_round_id", round_row["id"])
+            .execute()
+            .count
+            or 0
+        )
     round_expired = bool(round_row.get("ends_at")) and datetime.now(UTC) > datetime.fromisoformat(
         round_row["ends_at"]
     )
@@ -1078,6 +1454,7 @@ async def invite_friend_to_duel(
         .insert(
             {
                 "learning_lang": learning_lang,
+                "mode": invite_in.mode,
                 "created_by": current_user.id,
                 "max_players": invite_in.max_players,
                 "round_count": invite_in.round_count,

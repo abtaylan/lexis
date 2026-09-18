@@ -8,9 +8,18 @@ from app.schemas.social import UserCard
 class DuelCreate(BaseModel):
     """POST /duels gövdesi. learning_lang verilmezse kullanıcının profilindeki
     aktif öğrenme dili kullanılır (games.py::_get_profile_langs deseniyle
-    tutarlı)."""
+    tutarlı).
+
+    mode (18 Eylül 2026 -- kullanıcı isteği "adam asmacada düello olmalı"):
+    'multiple_choice' (varsayılan, mevcut tanım->kelime düellosu) veya
+    'wordle' (adam asmaca düellosu -- aynı kelimede yarışarak harf tahmini,
+    bkz. duels.py round-servis uçlarındaki mode dallanması). games.py'deki
+    GameMode enum'uyla AYNI sözleşim ama burada string olarak tutuluyor ki
+    DuelCreate, games.py şemalarına bağımlı olmasın (mevcut kod tabanı
+    deseniyle tutarlı, DB tarafında zaten aynı public.game_mode enum'u)."""
 
     learning_lang: str | None = None
+    mode: str = Field(default="multiple_choice", pattern="^(multiple_choice|wordle)$")
     max_players: int = Field(default=8, ge=2, le=20)
     round_count: int = Field(default=10, ge=1, le=50)
 
@@ -66,8 +75,17 @@ class DuelRoundPublic(BaseModel):
     referans verilmiyor, matchmaking learning_lang'e göre kalıyor."""
 
     round_index: int
-    definition: str
-    options: list[str]
+    mode: str = "multiple_choice"
+    # multiple_choice alanları:
+    definition: str | None = None
+    options: list[str] | None = None
+    # wordle alanları (18 Eylül 2026) -- bu kullanıcının BU turdaki kendi
+    # ilerlemesi (duel_answers.guessed_letters/wrong_guesses'ten). revealed,
+    # games.py::_reveal_pattern ile AYNI formatta ("a p p _ _").
+    revealed: str | None = None
+    guessed_letters: list[str] | None = None
+    wrong_guesses: int | None = None
+    max_wrong_guesses: int | None = None
     started_at: datetime | None = None
     ends_at: datetime | None = None
 
@@ -96,6 +114,7 @@ class DuelInviteCreate(BaseModel):
     etmek -- accept sirasinda oda dolu degilse eklenir)."""
 
     username: str
+    mode: str = Field(default="multiple_choice", pattern="^(multiple_choice|wordle)$")
     max_players: int = Field(default=2, ge=2, le=8)
     round_count: int = Field(default=10, ge=1, le=50)
 
@@ -112,3 +131,33 @@ class DuelInviteItem(BaseModel):
 
 class DuelInvitesListResponse(BaseModel):
     items: list[DuelInviteItem]
+
+
+
+# ============================================================
+# Faz 3h (18 Eylul 2026 kullanici istegi -- "adam asmacada duello")
+# -- mode='wordle' duellolarina ozel round-servis uclari.
+# ============================================================
+class DuelGuessLetterRequest(BaseModel):
+    letter: str = Field(min_length=1, max_length=1)
+
+
+class DuelGuessLetterResponse(BaseModel):
+    """POST /{duel_id}/rounds/guess-letter cevabi -- games.py::
+    GuessLetterResponse ile AYNI alan adlari (istemci tarafinda tek-oyunculu
+    adam asmaca ekraniyla ayni bilesenler yeniden kullanilabilsin diye),
+    farki: is_round_over (bu KULLANICI icin bu tur bitti mi -- diger
+    katilimcilar hala oynuyor olabilir) ve first_to_finish (yaris bonusu
+    kazandi mi) alanlari."""
+
+    letter: str
+    correct: bool
+    revealed: str
+    guessed_letters: list[str]
+    wrong_guesses: int
+    max_wrong_guesses: int
+    is_complete: bool
+    is_round_over: bool
+    word: str | None = None
+    score: int
+    first_to_finish: bool = False
