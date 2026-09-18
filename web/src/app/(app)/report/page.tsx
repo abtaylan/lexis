@@ -13,13 +13,13 @@ import {
   ArrowUp, ArrowDown, Minus, Globe,
 } from 'lucide-react';
 import { clsx } from 'clsx';
-import { statsApi, type UserReport } from '@/lib/api';
+import { statsApi, type UserReport, type UserGrowthReport } from '@/lib/api';
 import { ReportExportMenu } from '@/components/reports/ReportExportMenu';
 import { useLocale } from '@/lib/i18n';
 import { REPORT_L } from '@/lib/reportLocale';
 import { PageHeader } from '@/components/layout/PageHeader';
 
-type Period = 'week' | 'month';
+type Period = 'week' | 'month' | 'growth';
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
@@ -104,12 +104,20 @@ export default function ReportPage() {
   const t = REPORT_L[locale] ?? REPORT_L.en;
   const [period, setPeriod] = useState<Period>('week');
   const [data, setData] = useState<UserReport | null>(null);
+  // Tarih araligi ("kayittan bugune" / ozel araligi) gelisim raporu modu
+  // (Istatistik & Raporlama, Faz 5 madde 3 -- kullanici istegi, 18 Eylul
+  // 2026). Bos string = backend'in varsayilanini kullan (start bos ->
+  // kayit tarihi, end bos -> su an), yani "kayittan bugune".
+  const [growthStart, setGrowthStart] = useState('');
+  const [growthEnd, setGrowthEnd] = useState('');
+  const [growthData, setGrowthData] = useState<UserGrowthReport | null>(null);
   const [error, setError] = useState(false);
 
   // league/page.tsx ile aynı desen (loadMe/loadOverview): veri çekme
   // mantığı bir useCallback içinde, effect sadece bunu çağırıyor (fetch-on-effect,
   // set-state-in-effect kuralı kasıtlı olarak devre dışı bırakıldı).
   const load = useCallback(() => {
+    if (period === 'growth') return;
     setData(null);
     setError(false);
     statsApi.getUserReport(period)
@@ -117,10 +125,25 @@ export default function ReportPage() {
       .catch(() => setError(true));
   }, [period]);
 
+  const loadGrowth = useCallback(() => {
+    setGrowthData(null);
+    setError(false);
+    statsApi.getMyGrowthReport(growthStart || undefined, growthEnd || undefined)
+      .then(setGrowthData)
+      .catch(() => setError(true));
+  }, [growthStart, growthEnd]);
+
   useEffect(() => {
+    if (period === 'growth') return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/period degisince veri cekme (fetch-on-effect) deseni
     load();
-  }, [load]);
+  }, [period, load]);
+
+  useEffect(() => {
+    if (period !== 'growth') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mod/tarih araligi degisince veri cekme (fetch-on-effect) deseni
+    loadGrowth();
+  }, [period, loadGrowth]);
 
   return (
     <div className="max-w-4xl">
@@ -151,31 +174,221 @@ export default function ReportPage() {
         >
           {t.monthTab}
         </button>
+        <button
+          type="button"
+          onClick={() => setPeriod('growth')}
+          className={clsx(
+            'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap',
+            period === 'growth'
+              ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400'
+              : 'text-gray-500 hover:bg-gray-50 dark:text-slate-400 dark:hover:bg-slate-800'
+          )}
+        >
+          {t.growthTab}
+        </button>
       </div>
 
-      <ReportExportMenu
-        className="mb-5"
-        labels={{
-          formatCsv: t.exportFormatCsv, formatXlsx: t.exportFormatXlsx, formatPdf: t.exportFormatPdf,
-          downloadBtn: t.exportDownloadBtn, emailBtn: t.exportEmailBtn,
-          downloading: t.exportDownloading, sending: t.exportSending,
-          sentToTpl: t.exportSentToTpl, errorMsg: t.exportErrorMsg,
-        }}
-        onExport={(format) => statsApi.exportUserReport(period, format)}
-        onEmail={(format) => statsApi.sendUserReportEmail(period, format)}
-      />
+      {period === 'growth' && (
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
+            {t.startDateLabel}
+            <input
+              type="date"
+              value={growthStart}
+              max={growthEnd || undefined}
+              onChange={(e) => setGrowthStart(e.target.value)}
+              className="px-2 py-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-gray-900 dark:text-slate-100"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
+            {t.endDateLabel}
+            <input
+              type="date"
+              value={growthEnd}
+              min={growthStart || undefined}
+              onChange={(e) => setGrowthEnd(e.target.value)}
+              className="px-2 py-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-gray-900 dark:text-slate-100"
+            />
+          </label>
+          {(growthStart || growthEnd) && (
+            <button
+              type="button"
+              onClick={() => { setGrowthStart(''); setGrowthEnd(''); }}
+              className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {t.sinceRegistrationBtn}
+            </button>
+          )}
+        </div>
+      )}
+
+      {period !== 'growth' && (
+        <ReportExportMenu
+          className="mb-5"
+          labels={{
+            formatCsv: t.exportFormatCsv, formatXlsx: t.exportFormatXlsx, formatPdf: t.exportFormatPdf,
+            downloadBtn: t.exportDownloadBtn, emailBtn: t.exportEmailBtn,
+            downloading: t.exportDownloading, sending: t.exportSending,
+            sentToTpl: t.exportSentToTpl, errorMsg: t.exportErrorMsg,
+          }}
+          onExport={(format) => statsApi.exportUserReport(period, format)}
+          onEmail={(format) => statsApi.sendUserReportEmail(period, format)}
+        />
+      )}
 
       {error ? (
         <Card className="text-center">
           <p className="text-sm text-gray-500 dark:text-slate-400 mb-3">{t.error}</p>
           <button
             type="button"
-            onClick={load}
+            onClick={period === 'growth' ? loadGrowth : load}
             className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
           >
             {t.retryBtn}
           </button>
         </Card>
+      ) : period === 'growth' ? (
+        growthData === null ? (
+          <p className="text-sm text-gray-400 dark:text-slate-500">{t.loading}</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Card className="sm:col-span-2">
+              <p className="text-xs text-gray-400 dark:text-slate-500">
+                {new Date(growthData.range.start).toLocaleDateString(locale)}
+                {' → '}
+                {new Date(growthData.range.end).toLocaleDateString(locale)}
+              </p>
+            </Card>
+
+            <Card>
+              <SectionTitle icon={<Clock className="w-4 h-4" />} title={t.sectionStudy} />
+              <StatBlock label={t.minutesLabel} value={growthData.study_minutes} />
+            </Card>
+
+            <Card>
+              <SectionTitle icon={<Flame className="w-4 h-4" />} title={t.sectionStreak} />
+              <StatBlock label={t.currentStreakLabel} value={growthData.streak_current} unit={t.streakUnit} />
+            </Card>
+
+            <Card>
+              <SectionTitle icon={<BookOpen className="w-4 h-4" />} title={t.sectionVocabulary} />
+              <div className="grid grid-cols-2 gap-4">
+                <StatBlock label={t.totalWordsLabel} value={growthData.vocabulary.total_words} />
+                <StatBlock
+                  label={t.learnedWordsLabel}
+                  value={`${growthData.vocabulary.learned_words} (${growthData.vocabulary.learned_pct}%)`}
+                />
+                <StatBlock label={t.newWordsLabel} value={growthData.vocabulary.new_words_in_range} />
+              </div>
+            </Card>
+
+            <Card>
+              <SectionTitle icon={<Gamepad2 className="w-4 h-4" />} title={t.sectionGames} />
+              <div className="grid grid-cols-2 gap-4">
+                <StatBlock label={t.gameSessionsLabel} value={growthData.games.sessions} />
+                <StatBlock label={t.avgScoreLabel} value={growthData.games.avg_score} />
+              </div>
+            </Card>
+
+            <Card className="sm:col-span-2">
+              <SectionTitle icon={<Target className="w-4 h-4" />} title={t.sectionExam} />
+              <div className="mb-4">
+                <StatBlock
+                  label={t.accuracyLabel}
+                  value={growthData.exam.accuracy !== null ? `${growthData.exam.accuracy}%` : '—'}
+                />
+              </div>
+              {growthData.exam.weak_topics.length === 0 && growthData.exam.strong_topics.length === 0 ? (
+                <p className="text-xs text-gray-400 dark:text-slate-500">{t.noTopicDataLabel}</p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="text-[11px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+                      {t.weakTopicsLabel}
+                    </h3>
+                    <ul className="space-y-1.5">
+                      {growthData.exam.weak_topics.map((topic) => (
+                        <li key={topic.topic_tag} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-700 dark:text-slate-300">{topicLabel(topic.topic_tag)}</span>
+                          <span className="text-xs text-gray-400 dark:text-slate-500">
+                            {topic.accuracy}% · {topic.attempts} {t.attemptsUnit}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="text-[11px] font-semibold text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2">
+                      {t.strongTopicsLabel}
+                    </h3>
+                    <ul className="space-y-1.5">
+                      {growthData.exam.strong_topics.map((topic) => (
+                        <li key={topic.topic_tag} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-700 dark:text-slate-300">{topicLabel(topic.topic_tag)}</span>
+                          <span className="text-xs text-gray-400 dark:text-slate-500">
+                            {topic.accuracy}% · {topic.attempts} {t.attemptsUnit}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </Card>
+
+            <Card>
+              <SectionTitle icon={<Map className="w-4 h-4" />} title={t.sectionQuests} />
+              <StatBlock label={t.questsCompletedLabel} value={growthData.quests_completed_in_range} />
+            </Card>
+
+            <Card>
+              <SectionTitle icon={<Award className="w-4 h-4" />} title={t.sectionBadges} />
+              <StatBlock label={t.badgesNewLabel} value={growthData.badges_earned_in_range} />
+            </Card>
+
+            <Card>
+              <SectionTitle icon={<Trophy className="w-4 h-4" />} title={t.sectionLeague} />
+              <StatBlock label={t.currentTierLabel} value={growthData.league_current_tier ?? '—'} />
+            </Card>
+
+            <Card>
+              <SectionTitle icon={<Sparkles className="w-4 h-4" />} title={t.totalXpLabel} />
+              <StatBlock label={t.totalXpLabel} value={growthData.total_xp} />
+            </Card>
+
+            <Card className="sm:col-span-2">
+              <SectionTitle icon={<Globe className="w-4 h-4" />} title={t.sectionPlatform} />
+              {growthData.platform.cohort_size === 0 || growthData.platform.active_peers_current === 0 ? (
+                <p className="text-xs text-gray-400 dark:text-slate-500">{t.noPlatformDataLabel}</p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <StatBlock
+                      label={t.platformAvgMinutesLabel}
+                      value={growthData.platform.avg_minutes_current ?? '—'}
+                    />
+                    <StatBlock
+                      label={t.platformAvgNewWordsLabel}
+                      value={growthData.platform.avg_new_words_current ?? '—'}
+                    />
+                    <StatBlock
+                      label={t.platformAvgAccuracyLabel}
+                      value={growthData.platform.avg_accuracy_current !== null ? `${growthData.platform.avg_accuracy_current}%` : '—'}
+                    />
+                    <StatBlock
+                      label={t.platformXpPercentileLabel}
+                      value={growthData.platform.xp_percentile !== null ? `%${growthData.platform.xp_percentile}` : '—'}
+                      unit={growthData.platform.xp_percentile !== null ? t.percentileUnit : undefined}
+                    />
+                  </div>
+                  {growthData.platform.same_country_cohort && (
+                    <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-3">{t.sameCountryNoteLabel}</p>
+                  )}
+                </>
+              )}
+            </Card>
+          </div>
+        )
       ) : data === null ? (
         <p className="text-sm text-gray-400 dark:text-slate-500">{t.loading}</p>
       ) : (

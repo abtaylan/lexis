@@ -62,6 +62,14 @@ export interface ReportStrings {
   percentileUnit: string;
   noPlatformDataLabel: string;
   sameCountryNoteLabel: string;
+  // Tarih araligi ("kayittan bugune" / ozel araligi) gelisim raporu modu
+  // (Istatistik & Raporlama, Faz 5 madde 3 -- kullanici istegi, 18 Eylul 2026).
+  // Backend: GET /stats/report/growth (bkz. lib/api.ts::statsApi.getMyGrowthReport).
+  growthTab: string;
+  startDateLabel: string;
+  endDateLabel: string;
+  sinceRegistrationBtn: string;
+  totalXpLabel: string;
   // İstatistik & Raporlama V2 öncelik #3, Faz 3 madde F — export/e-posta
   // kontrolü (bkz. components/reports/ReportExportMenu.tsx). Üretilen
   // dosyanın içeriği HER ZAMAN Türkçe (bkz. backend report_export_service.py) —
@@ -110,6 +118,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'yüzdelik dilim',
     noPlatformDataLabel: 'Henüz karşılaştırılacak yeterli platform verisi yok.',
     sameCountryNoteLabel: 'Şu an tüm kullanıcılar aynı ülkede olduğu için bu karşılaştırma ulusal değil, platform geneli.',
+    growthTab: 'Kayıttan Bugüne / Özel Aralık',
+    startDateLabel: 'Başlangıç', endDateLabel: 'Bitiş',
+    sinceRegistrationBtn: 'Kayıttan bugüne sıfırla',
+    totalXpLabel: 'Toplam XP',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'İndir', exportEmailBtn: 'E-posta ile Gönder',
     exportDownloading: 'İndiriliyor…', exportSending: 'Gönderiliyor…',
@@ -144,6 +156,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentile',
     noPlatformDataLabel: 'Not enough platform data to compare yet.',
     sameCountryNoteLabel: 'Since all users are currently in the same country, this is a platform-wide comparison rather than a national one.',
+    growthTab: 'Since Registration / Custom Range',
+    startDateLabel: 'Start', endDateLabel: 'End',
+    sinceRegistrationBtn: 'Reset to since registration',
+    totalXpLabel: 'Total XP',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'Download', exportEmailBtn: 'Email It',
     exportDownloading: 'Downloading…', exportSending: 'Sending…',
@@ -178,6 +194,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'Perzentil',
     noPlatformDataLabel: 'Noch nicht genug Plattformdaten zum Vergleich.',
     sameCountryNoteLabel: 'Da sich derzeit alle Nutzer im selben Land befinden, ist dies ein plattformweiter statt ein nationaler Vergleich.',
+    growthTab: 'Seit Registrierung / Benutzerdefinierter Zeitraum',
+    startDateLabel: 'Start', endDateLabel: 'Ende',
+    sinceRegistrationBtn: 'Auf „seit Registrierung“ zurücksetzen',
+    totalXpLabel: 'Gesamt-XP',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'Herunterladen', exportEmailBtn: 'Per E-Mail senden',
     exportDownloading: 'Wird heruntergeladen…', exportSending: 'Wird gesendet…',
@@ -212,6 +232,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentile',
     noPlatformDataLabel: 'Pas encore assez de données de la plateforme pour comparer.',
     sameCountryNoteLabel: "Comme tous les utilisateurs sont actuellement dans le même pays, il s'agit d'une comparaison à l'échelle de la plateforme plutôt que nationale.",
+    growthTab: "Depuis l'inscription / Période personnalisée",
+    startDateLabel: 'Début', endDateLabel: 'Fin',
+    sinceRegistrationBtn: "Réinitialiser depuis l'inscription",
+    totalXpLabel: 'XP total',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'Télécharger', exportEmailBtn: 'Envoyer par e-mail',
     exportDownloading: 'Téléchargement…', exportSending: 'Envoi…',
@@ -246,6 +270,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentil',
     noPlatformDataLabel: 'Aún no hay suficientes datos de la plataforma para comparar.',
     sameCountryNoteLabel: 'Como todos los usuarios están actualmente en el mismo país, esta es una comparación a nivel de plataforma y no nacional.',
+    growthTab: 'Desde el registro / Rango personalizado',
+    startDateLabel: 'Inicio', endDateLabel: 'Fin',
+    sinceRegistrationBtn: 'Restablecer desde el registro',
+    totalXpLabel: 'XP total',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'Descargar', exportEmailBtn: 'Enviar por correo',
     exportDownloading: 'Descargando…', exportSending: 'Enviando…',
@@ -280,6 +308,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentile',
     noPlatformDataLabel: 'Non ci sono ancora abbastanza dati della piattaforma per confrontare.',
     sameCountryNoteLabel: 'Poiché al momento tutti gli utenti si trovano nello stesso paese, questo è un confronto a livello di piattaforma e non nazionale.',
+    growthTab: 'Dalla registrazione / Intervallo personalizzato',
+    startDateLabel: 'Inizio', endDateLabel: 'Fine',
+    sinceRegistrationBtn: 'Reimposta da registrazione',
+    totalXpLabel: 'XP totali',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'Scarica', exportEmailBtn: 'Invia via email',
     exportDownloading: 'Download in corso…', exportSending: 'Invio in corso…',
@@ -314,6 +346,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'شريحة مئوية',
     noPlatformDataLabel: 'لا توجد بيانات كافية من المنصة للمقارنة بعد.',
     sameCountryNoteLabel: 'نظرًا لأن جميع المستخدمين حاليًا في نفس البلد، فهذه مقارنة على مستوى المنصة وليست وطنية.',
+    growthTab: 'منذ التسجيل / نطاق مخصص',
+    startDateLabel: 'البداية', endDateLabel: 'النهاية',
+    sinceRegistrationBtn: 'إعادة الضبط منذ التسجيل',
+    totalXpLabel: 'إجمالي نقاط الخبرة',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'تنزيل', exportEmailBtn: 'إرسال بالبريد الإلكتروني',
     exportDownloading: 'جارٍ التنزيل…', exportSending: 'جارٍ الإرسال…',
@@ -348,6 +384,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'процентиль',
     noPlatformDataLabel: 'Пока недостаточно данных платформы для сравнения.',
     sameCountryNoteLabel: 'Поскольку сейчас все пользователи находятся в одной стране, это сравнение в рамках всей платформы, а не национальное.',
+    growthTab: 'С момента регистрации / Свой период',
+    startDateLabel: 'Начало', endDateLabel: 'Конец',
+    sinceRegistrationBtn: 'Сбросить до «с регистрации»',
+    totalXpLabel: 'Всего XP',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'Скачать', exportEmailBtn: 'Отправить по почте',
     exportDownloading: 'Скачивание…', exportSending: 'Отправка…',
@@ -382,6 +422,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'パーセンタイル',
     noPlatformDataLabel: '比較するのに十分なプラットフォームデータがまだありません。',
     sameCountryNoteLabel: '現在すべてのユーザーが同じ国にいるため、これは国別ではなくプラットフォーム全体の比較です。',
+    growthTab: '登録日から / カスタム期間',
+    startDateLabel: '開始日', endDateLabel: '終了日',
+    sinceRegistrationBtn: '登録日からにリセット',
+    totalXpLabel: '合計XP',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'ダウンロード', exportEmailBtn: 'メールで送信',
     exportDownloading: 'ダウンロード中…', exportSending: '送信中…',
@@ -416,6 +460,10 @@ export const REPORT_L: Record<Locale, ReportStrings> = {
     percentileUnit: 'percentil',
     noPlatformDataLabel: 'Ainda não há dados suficientes da plataforma para comparar.',
     sameCountryNoteLabel: 'Como todos os utilizadores estão atualmente no mesmo país, esta é uma comparação a nível da plataforma, não nacional.',
+    growthTab: 'Desde o cadastro / Período personalizado',
+    startDateLabel: 'Início', endDateLabel: 'Fim',
+    sinceRegistrationBtn: 'Redefinir para desde o cadastro',
+    totalXpLabel: 'XP total',
     exportFormatCsv: 'CSV', exportFormatXlsx: 'Excel', exportFormatPdf: 'PDF',
     exportDownloadBtn: 'Transferir', exportEmailBtn: 'Enviar por email',
     exportDownloading: 'A transferir…', exportSending: 'A enviar…',
