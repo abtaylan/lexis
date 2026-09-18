@@ -610,18 +610,37 @@ def generate_placement_questions(learning_lang: str, count: int = 50) -> list[di
     # `base + 1` soru alir (orn. count=50 -> 8,8,8,8,9,9 -- toplam 50).
     level_counts = [base + (1 if i >= len(levels) - remainder else 0) for i in range(len(levels))]
 
+    # 18 Eylul 2026: bir seviyenin sifir soruyla donmesi (once stringlestirme
+    # bug'i, simdi ise sadece modelin o cagrida stokastik olarak bos dizi
+    # dondurmesi -- bkz. tr/a1,b1,c1 debug ciktisi: stop_reason='tool_use'
+    # ama raw_questions gercekten bos) tekrar denendiginde genelde duzeliyor.
+    # O yuzden seviye basina birkac deneme hakki taniyoruz, hepsi tukenirse
+    # o seviyeyi atlayip digerleriyle devam ediyoruz.
+    MAX_ATTEMPTS_PER_LEVEL = 3
+
     validated: list[dict] = []
     batch_errors: list[str] = []
     for level, batch_count in zip(levels, level_counts):
         if batch_count <= 0:
             continue
-        try:
-            validated.extend(
-                _generate_placement_batch(learning_lang, language_name, context_block, level, batch_count)
-            )
-        except ExamQuestionGenerationError as exc:
-            print(f"generate_placement_questions warning ({learning_lang}/{level}): {exc}")
-            batch_errors.append(str(exc))
+        last_exc: ExamQuestionGenerationError | None = None
+        for attempt in range(1, MAX_ATTEMPTS_PER_LEVEL + 1):
+            try:
+                batch = _generate_placement_batch(
+                    learning_lang, language_name, context_block, level, batch_count
+                )
+            except ExamQuestionGenerationError as exc:
+                last_exc = exc
+                print(
+                    f"generate_placement_questions warning ({learning_lang}/{level}, "
+                    f"deneme {attempt}/{MAX_ATTEMPTS_PER_LEVEL}): {exc}"
+                )
+                continue
+            validated.extend(batch)
+            last_exc = None
+            break
+        if last_exc is not None:
+            batch_errors.append(f"{level}: {last_exc}")
 
     if not validated:
         raise ExamQuestionGenerationError(
