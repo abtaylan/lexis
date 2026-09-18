@@ -989,6 +989,17 @@ async def submit_round_answer(
     duel = _get_duel_or_404(duel_id)
     if duel["status"] != "active":
         raise HTTPException(status_code=400, detail="Düello aktif değil.")
+    # BUG FIX (18 Eylul 2026 kod incelemesi): bu uc nokta mode kontrolu
+    # YAPMIYORDU -- _generate_wordle_rounds'un doldurdugu correct_option
+    # ALANI, wordle turlarinda dogrudan turun KELIMESI (bkz. o fonksiyonun
+    # docstring'i: "correct_option=secilen kelime"). Yani bir istemci bu
+    # ucu bir wordle duellosunda cagirip selected_option=kelime gonderirse,
+    # harf-harf tahmin mekanigini tamamen atlayip turu tek istekte
+    # "tamamlanmis" isaretleyebiliyordu (hile/oyun butunlugu acigi).
+    # submit_round_guess_letter zaten simetrik kontrolu yapiyordu
+    # (mode != "wordle" -> 400), burasi eksikti.
+    if duel["mode"] == "wordle":
+        raise HTTPException(status_code=400, detail="Bu uç nokta wordle modu için kullanılamaz.")
     round_row = _get_round_or_404(duel_id, duel["current_round_index"])
 
     if not round_row.get("started_at"):
@@ -1258,7 +1269,23 @@ async def advance_round(
                 .eq("duel_id", duel_id)
                 .execute()
             )
-            max_possible_score = (generated_rounds_result.count or 0) * ANSWER_SCORE_POINTS
+            # BUG FIX (18 Eylul 2026 kod incelemesi): wordle modunda WORDLE_
+            # FIRST_FINISH_BONUS bir turu ilk bitiren katilimcinin skorunu
+            # "tam puan" tabanının UZERINE cikartabilir (WORDLE_COMPLETE_POINTS
+            # == ANSWER_SCORE_POINTS oldugu icin quiz moduyla aralarinda hicbir
+            # fark yokmus gibi gorunuyordu, ama wordle'da bonus VAR). Bu yuzden
+            # asagidaki "top_score == max_possible_score" (tam esitlik) kontrolu
+            # HER TURU TAMAMLAYAN AMA en az bir turda ilk bitiren -- yani objektif
+            # olarak en iyi performansi gosteren -- oyuncuyu 'perfect_duel'
+            # rozetinden HARICI tutuyordu. max_possible_score artik moda gore
+            # "tam tamamlama" tabanini (bonus HARIC) hesapliyor, asagidaki kontrol
+            # de tam esitlik yerine >= kullaniyor (quiz modunda skor bu tabani
+            # asamayacagi icin davranis degismiyor, wordle'da ise bonuslu
+            # skorlar da 'perfect' sayiliyor).
+            per_round_max_score = (
+                WORDLE_COMPLETE_POINTS if duel["mode"] == "wordle" else ANSWER_SCORE_POINTS
+            )
+            max_possible_score = (generated_rounds_result.count or 0) * per_round_max_score
             for p in participant_rows:
                 await award_xp(
                     user_id=p["user_id"],
@@ -1298,7 +1325,7 @@ async def advance_round(
                         await badge_service.award_badge(p["user_id"], "duel_win_50")
                     elif win_count >= 10:
                         await badge_service.award_badge(p["user_id"], "duel_win_10")
-                    if max_possible_score > 0 and top_score == max_possible_score:
+                    if max_possible_score > 0 and top_score >= max_possible_score:
                         await badge_service.award_badge(p["user_id"], "perfect_duel")
 
     participant_rows = (
