@@ -18,6 +18,7 @@ Model: Anthropic Messages API, zorunlu tool-use ile yapılandırılmış JSON
 from anthropic import Anthropic, APIError
 
 from app.core.config import settings
+from app.core.database import supabase_admin
 
 # Sınav türü başına kısa bağlam — üretilen soruların o sınavın tarzına
 # (kapsam/zorluk) yakın olması için. Şu an tüm sınav türleri sadece
@@ -298,5 +299,224 @@ def generate_questions(
 
     if not validated:
         raise ExamQuestionGenerationError("Model geçerli formatta hiç soru üretmedi.")
+
+    return validated
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Faz 3g (18 Eylul 2026, kullanici istegi) -- Coklu Dil Seviye Tespit
+# Sinavi. generate_questions()'dan farki: exam_type sabit degil ('placement'),
+# learning_lang PARAMETRE (12 dilin herhangi biri olabilir, generate_questions
+# ise sadece Ingilizce icin hardcoded), ve difficulty_level alanina
+# "kolay/orta/zor" yerine gercek CEFR seviyesi (a1..c2) yazilir -- amaci
+# gercek seviyeyi ortaya cikarmak oldugu icin sorular kasitli olarak tum
+# CEFR bandina yayilir. learning_lang='en' icin grammar_topics tablosundaki
+# (bkz. supabase/migrations/027_grammar_reference.sql) yayinlanmis konular
+# gercek zeminleme (grounding) baglami olarak modele verilir -- kullanicinin
+# "bizim sistemdeki gramer konularini ele alarak hazirla" talebi budur.
+# Diger diller icin boyle bir konu tablosu YOK, o yuzden o dilin CEFR
+# cercevesindeki temel gramer alanlarini genel olarak kapsamasi istenir.
+# Uretilen sorular da generate_questions gibi ASLA otomatik onaylanmaz --
+# source_type='ai', status='pending' olarak seed_placement_exam_questions.py
+# tarafindan kaydedilir, admin GET /admin/questions/pending'den onaylar.
+
+LANGUAGE_NAMES: dict[str, str] = {
+    "en": "Ingilizce",
+    "tr": "Turkce",
+    "de": "Almanca",
+    "fr": "Fransizca",
+    "es": "Ispanyolca",
+    "it": "Italyanca",
+    "ar": "Arapca",
+    "ru": "Rusca",
+    "ja": "Japonca",
+    "pt": "Portekizce",
+    "ko": "Korece",
+    "zh": "Cince",
+}
+
+_PLACEMENT_SUBMIT_TOOL = {
+    "name": "submit_placement_questions",
+    "description": "Uretilen coktan secmeli seviye tespit sinavi sorularini yapilandirilmis olarak gonderir.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "questions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "question_text": {
+                            "type": "string",
+                            "description": "Soru koku, hedef dilde.",
+                        },
+                        "options": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "id": {"type": "string", "enum": ["a", "b", "c", "d"]},
+                                    "text": {"type": "string"},
+                                },
+                                "required": ["id", "text"],
+                            },
+                        },
+                        "correct_option": {"type": "string", "enum": ["a", "b", "c", "d"]},
+                        "explanation": {
+                            "type": "string",
+                            "description": "Turkce kisa aciklama: dogru sik neden dogru.",
+                        },
+                        "level": {
+                            "type": "string",
+                            "enum": ["a1", "a2", "b1", "b2", "c1", "c2"],
+                            "description": "Bu sorunun gercek CEFR zorluk seviyesi.",
+                        },
+                        "topic_tag": {
+                            "type": "string",
+                            "description": "Kisa Ingilizce gramer/konu etiketi, orn. 'present-simple', 'word-order', 'articles'.",
+                        },
+                    },
+                    "required": ["question_text", "options", "correct_option", "explanation", "level"],
+                },
+            },
+        },
+        "required": ["questions"],
+    },
+}
+
+
+def _fetch_grammar_context(learning_lang: str, limit: int = 40) -> str:
+    """learning_lang icin yayinlanmis grammar_topics kayitlarindan kisa bir
+    baglam metni uretir (sadece learning_lang='en' icin veri var su an --
+    bkz. seed_grammar_topics.py). Veri yoksa bos string doner, cagiran
+    taraf bu durumda genel bir talimata duser."""
+    try:
+        result = (
+            supabase_admin.table("grammar_topics")
+            .select("title_tr, level, summary_tr, slug")
+            .eq("learning_lang", learning_lang)
+            .eq("status", "published")
+            .order("sort_order")
+            .limit(limit)
+            .execute()
+        )
+    except Exception as exc:  # noqa: BLE001 -- baglam opsiyonel, sorgu basarisiz olursa sessizce atla
+        print(f"_fetch_grammar_context warning: {type(exc).__name__}: {exc}")
+        return ""
+
+    rows = result.data or []
+    if not rows:
+        return ""
+
+    lines = [
+        f"- [{row.get('level', '?').upper()}] {row.get('title_tr')} (etiket: {row.get('slug')}): {row.get('summary_tr')}"
+        for row in rows
+    ]
+    return (
+        "Sistemimizdeki gramer rehberi konulari (bu sinav ONCELIKLE bu "
+        "konulari kapsamali, topic_tag alaninda mumkun oldugunca asagidaki "
+        "etiketleri kullan):\n" + "\n".join(lines)
+    )
+
+
+def generate_placement_questions(learning_lang: str, count: int = 50) -> list[dict]:
+    """Belirtilen ogrenilen dil icin `count` adet (varsayilan 50) CEFR
+    bandina yayilmis, gercek seviyeyi ortaya cikarmayi amaclayan coktan
+    secmeli seviye tespit sorusu uretir. generate_questions ile ayni
+    validasyon/hata deseni -- ag/yapilandirma/parse hatalarinda
+    ExamQuestionGenerationError firlatir, gecersiz sorular sessizce elenir."""
+    if not settings.ANTHROPIC_API_KEY:
+        raise ExamQuestionGenerationError(
+            "ANTHROPIC_API_KEY yapilandirilmamis -- AI soru uretimi kapali."
+        )
+
+    language_name = LANGUAGE_NAMES.get(learning_lang, learning_lang)
+    grammar_context = _fetch_grammar_context(learning_lang)
+    context_block = (
+        grammar_context
+        if grammar_context
+        else (
+            f"{language_name} icin ozel bir konu listemiz yok -- bu dilin CEFR "
+            "cercevesindeki temel gramer alanlarini (zaman/kip, sozcuk sirasi, "
+            "tanimlik/durum ekleri, baglaclar, edatlar, sifat/zarf kullanimi vb., "
+            "dile uygun olanlari) dengeli sekilde kapsa."
+        )
+    )
+
+    prompt = (
+        f"{language_name} ogrenen bir kullanici icin GERCEK SEVIYESINI olcen "
+        f"{count} soruluk bir seviye tespit sinavi (placement test) uret. "
+        "Bu sinavin amaci ogrencinin GERCEK seviyesini ortaya cikarmak, o "
+        "yuzden sorular CEFR A1'den C2'ye kadar TUM banda yayilmali -- "
+        f"yaklasik olarak her seviyeden ({count // 6}-{count // 6 + 1} soru) "
+        "esit agirlikta dagit, kolaydan zora dogru artan zorlukta sirala.\n\n"
+        f"{context_block}\n\n"
+        "Kurallar:\n"
+        "- Her sorunun tam olarak 4 sikki olsun (id: a, b, c, d), sadece 1 tanesi dogru.\n"
+        "- Sadece dilbilgisi degil, kelime bilgisi/kullanim sorulari da olsun (dogal karisim).\n"
+        "- Sikklar birbirine yakin uzunlukta ve inandirici olsun, bariz yanlis sik olmasin.\n"
+        f"- question_text ve options {language_name} dilinde olsun.\n"
+        "- explanation alani Turkce yazilsin, dogru sikkin neden dogru oldugunu kisaca (1-2 cumle) anlatsin.\n"
+        "- level alanina sorunun GERCEK CEFR zorluk seviyesini yaz (a1/a2/b1/b2/c1/c2) -- bu alan "
+        "sinav sonunda kullanicinin seviyesini hesaplamak icin kullanilacak, o yuzden dikkatli isaretle.\n"
+        "- Telif hakli bir metinden alinti yapma veya gercek bir sinavdan soru kopyalama -- tamamen ozgun icerik uret.\n"
+        "- Sadece submit_placement_questions aracini cagirarak cevap ver, ek metin yazma."
+    )
+
+    try:
+        client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+        response = client.messages.create(
+            model=settings.ANTHROPIC_MODEL,
+            max_tokens=8192,
+            tools=[_PLACEMENT_SUBMIT_TOOL],
+            tool_choice={"type": "tool", "name": "submit_placement_questions"},
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except APIError as exc:
+        raise ExamQuestionGenerationError(f"Anthropic API hatasi: {exc}") from exc
+    except Exception as exc:
+        raise ExamQuestionGenerationError(
+            f"AI seviye tespit sorusu uretimi beklenmeyen hatayla basarisiz oldu "
+            f"({type(exc).__name__}): {exc}"
+        ) from exc
+
+    tool_use = next(
+        (block for block in response.content if getattr(block, "type", None) == "tool_use"),
+        None,
+    )
+    if tool_use is None:
+        raise ExamQuestionGenerationError("Model tool_use blogu dondurmedi.")
+
+    raw_questions = tool_use.input.get("questions") or []
+    validated: list[dict] = []
+    for q in raw_questions:
+        options = q.get("options") or []
+        ids = {opt.get("id") for opt in options}
+        if len(options) != 4 or ids != {"a", "b", "c", "d"}:
+            continue
+        if q.get("correct_option") not in ids:
+            continue
+        if q.get("level") not in ("a1", "a2", "b1", "b2", "c1", "c2"):
+            continue
+        if not q.get("question_text") or not q.get("explanation"):
+            continue
+        validated.append(
+            {
+                "question_text": q["question_text"].strip(),
+                "options": [
+                    {"id": opt["id"], "text": (opt.get("text") or "").strip()}
+                    for opt in options
+                ],
+                "correct_option": q["correct_option"],
+                "explanation": q["explanation"].strip(),
+                "level": q["level"],
+                "topic_tag": (q.get("topic_tag") or None),
+            }
+        )
+
+    if not validated:
+        raise ExamQuestionGenerationError("Model gecerli formatta hic soru uretmedi.")
 
     return validated

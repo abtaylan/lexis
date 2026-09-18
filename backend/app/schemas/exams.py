@@ -16,6 +16,7 @@ class ExamType(str, Enum):
     yokdil = "yokdil"
     ielts = "ielts"
     toefl = "toefl"
+    placement = "placement"  # 18 Eylul 2026 -- coklu dil seviye tespit sinavi (bkz. seed_placement_exam_questions.py)
 
 
 class ExamSessionMode(str, Enum):
