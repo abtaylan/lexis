@@ -89,20 +89,51 @@ def _get_cefr_level(user_id: str, learning_lang: str) -> dict[str, Any] | None:
     yazilan CEFR seviyesini okuyup rapora tasir (bkz. exams.py::finish_session
     / _store_placement_level). Sinav hic yapilmadiysa None doner (rapor
     tarafinda "henuz seviye tespit sinavi yapilmadi" olarak gosterilir).
-    """
+
+    19 Eylul 2026 (task #67 -- ayni kullanici istegi devami: "kişinin
+    seviyesi artabilir de azalabilirde ... bunun icin bir yontem
+    gelistirmelisin"): placement_level'e EK OLARAK current_level (periyodik
+    olarak yukari/asagi guncellenen 'su anki' seviye -- bkz.
+    app/services/level_assessment_service.py) ve level_last_assessed_at de
+    donduruluyor, boylece rapor hem "baslangic noktasini" (placement) hem
+    "su an neredesin"i (current_level) ayni anda gosterebilir. Ayrica
+    user_level_history'den EN SON gercek yukselis/dusus (yalnizca
+    source="periodic_reassessment" VE direction in (up, down) -- "initial"/
+    "ayni seviyede yeniden onay" kayitlari bir trend SAYILMAZ) okunup
+    recent_trend olarak eklenir -- rapor "seviyeniz X'den Y'ye yukseldi/
+    dustu" gibi somut bir ilerleme mesaji gosterebilsin diye."""
     rows = (
         supabase_admin.table("user_learning_languages")
-        .select("placement_level, placement_completed_at")
+        .select("placement_level, placement_completed_at, current_level, level_last_assessed_at")
         .eq("user_id", user_id)
         .eq("learning_lang", learning_lang)
         .execute()
     ).data or []
     if not rows or not rows[0].get("placement_level"):
         return None
-    return {
-        "level": rows[0]["placement_level"],
-        "assessed_at": rows[0].get("placement_completed_at"),
+
+    row = rows[0]
+    result: dict[str, Any] = {
+        "level": row["placement_level"],
+        "assessed_at": row.get("placement_completed_at"),
+        "current_level": row.get("current_level") or row["placement_level"],
+        "level_last_assessed_at": row.get("level_last_assessed_at") or row.get("placement_completed_at"),
     }
+
+    history_rows = (
+        supabase_admin.table("user_level_history")
+        .select("level, previous_level, direction, assessed_at")
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .eq("source", "periodic_reassessment")
+        .in_("direction", ["up", "down"])
+        .order("assessed_at", desc=True)
+        .limit(1)
+        .execute()
+    ).data or []
+    result["recent_trend"] = history_rows[0] if history_rows else None
+
+    return result
 
 
 def _get_platform_comparison(

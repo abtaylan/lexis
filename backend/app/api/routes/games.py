@@ -105,6 +105,82 @@ def _get_profile_langs(user_id: str) -> tuple[str, str]:
     return data.get("learning_lang", "en"), data.get("native_lang", "tr")
 
 
+def _get_current_level(user_id: str, learning_lang: str) -> str | None:
+    """user_learning_languages.current_level'i okur (bkz. 079_user_level_
+    tracking.sql / app/services/level_assessment_service.py -- periyodik
+    olarak yukari/asagi guncellenen 'su anki' CEFR seviyesi). Satir yoksa
+    veya hic placement yapilmamissa None doner -- bu durumda kelime secimi
+    ESKI (tam rastgele, bant filtresiz) davranisa duser (bkz.
+    _band_biased_choice)."""
+    rows = (
+        supabase_admin.table("user_learning_languages")
+        .select("current_level")
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .execute()
+        .data
+    ) or []
+    return rows[0].get("current_level") if rows else None
+
+
+# general_word_pool.difficulty_level 3 kademeli (beginner/intermediate/
+# advanced) -- level_assessment_service.py'deki LEVEL_TO_BAND/BAND_ORDER ile
+# AYNI esleme (bilerek kopyalandi, yukaridaki not).
+_LEVEL_TO_BAND: dict[str, str] = {
+    "a1": "beginner", "a2": "beginner",
+    "b1": "intermediate", "b2": "intermediate",
+    "c1": "advanced", "c2": "advanced",
+}
+_BAND_ORDER: list[str] = ["beginner", "intermediate", "advanced"]
+
+# Kullanici istegi (18 Eylul 2026): "... diger seviyelerden kelimelere
+# calismasi gerekecek" -- yani pratik SADECE kullanicinin kendi bandinda
+# degil, komsu bantlardan da (agirlikli olarak) gelmeli. Kendi bandi %70,
+# bir alt bant %20, bir ust bant %10 -- uc bantlarda (beginner/advanced)
+# olmayan komsu bandin agirligi dusurulur ama kendi bandina EKLENMEZ (asagida
+# sadece "adayi olan" bantlar tutulup weights yeniden normalize edilir --
+# random.choices agirliklari otomatik normalize eder, elle toplam=1 sartina
+# gerek yok).
+_BAND_WEIGHTS: dict[str, float] = {"current": 0.70, "below": 0.20, "above": 0.10}
+
+
+def _band_biased_choice(candidates: list[dict], current_level: str | None) -> dict:
+    """general_word_pool adaylarindan (difficulty_level alani secilmis
+    olmali) kullanicinin current_level'ine gore agirlikli rastgele secim
+    yapar. current_level bilinmiyorsa (hic placement yapilmamis), beklenmeyen
+    bir deger tasiyorsa, ya da secilen bantlarin HICBIRINDE aday yoksa (icerik
+    o bantta simdilik seyrek olabilir -- oturumun bosuna 'finished' donup
+    erken bitmemesi icin) ESKI davranisa (tam rastgele) duser."""
+    if not current_level:
+        return random.choice(candidates)
+
+    band = _LEVEL_TO_BAND.get(current_level)
+    if band is None:
+        return random.choice(candidates)
+
+    band_idx = _BAND_ORDER.index(band)
+    by_band: dict[str, list[dict]] = {b: [] for b in _BAND_ORDER}
+    for c in candidates:
+        b = c.get("difficulty_level")
+        if b in by_band:
+            by_band[b].append(c)
+
+    weighted_bands: list[tuple[str, float]] = [(band, _BAND_WEIGHTS["current"])]
+    if band_idx > 0:
+        weighted_bands.append((_BAND_ORDER[band_idx - 1], _BAND_WEIGHTS["below"]))
+    if band_idx < len(_BAND_ORDER) - 1:
+        weighted_bands.append((_BAND_ORDER[band_idx + 1], _BAND_WEIGHTS["above"]))
+
+    # Sadece adayi OLAN bantlari tut -- bos banda agirlik vermek anlamsiz.
+    weighted_bands = [(b, w) for b, w in weighted_bands if by_band[b]]
+    if not weighted_bands:
+        return random.choice(candidates)
+
+    bands, weights = zip(*weighted_bands)
+    chosen_band = random.choices(bands, weights=weights, k=1)[0]
+    return random.choice(by_band[chosen_band])
+
+
 def _get_session(session_id: str, user_id: str) -> dict:
     result = (
         supabase_admin.table("game_sessions")
@@ -332,7 +408,7 @@ async def next_word(
         attempted = _attempted_ids(session_id, "general_word_id")
         query = (
             supabase_admin.table("general_word_pool")
-            .select("id, word, meaning, example, definition")
+            .select("id, word, meaning, example, definition, difficulty_level")
             .eq("source_lang", learning_lang)
             .eq("target_lang", native_lang)
             .eq("is_active", True)
@@ -348,7 +424,13 @@ async def next_word(
         if not candidates:
             return NextWordResponse(finished=True)
 
-        chosen = random.choice(candidates)
+        # Task #66 (18 Eylul 2026 kullanici istegi -- adaptif seviye): kelime
+        # secimi artik TAM rastgele degil, kullanicinin current_level'ine
+        # gore banda agirlikli (bkz. _band_biased_choice / _get_current_level
+        # yukarida). current_level yoksa (hic placement yapilmamis) davranis
+        # onceki (tam rastgele) ile birebir aynidir.
+        current_level = _get_current_level(current_user.id, learning_lang)
+        chosen = _band_biased_choice(candidates, current_level)
         meaning_text = (
             chosen.get("definition") if direction == Direction.definition_to_word.value
             else chosen["meaning"]

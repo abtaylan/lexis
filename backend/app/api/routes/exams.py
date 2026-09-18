@@ -458,28 +458,99 @@ def _compute_placement_level(session_id: str) -> str | None:
 
 
 def _store_placement_level(user_id: str, learning_lang: str, level: str, completed_at: str) -> None:
-    """user_learning_languages.placement_level/placement_completed_at'i
-    yazar. Once UPDATE dener (asil beklenen yol -- kullanicinin bu dil icin
-    zaten bir user_learning_languages satiri olmasi gerekir); satir yoksa
-    (eski kullanici / tutarsizlik ihtimaline karsi) INSERT'e duser."""
+    """user_learning_languages.placement_level/placement_completed_at'i yazar.
+    Once UPDATE dener (asil beklenen yol -- kullanicinin bu dil icin zaten bir
+    user_learning_languages satiri olmasi gerekir); satir yoksa (eski kullanici
+    / tutarsizlik ihtimaline karsi) INSERT'e duser.
+
+    19 Eylul 2026 (task #65 -- adaptif seviye yeniden degerlendirme sistemi,
+    bkz. 079_user_level_tracking.sql): placement_level'e EK OLARAK
+    current_level/level_last_assessed_at de burada sifirlanir --
+    current_level, "su anki" yasayan seviyedir ve seviye tespit sinavi
+    (placement) HER YAPILDIGINDA (ilk kez de, kullanici tekrar sinava
+    girse de) en guclu/en dogrudan sinyal sayilir -- level_assessment_
+    service.py'nin periyodik, dolayli (oyun dogruluk orani) tahminini
+    GECERSIZ KILAR. Yani kullanici tekrar placement sinavina girerse,
+    current_level bilinçli olarak yeni sonuca "resetlenir" (onceki
+    periyodik yukselis/dususler unutulur) -- bu urun karari, cunku
+    placement dogrudan olcum, reassessment ise dolayli tahmin.
+
+    user_level_history'ye de bir kayit dusulur (source="placement_exam")
+    -- boylece raporlarda "ne zaman placement yapildi, ne zaman periyodik
+    degisti" ayrimi gorunur kalir (bkz. user_report_service.py).
+
+    BILINCLI KOD TEKRARI: CEFR_LEVEL_ORDER burada kucuk bir liste olarak
+    tekrar tanimlaniyor (level_assessment_service.py'deki AYNI sabitin
+    kopyasi) -- route modulleri arasinda capraz bagimlilik olusturmamak
+    icin bilincli bir tercih (bkz. games.py::weak_difficulty_levels ve
+    duels.py'deki benzer yorumlar)."""
+    CEFR_LEVEL_ORDER = ["a1", "a2", "b1", "b2", "c1", "c2"]
+
+    existing = (
+        supabase_admin.table("user_learning_languages")
+        .select("current_level")
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .execute()
+        .data
+    ) or []
+    previous_current_level = existing[0].get("current_level") if existing else None
+
+    if previous_current_level is None:
+        direction = "initial"
+    elif previous_current_level == level:
+        direction = "initial"  # ayni seviye -- "yukselis/dusus" degil, yeniden onay
+    else:
+        prev_idx = (
+            CEFR_LEVEL_ORDER.index(previous_current_level)
+            if previous_current_level in CEFR_LEVEL_ORDER
+            else None
+        )
+        new_idx = CEFR_LEVEL_ORDER.index(level) if level in CEFR_LEVEL_ORDER else None
+        if prev_idx is None or new_idx is None:
+            direction = "initial"
+        else:
+            direction = "up" if new_idx > prev_idx else "down"
+
     update_result = (
         supabase_admin.table("user_learning_languages")
-        .update({"placement_level": level, "placement_completed_at": completed_at})
+        .update(
+            {
+                "placement_level": level,
+                "placement_completed_at": completed_at,
+                "current_level": level,
+                "level_last_assessed_at": completed_at,
+            }
+        )
         .eq("user_id", user_id)
         .eq("learning_lang", learning_lang)
         .execute()
     )
-    if update_result.data:
-        return
-    supabase_admin.table("user_learning_languages").insert(
+    if not update_result.data:
+        supabase_admin.table("user_learning_languages").insert(
+            {
+                "user_id": user_id,
+                "learning_lang": learning_lang,
+                "is_active": True,
+                "placement_level": level,
+                "placement_completed_at": completed_at,
+                "current_level": level,
+                "level_last_assessed_at": completed_at,
+            }
+        ).execute()
+
+    supabase_admin.table("user_level_history").insert(
         {
             "user_id": user_id,
             "learning_lang": learning_lang,
-            "is_active": True,
-            "placement_level": level,
-            "placement_completed_at": completed_at,
+            "level": level,
+            "previous_level": previous_current_level,
+            "direction": direction,
+            "source": "placement_exam",
+            "assessed_at": completed_at,
         }
     ).execute()
+
 
 
 @router.post("/sessions/{session_id}/finish", response_model=ExamFinishResponse)
