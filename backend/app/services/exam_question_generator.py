@@ -421,12 +421,108 @@ def _fetch_grammar_context(learning_lang: str, limit: int = 40) -> str:
     )
 
 
+def _build_placement_prompt(language_name: str, context_block: str, level: str, batch_count: int) -> str:
+    return (
+        f"{language_name} ogrenen bir kullanici icin GERCEK SEVIYESINI olcen bir "
+        f"seviye tespit sinavinin (placement test) SADECE CEFR {level.upper()} "
+        f"seviyesine ait bolumunu uret: tam olarak {batch_count} soru, hepsi "
+        f"{level.upper()} zorlugunda olsun (baska seviyeden soru KARISTIRMA).\n\n"
+        f"{context_block}\n\n"
+        "Kurallar:\n"
+        "- Her sorunun tam olarak 4 sikki olsun (id: a, b, c, d), sadece 1 tanesi dogru.\n"
+        "- Sadece dilbilgisi degil, kelime bilgisi/kullanim sorulari da olsun (dogal karisim).\n"
+        "- Sikklar birbirine yakin uzunlukta ve inandirici olsun, bariz yanlis sik olmasin.\n"
+        f"- question_text ve options {language_name} dilinde olsun.\n"
+        "- explanation alani Turkce yazilsin, dogru sikkin neden dogru oldugunu kisaca (1-2 cumle) anlatsin.\n"
+        f"- level alanina her zaman '{level}' yaz.\n"
+        "- Telif hakli bir metinden alinti yapma veya gercek bir sinavdan soru kopyalama -- tamamen ozgun icerik uret.\n"
+        "- Sadece submit_placement_questions aracini cagirarak cevap ver, ek metin yazma."
+    )
+
+
+def _generate_placement_batch(
+    learning_lang: str, language_name: str, context_block: str, level: str, batch_count: int
+) -> list[dict]:
+    """Tek bir CEFR seviyesi icin `batch_count` soru uretir (tek API cagrisi).
+    Buyuk tek cagrilarda (orn. 50 soru birden) model ciktisinin max_tokens
+    sinirinda kesilip gecersiz JSON'a donusme riski vardi (bkz. 18 Eylul 2026
+    "Model gecerli formatta hic soru uretmedi" hatasi) -- seviye basina kucuk
+    cagrilara bolmek hem bu riski ortadan kaldirir hem de CEFR dagilimini
+    modelin taktirine birakmadan garanti eder."""
+    prompt = _build_placement_prompt(language_name, context_block, level, batch_count)
+
+    try:
+        client = Anthropic(api_key=settings.ANTHROPIC_API_KEY, timeout=90.0)  # 18 Eylul 2026: kucuk batch sonrasi takilirsa hizli fail olsun diye acik timeout
+        response = client.messages.create(
+            model=settings.ANTHROPIC_MODEL,
+            max_tokens=4096,
+            tools=[_PLACEMENT_SUBMIT_TOOL],
+            tool_choice={"type": "tool", "name": "submit_placement_questions"},
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except APIError as exc:
+        raise ExamQuestionGenerationError(f"Anthropic API hatasi ({level}): {exc}") from exc
+    except Exception as exc:
+        raise ExamQuestionGenerationError(
+            f"AI seviye tespit sorusu uretimi beklenmeyen hatayla basarisiz oldu "
+            f"({level}, {type(exc).__name__}): {exc}"
+        ) from exc
+
+    tool_use = next(
+        (block for block in response.content if getattr(block, "type", None) == "tool_use"),
+        None,
+    )
+    if tool_use is None:
+        raise ExamQuestionGenerationError(f"Model tool_use blogu dondurmedi ({level}).")
+
+    raw_questions = tool_use.input.get("questions") or []
+    validated: list[dict] = []
+    for q in raw_questions:
+        options = q.get("options") or []
+        ids = {opt.get("id") for opt in options}
+        if len(options) != 4 or ids != {"a", "b", "c", "d"}:
+            continue
+        if q.get("correct_option") not in ids:
+            continue
+        if not q.get("question_text") or not q.get("explanation"):
+            continue
+        validated.append(
+            {
+                "question_text": q["question_text"].strip(),
+                "options": [
+                    {"id": opt["id"], "text": (opt.get("text") or "").strip()}
+                    for opt in options
+                ],
+                "correct_option": q["correct_option"],
+                "explanation": q["explanation"].strip(),
+                # level'i modelin kendi beyanina degil, bu cagrida ACIKCA
+                # istedigimiz seviyeye sabitliyoruz -- boylece dagilim her
+                # zaman garanti dogru olur.
+                "level": level,
+                "topic_tag": (q.get("topic_tag") or None),
+            }
+        )
+
+    if not validated:
+        raise ExamQuestionGenerationError(f"Model {level} seviyesi icin gecerli formatta soru uretmedi.")
+
+    return validated
+
+
 def generate_placement_questions(learning_lang: str, count: int = 50) -> list[dict]:
     """Belirtilen ogrenilen dil icin `count` adet (varsayilan 50) CEFR
     bandina yayilmis, gercek seviyeyi ortaya cikarmayi amaclayan coktan
-    secmeli seviye tespit sorusu uretir. generate_questions ile ayni
-    validasyon/hata deseni -- ag/yapilandirma/parse hatalarinda
-    ExamQuestionGenerationError firlatir, gecersiz sorular sessizce elenir."""
+    secmeli seviye tespit sorusu uretir.
+
+    18 Eylul 2026 GUNCELLEME: tek buyuk API cagrisi (50 soru, max_tokens=8192)
+    bazi dillerde (orn. Ingilizce) modelin ciktisinin kesilmesine ve
+    "Model gecerli formatta hic soru uretmedi" hatasina yol aciyordu --
+    Anthropic yaniti max_tokens sinirinda kesilince tool_use.input'daki JSON
+    ya bos ya da gecersiz kaliyordu. Cozum: sinavi CEFR seviyesi basina ayri,
+    kucuk API cagrilarina bolduk (bkz. _generate_placement_batch). Bu hem
+    kesilme riskini ortadan kaldirir hem de seviye dagilimini modelin
+    taktirine birakmadan garanti eder, hem de bir seviye basarisiz olsa bile
+    digerlerinden gelen sorular kaybolmaz (kismi basari mumkun)."""
     if not settings.ANTHROPIC_API_KEY:
         raise ExamQuestionGenerationError(
             "ANTHROPIC_API_KEY yapilandirilmamis -- AI soru uretimi kapali."
@@ -445,78 +541,28 @@ def generate_placement_questions(learning_lang: str, count: int = 50) -> list[di
         )
     )
 
-    prompt = (
-        f"{language_name} ogrenen bir kullanici icin GERCEK SEVIYESINI olcen "
-        f"{count} soruluk bir seviye tespit sinavi (placement test) uret. "
-        "Bu sinavin amaci ogrencinin GERCEK seviyesini ortaya cikarmak, o "
-        "yuzden sorular CEFR A1'den C2'ye kadar TUM banda yayilmali -- "
-        f"yaklasik olarak her seviyeden ({count // 6}-{count // 6 + 1} soru) "
-        "esit agirlikta dagit, kolaydan zora dogru artan zorlukta sirala.\n\n"
-        f"{context_block}\n\n"
-        "Kurallar:\n"
-        "- Her sorunun tam olarak 4 sikki olsun (id: a, b, c, d), sadece 1 tanesi dogru.\n"
-        "- Sadece dilbilgisi degil, kelime bilgisi/kullanim sorulari da olsun (dogal karisim).\n"
-        "- Sikklar birbirine yakin uzunlukta ve inandirici olsun, bariz yanlis sik olmasin.\n"
-        f"- question_text ve options {language_name} dilinde olsun.\n"
-        "- explanation alani Turkce yazilsin, dogru sikkin neden dogru oldugunu kisaca (1-2 cumle) anlatsin.\n"
-        "- level alanina sorunun GERCEK CEFR zorluk seviyesini yaz (a1/a2/b1/b2/c1/c2) -- bu alan "
-        "sinav sonunda kullanicinin seviyesini hesaplamak icin kullanilacak, o yuzden dikkatli isaretle.\n"
-        "- Telif hakli bir metinden alinti yapma veya gercek bir sinavdan soru kopyalama -- tamamen ozgun icerik uret.\n"
-        "- Sadece submit_placement_questions aracini cagirarak cevap ver, ek metin yazma."
-    )
+    levels = ["a1", "a2", "b1", "b2", "c1", "c2"]
+    base, remainder = divmod(count, len(levels))
+    # ilk `len(levels) - remainder` seviye `base`, kalan `remainder` seviye
+    # `base + 1` soru alir (orn. count=50 -> 8,8,8,8,9,9 -- toplam 50).
+    level_counts = [base + (1 if i >= len(levels) - remainder else 0) for i in range(len(levels))]
 
-    try:
-        client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        response = client.messages.create(
-            model=settings.ANTHROPIC_MODEL,
-            max_tokens=8192,
-            tools=[_PLACEMENT_SUBMIT_TOOL],
-            tool_choice={"type": "tool", "name": "submit_placement_questions"},
-            messages=[{"role": "user", "content": prompt}],
-        )
-    except APIError as exc:
-        raise ExamQuestionGenerationError(f"Anthropic API hatasi: {exc}") from exc
-    except Exception as exc:
-        raise ExamQuestionGenerationError(
-            f"AI seviye tespit sorusu uretimi beklenmeyen hatayla basarisiz oldu "
-            f"({type(exc).__name__}): {exc}"
-        ) from exc
-
-    tool_use = next(
-        (block for block in response.content if getattr(block, "type", None) == "tool_use"),
-        None,
-    )
-    if tool_use is None:
-        raise ExamQuestionGenerationError("Model tool_use blogu dondurmedi.")
-
-    raw_questions = tool_use.input.get("questions") or []
     validated: list[dict] = []
-    for q in raw_questions:
-        options = q.get("options") or []
-        ids = {opt.get("id") for opt in options}
-        if len(options) != 4 or ids != {"a", "b", "c", "d"}:
+    batch_errors: list[str] = []
+    for level, batch_count in zip(levels, level_counts):
+        if batch_count <= 0:
             continue
-        if q.get("correct_option") not in ids:
-            continue
-        if q.get("level") not in ("a1", "a2", "b1", "b2", "c1", "c2"):
-            continue
-        if not q.get("question_text") or not q.get("explanation"):
-            continue
-        validated.append(
-            {
-                "question_text": q["question_text"].strip(),
-                "options": [
-                    {"id": opt["id"], "text": (opt.get("text") or "").strip()}
-                    for opt in options
-                ],
-                "correct_option": q["correct_option"],
-                "explanation": q["explanation"].strip(),
-                "level": q["level"],
-                "topic_tag": (q.get("topic_tag") or None),
-            }
-        )
+        try:
+            validated.extend(
+                _generate_placement_batch(learning_lang, language_name, context_block, level, batch_count)
+            )
+        except ExamQuestionGenerationError as exc:
+            print(f"generate_placement_questions warning ({learning_lang}/{level}): {exc}")
+            batch_errors.append(str(exc))
 
     if not validated:
-        raise ExamQuestionGenerationError("Model gecerli formatta hic soru uretmedi.")
+        raise ExamQuestionGenerationError(
+            "Hicbir CEFR seviyesinde gecerli soru uretilemedi: " + " | ".join(batch_errors)
+        )
 
     return validated
