@@ -597,7 +597,10 @@ export interface GameFinishResult {
 }
 
 // ── Sınav Hazırlık Alanı (Exam Prep — YDS/YÖKDİL/IELTS/TOEFL) ──────────────
-export type ExamType = 'yds' | 'yokdil' | 'ielts' | 'toefl';
+// 18 Eylul 2026 -- 'placement' EXAM_TYPE_ORDER (exam-prep.tsx) gibi
+// browsable listelere BILEREK eklenmedi -- sadece /exams/placement/status
+// yonlendirmesiyle erisilir (bkz. backend exams.py SUPPORTED_EXAM_TYPES yorumu).
+export type ExamType = 'yds' | 'yokdil' | 'ielts' | 'toefl' | 'placement';
 export type ExamSessionMode = 'practice' | 'timed_mock';
 
 export interface ExamTypeInfo {
@@ -723,6 +726,18 @@ export interface ExamFinishResult {
   started_at: string;
   ended_at: string;
   mock_bonus_xp: number;
+  // exam_type='placement' oturumlari icin hesaplanan CEFR seviyesi (a1..c2),
+  // diger sinav turlerinde null (bkz. backend exams.py::finish_session).
+  placement_level: string | null;
+}
+
+// 18 Eylul 2026 -- GET /exams/placement/status yaniti (bkz. dashboard.tsx'teki
+// zorunlu yonlendirme kontrolu).
+export interface PlacementStatusResult {
+  learning_lang: string;
+  needs_placement: boolean;
+  current_level: string | null;
+  completed_at: string | null;
 }
 
 export interface AddWordFromQuestionResult {

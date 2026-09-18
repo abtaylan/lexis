@@ -81,6 +81,30 @@ def _get_profile(uid: str) -> dict[str, Any]:
     return profile.data or {}
 
 
+def _get_cefr_level(user_id: str, learning_lang: str) -> dict[str, Any] | None:
+    """Kullanici istegi (18 Eylul 2026): "baslangic seviyeleri de profiline
+    eklensin ve raporlarda da eklensin, gelisim surecinde her rapor alisinda
+    seviye ilerlemesini de gormus olur." -- seviye tespit sinavi (placement)
+    sonucunda user_learning_languages.placement_level/placement_completed_at'e
+    yazilan CEFR seviyesini okuyup rapora tasir (bkz. exams.py::finish_session
+    / _store_placement_level). Sinav hic yapilmadiysa None doner (rapor
+    tarafinda "henuz seviye tespit sinavi yapilmadi" olarak gosterilir).
+    """
+    rows = (
+        supabase_admin.table("user_learning_languages")
+        .select("placement_level, placement_completed_at")
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .execute()
+    ).data or []
+    if not rows or not rows[0].get("placement_level"):
+        return None
+    return {
+        "level": rows[0]["placement_level"],
+        "assessed_at": rows[0].get("placement_completed_at"),
+    }
+
+
 def _get_platform_comparison(
     user_id: str, active_lang: str, current_start: datetime, now: datetime, user_total_xp: int
 ) -> dict[str, Any]:
@@ -340,6 +364,7 @@ async def get_user_report(user_id: str, period: Period = "week") -> dict[str, An
     return {
         "period": period,
         "learning_lang": active_lang,
+        "cefr_level": _get_cefr_level(user_id, active_lang),
         "range": {
             "current_start": current_start.isoformat(),
             "previous_start": previous_start.isoformat(),
@@ -565,6 +590,7 @@ async def get_user_growth_report(
     return {
         "range": {"start": start_iso, "end": end_iso},
         "learning_lang": active_lang,
+        "cefr_level": _get_cefr_level(user_id, active_lang),
         "study_minutes": study_minutes,
         "streak_current": current_streak,
         "vocabulary": {

@@ -118,6 +118,24 @@ export default function DashboardScreen() {
     queryFn: () => gamesApi.weakDifficulty(30, 3),
   });
 
+  // 18 Eylül 2026 — kullanıcı isteği: "sisteme girer girmez hemen seviye
+  // tespit sınavına yönlendirilsin" (mevcut + yeni kullanıcılar, tüm
+  // platformlar). Her dashboard odağında backend'e sorulur; needs_placement
+  // true ise tür/mod seçimi atlanıp doğrudan placement oturumuna yönlendirilir
+  // (bkz. exam-prep.tsx deep-link mantığı, backend exams.py::get_placement_status).
+  const { data: placementStatus } = useQuery({
+    queryKey: ['exam-placement-status'],
+    queryFn: examsApi.placementStatus,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      if (placementStatus?.needs_placement) {
+        router.replace({ pathname: '/(app)/exam-prep', params: { examType: 'placement', sessionMode: 'timed_mock' } });
+      }
+    }, [placementStatus])
+  );
+
   // Kullanıcı isteği (9 Eylül 2026): "ana ekrana bu sınav programı için bir
   // bölüm eklenecek mi" — Çalışma Programı zaten kendi alt-sekmesinde
   // (CalendarDays ikonu) her zaman erişilebilir durumda, ama dashboard'da

@@ -214,6 +214,22 @@ export default function DashboardPage() {
       .catch(() => {
         /* veri yoksa (henüz oyun oynanmamış) widget gösterilmez */
       });
+    // 18 Eylül 2026 — kullanıcı isteği: "sisteme girer girmez hemen seviye
+    // tespit sınavına yönlendirilsin" (mevcut + yeni kullanıcılar, tüm
+    // platformlar). needs_placement=true ise tür/mod seçimi atlanıp
+    // doğrudan placement oturumuna yönlendirilir (bkz. exam-prep/page.tsx
+    // deep-link mantığı, backend exams.py::get_placement_status).
+    examsApi
+      .placementStatus()
+      .then((res) => {
+        if (res.needs_placement) {
+          router.replace('/exam-prep?examType=placement&sessionMode=timed_mock');
+        }
+      })
+      .catch(() => {
+        /* sessizce yut -- zorunlu yönlendirme kritik değil, dashboard normal açılmaya devam eder */
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

@@ -442,11 +442,20 @@ export default function ExamPrepScreen() {
 
   // ── Sonuç ekranı ────────────────────────────────────────────────────
   if (stage === 'result' && finishResult) {
+    // 18 Eylul 2026 -- seviye tespit sinavi (placement) sonuc ekrani, diger
+    // sinavlardan farkli: hesaplanan CEFR seviyesi gosterilir, "Tekrar Dene"
+    // gizlenir (bkz. backend exams.py::finish_session -> placement_level) ve
+    // "Panele Dön" artik router.back() degil router.replace kullaniyor --
+    // buraya dashboard'daki zorunlu yonlendirmeden router.replace ile
+    // geldiği için geri yığınında (back stack) dashboard OLMAYABİLİR.
+    const isPlacement = finishResult.exam_type === 'placement';
     return (
       <ScreenContainer>
         <Card style={styles.centerCard}>
           <CheckCircle2 color={c.success} size={40} />
-          <Text style={[styles.title, { color: c.text, marginTop: spacing.md }]}>{et.doneTitle}</Text>
+          <Text style={[styles.title, { color: c.text, marginTop: spacing.md }]}>
+            {isPlacement ? et.placementDoneTitle : et.doneTitle}
+          </Text>
           <Text style={[styles.bodyText, { color: c.textSecondary, marginTop: spacing.sm }]}>
             {et.doneScoreTpl.replace('{score}', String(finishResult.score)).replace('{total}', String(finishResult.total_questions))}
           </Text>
@@ -454,9 +463,18 @@ export default function ExamPrepScreen() {
           {finishResult.mock_bonus_xp > 0 && (
             <Text style={[styles.bodyText, { color: c.accent }]}>{et.mockBonusTpl.replace('{xp}', String(finishResult.mock_bonus_xp))}</Text>
           )}
+          {isPlacement && finishResult.placement_level && (
+            <Text style={[styles.bodyText, { color: c.primary, fontWeight: '700', marginTop: spacing.sm }]}>
+              {et.placementLevelResultTpl.replace('{level}', finishResult.placement_level.toUpperCase())}
+            </Text>
+          )}
           <View style={{ marginTop: spacing.xl, width: '100%', gap: spacing.sm }}>
-            <Button title={et.playAgainBtn} onPress={resetToStart} />
-            <Button title={et.backToDashboardBtn} variant="secondary" onPress={() => router.back()} />
+            {!isPlacement && <Button title={et.playAgainBtn} onPress={resetToStart} />}
+            <Button
+              title={et.backToDashboardBtn}
+              variant={isPlacement ? 'primary' : 'secondary'}
+              onPress={() => (isPlacement ? router.replace('/(app)/dashboard') : router.back())}
+            />
           </View>
         </Card>
       </ScreenContainer>

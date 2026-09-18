@@ -55,6 +55,7 @@ from app.schemas.exams import (
     ExamTypeInfo,
     NextQuestionResponse,
     PendingExamQuestion,
+    PlacementStatusResponse,
     RelatedGrammarTopic,
     TopicPracticeAttemptCreate,
     MyMistakePatternItem,
@@ -74,9 +75,18 @@ from app.services.xp_service import award_xp
 
 router = APIRouter()
 
-# Desteklenen sınav türleri — hepsi şu an sadece native_lang=tr + learning_lang=en
-# kullanıcı kitlesine gösteriliyor (bkz. modül docstring'i).
-SUPPORTED_EXAM_TYPES = ["yds", "yokdil", "ielts", "toefl"]
+# Desteklenen sınav türleri — YDS/YÖKDİL/IELTS/TOEFL zaten sadece
+# native_lang=tr + learning_lang=en kullanıcı kitlesine gösteriliyordu (bkz.
+# modül docstring'i). 'placement' (18 Eylül 2026, çoklu dil seviye tespit
+# sınavı) BUNA TABİ DEĞİL -- her 12 learning_lang için içerik var (bkz.
+# seed_placement_exam_questions.py) ve _exam_content_learning_langs() zaten
+# dinamik olarak hangi dilde içerik varsa onu açıyor. 'placement' burada
+# SADECE list_exam_types'ın onu döndürmesi (mobil/web'in exam-prep ekranına
+# ?examType=placement deep-link'iyle geldiğinde geçerli saymasi) için var --
+# EXAM_TYPE_ORDER (mobil) / eşdeğeri (web) listelerine BİLEREK eklenmedi, o
+# yüzden normal "Sınav Hazırlık" tür seçim ekranında görünmez, sadece
+# yönlendirme akışıyla (bkz. /exams/placement/status) erişilir.
+SUPPORTED_EXAM_TYPES = ["yds", "yokdil", "ielts", "toefl", "placement"]
 
 PRACTICE_DEFAULT_QUESTIONS = 10
 CANDIDATE_FETCH_LIMIT = 200
@@ -84,10 +94,15 @@ CANDIDATE_FETCH_LIMIT = 200
 # Deneme sınavı (timed_mock) ayarları — gerçek sınavların kısaltılmış MVP
 # versiyonu (örn. gerçek YDS 80 soru/180 dk'dır; burada uygulama-içi deneyim
 # için kısaltıldı, ileride exam_type başına ayrı ayrı genişletilebilir).
+# 'placement': kullanıcı isteği (18 Eylül 2026) "seviye tespit sınavı 50
+# soru olacak" -- soru bankası zaten dil başına ~50 soru (6 CEFR seviyesine
+# yayılmış, bkz. seed_placement_exam_questions.py), 50 dk süre veriliyor
+# (~1 dk/soru, diğer mock sınavlarla aynı orantı).
 EXAM_MOCK_CONFIG: dict[str, dict[str, int]] = {
     "yds": {"total_questions": 15, "time_limit_seconds": 20 * 60},
     "yokdil": {"total_questions": 15, "time_limit_seconds": 20 * 60},
     "ielts": {"total_questions": 15, "time_limit_seconds": 20 * 60},
+    "placement": {"total_questions": 50, "time_limit_seconds": 50 * 60},
     "toefl": {"total_questions": 15, "time_limit_seconds": 20 * 60},
 }
 
@@ -386,6 +401,87 @@ async def submit_attempt(
     )
 
 
+# 18 Eylül 2026 — Seviye Tespit Sınavı (placement) sonucundan CEFR seviyesi
+# tahmini. Gerçek bir adaptif sınav/IRT modeli DEĞİL (kapsam dışı) — basit
+# ve savunulabilir bir sezgisel yöntem: CEFR seviyeleri a1'den c2'ye doğru
+# sırayla gezilir, kullanıcının o seviyede cevapladığı sorularda doğruluk
+# oranı >= %50 ise tahmini seviye o seviyeye yükseltilir, %50'nin altına
+# düştüğü ilk seviyede durulur (o seviyeyi henüz kaldıramadığı varsayılır).
+# O seviyeden hiç soru gelmediyse (havuzda az soru kalmışsa ihtimal dahilinde)
+# ne yükseltip ne düşürmeden bir sonrakine geçilir.
+CEFR_LEVEL_ORDER = ["a1", "a2", "b1", "b2", "c1", "c2"]
+PLACEMENT_LEVEL_PASS_THRESHOLD = 0.5
+
+
+def _compute_placement_level(session_id: str) -> str | None:
+    attempts = (
+        supabase_admin.table("exam_attempts")
+        .select("question_id, is_correct")
+        .eq("session_id", session_id)
+        .execute()
+        .data
+    ) or []
+    if not attempts:
+        return None
+
+    question_ids = list({a["question_id"] for a in attempts})
+    questions = (
+        supabase_admin.table("exam_questions")
+        .select("id, difficulty_level")
+        .in_("id", question_ids)
+        .execute()
+        .data
+    ) or []
+    level_by_question = {q["id"]: q.get("difficulty_level") for q in questions}
+
+    correct_by_level: dict[str, int] = {}
+    total_by_level: dict[str, int] = {}
+    for a in attempts:
+        level = level_by_question.get(a["question_id"])
+        if level not in CEFR_LEVEL_ORDER:
+            continue
+        total_by_level[level] = total_by_level.get(level, 0) + 1
+        if a["is_correct"]:
+            correct_by_level[level] = correct_by_level.get(level, 0) + 1
+
+    estimated_level: str | None = None
+    for level in CEFR_LEVEL_ORDER:
+        total = total_by_level.get(level, 0)
+        if total == 0:
+            continue
+        accuracy = correct_by_level.get(level, 0) / total
+        if accuracy >= PLACEMENT_LEVEL_PASS_THRESHOLD:
+            estimated_level = level
+        else:
+            break
+    return estimated_level
+
+
+def _store_placement_level(user_id: str, learning_lang: str, level: str, completed_at: str) -> None:
+    """user_learning_languages.placement_level/placement_completed_at'i
+    yazar. Once UPDATE dener (asil beklenen yol -- kullanicinin bu dil icin
+    zaten bir user_learning_languages satiri olmasi gerekir); satir yoksa
+    (eski kullanici / tutarsizlik ihtimaline karsi) INSERT'e duser."""
+    update_result = (
+        supabase_admin.table("user_learning_languages")
+        .update({"placement_level": level, "placement_completed_at": completed_at})
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .execute()
+    )
+    if update_result.data:
+        return
+    supabase_admin.table("user_learning_languages").insert(
+        {
+            "user_id": user_id,
+            "learning_lang": learning_lang,
+            "is_active": True,
+            "placement_level": level,
+            "placement_completed_at": completed_at,
+        }
+    ).execute()
+
+
 @router.post("/sessions/{session_id}/finish", response_model=ExamFinishResponse)
 async def finish_session(session_id: str, current_user=Depends(get_current_user)):
     session = _get_session(session_id, current_user.id)
@@ -413,6 +509,14 @@ async def finish_session(session_id: str, current_user=Depends(get_current_user)
         raise HTTPException(status_code=500, detail="Oturum kapatılamadı.")
 
     updated = update_result.data[0]
+
+    placement_level: str | None = None
+    if updated["exam_type"] == "placement":
+        placement_level = _compute_placement_level(session_id)
+        if placement_level:
+            learning_lang = session.get("learning_lang") or "en"
+            _store_placement_level(current_user.id, learning_lang, placement_level, ended_at)
+
     return ExamFinishResponse(
         id=updated["id"],
         exam_type=updated["exam_type"],
@@ -423,6 +527,36 @@ async def finish_session(session_id: str, current_user=Depends(get_current_user)
         started_at=updated["started_at"],
         ended_at=updated["ended_at"],
         mock_bonus_xp=mock_bonus_xp,
+        placement_level=placement_level,
+    )
+
+
+# ── Seviye Tespit Sınavı — yönlendirme durumu ─────────────────────────
+# Kullanıcı isteği (18 Eylül 2026): "sisteme girer girmez hemen seviye
+# tespit sınavına yönlendirilsin" (mevcut VE yeni kullanıcılar, tüm
+# platformlar). Mobil/web uygulaması girişten hemen sonra bunu çağırıp
+# needs_placement=true ise kullanıcıyı /(app)/exam-prep?examType=
+# placement&sessionMode=timed_mock'a yönlendirir. Tek kaynak burasi --
+# istemci tarafinda ayrica bir "tamamlandi mi" mantigi tutulmuyor.
+@router.get("/placement/status", response_model=PlacementStatusResponse)
+async def get_placement_status(current_user=Depends(get_current_user)):
+    _, learning_lang = _profile_langs(current_user.id)
+    rows = (
+        supabase_admin.table("user_learning_languages")
+        .select("placement_level, placement_completed_at")
+        .eq("user_id", current_user.id)
+        .eq("learning_lang", learning_lang)
+        .execute()
+        .data
+    ) or []
+    row = rows[0] if rows else {}
+    completed_at = row.get("placement_completed_at")
+    has_content = learning_lang in _exam_content_learning_langs()
+    return PlacementStatusResponse(
+        learning_lang=learning_lang,
+        needs_placement=has_content and not completed_at,
+        current_level=row.get("placement_level"),
+        completed_at=completed_at,
     )
 
 

@@ -12,6 +12,7 @@ import type {
   ExamType,
   ExamTypeInfo,
   NextQuestionResult,
+  PlacementStatusResult,
   WeakTopicsResult,
 } from './types';
 
@@ -86,6 +87,13 @@ export const examsApi = {
     const res = await api.get<WeakTopicsResult>('/exams/stats/weak-topics', {
       params: { days, limit },
     });
+    return res.data;
+  },
+  // 18 Eylül 2026 — kullanıcı isteği: "sisteme girer girmez hemen seviye
+  // tespit sınavına yönlendirilsin". dashboard.tsx bunu her odak kazandığında
+  // çağırıp needs_placement=true ise exam-prep?examType=placement'a yönlendirir.
+  placementStatus: async (): Promise<PlacementStatusResult> => {
+    const res = await api.get<PlacementStatusResult>('/exams/placement/status');
     return res.data;
   },
 };

@@ -81,6 +81,10 @@ export type ExamStrings = {
   weakTopicsAccuracyTpl: string;
   weakTopicsReviewBtn: string;
   weakTopicsPracticeBtn: string;
+  // 18 Eylul 2026 -- seviye tespit sinavi (placement), tum kullanicilara
+  // uygulama girisinde zorunlu yonlendirme (bkz. dashboard.tsx).
+  placementDoneTitle: string;
+  placementLevelResultTpl: string;
 };
 
 export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
@@ -160,6 +164,8 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     weakTopicsAccuracyTpl: 'Doğruluk: %{percent}',
     weakTopicsReviewBtn: 'İncele',
     weakTopicsPracticeBtn: 'Pratik Yap',
+    placementDoneTitle: 'Seviye Tespit Sınavı Tamamlandı!',
+    placementLevelResultTpl: 'Tahmini seviyen: {level}',
   },
   en: {
     entryLabel: 'Exam Prep',
@@ -237,5 +243,7 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     weakTopicsAccuracyTpl: 'Accuracy: {percent}%',
     weakTopicsReviewBtn: 'Review',
     weakTopicsPracticeBtn: 'Practice',
+    placementDoneTitle: 'Placement Exam Completed!',
+    placementLevelResultTpl: 'Your estimated level: {level}',
   },
 };

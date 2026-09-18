@@ -111,6 +111,20 @@ class ExamFinishResponse(BaseModel):
     started_at: datetime
     ended_at: datetime
     mock_bonus_xp: int = 0
+    # 18 Eylul 2026 -- seviye tespit sinavi (exam_type='placement') bittiginde
+    # hesaplanan CEFR seviyesi (bkz. exams.py::_compute_placement_level).
+    # Diger sinav turlerinde None kalir.
+    placement_level: str | None = None
+
+
+class PlacementStatusResponse(BaseModel):
+    # 18 Eylul 2026 -- kullanicinin aktif learning_lang'i icin seviye tespit
+    # sinavi durumu (bkz. exams.py::get_placement_status). Uygulama girisinde
+    # (mobil/web) "needs_placement=True" ise kullanici sinava yonlendirilir.
+    learning_lang: str
+    needs_placement: bool
+    current_level: str | None = None
+    completed_at: datetime | None = None
 
 
 class AddWordFromQuestionResponse(BaseModel):

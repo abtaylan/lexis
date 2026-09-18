@@ -72,6 +72,10 @@ type ExamStrings = {
   reviewGrammarTopicTpl: string;
   practiceThisTopicBtn: string;
   moreResourcesLabel: string;
+  // 18 Eylul 2026 -- seviye tespit sinavi (placement), tum kullanicilara
+  // uygulama girisinde zorunlu yonlendirme (bkz. dashboard/page.tsx).
+  placementDoneTitle: string;
+  placementLevelResultTpl: string;
 };
 
 // mobile/src/i18n/examStrings.ts ile birebir aynı tr/en metinler.
@@ -119,6 +123,8 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     reviewGrammarTopicTpl: '"{topic}" Konusunu İncele',
     practiceThisTopicBtn: 'Bu Konudan Pratik Yap',
     moreResourcesLabel: 'Diğer Kaynaklar',
+    placementDoneTitle: 'Seviye Tespit Sınavı Tamamlandı!',
+    placementLevelResultTpl: 'Tahmini seviyen: {level}',
   },
   en: {
     pageTitle: 'Exam Prep Area',
@@ -163,6 +169,8 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     reviewGrammarTopicTpl: 'Review "{topic}"',
     practiceThisTopicBtn: 'Practice This Topic',
     moreResourcesLabel: 'More Resources',
+    placementDoneTitle: 'Placement Exam Completed!',
+    placementLevelResultTpl: 'Your estimated level: {level}',
   },
 };
 
@@ -665,13 +673,20 @@ export default function ExamPrepPage() {
 
   // ── Sonuç ──
   if (stage === 'result' && finishResult) {
+    // 18 Eylul 2026 -- seviye tespit sinavi (placement) sonuc ekrani, diger
+    // sinavlardan farkli: hesaplanan CEFR seviyesi gosterilir ve "Tekrar
+    // Dene" gizlenir (bkz. backend exams.py::finish_session -> placement_level,
+    // mobile/src/app/(app)/exam-prep.tsx'teki aynı mantık).
+    const isPlacement = finishResult.exam_type === 'placement';
     return (
       <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-10 flex flex-col items-center gap-2 w-full max-w-sm text-center">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-[#EAF3DE]">
             <CheckCircle2 className="w-8 h-8" style={{ color: '#3B6D11' }} />
           </div>
-          <p className="text-2xl font-bold text-gray-900 dark:text-slate-100 mt-2">{et.doneTitle}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-slate-100 mt-2">
+            {isPlacement ? et.placementDoneTitle : et.doneTitle}
+          </p>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
             {et.doneScoreTpl.replace('{score}', String(finishResult.score)).replace('{total}', String(finishResult.total_questions))}
           </p>
@@ -681,16 +696,27 @@ export default function ExamPrepPage() {
               {et.mockBonusTpl.replace('{xp}', String(finishResult.mock_bonus_xp))}
             </p>
           )}
+          {isPlacement && finishResult.placement_level && (
+            <p className="text-sm font-bold mt-2" style={{ color: '#378ADD' }}>
+              {et.placementLevelResultTpl.replace('{level}', finishResult.placement_level.toUpperCase())}
+            </p>
+          )}
           <div className="w-full mt-6 flex flex-col gap-2">
-            <button
-              onClick={resetToStart}
-              className="w-full bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl py-3 text-sm font-medium transition-colors"
-            >
-              {et.playAgainBtn}
-            </button>
+            {!isPlacement && (
+              <button
+                onClick={resetToStart}
+                className="w-full bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl py-3 text-sm font-medium transition-colors"
+              >
+                {et.playAgainBtn}
+              </button>
+            )}
             <button
               onClick={() => router.push('/dashboard')}
-              className="w-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 rounded-xl py-3 text-sm font-medium transition-colors hover:bg-gray-200 dark:hover:bg-slate-700"
+              className={
+                isPlacement
+                  ? 'w-full bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl py-3 text-sm font-medium transition-colors'
+                  : 'w-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-300 rounded-xl py-3 text-sm font-medium transition-colors hover:bg-gray-200 dark:hover:bg-slate-700'
+              }
             >
               {et.backToDashboardBtn}
             </button>
