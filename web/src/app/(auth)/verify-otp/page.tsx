@@ -168,6 +168,11 @@ function VerifyOtpContent() {
   const purpose = (params.get('purpose') === 'register' ? 'register' : 'login') as
     | 'login'
     | 'register';
+  // KULLANICI İSTEĞİ (18 Eylül 2026): login/page.tsx'teki `next` param'ı
+  // OTP adımı gerektiğinde buraya taşınıyor — doğrulama başarılı olunca
+  // kullanıcı kaldığı sayfaya (ör. /exam-prep) geri dönsün diye.
+  const rawNext = params.get('next');
+  const safeNext = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null;
 
   const [digits, setDigits] = useState<string[]>(Array(6).fill(''));
   const [error, setError] = useState('');
@@ -234,8 +239,9 @@ function VerifyOtpContent() {
       login(res.access_token, user);
       // Admin/admin_readonly rolündeki kullanıcılar doğrudan admin panele
       // yönlendirilsin — aksi halde /dashboard'a düşüp panele manuel
-      // gitmeleri gerekiyordu.
-      router.push(user.role === 'admin' || user.role === 'admin_readonly' ? '/admin' : '/dashboard');
+      // gitmeleri gerekiyordu. `safeNext` varsa (oturum süresi dolup
+      // buraya düşüldüyse) her ikisinden de önceliklidir.
+      router.push(safeNext ?? (user.role === 'admin' || user.role === 'admin_readonly' ? '/admin' : '/dashboard'));
     } catch (err) {
       localStorage.removeItem('lexis_token');
       setError(getErrorMessage(err, t.genericVerifyError));

@@ -132,8 +132,19 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && hadAuthHeader && typeof window !== 'undefined') {
       localStorage.removeItem('lexis_token');
       localStorage.removeItem('lexis_user');
+      // KULLANICI İSTEĞİ (18 Eylül 2026): oturum süresi dolup buradan /login'e
+      // yönlendirildiğinde kullanıcı kaldığı sayfayı (ör. uzun bir mock sınav
+      // sırasında /exam-prep) kaybediyordu — giriş sonrası hep /dashboard'a
+      // düşüyordu. Şu an bulunulan sayfa `next` query param'ı olarak login
+      // akışına taşınıyor; login/verify-otp başarılı olduğunda oraya geri
+      // dönülüyor (bkz. (auth)/login/page.tsx, (auth)/verify-otp/page.tsx).
+      // Zaten bir auth sayfasındaysak (ör. token'sız bir istek burada asla
+      // hadAuthHeader=true olmaz ama yine de savunma amaçlı) next eklenmiyor.
+      const AUTH_PATHS = ['/login', '/register', '/verify-otp', '/forgot-password', '/reset-password'];
+      const onAuthPath = AUTH_PATHS.some((p) => window.location.pathname.startsWith(p));
+      const next = onAuthPath ? '' : `?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- axios interceptor React ağacının dışında çalışıyor (useRouter() burada yok); 401'de auth state'in (React Query cache, store) tam sıfırlanması için kasıtlı tam sayfa yenilemesi
-      window.location.href = '/login';
+      window.location.href = `/login${next}`;
     }
     return Promise.reject(error);
   }

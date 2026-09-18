@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { authApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import type { User as UserType } from '@/types';
@@ -15,8 +15,9 @@ import { AppleSignInButton } from '@/components/AppleSignInButton';
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { SOCIAL_AUTH_STRINGS } from '@/lib/socialAuthStrings';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { t, locale } = useLocale();
   const { login: loginToStore } = useAuth();
 
@@ -27,6 +28,15 @@ export default function LoginPage() {
 
   const st = SOCIAL_AUTH_STRINGS[locale] ?? SOCIAL_AUTH_STRINGS.tr!;
   const handleSocialError = () => setError(st.socialError);
+
+  // KULLANICI İSTEĞİ (18 Eylül 2026): api.ts'teki 401 interceptor'ı, oturum
+  // süresi dolduğunda kullanıcıyı kaldığı sayfayı (`next`) query param'ı
+  // olarak taşıyarak buraya yönlendiriyor. Açık yönlendirme (open redirect)
+  // riskine karşı sadece "/" ile başlayan, "//" ile başlamayan göreli
+  // path'ler kabul ediliyor.
+  const rawNext = searchParams.get('next');
+  const safeNext = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null;
+  const dashboardFor = (role?: string) => (role === 'admin' || role === 'admin_readonly' ? '/admin' : '/dashboard');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -66,11 +76,12 @@ export default function LoginPage() {
           created_at: me.created_at || new Date().toISOString(),
         };
         loginToStore(res.access_token, user);
-        router.push(user.role === 'admin' || user.role === 'admin_readonly' ? '/admin' : '/dashboard');
+        router.push(safeNext ?? dashboardFor(user.role));
         return;
       }
 
-      router.push(`/verify-otp?email=${encodeURIComponent(form.email)}&purpose=login`);
+      const otpNext = safeNext ? `&next=${encodeURIComponent(safeNext)}` : '';
+      router.push(`/verify-otp?email=${encodeURIComponent(form.email)}&purpose=login${otpNext}`);
     } catch (err) {
       localStorage.removeItem('lexis_token');
       setError(getErrorMessage(err, t('loginErrorMsg')));
@@ -87,6 +98,16 @@ export default function LoginPage() {
         </div>
         <h1 className="text-2xl font-bold text-slate-800 dark:text-slate-100">{t('loginTitle')}</h1>
       </div>
+
+      {safeNext && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-xl bg-sky-50 dark:bg-sky-500/10 border border-sky-100 dark:border-sky-500/20 px-4 py-3 text-sm text-sky-700 dark:text-sky-400">
+          <span>{t('sessionExpiredNotice')}</span>
+          <Link href={safeNext} className="inline-flex items-center gap-1 font-medium hover:underline shrink-0">
+            <ArrowLeft size={14} />
+            {t('backToPageBtn')}
+          </Link>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
@@ -153,5 +174,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
