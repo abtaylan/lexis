@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Search, Loader2, User as UserIcon, Building2 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
-import type { UserReport, OrganizationReport, AdminOrganizationItem } from '@/lib/api';
+import type { UserReport, OrganizationReport, AdminOrganizationItem, UserGrowthReport } from '@/lib/api';
 import type { AdminUser } from '@/types';
 
 function PeriodToggle({ period, onChange }: { period: 'week' | 'month'; onChange: (p: 'week' | 'month') => void }) {
@@ -132,13 +132,47 @@ export function OrgReportCards({ report }: { report: OrganizationReport }) {
   );
 }
 
+export function GrowthReportCards({ report }: { report: UserGrowthReport }) {
+  const start = report.range.start.slice(0, 10);
+  const end = report.range.end.slice(0, 10);
+  return (
+    <div className="space-y-5">
+      <p className="text-xs text-gray-400 dark:text-slate-500">{start} → {end}</p>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <StatCard label="Çalışma süresi" value={`${report.study_minutes} dk`} />
+        <StatCard label="Kelime hazinesi" value={report.vocabulary.total_words} sub={`%${report.vocabulary.learned_pct} öğrenildi, +${report.vocabulary.new_words_in_range} yeni`} />
+        <StatCard label="Güncel seri" value={`${report.streak_current} gün`} />
+        <StatCard label="Sınav/konu doğruluğu" value={report.exam.accuracy !== null ? `%${report.exam.accuracy}` : '—'} />
+        <StatCard label="Oyun ort. skor" value={report.games.avg_score} sub={`${report.games.sessions} oturum`} />
+        <StatCard label="Tamamlanan görev" value={report.quests_completed_in_range} />
+        <StatCard label="Kazanılan rozet" value={report.badges_earned_in_range} />
+        <StatCard label="Toplam XP" value={report.total_xp} sub={report.league_current_tier || undefined} />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <TopicList title="En zayıf konular" topics={report.exam.weak_topics} />
+        <TopicList title="En güçlü konular" topics={report.exam.strong_topics} />
+      </div>
+
+      <div className="bg-[#EEEDFE] dark:bg-slate-800 rounded-xl p-4 text-sm text-[#534AB7] dark:text-slate-300">
+        {report.platform.xp_percentile !== null
+          ? `Platformdaki kullanıcıların %${report.platform.xp_percentile}'inden daha fazla XP kazanmış (güncel durum).`
+          : 'Yüzdelik dilim için yeterli platform verisi yok.'}
+      </div>
+    </div>
+  );
+}
+
 export function UserReportExplorer() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<AdminUser | null>(null);
-  const [period, setPeriod] = useState<'week' | 'month'>('week');
+  const [mode, setMode] = useState<'week' | 'month' | 'growth'>('week');
   const [report, setReport] = useState<UserReport | null>(null);
+  const [growthStart, setGrowthStart] = useState('');
+  const [growthEnd, setGrowthEnd] = useState('');
+  const [growthReport, setGrowthReport] = useState<UserGrowthReport | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState('');
 
@@ -147,15 +181,26 @@ export function UserReportExplorer() {
   }, []);
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected || mode === 'growth') return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- seçim/periyot değişince yeniden çekme (fetch-on-effect) deseni
     setLoadingReport(true);
     setError('');
-    adminApi.getUserReport(selected.id, period)
+    adminApi.getUserReport(selected.id, mode)
       .then(setReport)
       .catch(() => setError('Rapor yüklenemedi.'))
       .finally(() => setLoadingReport(false));
-  }, [selected, period]);
+  }, [selected, mode]);
+
+  useEffect(() => {
+    if (!selected || mode !== 'growth') return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- seçim/tarih aralığı değişince yeniden çekme (fetch-on-effect) deseni
+    setLoadingReport(true);
+    setError('');
+    adminApi.getUserGrowthReport(selected.id, growthStart || undefined, growthEnd || undefined)
+      .then(setGrowthReport)
+      .catch(() => setError('Rapor yüklenemedi.'))
+      .finally(() => setLoadingReport(false));
+  }, [selected, mode, growthStart, growthEnd]);
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -173,7 +218,7 @@ export function UserReportExplorer() {
         <div className="w-10 h-10 rounded-xl bg-[#E6F1FB] text-[#185FA5] flex items-center justify-center"><UserIcon className="w-5 h-5" /></div>
         <div>
           <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Kullanıcı raporu</h2>
-          <p className="text-xs text-gray-400 dark:text-slate-500">Bir kullanıcı seç, kendi &quot;Raporum&quot; sayfasındaki verileri gör.</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500">Bir kullanıcı seç, kendi &quot;Raporum&quot; sayfasındaki verileri veya kayıttan bugüne/özel tarih aralığındaki gelişimini gör.</p>
         </div>
       </div>
 
@@ -182,7 +227,7 @@ export function UserReportExplorer() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             value={selected ? (selected.display_name || selected.username || selected.email) : query}
-            onChange={(e) => { setSelected(null); setReport(null); setQuery(e.target.value); }}
+            onChange={(e) => { setSelected(null); setReport(null); setGrowthReport(null); setQuery(e.target.value); }}
             placeholder="İsim, kullanıcı adı veya e-posta ara…"
             className="w-full pl-9 pr-3 py-2 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#534AB7]/30"
           />
@@ -202,14 +247,45 @@ export function UserReportExplorer() {
             </div>
           )}
         </div>
-        <PeriodToggle period={period} onChange={setPeriod} />
+        <div className="inline-flex rounded-xl border border-gray-200 dark:border-slate-700 overflow-hidden text-sm">
+          {([
+            { key: 'week' as const, label: 'Haftalık' },
+            { key: 'month' as const, label: 'Aylık' },
+            { key: 'growth' as const, label: 'Kayıttan bugüne / özel aralık' },
+          ]).map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setMode(key)}
+              className={`px-3 py-1.5 font-medium transition-colors whitespace-nowrap ${
+                mode === key
+                  ? 'bg-[#534AB7] text-white'
+                  : 'bg-white dark:bg-slate-900 text-gray-500 dark:text-slate-400 hover:bg-gray-50 hover:dark:bg-slate-800'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {mode === 'growth' && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <label className="text-gray-500 dark:text-slate-400">Başlangıç (boş = kayıt tarihi):</label>
+          <input type="date" value={growthStart} onChange={(e) => setGrowthStart(e.target.value)}
+            className="px-2 py-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100" />
+          <label className="text-gray-500 dark:text-slate-400">Bitiş (boş = bugün):</label>
+          <input type="date" value={growthEnd} onChange={(e) => setGrowthEnd(e.target.value)}
+            className="px-2 py-1 rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100" />
+        </div>
+      )}
 
       {loadingUsers && <p className="text-xs text-gray-400 dark:text-slate-500">Kullanıcı listesi yükleniyor…</p>}
       {!selected && !loadingUsers && <p className="text-sm text-gray-400 dark:text-slate-500">Bir kullanıcı seçmek için yukarıdan ara.</p>}
       {loadingReport && <div className="p-6 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-gray-400" /></div>}
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
-      {selected && report && !loadingReport && <UserReportCards report={report} />}
+      {selected && mode !== 'growth' && report && !loadingReport && <UserReportCards report={report} />}
+      {selected && mode === 'growth' && growthReport && !loadingReport && <GrowthReportCards report={growthReport} />}
     </div>
   );
 }

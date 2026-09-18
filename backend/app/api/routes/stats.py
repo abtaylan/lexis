@@ -8,7 +8,7 @@ from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.services.badge_service import get_badges_catalog, get_user_badges
 from app.services.leaderboard_service import get_leaderboard
-from app.services.user_report_service import get_user_report
+from app.services.user_report_service import get_user_growth_report, get_user_report
 from app.services.report_export_service import build_user_report_document, render, SUPPORTED_FORMATS
 from app.services.email_service import send_report_export_email
 from app.services.xp_service import get_xp_summary
@@ -163,6 +163,40 @@ async def get_user_report_route(period: str = "week", current_user=Depends(get_c
             status_code=400, detail="Geçersiz period. 'week' veya 'month' olmalı."
         )
     return await get_user_report(current_user.id, period)  # type: ignore[arg-type]
+
+# ── Kullanıcı Gelişim Raporu — tarih aralığı (Faz 5, madde 3) ──
+# Kullanıcı isteği (18 Eylül 2026): "kayıt tarihinden bugüne" veya özel bir
+# tarih aralığında gelişim raporu, kullanıcı kendisi için de görebilmeli.
+# start verilmezse kayıt tarihi (profiles.created_at) kullanılır -- yani
+# parametresiz çağrı otomatik olarak "kayıttan bugüne" raporu döner.
+@router.get("/report/growth")
+async def get_user_growth_report_route(
+    start: str | None = None, end: str | None = None, current_user=Depends(get_current_user)
+):
+    def _parse(value: str | None, field: str) -> datetime | None:
+        if not value:
+            return None
+        try:
+            dt = datetime.fromisoformat(value)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Geçersiz {field} tarihi.")
+        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+
+    end_dt = _parse(end, "end") or datetime.now(timezone.utc)
+    start_dt = _parse(start, "start")
+    if start_dt is None:
+        profile = (
+            supabase_admin.table("profiles")
+            .select("created_at")
+            .eq("id", current_user.id)
+            .single()
+            .execute()
+        ).data or {}
+        created_at = profile.get("created_at")
+        start_dt = datetime.fromisoformat(created_at) if created_at else end_dt
+    if start_dt >= end_dt:
+        raise HTTPException(status_code=400, detail="start, end'den önce olmalı.")
+    return await get_user_growth_report(current_user.id, start_dt, end_dt)
 
 # ── Kullanıcı Raporu Export — İstatistik & Raporlama V2 öncelik #3, madde F ──
 # CSV/XLSX/PDF indirme. Rapor İÇERİĞİ kullanıcının profiles.native_lang'ına

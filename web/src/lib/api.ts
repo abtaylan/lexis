@@ -523,6 +523,39 @@ export interface UserReport {
   };
 }
 
+export interface UserGrowthReportTopicAccuracy {
+  topic_tag: string;
+  attempts: number;
+  accuracy: number;
+}
+
+export interface UserGrowthReport {
+  range: { start: string; end: string };
+  learning_lang: string;
+  study_minutes: number;
+  streak_current: number;
+  vocabulary: { total_words: number; learned_words: number; learned_pct: number; new_words_in_range: number };
+  games: { sessions: number; avg_score: number };
+  exam: {
+    accuracy: number | null;
+    weak_topics: UserGrowthReportTopicAccuracy[];
+    strong_topics: UserGrowthReportTopicAccuracy[];
+  };
+  quests_completed_in_range: number;
+  badges_earned_in_range: number;
+  league_current_tier: string | null;
+  total_xp: number;
+  platform: {
+    cohort_size: number;
+    active_peers_current: number;
+    avg_minutes_current: number | null;
+    avg_new_words_current: number | null;
+    avg_accuracy_current: number | null;
+    xp_percentile: number | null;
+    same_country_cohort: boolean;
+  };
+}
+
 export const statsApi = {
   getSummary: async (): Promise<Stats> => {
     const res = await api.get<Stats>('/stats/summary');
@@ -550,6 +583,12 @@ export const statsApi = {
   },
   getUserReport: async (period: 'week' | 'month' = 'week'): Promise<UserReport> => {
     const res = await api.get<UserReport>('/stats/report', { params: { period } });
+    return res.data;
+  },
+  // Tarih aralığı gelişim raporu (Faz 5, madde 3) -- start verilmezse
+  // backend kayıt tarihini kullanır ("kayıttan bugüne").
+  getMyGrowthReport: async (start?: string, end?: string): Promise<UserGrowthReport> => {
+    const res = await api.get<UserGrowthReport>('/stats/report/growth', { params: { start, end } });
     return res.data;
   },
   // İstatistik & Raporlama V2 öncelik #3, Faz 3 madde F — rapor export.
@@ -807,6 +846,10 @@ export const adminApi = {
   },
   getOrganizationReportAdmin: async (orgId: string, period: 'week' | 'month' = 'week'): Promise<OrganizationReport> => {
     const res = await api.get<OrganizationReport>(`/admin/organizations/${orgId}/report`, { params: { period } });
+    return res.data;
+  },
+  getUserGrowthReport: async (userId: string, start?: string, end?: string): Promise<UserGrowthReport> => {
+    const res = await api.get<UserGrowthReport>(`/admin/users/${userId}/growth-report`, { params: { start, end } });
     return res.data;
   },
 

@@ -75,7 +75,7 @@ from app.services.platform_snapshot_service import capture_daily_snapshot, get_s
 from app.services.report_export_service import build_platform_snapshots_document, render, SUPPORTED_FORMATS
 from app.services.organization_report_service import get_organization_report
 from app.services.subscription_segment_service import get_subscription_segments
-from app.services.user_report_service import get_user_report
+from app.services.user_report_service import get_user_growth_report, get_user_report
 
 router = APIRouter()
 
@@ -1031,3 +1031,39 @@ async def admin_organization_report(
     if not exists.data:
         raise HTTPException(status_code=404, detail="Kurum bulunamadı.")
     return await get_organization_report(org_id, period)  # type: ignore[arg-type]
+
+
+# ── Admin — kullanıcı gelişim raporu, tarih aralığı (Faz 5, madde 3) ──
+# admin_user_report ile aynı gerekçe: get_user_growth_report()'u platform
+# admin yetkisiyle, HERHANGİ bir kullanıcı için, keyfi [start, end)
+# aralığında çağırır. start verilmezse o kullanıcının kayıt tarihi
+# kullanılır ("kayıttan bugüne" -- routes/stats.py::get_user_growth_report_route
+# ile birebir aynı varsayılan davranış, sadece current_user yerine path'ten
+# gelen user_id ile).
+@router.get("/users/{user_id}/growth-report")
+async def admin_user_growth_report(
+    user_id: str, start: str | None = None, end: str | None = None, admin=Depends(get_current_admin)
+):
+    def _parse(value: str | None, field: str) -> datetime | None:
+        if not value:
+            return None
+        try:
+            dt = datetime.fromisoformat(value)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Geçersiz {field} tarihi.")
+        return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+    profile = (
+        supabase_admin.table("profiles").select("created_at").eq("id", user_id).limit(1).execute()
+    )
+    if not profile.data:
+        raise HTTPException(status_code=404, detail="Kullanıcı bulunamadı.")
+
+    end_dt = _parse(end, "end") or datetime.now(UTC)
+    start_dt = _parse(start, "start")
+    if start_dt is None:
+        created_at = profile.data[0].get("created_at")
+        start_dt = datetime.fromisoformat(created_at) if created_at else end_dt
+    if start_dt >= end_dt:
+        raise HTTPException(status_code=400, detail="start, end'den önce olmalı.")
+    return await get_user_growth_report(user_id, start_dt, end_dt)
