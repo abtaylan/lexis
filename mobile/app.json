@@ -14,9 +14,6 @@
       "supportsTablet": false,
       "usesAppleSignIn": true,
       "infoPlist": {
-        "UIBackgroundModes": [
-          "remote-notification"
-        ],
         "ITSAppUsesNonExemptEncryption": false,
         "NSUserTrackingUsageDescription": "Bu veriler, sana daha ilgili reklamlar göstermek için kullanılır."
       }
