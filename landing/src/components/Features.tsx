@@ -35,14 +35,25 @@ export function Features() {
       </Reveal>
 
       <div className="grid gap-12 lg:grid-cols-[400px_1fr]">
+        {/* KULLANICI GERİ BİLDİRİMİ (19 Eylül): lacivert panelde başlığın
+            altında, sağdaki metin bloğunda da paragrafın altında göze batan
+            boş alan vardı -- kullanıcı boyutların küçültülmesini istedi
+            (yeni metin eklemek yerine). Kart 420px'ten 340px'e indi, içerik
+            artık flex-1 alanında dikeyde ortalanıyor (crossfade-item'a
+            flex+justify-center eklendi) böylece kısa/uzun başlıklarda da
+            boşluk her zaman dengeli dağılıyor. Sağdaki scroll bloklarının
+            min-height'ı da (56vh/62vh -> 42vh/46vh) küçültüldü. */}
         <div className="hidden lg:block">
           <div className="sticky-panel">
-            <div className="feature-card relative h-[420px] rounded-[28px] overflow-hidden">
+            <div className="feature-card relative h-[340px] rounded-[28px] overflow-hidden">
               <RibbonMotif className="absolute -right-12 -top-12 w-56 h-80" opacity={0.16} />
-              <div className="relative z-10 flex h-full flex-col p-9">
+              <div className="relative z-10 flex h-full flex-col p-8">
                 <div className="relative flex-1">
                   {items.map((item, i) => (
-                    <div key={i} className={`crossfade-item ${active === i ? 'is-active' : ''}`}>
+                    <div
+                      key={i}
+                      className={`crossfade-item flex flex-col justify-center ${active === i ? 'is-active' : ''}`}
+                    >
                       <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white/10 text-white">
                         <item.icon className="w-7 h-7" />
                       </div>
@@ -76,7 +87,7 @@ export function Features() {
               key={i}
               ref={setRef(i)}
               data-index={i}
-              className="min-h-[56vh] lg:min-h-[62vh] flex flex-col justify-center border-t border-gray-100 first:border-t-0"
+              className="min-h-[42vh] lg:min-h-[46vh] flex flex-col justify-center border-t border-gray-100 first:border-t-0"
             >
               <div className="lg:hidden w-11 h-11 rounded-xl flex items-center justify-center mb-4 bg-[var(--navy-900)] text-white">
                 <item.icon className="w-5 h-5" />
