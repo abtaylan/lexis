@@ -105,11 +105,18 @@ export function AppleSignInButton({ label, onError }: AppleSignInButtonProps) {
         onLoad={() => setReady(true)}
         onError={() => setUnavailable(true)}
       />
+      {/* KULLANICI GERİ BİLDİRİMİ (14 Eylül eleştiri videosu): "Apple butonu
+          fake duruyor" -- kök neden: buton BEYAZ render ediliyordu, oysa
+          mobil uygulamada (AppleAuthenticationButtonStyle.BLACK, light modda)
+          ve Apple'ın kendi marka kılavuzundaki birincil stil SİYAH kutudur.
+          Web'i mobille aynı, tutarlı ve "resmi" görünen SİYAH butona
+          çevirdik (tema fark etmeksizin -- kullanıcı referans görselinde
+          bunu net şekilde istedi). */}
       <button
         type="button"
         disabled={!ready || loading}
         onClick={() => window.AppleID?.auth.signIn()}
-        className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-100 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-black hover:bg-neutral-800 text-white text-sm font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <AppleLogo />
         {label}

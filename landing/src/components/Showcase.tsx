@@ -64,6 +64,13 @@ export function Showcase() {
               <span className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
             </div>
             <div className="relative aspect-[900/577] bg-gray-100">
+              {/* i===0 `priority` ile (LCP icin) hemen yukleniyor; diger ikisi
+                  varsayilan `loading="lazy"` ile tarayicinin insafina kalirsa
+                  ilk sekme degisiminde gorsel henuz inmemis olup crossfade
+                  "takilarak/basamakli" gorunuyordu (14 Eylul elestirisi) --
+                  `loading="eager"` ile ucu de mount aninda hemen indirilip
+                  DOM'a konuyor, boylece HANGI sekmeye once tiklanirsa
+                  tiklansin gecis ayni akicilikta oluyor. */}
               {items.map((item, i) => (
                 <div key={item.src} className={`crossfade-item ${active === i ? 'is-active' : ''}`}>
                   <Image
@@ -73,6 +80,7 @@ export function Showcase() {
                     sizes="(min-width: 768px) 768px, 100vw"
                     className="object-cover object-top"
                     priority={i === 0}
+                    loading={i === 0 ? undefined : 'eager'}
                   />
                 </div>
               ))}

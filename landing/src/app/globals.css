@@ -80,6 +80,17 @@ body {
 
 [dir="rtl"] .ltr-only { direction: ltr; }
 
+/* Sabit (sticky) header'ın altında kalan bölüm başlıklarını kapatmaması için
+   tüm çapa (anchor) hedeflerine ortak bir üst boşluk — Contact/Features/
+   Exam Prep/How it works/FAQ linklerine tıklandığında header'ın içeriği
+   örtmesini önler (14 Eylül eleştirisinde "Contact'a basınca sayfa aşağı
+   iniyor, iyi mi emin değilim" olarak bahsedilen sorun: scroll-behavior
+   zaten smooth'tu ama hedefin tam üstü header'ın altında kalıyordu). */
+section[id],
+footer[id] {
+  scroll-margin-top: 88px;
+}
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 99px; }

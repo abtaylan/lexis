@@ -59,12 +59,23 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') window.localStorage.setItem(STORAGE_KEY, l);
   };
 
+  // KULLANICI GERİ BİLDİRİMİ (14 Eylül eleştiri videosu): "hangi dil seçilirse
+  // seçilsin genel tasarım/mizanpaj çok değişmemeli, sadece yazı boyutu
+  // gerekirse küçülüp büyüyebilir" -- Arapça seçildiğinde `dir="rtl"` tüm
+  // dokümana uygulanınca tarayıcı flexbox/hizalama gibi birçok native
+  // düzeni OTOMATİK olarak aynalıyordu (bazı elemanlar aynalanıp bazıları
+  // aynalanmıyordu -- tutarsız, "ters/kaymış" bir görünüm). Kasıtlı karar:
+  // sayfa YAPISI/mizanpajı tüm dillerde LTR ve sabit kalır; Arapça metnin
+  // kendisi yine de Unicode çift-yönlü (bidi) algoritması sayesinde doğru
+  // okunuyor (harfler doğru sırada) -- sadece konteynerlerin/elemanların
+  // KONUMU dile göre değişmiyor. `dir` değeri (RTL_LOCALES) yine de context
+  // üzerinden dışa açılıyor, ileride tek tek metin bloğu bazında bilinçli bir
+  // RTL hizalaması istenirse kullanılabilir.
   const dir: 'ltr' | 'rtl' = RTL_LOCALES.includes(locale) ? 'rtl' : 'ltr';
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.documentElement.dir = dir;
-  }, [locale, dir]);
+  }, [locale]);
 
   const value = useMemo<LocaleContextType>(() => ({
     locale,
@@ -128,13 +139,13 @@ export const dictionaries = {
     moreTitle: 'Motivasyonunu ve ilerlemeni takip eden özellikler',
     moreSubtitle: 'Rekabetten rozetlere, detaylı raporlardan yapılandırılmış görev haritasına kadar.',
     m1Title: 'Gerçek zamanlı düello',
-    m1Desc: 'Arkadaşını anlık bir düelloya davet et, kim daha hızlı ve doğru cevaplayacak birlikte görün.',
+    m1Desc: 'Arkadaşını düelloya davet et, kim daha hızlı ve doğru cevap verecek görün.',
     m2Title: 'Görev haritası',
-    m2Desc: 'Yüzlerce görevden oluşan yapılandırılmış bir yolculukla adım adım ilerle.',
+    m2Desc: 'Yüzlerce görevden oluşan bir yolculukla adım adım ilerle.',
     m3Title: 'Rozetler ve unvanlar',
-    m3Desc: '32 rozet ve 8 unvan kademesiyle başarılarını sergile, motivasyonunu yüksek tut.',
+    m3Desc: '32 rozet ve 8 unvan kademesiyle başarılarını sergile ve motive kal.',
     m4Title: 'Detaylı ilerleme raporları',
-    m4Desc: 'PDF ve Excel olarak indirebileceğin raporlarla ilerlemeni ve ulusal ortalamalara göre durumunu incele.',
+    m4Desc: 'PDF ve Excel raporlarla ilerlemeni ulusal ortalamalarla karşılaştır.',
 
     showcaseTitle: 'Uygulamadan bir bakış',
     showcaseSubtitle: 'Günlük özet, kelime listesi ve oyun ekranlarından gerçek görüntüler.',
@@ -224,13 +235,13 @@ export const dictionaries = {
     moreTitle: 'Features that track your motivation and progress',
     moreSubtitle: 'From friendly competition to badges, from detailed reports to a structured quest map.',
     m1Title: 'Real-time duels',
-    m1Desc: 'Challenge a friend to a live duel and see who answers faster and more accurately.',
+    m1Desc: 'Challenge a friend to a live duel and see who answers faster.',
     m2Title: 'Quest map',
-    m2Desc: 'Progress step by step through a structured journey made up of hundreds of quests.',
+    m2Desc: 'Progress step by step through hundreds of structured quests.',
     m3Title: 'Badges and titles',
-    m3Desc: 'Show off your achievements with 32 badges and 8 title tiers, and stay motivated.',
+    m3Desc: 'Show off your achievements with 32 badges and 8 title tiers.',
     m4Title: 'Detailed progress reports',
-    m4Desc: 'Download PDF and Excel reports to review your progress against national averages.',
+    m4Desc: 'Download PDF and Excel reports to track your progress nationally.',
 
     showcaseTitle: 'A look inside the app',
     showcaseSubtitle: 'Real screens from the daily summary, word list, and game modes.',

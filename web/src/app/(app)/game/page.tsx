@@ -1674,7 +1674,7 @@ export default function GamePage() {
   if (gameMode === 'matching') {
     if (matchingItems.length === 0) return null;
     return (
-      <div className="p-6 flex flex-col items-center gap-6 max-w-xl mx-auto">
+      <div className="p-6 flex flex-col items-center gap-6 max-w-2xl mx-auto">
         <div className="w-full flex items-center justify-between">
           <div className="flex items-center gap-2">
             <button
@@ -1786,7 +1786,7 @@ export default function GamePage() {
   const isReverse = !isWordle && (activeDirection === 'meaning_to_word' || isDefinition);
 
   return (
-    <div className="p-6 flex flex-col items-center gap-6 max-w-xl mx-auto">
+    <div className="p-6 flex flex-col items-center gap-6 max-w-2xl mx-auto">
       <div className="w-full flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
