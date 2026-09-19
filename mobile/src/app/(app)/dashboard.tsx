@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2 } from 'lucide-react-native';
@@ -85,6 +85,27 @@ const WEAK_DIFFICULTY_STRINGS: Record<'tr' | 'en', { title: string; subtitle: st
   },
 };
 
+// Kullanıcı isteği (19 Eylül 2026): "sisteme girerken Alert olarak ekrana
+// kutucuk çıkacak. Orada sınava yönlendirecez" -- önceki davranış (18 Eylül)
+// needs_placement=true olduğunda hiç uyarı göstermeden sessizce router.replace
+// ile sınava atıyordu; artık önce RN Alert.alert() ile bu kutucuk gösterilip
+// CTA'ya basılınca yönlendiriliyor. Tek butonlu, cancelable:false -- sınav
+// zorunlu akışın bir parçası olmaya devam ediyor, sadece artık kullanıcıya
+// önce haber veriliyor. WEAK_DIFFICULTY_STRINGS ile aynı desen: tr/en dolu,
+// diğer diller tr'ye düşer.
+const PLACEMENT_ALERT_STRINGS: Record<'tr' | 'en', { title: string; message: string; cta: string }> = {
+  tr: {
+    title: 'Seviye Tespit Sınavı',
+    message: 'Sana en uygun kelimeleri gösterebilmemiz için önce kısa bir seviye tespit sınavı çözmen gerekiyor.',
+    cta: 'Sınava Başla',
+  },
+  en: {
+    title: 'Placement Exam',
+    message: 'To show you the right words for your level, you need to complete a short placement exam first.',
+    cta: 'Start Exam',
+  },
+};
+
 export default function DashboardScreen() {
   const { t, mt, locale, et } = useLocale();
   const c = useThemeColors();
@@ -93,6 +114,7 @@ export default function DashboardScreen() {
   const ds = DUELS_STRINGS[locale] ?? DUELS_STRINGS.tr;
   const lgs = LEAGUE_STRINGS[locale] ?? LEAGUE_STRINGS.tr;
   const qs = QUESTS_STRINGS[locale] ?? QUESTS_STRINGS.tr;
+  const pas = PLACEMENT_ALERT_STRINGS[locale] ?? PLACEMENT_ALERT_STRINGS.tr;
   const rs = REPORT_STRINGS[locale] ?? REPORT_STRINGS.tr;
 
   const { data: stats, isLoading, refetch, isRefetching } = useQuery({
@@ -131,9 +153,20 @@ export default function DashboardScreen() {
   useFocusEffect(
     useCallback(() => {
       if (placementStatus?.needs_placement) {
-        router.replace({ pathname: '/(app)/exam-prep', params: { examType: 'placement', sessionMode: 'timed_mock' } });
+        Alert.alert(
+          pas.title,
+          pas.message,
+          [
+            {
+              text: pas.cta,
+              onPress: () =>
+                router.replace({ pathname: '/(app)/exam-prep', params: { examType: 'placement', sessionMode: 'timed_mock' } }),
+            },
+          ],
+          { cancelable: false }
+        );
       }
-    }, [placementStatus])
+    }, [placementStatus, pas])
   );
 
   // Kullanıcı isteği (9 Eylül 2026): "ana ekrana bu sınav programı için bir

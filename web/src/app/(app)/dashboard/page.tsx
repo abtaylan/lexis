@@ -98,6 +98,27 @@ const EXAM_BANNER: Partial<Record<Locale, { title: string; subtitle: string; cta
   },
 };
 
+// Kullanıcı isteği (19 Eylül 2026): "sisteme girerken Alert olarak ekrana
+// kutucuk çıkacak. Orada sınava yönlendirecez" -- önceki davranış (18 Eylül)
+// needs_placement=true olduğunda hiç uyarı göstermeden sessizce
+// router.replace ile sınava atıyordu; artık önce bu modal gösterilip CTA'ya
+// basılınca yönlendiriliyor. Tek butonlu, kapatılamaz (dışarı tıklama/X yok)
+// -- sınav zorunlu akışın bir parçası olmaya devam ediyor, sadece artık
+// kullanıcıya önce haber veriliyor. EXAM_BANNER ile aynı desen: sadece tr/en
+// dolu, diğer diller tr'ye düşer.
+const PLACEMENT_ALERT_STRINGS: Partial<Record<Locale, { title: string; message: string; cta: string }>> = {
+  tr: {
+    title: 'Seviye Tespit Sınavı',
+    message: 'Sana en uygun kelimeleri gösterebilmemiz için önce kısa bir seviye tespit sınavı çözmen gerekiyor.',
+    cta: 'Sınava Başla',
+  },
+  en: {
+    title: 'Placement Exam',
+    message: 'To show you the right words for your level, you need to complete a short placement exam first.',
+    cta: 'Start Exam',
+  },
+};
+
 // Çalışma dili seçicisi ile mesaj simgesi arasındaki hızlı erişim tema
 // butonunun etiketi — Sidebar.tsx'teki THEME_LABEL ile aynı çeviri deseni
 // (merkezi i18n.tsx sözlüğüne dokunmadan yerel çeviri).
@@ -174,6 +195,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [username, setUsername] = useState('');
+  // Kullanıcı isteği (19 Eylül 2026): seviye tespit sınavına artık sessizce
+  // değil, bu Alert modalı gösterilip CTA'ya basılınca yönlendiriliyor.
+  const [showPlacementAlert, setShowPlacementAlert] = useState(false);
 
   // ── Aktif öğrenme dili değiştirici (Kullanıcı Madde 2: çoklu dil) ──
   const [userLangs, setUserLangs] = useState<UserLanguage[]>([]);
@@ -223,7 +247,7 @@ export default function DashboardPage() {
       .placementStatus()
       .then((res) => {
         if (res.needs_placement) {
-          router.replace('/exam-prep?examType=placement&sessionMode=timed_mock');
+          setShowPlacementAlert(true);
         }
       })
       .catch(() => {
@@ -368,6 +392,29 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-4 max-w-5xl">
+
+      {showPlacementAlert && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#EEEDFE] flex items-center justify-center mx-auto mb-4">
+              <GraduationCap className="w-6 h-6 text-[#534AB7]" />
+            </div>
+            <h2 className="text-base font-semibold text-gray-900 dark:text-slate-100 mb-2">
+              {(PLACEMENT_ALERT_STRINGS[locale] ?? PLACEMENT_ALERT_STRINGS.tr)!.title}
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-slate-400 mb-5">
+              {(PLACEMENT_ALERT_STRINGS[locale] ?? PLACEMENT_ALERT_STRINGS.tr)!.message}
+            </p>
+            <button
+              onClick={() => router.replace('/exam-prep?examType=placement&sessionMode=timed_mock')}
+              className="w-full text-sm font-medium px-4 py-2.5 rounded-xl text-white transition-colors"
+              style={{ background: '#534AB7' }}
+            >
+              {(PLACEMENT_ALERT_STRINGS[locale] ?? PLACEMENT_ALERT_STRINGS.tr)!.cta}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Başlık */}
       <div className="mb-2 flex items-start justify-between gap-3">
