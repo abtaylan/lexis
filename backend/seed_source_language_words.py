@@ -108,6 +108,15 @@ TARGET_LANGS = [l for l in ALL_LANGS if l != SOURCE_LANG]
 # -- seed_general_word_pool.py ile AYNI deger.
 REQUEST_DELAY_SECONDS = 0.4
 
+# Kullanici geri bildirimi (20 Eylul 2026, seed_all_source_languages.py'de
+# gorulen ayni sorun): capa cevirisi bir noktadan sonra ART ARDA onlarca kez
+# basarisiz olursa, kelime bazli bir eksiklik degil, MyMemory API'nin
+# gunluk/saatlik istek limitine takilmasi ihtimali yuksektir. Bu devre
+# kesici, ayni durumu erken tespit edip saatlerce bosuna (garanti basarisiz)
+# istek atmayi onler -- hicbir veri kaybi/uydurma riski yok, sadece zaman
+# kaybi onleniyor.
+ANCHOR_FAILURE_CIRCUIT_BREAKER = 20
+
 CONCEPTS = (
     [(w, "beginner") for w in BEGINNER_WORDS]
     + [(w, "intermediate") for w in INTERMEDIATE_WORDS]
@@ -176,14 +185,28 @@ async def seed_target(source_word: str, level: str, target_lang: str) -> str:
 async def seed() -> None:
     print(f"\n=== source_lang={SOURCE_LANG}, {len(CONCEPTS)} kavram x {len(TARGET_LANGS)} hedef dil ===\n")
     stats = {"eklendi": 0, "zaten_vardi": 0, "bulunamadi": 0, "capa_cevirisi_basarisiz": 0}
+    consecutive_anchor_failures = 0
 
     for anchor_word, level in CONCEPTS:
         source_word = await get_source_word(anchor_word)
         await asyncio.sleep(REQUEST_DELAY_SECONDS)
         if not source_word:
             stats["capa_cevirisi_basarisiz"] += 1
+            consecutive_anchor_failures += 1
             print(f"  [CAPA CEVIRISI YOK] {anchor_word}")
+            if consecutive_anchor_failures >= ANCHOR_FAILURE_CIRCUIT_BREAKER:
+                print(
+                    f"\n  [DURDURULDU] {consecutive_anchor_failures} kavram art arda capa "
+                    f"cevirisi bulamadi -- tek tek kelimelerin cevrilemez olmasindan degil, "
+                    f"muhtemelen MyMemory API gunluk/saatlik istek limitinin dolmasindan "
+                    f"kaynaklaniyor. Kalan kavramlar atlaniyor (hicbir sey uydurulmadi/yanlis "
+                    f"yazilmadi -- sadece hic yazilmadi). Birkac saat ya da ertesi gun ayni "
+                    f"komutla tekrar calistir, kaldigi yerden (zaten eklenenler atlanarak) "
+                    f"guvenle devam eder.\n"
+                )
+                break
             continue
+        consecutive_anchor_failures = 0
 
         for target_lang in TARGET_LANGS:
             outcome = await seed_target(source_word, level, target_lang)

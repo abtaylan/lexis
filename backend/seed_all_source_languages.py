@@ -95,6 +95,22 @@ else:
 # (saniye) -- diger seed script'leriyle AYNI deger.
 REQUEST_DELAY_SECONDS = 0.4
 
+# Kullanici geri bildirimi (20 Eylul 2026): tr calisirken bir noktadan sonra
+# capa cevirisi ART ARDA (120+ kere) basarisiz oldu, sonrasinda de/fr/es/it/
+# ar/ru/ja/pt'nin TAMAMI (1322/1322, %100) basarisiz cikti -- kelime bazli
+# bir eksiklik degil, MyMemory API'nin gunluk/saatlik istek limitine
+# takilmasiydi (once tr'nin sonlarinda basladi, sonraki TUM dilleri
+# etkiledi). Bu devre kesici, ayni durumu erken tespit edip saatlerce
+# bosuna (garanti basarisiz) istek atmayi onler -- hicbir veri
+# kaybi/uydurma riski yok, sadece zaman kaybi onleniyor.
+ANCHOR_FAILURE_CIRCUIT_BREAKER = 20
+
+
+class RateLimitSuspected(Exception):
+    # consecutive_anchor_failures esigi asildiginda seed_language() tarafindan
+    # firlatilir -- muhtemel API rate-limit/kota tukenmesi sinyali.
+    pass
+
 CONCEPTS = (
     [(w, "beginner") for w in BEGINNER_WORDS]
     + [(w, "intermediate") for w in INTERMEDIATE_WORDS]
@@ -162,14 +178,28 @@ async def seed_language(source_lang: str) -> dict:
     target_langs = [l for l in ALL_LANGS if l != source_lang]
     print(f"\n=== source_lang={source_lang}, {len(CONCEPTS)} kavram x {len(target_langs)} hedef dil ===\n")
     stats = {"eklendi": 0, "zaten_vardi": 0, "bulunamadi": 0, "capa_cevirisi_basarisiz": 0}
+    consecutive_anchor_failures = 0
 
     for anchor_word, level in CONCEPTS:
         source_word = await get_source_word(source_lang, anchor_word)
         await asyncio.sleep(REQUEST_DELAY_SECONDS)
         if not source_word:
             stats["capa_cevirisi_basarisiz"] += 1
+            consecutive_anchor_failures += 1
             print(f"  [CAPA CEVIRISI YOK] {anchor_word}")
+            if consecutive_anchor_failures >= ANCHOR_FAILURE_CIRCUIT_BREAKER:
+                print(
+                    f"\n  [DURDURULDU] {consecutive_anchor_failures} kavram art arda capa "
+                    f"cevirisi bulamadi -- tek tek kelimelerin cevrilemez olmasindan degil, "
+                    f"muhtemelen MyMemory API gunluk/saatlik istek limitinin dolmasindan "
+                    f"kaynaklaniyor. {source_lang} icin kalan kavramlar VE sirada kalan diller "
+                    f"atlaniyor (hicbir sey uydurulmadi/yanlis yazilmadi -- sadece hic "
+                    f"yazilmadi). Birkac saat ya da ertesi gun ayni komutla tekrar calistir, "
+                    f"kaldigi yerden (zaten eklenenler atlanarak) guvenle devam eder.\n"
+                )
+                raise RateLimitSuspected(source_lang)
             continue
+        consecutive_anchor_failures = 0
 
         for target_lang in target_langs:
             outcome = await seed_target(source_lang, source_word, level, target_lang)
@@ -187,7 +217,16 @@ async def main() -> None:
     print(f"=== Toplam {len(SOURCE_LANGS)} kaynak dil, SIRAYLA islenecek: {SOURCE_LANGS} ===")
     all_stats = {}
     for source_lang in SOURCE_LANGS:
-        all_stats[source_lang] = await seed_language(source_lang)
+        try:
+            all_stats[source_lang] = await seed_language(source_lang)
+        except RateLimitSuspected:
+            remaining = [l for l in SOURCE_LANGS if l not in all_stats and l != source_lang]
+            print(
+                f"\n=== ERKEN DURDURULDU: {source_lang} sirasinda rate-limit supheli durum "
+                f"tespit edildi, sirada kalan diller ({remaining}) hic denenmeden atlandi. "
+                f"Su ana kadar tamamlanan dillerin ozeti asagida. ==="
+            )
+            break
 
     print("\n\n=== TUMU TAMAMLANDI -- ozet ===")
     for lang, stats in all_stats.items():
