@@ -6,15 +6,43 @@
 // sifre/OTP akisina hic girmeden tek dokunusla (Face ID/Touch ID) giris
 // yapmasini sagliyoruz. Yalnizca iOS'ta ve gercek cihaz/simulatorde Apple
 // kimlik dogrulamasi mumkunse gorunur (isAvailableAsync).
+//
+// ACIL DUZELTME (21 Eylul 2026, "acilir acilmaz hicbir hata gostermeden
+// kapaniyor" olayi devam ederken bulundu): bu dosya da GoogleSignInButton.tsx
+// ile AYNI login.tsx/register.tsx ekranlarinda render ediliyor ve AYNI riski
+// tasiyordu -- `import * as AppleAuthentication from 'expo-apple-authentication'`
+// STATIK importu, bu native modul telefondaki YUKLU build'e henuz
+// linklenmemisse (app.json'daki plugin kaydi native koda ancak SONRAKI bir
+// EAS Build ile yansir -- App Store'daki canli build'in bu plugin'den once
+// derlenmis olma ihtimali var, zira "EAS Submit — iOS" workflow'u 19
+// Eylul'den beri basarisiz, yani App Store'a yeni bir native build hic
+// gitmemis olabilir) dosya degerlendirilirken -- login.tsx/register.tsx
+// mount olur olmaz -- coker. Google Sign-In/AdMob'daki BIREBIR AYNI hata
+// sinifi (bkz. o dosyalardaki ayni tarihli notlar) -- AppErrorBoundary bunu
+// YAKALAYAMAZ (import-time hatasi, render agaci degil).
+//
+// Cozum BIREBIR AYNI desen: STATIK import yerine module-scope'ta try/catch
+// icinde require(). Native modul yoksa (henuz linklenmemis bir build) buton
+// sessizce gizli kaliyor, uygulamanin geri kalani normal calismaya devam
+// ediyor. Native modul linklenmis bir build'de hicbir davranis degismiyor.
 import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
-import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { authApi } from '@/api/auth';
 import { useAuth } from '@/store/auth';
 import { useLocale } from '@/i18n';
 import { spacing } from '@/constants/theme';
 import { useThemeMode } from '@/store/theme';
+
+type AppleAuthenticationModule = typeof import('expo-apple-authentication');
+
+let AppleAuthentication: AppleAuthenticationModule | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  AppleAuthentication = require('expo-apple-authentication');
+} catch {
+  AppleAuthentication = null;
+}
 
 interface Props {
   onError: (message: string) => void;
@@ -29,13 +57,14 @@ export function AppleSignInButton({ onError, onStart, onFinish }: Props) {
   const [available, setAvailable] = useState(false);
 
   useEffect(() => {
-    if (Platform.OS !== 'ios') return;
+    if (Platform.OS !== 'ios' || !AppleAuthentication) return;
     AppleAuthentication.isAvailableAsync().then(setAvailable).catch(() => setAvailable(false));
   }, []);
 
-  if (Platform.OS !== 'ios' || !available) return null;
+  if (Platform.OS !== 'ios' || !available || !AppleAuthentication) return null;
 
   const handlePress = async () => {
+    if (!AppleAuthentication) return;
     onStart?.();
     try {
       const credential = await AppleAuthentication.signInAsync({
