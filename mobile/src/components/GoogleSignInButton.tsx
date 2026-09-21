@@ -27,19 +27,65 @@
 // icerecek). Bu adim tamamlanana kadar Android'de native Google girisi
 // DEVELOPER_ERROR ile patlayabilir.
 //
-// SONRASINDA: bu native modul degisikligi OTA (`eas update`) ile
-// YAYILAMAZ (bkz. 11 Eylul expo-updates krizi notu) -- tam native
-// build+submit (`eas-build-submit.yml`) gerekiyor, aksi halde bu buton
-// canli kullanicilara hic gorunmez.
+// ACIL DUZELTME (21 Eylul 2026, "cikis yap -> tekrar giris dene -> acilip
+// kapanma" olayi tekrar tetiklendi): bu dosyadaki
+// `import { GoogleSignin, ... } from '@react-native-google-signin/google-signin'`
+// STATIK importu, 11 Eylul'deki expo-audio ACIL kriziyle (bkz.
+// src/lib/questSounds.ts'teki ayni tarihli not) BIREBIR AYNI kok nedeni
+// tasiyordu: bu paketin native modulu telefondaki YUKLU build'e henuz
+// linklenmemisse (ornegin bu JS, native modul app.json'a eklenmeden/yeni
+// bir native build+submit yapilmadan ONCE, sadece EAS Update OTA'siyla
+// eski bir build'e gonderilmisse), bu satir dosya degerlendirilirken --
+// login.tsx/register.tsx mount olur olmaz, herhangi bir try/catch'e
+// girmeden -- "native modul bulunamadi" hatasi firlatip TUM UYGULAMANIN
+// acilmasini/render'ini engelliyordu. Bu, AppErrorBoundary'nin bile
+// YAKALAYAMADIGI bir hata sinifi (bkz. AppErrorBoundary.tsx'teki kapsam
+// notu -- React error boundary'leri SADECE render agacindaki hatalari
+// yakalar, bir dosyanin import-time/module-scope hatalarini DEGIL).
+//
+// Neden ozellikle "cikis yap -> tekrar giris" tetikliyor, "temiz kurulum"
+// degil: iOS'ta SecureStore/Keychain verisi uygulama SILINDIGINDE bile
+// cogu zaman silinmiyor -- bu yuzden "yeniden kurulum" cogu zaman zaten
+// oturumu ACIK buluyor ve dogrudan dashboard'a gidiyor, login.tsx/
+// register.tsx (ve dolayisiyla bu dosya) HIC render edilmiyor. Gercek
+// cikis (logout()) token'i temizleyip kullaniciyi (auth) grubuna/login.tsx'e
+// dondurunce bu dosya o an ILK KEZ degerlendiriliyor -- native modul
+// linklenmemisse crash da tam o an ortaya cikiyor.
+//
+// Cozum expo-audio'dakiyle BIREBIR AYNI desen: STATIK import yerine
+// module-scope'ta ama try/catch icinde require() -- native modul yoksa
+// (henuz linklenmemis bir build) buton sessizce gizli kaliyor, uygulamanin
+// geri kalani normal calismaya devam ediyor. Native modul linklenmis bir
+// build'de (app.json'daki plugin kaydi zaten dogru) hicbir davranis
+// degismiyor, sadece ekstra bir guvenlik agi eklenmis oluyor.
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { GoogleSignin, isSuccessResponse, isErrorWithCode, statusCodes } from '@react-native-google-signin/google-signin';
 import { router } from 'expo-router';
 import { authApi } from '@/api/auth';
 import { useAuth } from '@/store/auth';
 import { useLocale } from '@/i18n';
 import { spacing, radius } from '@/constants/theme';
 import { useThemeColors } from '@/hooks/useThemeColors';
+
+type GoogleSigninStatic = typeof import('@react-native-google-signin/google-signin').GoogleSignin;
+type IsSuccessResponseFn = typeof import('@react-native-google-signin/google-signin').isSuccessResponse;
+type IsErrorWithCodeFn = typeof import('@react-native-google-signin/google-signin').isErrorWithCode;
+type StatusCodesConst = typeof import('@react-native-google-signin/google-signin').statusCodes;
+
+interface GoogleSigninModuleShape {
+  GoogleSignin: GoogleSigninStatic;
+  isSuccessResponse: IsSuccessResponseFn;
+  isErrorWithCode: IsErrorWithCodeFn;
+  statusCodes: StatusCodesConst;
+}
+
+let googleSignInModule: GoogleSigninModuleShape | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  googleSignInModule = require('@react-native-google-signin/google-signin');
+} catch {
+  googleSignInModule = null;
+}
 
 // Web'in zaten canlida kullandigi GERCEK Web Client ID (bkz. yukaridaki
 // GUNCELLEME notu) -- sir degil, ID token'in "aud" claim'i bu deger olacak.
@@ -65,12 +111,13 @@ export function GoogleSignInButton({ onError, onStart, onFinish }: Props) {
   // var ama iosClientId yok, ya da tam tersi) bir yapilandirmayla gercek
   // cihazda sessizce basarisiz olan bir buton gostermektense, ikisi de
   // hazir olana kadar TUM platformlarda gizli kalmasi tercih edildi (bkz.
-  // yukaridaki GUNCELLEME notu).
-  const readyToConfigure = Boolean(GOOGLE_WEB_CLIENT_ID && GOOGLE_IOS_CLIENT_ID);
+  // yukaridaki GUNCELLEME notu). Native modul yuklenemediyse (bkz. yukaridaki
+  // ACIL DUZELTME notu) de ayni sekilde gizli kaliyor.
+  const readyToConfigure = Boolean(googleSignInModule && GOOGLE_WEB_CLIENT_ID && GOOGLE_IOS_CLIENT_ID);
 
   useEffect(() => {
-    if (!readyToConfigure) return;
-    GoogleSignin.configure({
+    if (!readyToConfigure || !googleSignInModule) return;
+    googleSignInModule.GoogleSignin.configure({
       webClientId: GOOGLE_WEB_CLIENT_ID,
       iosClientId: GOOGLE_IOS_CLIENT_ID,
       offlineAccess: false,
@@ -80,9 +127,11 @@ export function GoogleSignInButton({ onError, onStart, onFinish }: Props) {
 
   // Yapilandirma tamamlanmadan buton gizli -- yarim/hatali bir giris
   // denemesi yerine.
-  if (!readyToConfigure || !configured) return null;
+  if (!readyToConfigure || !configured || !googleSignInModule) return null;
 
   const handlePress = async () => {
+    if (!googleSignInModule) return;
+    const { GoogleSignin, isSuccessResponse, isErrorWithCode, statusCodes } = googleSignInModule;
     onStart?.();
     try {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
