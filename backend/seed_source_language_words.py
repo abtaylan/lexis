@@ -80,6 +80,9 @@ idempotency deseni.
 
 import asyncio
 import sys
+import time
+
+import httpx
 
 from app.core.database import supabase_admin
 from app.services.dictionary_providers import mymemory
@@ -117,6 +120,57 @@ REQUEST_DELAY_SECONDS = 0.4
 # kaybi onleniyor.
 ANCHOR_FAILURE_CIRCUIT_BREAKER = 20
 
+# Kullanici geri bildirimi (21 Eylul 2026): ko/zh calistirmalarinda
+# bilgisayarin internet baglantisi bir anlik kesildiginde
+# (httpx.ConnectError: [Errno 11001] getaddrinfo failed) script o ana
+# kadarki ilerlemeyi tutan process'i tamamen cokertiyordu -- veri kaybi
+# yoktu (o satir zaten yazilmamisti, idempotent) ama saatlerce suren bir
+# calistirma elle tekrar baslatilmak zorunda kaliyordu. Bu iki yardimci,
+# gecici ag kesintilerinde (DNS/baglanti hatasi) islemi birkac kez tekrar
+# deneyip kendi kendine atlatir -- gercekten uzun sureli bir kesinti
+# varsa yine de en sonunda hatayi firlatir (script'i sonsuza kadar
+# beklemeye almaz).
+NETWORK_RETRY_ATTEMPTS = 3
+NETWORK_RETRY_DELAY_SECONDS = 5
+
+
+def _retry_sync(fn, *args, **kwargs):
+    last_exc = None
+    for attempt in range(1, NETWORK_RETRY_ATTEMPTS + 1):
+        try:
+            return fn(*args, **kwargs)
+        except httpx.HTTPError as exc:
+            last_exc = exc
+            if attempt < NETWORK_RETRY_ATTEMPTS:
+                print(
+                    f"    [AG HATASI] {type(exc).__name__} -- "
+                    f"{NETWORK_RETRY_DELAY_SECONDS}sn sonra tekrar denenecek "
+                    f"({attempt}/{NETWORK_RETRY_ATTEMPTS})"
+                )
+                time.sleep(NETWORK_RETRY_DELAY_SECONDS)
+            else:
+                raise
+    raise last_exc  # pragma: no cover
+
+
+async def _retry_async(coro_fn, *args, **kwargs):
+    last_exc = None
+    for attempt in range(1, NETWORK_RETRY_ATTEMPTS + 1):
+        try:
+            return await coro_fn(*args, **kwargs)
+        except httpx.HTTPError as exc:
+            last_exc = exc
+            if attempt < NETWORK_RETRY_ATTEMPTS:
+                print(
+                    f"    [AG HATASI] {type(exc).__name__} -- "
+                    f"{NETWORK_RETRY_DELAY_SECONDS}sn sonra tekrar denenecek "
+                    f"({attempt}/{NETWORK_RETRY_ATTEMPTS})"
+                )
+                await asyncio.sleep(NETWORK_RETRY_DELAY_SECONDS)
+            else:
+                raise
+    raise last_exc  # pragma: no cover
+
 CONCEPTS = (
     [(w, "beginner") for w in BEGINNER_WORDS]
     + [(w, "intermediate") for w in INTERMEDIATE_WORDS]
@@ -125,14 +179,14 @@ CONCEPTS = (
 
 
 def word_exists(source_lang: str, target_lang: str, word: str) -> bool:
-    existing = (
+    query = (
         supabase_admin.table("general_word_pool")
         .select("id")
         .eq("source_lang", source_lang)
         .eq("target_lang", target_lang)
         .ilike("word", word)
-        .execute()
     )
+    existing = _retry_sync(query.execute)
     return bool(existing.data)
 
 
@@ -142,7 +196,7 @@ async def get_source_word(anchor_word: str) -> str | None:
     basarisiz olursa ya da kelimenin KENDISIYLE ayni donerse (gercek bir
     ceviri degil, bkz. dictionary_service.py'deki ayni kontrol) None
     doner, o kavram bu dil icin atlanir -- UYDURULMAZ."""
-    translated = await mymemory.translate(anchor_word, ANCHOR_LANG, SOURCE_LANG)
+    translated = await _retry_async(mymemory.translate, anchor_word, ANCHOR_LANG, SOURCE_LANG)
     if not translated.strip():
         return None
     if translated.strip().casefold() == anchor_word.strip().casefold():
@@ -156,7 +210,7 @@ async def seed_target(source_word: str, level: str, target_lang: str) -> str:
     if word_exists(SOURCE_LANG, target_lang, source_word):
         return "zaten_vardi"
 
-    result = await lookup_word(source_word, SOURCE_LANG, target_lang)
+    result = await _retry_async(lookup_word, source_word, SOURCE_LANG, target_lang)
     meanings = result.get("meanings") or []
     if not meanings:
         return "bulunamadi"
@@ -178,7 +232,8 @@ async def seed_target(source_word: str, level: str, target_lang: str) -> str:
         "difficulty_level": level,
         "is_active": True,
     }
-    insert_result = supabase_admin.table("general_word_pool").insert(row).execute()
+    insert_query = supabase_admin.table("general_word_pool").insert(row)
+    insert_result = _retry_sync(insert_query.execute)
     return "eklendi" if insert_result.data else "bulunamadi"
 
 
