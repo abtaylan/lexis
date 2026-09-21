@@ -14,11 +14,34 @@
 // şeydir: uygulamayı AdMob'a tanıtır, SDK onsuz initialize olmaz. O da şu an
 // Google'ın herkese açık ÖRNEK App ID'leri ile dolu — gerçek hesap açılınca
 // ikisi de (App ID + birim ID) değiştirilmeli.
+//
+// ACİL DÜZELTME (21 Eylül 2026): src/lib/adsInit.ts'teki aynı tarihli notla
+// AYNI kök neden -- `import { BannerAd, ... } from 'react-native-google-
+// mobile-ads'` STATİK importu, bu native modül telefondaki yüklü build'e
+// henüz linklenmemişse bu dosya değerlendirilirken (bu bileşeni kullanan
+// ekran render olur olmaz) "TurboModuleRegistry.getEnforcing(...):
+// 'RNGoogleMobileAdsModule' could not be found" hatasıyla çöküyordu.
+// adsInit.ts'teki BİREBİR AYNI desen: statik import yerine module-scope'ta
+// try/catch içinde require(). Native modül yoksa banner sessizce hiç
+// render edilmez.
 import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { useAuth } from '@/store/auth';
+
+type GoogleMobileAdsModule = {
+  BannerAd: typeof import('react-native-google-mobile-ads').BannerAd;
+  BannerAdSize: typeof import('react-native-google-mobile-ads').BannerAdSize;
+  TestIds: typeof import('react-native-google-mobile-ads').TestIds;
+};
+
+let adsModule: GoogleMobileAdsModule | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  adsModule = require('react-native-google-mobile-ads');
+} catch {
+  adsModule = null;
+}
 
 type AdMobExtra = {
   androidBannerUnitId?: string;
@@ -30,7 +53,7 @@ function resolveBannerUnitId(): string {
   const configured = Platform.OS === 'ios' ? extra.iosBannerUnitId : extra.androidBannerUnitId;
   // __DEV__'de veya gerçek ID henüz girilmemişken her zaman test ID kullan —
   // yanlışlıkla gerçek/prod reklam isteği atılmasını engeller.
-  if (__DEV__ || !configured) return TestIds.BANNER;
+  if (__DEV__ || !configured) return adsModule!.TestIds.BANNER;
   return configured;
 }
 
@@ -40,14 +63,17 @@ interface AdBannerProps {
 
 /**
  * Premium olmayan kullanıcılara mağaza kurallarına uygun, uyarlanabilir
- * (adaptive) bir alt banner reklam gösterir. Premium kullanıcıya ya da
- * bileşen henüz auth durumunu yüklerken hiçbir şey render etmez.
+ * (adaptive) bir alt banner reklam gösterir. Premium kullanıcıya, bileşen
+ * henüz auth durumunu yüklerken, ya da native reklam modülü bu build'e
+ * linklenmemişse hiçbir şey render etmez.
  */
 export function AdBanner({ style }: AdBannerProps) {
   const { user, isLoading } = useAuth();
   const isPremium = !!user?.is_premium;
 
-  if (isLoading || isPremium) return null;
+  if (isLoading || isPremium || !adsModule) return null;
+
+  const { BannerAd, BannerAdSize } = adsModule;
 
   return (
     <View style={[styles.wrap, style]}>
