@@ -352,6 +352,7 @@ async def apple_sign_in(req: AppleSignInRequest, request: Request):
                     supabase_admin.table("profiles").update({
                         "display_name": display_name,
                         "username": username,
+                        "signup_platform": _client_platform(request),
                     }).eq("id", user_id).execute()
                 except Exception:
                     # username cakismasi -- kullanici id'sinin bir parcasiyla benzersizlestir
@@ -359,6 +360,7 @@ async def apple_sign_in(req: AppleSignInRequest, request: Request):
                     supabase_admin.table("profiles").update({
                         "display_name": display_name,
                         "username": username,
+                        "signup_platform": _client_platform(request),
                     }).eq("id", user_id).execute()
                 try:
                     await learning_languages.add_language(user_id, "en", make_active=True)
@@ -429,6 +431,7 @@ async def google_sign_in(req: GoogleSignInRequest, request: Request):
                     supabase_admin.table("profiles").update({
                         "display_name": display_name,
                         "username": username,
+                        "signup_platform": _client_platform(request),
                     }).eq("id", user_id).execute()
                 except Exception:
                     # username cakismasi -- kullanici id'sinin bir parcasiyla benzersizlestir
@@ -436,6 +439,7 @@ async def google_sign_in(req: GoogleSignInRequest, request: Request):
                     supabase_admin.table("profiles").update({
                         "display_name": display_name,
                         "username": username,
+                        "signup_platform": _client_platform(request),
                     }).eq("id", user_id).execute()
                 try:
                     await learning_languages.add_language(user_id, "en", make_active=True)
