@@ -294,17 +294,36 @@ async def next_question(session_id: str, current_user=Depends(get_current_user))
     if len(attempted) >= session["total_questions"]:
         return NextQuestionResponse(finished=True)
 
-    query = (
-        supabase_admin.table("exam_questions")
-        .select("id, question_text, options")
-        .eq("exam_type", session["exam_type"])
-        .eq("is_active", True)
-        .eq("status", "approved")
-        .eq("learning_lang", session.get("learning_lang", "en"))
-    )
-    if attempted:
-        query = query.not_.in_("id", attempted)
-    candidates = (query.limit(CANDIDATE_FETCH_LIMIT).execute().data) or []
+    # placement sinavinda bu soru indexi icin hedeflenen CEFR seviyesi --
+    # bkz. _placement_level_sequence() yorumu. Diger sinav turlerinde
+    # (yds/yokdil/ielts/toefl) davranis DEGISMEDI, target_level None kalir.
+    target_level = None
+    if session["exam_type"] == "placement":
+        level_sequence = _placement_level_sequence(session["total_questions"])
+        if len(attempted) < len(level_sequence):
+            target_level = level_sequence[len(attempted)]
+
+    def _fetch_candidates(filter_level: str | None) -> list[dict]:
+        q = (
+            supabase_admin.table("exam_questions")
+            .select("id, question_text, options")
+            .eq("exam_type", session["exam_type"])
+            .eq("is_active", True)
+            .eq("status", "approved")
+            .eq("learning_lang", session.get("learning_lang", "en"))
+        )
+        if attempted:
+            q = q.not_.in_("id", attempted)
+        if filter_level:
+            q = q.eq("difficulty_level", filter_level)
+        return (q.limit(CANDIDATE_FETCH_LIMIT).execute().data) or []
+
+    candidates = _fetch_candidates(target_level)
+    if not candidates and target_level:
+        # O seviyede (nadiren) yeterli onayli soru kalmadiysa seviye
+        # filtresini kaldirip devam et -- sinavin tamamen tikanmasindan
+        # iyidir, sadece o tek soru icin dagilim hedefi kacirilmis olur.
+        candidates = _fetch_candidates(None)
 
     if not candidates:
         return NextQuestionResponse(finished=True)
@@ -414,6 +433,38 @@ async def submit_attempt(
 # ne yükseltip ne düşürmeden bir sonrakine geçilir.
 CEFR_LEVEL_ORDER = ["a1", "a2", "b1", "b2", "c1", "c2"]
 PLACEMENT_LEVEL_PASS_THRESHOLD = 0.5
+
+
+# 23 Eylul 2026 -- kullanici geri bildirimi: "bu 25 soru seviye belirleyici
+# olmali". Eskiden (50 soru) next_question() TUM seviyelerden tamamen
+# RASTGELE cekiyordu; soru havuzu zaten dil basina ~50 oldugundan (bkz.
+# seed_placement_exam_questions.py, MIN_PER_LEVEL_TO_SKIP=6) pratikte
+# neredeyse TUM sorular soruluyor ve her seviye dogal olarak kapsanmis
+# oluyordu. 25 soruya dusunce bu garanti kalkti -- saf rastgele secim
+# sansa bagli olarak bazi CEFR seviyelerini hic sormayabilir, bu da
+# _compute_placement_level()'in o seviyeyi atlayip yanlis/eksik bir
+# tahminde bulunmasina yol acar. Bunun yerine 25 soruyu 6 seviyeye
+# (a1..c2) MUMKUN OLDUGUNCA ESIT dagitiyoruz (once temel seviyeler
+# doldurulur) -- boylece next_question() her cagrildiginda hedef bir
+# seviyesi olur ve o seviyeden soru cekilir. Gercek adaptif/IRT modeli
+# degil (kapsam disi, yukaridaki yoruma bkz.) ama artik "sansa birak"
+# yerine "her seviyeden olcum al" garantisi var.
+def _placement_level_sequence(total_questions: int) -> list[str]:
+    """total_questions sorusunu CEFR_LEVEL_ORDER seviyelerine mumkun oldugunca
+    esit dagitip, dusuk seviyeden yuksege dogru sirali bir liste dondurur
+    (orn. 25 soru -> [a1,a1,a1,a1,a1, a2,a2,a2,a2, b1,b1,b1,b1, ...]).
+    Kalan (bolunemeyen) sorular en dusuk seviyelerden baslanarak fazladan
+    verilir -- temel seviyelerin dogru olculmesi, ileri seviyelerin bir
+    soru eksik olculmesinden daha onemli."""
+    n_levels = len(CEFR_LEVEL_ORDER)
+    base, remainder = divmod(max(total_questions, 0), n_levels)
+    counts = {level: base for level in CEFR_LEVEL_ORDER}
+    for level in CEFR_LEVEL_ORDER[:remainder]:
+        counts[level] += 1
+    sequence: list[str] = []
+    for level in CEFR_LEVEL_ORDER:
+        sequence.extend([level] * counts[level])
+    return sequence
 
 
 def _compute_placement_level(session_id: str) -> str | None:
