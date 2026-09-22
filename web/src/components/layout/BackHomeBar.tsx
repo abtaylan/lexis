@@ -6,23 +6,17 @@
 // genislikte (md altinda) varsayilan olarak gizli/off-canvas (bkz.
 // Sidebar.tsx) -- bu yuzden sayfa icerigine de kucuk, tutarli bir geri/ana
 // menu satiri eklendi. (app)/layout.tsx icinde TEK noktadan render edilir,
-// boylece 30+ sayfanin her birine ayri ayri eklemek gerekmez. Dashboard'da
-// (zaten ana menu oldugu icin) gosterilmez -- mobil uygulamadaki tab-root
-// ekranlarla (dashboard/words/game/leaderboard/schedule/profile) ayni
-// mantik: birincil sekmeler/ana sayfa bu satiri almaz.
+// boylece 30+ sayfanin her birine ayri ayri eklemek gerekmez. Kullanici
+// istegi (22 Eylul 2026, devam): "sistemdeki her sayfanin her alt bolumu"
+// -- dashboard dahil, HICBIR sayfa istisna degil.
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, Home } from 'lucide-react';
 import { useLocale } from '@/lib/i18n';
 
-const HIDDEN_PATHS = new Set(['/dashboard']);
-
 export function BackHomeBar() {
-  const pathname = usePathname();
   const router = useRouter();
   const { locale } = useLocale();
-
-  if (!pathname || HIDDEN_PATHS.has(pathname)) return null;
 
   const backLabel = locale === 'tr' ? 'Geri' : 'Back';
   const homeLabel = locale === 'tr' ? 'Ana Menü' : 'Home';

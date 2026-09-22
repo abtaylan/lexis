@@ -19,6 +19,7 @@ import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { AdBanner } from '@/components/ads/AdBanner';
@@ -229,6 +230,9 @@ export default function DashboardScreen() {
 
   return (
     <ScreenContainer refreshing={isRefetching} onRefresh={refetch} padded={false}>
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+        <ScreenNavBar style={{ marginBottom: 0 }} />
+      </View>
       <DashboardHeader
         greeting={`${greetingText}${user?.display_name ? `, ${user.display_name}` : ''} 👋`}
         subtitle={t('dailySummarySubtitle')}

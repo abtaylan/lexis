@@ -9,6 +9,7 @@ import { getErrorMessage } from '@/utils/errors';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
@@ -69,6 +70,9 @@ export default function WordsScreen() {
 
   return (
     <ScreenContainer scroll={false} padded={false}>
+      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
+        <ScreenNavBar style={{ marginBottom: 0 }} />
+      </View>
       <View style={styles.header}>
         <TextField
           placeholder={t('searchPlaceholder')}

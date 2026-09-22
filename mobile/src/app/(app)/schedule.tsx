@@ -12,6 +12,7 @@ import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ExamReminder } fro
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
@@ -353,6 +354,7 @@ export default function ScheduleScreen() {
 
   return (
     <ScreenContainer refreshing={isRefetching} onRefresh={refetch}>
+      <ScreenNavBar />
       <View style={{ marginBottom: spacing.lg }}>
         <Text style={{ color: c.text, fontSize: 20, fontWeight: '700' }}>{t('scheduleTitle')}</Text>
         {hasItems ? (

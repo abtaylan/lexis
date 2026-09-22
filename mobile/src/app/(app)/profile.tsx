@@ -15,6 +15,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { useThemeMode } from '@/store/theme';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { BadgeShowcase } from '@/components/BadgeShowcase';
 import { Card } from '@/components/ui/Card';
 import { TextField } from '@/components/ui/TextField';
@@ -118,6 +119,7 @@ export default function ProfileScreen() {
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <Text style={{ color: c.text, fontSize: 20, fontWeight: '700', marginBottom: spacing.lg }}>{t('profile')}</Text>
 
       <Card style={{ marginBottom: spacing.md }}>

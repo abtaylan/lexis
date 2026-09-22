@@ -1,5 +1,6 @@
 import React from 'react';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { LeaderboardCard } from '@/components/LeaderboardCard';
 
 // Ayrı "Sıralama" sekmesi — önceden ana dashboard'un içinde gömülü bir kart
@@ -9,6 +10,7 @@ import { LeaderboardCard } from '@/components/LeaderboardCard';
 export default function LeaderboardScreen() {
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <LeaderboardCard limit={20} />
     </ScreenContainer>
   );

@@ -11,6 +11,7 @@ import type { Direction, GameFinishResult, GameMode, NextWordResult, PoolSource 
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -720,6 +721,7 @@ export default function GameScreen() {
     if (matchingItems.length === 0) return null;
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <View style={styles.playHeader}>
           <Text style={{ color: c.text, fontWeight: '600', fontSize: 13 }}>{gt.questionCounterTpl.replace('{n}', String(questionNum))}</Text>
           <View style={{ flexDirection: 'row', gap: spacing.md }}>
@@ -812,6 +814,7 @@ export default function GameScreen() {
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <View style={styles.playHeader}>
         <Text style={{ color: c.text, fontWeight: '600', fontSize: 13 }}>{gt.questionCounterTpl.replace('{n}', String(questionNum))}</Text>
         <View style={{ flexDirection: 'row', gap: spacing.md }}>
@@ -1151,6 +1154,7 @@ export default function GameScreen() {
 function CenterScreen({ children }: { children: React.ReactNode }) {
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <View style={styles.center}>{children}</View>
     </ScreenContainer>
   );
