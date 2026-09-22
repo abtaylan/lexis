@@ -96,13 +96,16 @@ CANDIDATE_FETCH_LIMIT = 200
 # için kısaltıldı, ileride exam_type başına ayrı ayrı genişletilebilir).
 # 'placement': kullanıcı isteği (18 Eylül 2026) "seviye tespit sınavı 50
 # soru olacak" -- soru bankası zaten dil başına ~50 soru (6 CEFR seviyesine
-# yayılmış, bkz. seed_placement_exam_questions.py), 50 dk süre veriliyor
-# (~1 dk/soru, diğer mock sınavlarla aynı orantı).
+# yayılmış, bkz. seed_placement_exam_questions.py) -- SONRA kullanıcı isteği
+# (23 Eylül 2026) "50 dk mobil için çok fazla" diyerek 25 soru / 20 dk'ya
+# düşürüldü (soru havuzunda hâlâ 25'in üzerinde soru var, seçim mantığı
+# next_question()'da rastgele havuzdan çekiyor ve total_questions'a göre
+# duruyor -- 50 hiçbir yerde sabit kodlanmamış, bu yüzden güvenli).
 EXAM_MOCK_CONFIG: dict[str, dict[str, int]] = {
     "yds": {"total_questions": 15, "time_limit_seconds": 20 * 60},
     "yokdil": {"total_questions": 15, "time_limit_seconds": 20 * 60},
     "ielts": {"total_questions": 15, "time_limit_seconds": 20 * 60},
-    "placement": {"total_questions": 50, "time_limit_seconds": 50 * 60},
+    "placement": {"total_questions": 25, "time_limit_seconds": 20 * 60},
     "toefl": {"total_questions": 15, "time_limit_seconds": 20 * 60},
 }
 
