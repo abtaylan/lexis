@@ -10,6 +10,7 @@ import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -75,6 +76,7 @@ export default function CustomLeaguesScreen() {
 
   return (
     <ScreenContainer refreshing={leaguesQuery.isRefetching} onRefresh={leaguesQuery.refetch}>
+      <ScreenNavBar />
       <View style={styles.headerRow}>
         <View style={[styles.headerIcon, { backgroundColor: c.accentSoft }]}>
           <Users2 color={c.accent} size={20} />

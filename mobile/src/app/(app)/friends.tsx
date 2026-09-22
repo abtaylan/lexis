@@ -10,6 +10,7 @@ import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -118,6 +119,7 @@ export default function FriendsScreen() {
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <Text style={{ color: c.text, fontSize: 20, fontWeight: '700', marginBottom: spacing.md }}>{fs.title}</Text>
 
       <View style={styles.tabsRow}>

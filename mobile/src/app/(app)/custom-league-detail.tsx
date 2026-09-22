@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Users2, RefreshCw, UserPlus, Trash2, LogOut, Search, Crown, ArrowRightLeft } from 'lucide-react-native';
+import { Users2, RefreshCw, UserPlus, Trash2, LogOut, Search, Crown, ArrowRightLeft } from 'lucide-react-native';
 import { customLeaguesApi } from '@/api/customLeagues';
 import { socialApi } from '@/api/social';
 import type { UserCard } from '@/api/types';
@@ -12,6 +12,7 @@ import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { LeagueTable } from '@/components/LeagueTable';
 
@@ -117,12 +118,7 @@ export default function CustomLeagueDetailScreen() {
 
   return (
     <ScreenContainer refreshing={detailQuery.isRefetching} onRefresh={detailQuery.refetch}>
-      <View style={styles.headerRow}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <ArrowLeft color={c.textMuted} size={18} />
-        </Pressable>
-        <Text style={{ color: c.textMuted, fontSize: 13 }}>{t.back}</Text>
-      </View>
+      <ScreenNavBar />
 
       {detailQuery.isLoading && (
         <View style={{ alignItems: 'center', paddingVertical: spacing.xl }}>

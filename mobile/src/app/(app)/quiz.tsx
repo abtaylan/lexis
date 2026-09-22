@@ -9,6 +9,7 @@ import type { Word } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -117,6 +118,7 @@ export default function QuizScreen() {
   if (loading) {
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <View style={styles.center}>
           <ActivityIndicator color={c.primary} />
           <Text style={{ color: c.textMuted, marginTop: spacing.sm }}>{t('loading')}</Text>
@@ -128,6 +130,7 @@ export default function QuizScreen() {
   if (error) {
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <Card style={{ backgroundColor: c.warningSoft, borderColor: c.warningSoft }}>
           <Text style={{ color: c.warning, fontSize: 13 }}>{error}</Text>
         </Card>
@@ -144,6 +147,7 @@ export default function QuizScreen() {
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <View style={styles.topBar}>
         <View style={styles.topBarLeft}>
           <View style={[styles.iconBadge, { backgroundColor: c.primarySoft }]}>
@@ -250,6 +254,7 @@ function DoneScreen({
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <View style={styles.center}>
         <Card style={{ alignItems: 'center', width: '100%', paddingVertical: spacing.xl }}>
           <View style={[styles.trophyBadge, { backgroundColor: tier.bg }]}>

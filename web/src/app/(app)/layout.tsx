@@ -7,6 +7,7 @@ import { useAuth } from '@/store/auth';
 import { useLocale } from '@/lib/i18n';
 import { Spinner } from '@/components/ui';
 import { AdBanner } from '@/components/ads/AdBanner';
+import { BackHomeBar } from '@/components/layout/BackHomeBar';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -50,6 +51,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         (mobilde) devreye giriyor; md ve üstünde (masaüstü) davranış aynı kaldı.
       */}
       <main className="flex-1 md:ml-60 min-h-screen overflow-y-auto pt-14 md:pt-0">
+        <BackHomeBar />
         {children}
         {/*
           Tüm (app) sayfalarının altında tek noktadan reklam gösterimi.

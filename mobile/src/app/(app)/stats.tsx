@@ -10,6 +10,7 @@ import type { AnalyticsData } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 
 // ── İstatistik ekranı — web'deki app/(app)/stats/page.tsx'in mobil karşılığı.
@@ -75,6 +76,7 @@ export default function StatsScreen() {
   if (loading) {
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <View style={{ alignItems: 'center', justifyContent: 'center', paddingTop: spacing.xxl }}>
           <ActivityIndicator color={c.primary} />
           <Text style={{ color: c.textMuted, marginTop: spacing.sm }}>{t('loading')}</Text>
@@ -86,6 +88,7 @@ export default function StatsScreen() {
   if (error) {
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <Card style={{ backgroundColor: c.dangerSoft, borderColor: c.dangerSoft }}>
           <Text style={{ color: c.danger, fontSize: 13 }}>{error}</Text>
         </Card>
@@ -113,6 +116,7 @@ export default function StatsScreen() {
   if (empty) {
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <Text style={{ color: c.text, fontSize: 20, fontWeight: '700' }}>{t('statsPageTitle')}</Text>
         <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2, marginBottom: spacing.lg }}>{t('statsPageSubtitle')}</Text>
         <Card style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
@@ -158,6 +162,7 @@ export default function StatsScreen() {
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <Text style={{ color: c.text, fontSize: 20, fontWeight: '700' }}>{t('statsPageTitle')}</Text>
       <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2, marginBottom: spacing.lg }}>{t('statsPageSubtitle')}</Text>
 

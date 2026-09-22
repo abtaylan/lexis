@@ -8,13 +8,14 @@ import React from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ChevronRight } from 'lucide-react-native';
+import { ChevronRight } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { grammarApi } from '@/api/grammar';
 import type { GrammarCategory, GrammarTopicSummary } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 
 export default function ExamGrammarScreen() {
@@ -42,10 +43,7 @@ export default function ExamGrammarScreen() {
 
   return (
     <ScreenContainer>
-      <Pressable onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
-        <ArrowLeft color={c.textSecondary} size={18} />
-        <Text style={{ color: c.textSecondary, marginLeft: spacing.xs, fontSize: 14, fontWeight: '600' }}>{et.backBtn}</Text>
-      </Pressable>
+      <ScreenNavBar />
 
       <Text style={{ fontSize: 20, fontWeight: '700', color: c.text }}>{et.grammarListTitle}</Text>
       <Text style={{ fontSize: 14, marginTop: spacing.xs, lineHeight: 20, color: c.textSecondary }}>

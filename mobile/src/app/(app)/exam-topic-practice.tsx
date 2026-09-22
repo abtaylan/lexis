@@ -11,13 +11,14 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react-native';
+import { CheckCircle2, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { examsApi } from '@/api/exams';
 import type { ExamPracticeQuestionItem } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -69,10 +70,7 @@ export default function ExamTopicPracticeScreen() {
 
   return (
     <ScreenContainer>
-      <Pressable onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
-        <ArrowLeft color={c.textSecondary} size={18} />
-        <Text style={{ color: c.textSecondary, marginLeft: spacing.xs, fontSize: 14, fontWeight: '600' }}>{et.backBtn}</Text>
-      </Pressable>
+      <ScreenNavBar />
 
       <Text style={{ fontSize: 20, fontWeight: '700', color: c.text }}>
         {data?.related_grammar_topic?.title_tr ?? et.topicPracticeTitle}

@@ -10,7 +10,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
-  ArrowLeft, Clock, Flame, BookOpen, Gamepad2, Target, Map, Award, Trophy,
+  Clock, Flame, BookOpen, Gamepad2, Target, Map, Award, Trophy,
   Sparkles, ArrowUp, ArrowDown, Minus, Globe, Mail, Loader2, Check, AlertCircle,
 } from 'lucide-react-native';
 import { statsApi, type ReportExportFormat } from '@/api/stats';
@@ -20,6 +20,7 @@ import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 
 type Period = 'week' | 'month';
@@ -123,12 +124,7 @@ export default function ReportScreen() {
 
   return (
     <ScreenContainer>
-      <Pressable onPress={() => router.back()} style={styles.backRow}>
-        <ArrowLeft color={c.textSecondary} size={18} />
-        <Text style={{ color: c.textSecondary, marginLeft: spacing.xs, fontSize: 14, fontWeight: '600' }}>
-          {locale === 'tr' ? 'Geri' : 'Back'}
-        </Text>
-      </Pressable>
+      <ScreenNavBar />
 
       <Text style={{ fontSize: 20, fontWeight: '700', color: c.text }}>{t.title}</Text>
       <Text style={{ fontSize: 14, marginTop: spacing.xs, lineHeight: 20, color: c.textSecondary }}>{t.subtitle}</Text>

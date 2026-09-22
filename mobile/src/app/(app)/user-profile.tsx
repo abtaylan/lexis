@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
-  ArrowLeft, Trophy, Users, MessageCircle, UserPlus, Check, X, Ban, Flag, BookOpen, CalendarDays, Flame,
+  Trophy, Users, MessageCircle, UserPlus, Check, X, Ban, Flag, BookOpen, CalendarDays, Flame,
 } from 'lucide-react-native';
 import { socialApi } from '@/api/social';
 import type { PublicProfile } from '@/api/types';
@@ -11,6 +11,7 @@ import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 
 // ── Herkese açık profil — web'deki app/(app)/u/[username]/page.tsx'in
@@ -196,10 +197,7 @@ export default function UserProfileScreen() {
         <Card style={{ backgroundColor: c.background, borderColor: c.border }}>
           <Text style={{ color: c.textSecondary, fontSize: 13 }}>{ps.notFound}</Text>
         </Card>
-        <Pressable onPress={goBack} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md }}>
-          <ArrowLeft color={c.primary} size={16} />
-          <Text style={{ color: c.primary, fontSize: 13, fontWeight: '600' }}>{ps.back}</Text>
-        </Pressable>
+        <ScreenNavBar onBack={goBack} style={{ marginTop: spacing.md, marginBottom: 0 }} />
       </ScreenContainer>
     );
   }
@@ -207,6 +205,7 @@ export default function UserProfileScreen() {
   if (error || !profile) {
     return (
       <ScreenContainer>
+        <ScreenNavBar onBack={goBack} />
         <Card style={{ backgroundColor: c.dangerSoft, borderColor: c.dangerSoft }}>
           <Text style={{ color: c.danger, fontSize: 13 }}>{ps.error}</Text>
         </Card>
@@ -219,10 +218,7 @@ export default function UserProfileScreen() {
 
   return (
     <ScreenContainer>
-      <Pressable onPress={goBack} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.md }}>
-        <ArrowLeft color={c.textMuted} size={16} />
-        <Text style={{ color: c.textMuted, fontSize: 13, fontWeight: '600' }}>{ps.back}</Text>
-      </Pressable>
+      <ScreenNavBar onBack={goBack} />
 
       {actionError ? (
         <Card style={{ backgroundColor: c.dangerSoft, borderColor: c.dangerSoft, marginBottom: spacing.md }}>

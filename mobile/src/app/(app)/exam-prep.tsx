@@ -21,6 +21,7 @@ import type {
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -190,6 +191,7 @@ export default function ExamPrepScreen() {
   if (stage === 'loading') {
     return (
       <ScreenContainer>
+      <ScreenNavBar />
         <Text style={{ color: c.textMuted }}>{et.loadingLabel}</Text>
       </ScreenContainer>
     );
@@ -198,6 +200,7 @@ export default function ExamPrepScreen() {
   if (stage === 'disabled') {
     return (
       <ScreenContainer>
+      <ScreenNavBar />
         <Card style={styles.centerCard}>
           <BookOpen color={c.textMuted} size={32} />
           <Text style={[styles.bodyText, { color: c.textSecondary, marginTop: spacing.md }]}>{et.disabledMessage}</Text>
@@ -212,6 +215,7 @@ export default function ExamPrepScreen() {
   if (stage === 'error') {
     return (
       <ScreenContainer>
+      <ScreenNavBar />
         <Card style={styles.centerCard}>
           <Text style={[styles.bodyText, { color: c.danger }]}>{et.genericError}</Text>
           <View style={{ marginTop: spacing.lg, width: '100%' }}>
@@ -226,6 +230,7 @@ export default function ExamPrepScreen() {
   if (stage === 'select-type') {
     return (
       <ScreenContainer>
+      <ScreenNavBar />
         <Text style={[styles.title, { color: c.text }]}>{et.pageTitle}</Text>
         <Text style={[styles.subtitle, { color: c.textSecondary }]}>{et.pageSubtitle}</Text>
         <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
@@ -273,6 +278,7 @@ export default function ExamPrepScreen() {
   if (stage === 'select-mode') {
     return (
       <ScreenContainer>
+      <ScreenNavBar />
         <Text style={[styles.title, { color: c.text }]}>{et.chooseModeTitle}</Text>
         <View style={{ marginTop: spacing.lg, gap: spacing.md }}>
           {(['practice', 'timed_mock'] as ExamSessionMode[]).map((mode) => (
@@ -451,6 +457,7 @@ export default function ExamPrepScreen() {
     const isPlacement = finishResult.exam_type === 'placement';
     return (
       <ScreenContainer>
+      <ScreenNavBar />
         <Card style={styles.centerCard}>
           <CheckCircle2 color={c.success} size={40} />
           <Text style={[styles.title, { color: c.text, marginTop: spacing.md }]}>

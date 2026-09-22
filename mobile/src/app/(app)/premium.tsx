@@ -9,6 +9,7 @@ import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -158,6 +159,7 @@ export default function PremiumScreen() {
   if (loadingStatus) {
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <View style={{ alignItems: 'center', paddingTop: spacing.xxl }}>
           <ActivityIndicator color={c.primary} />
         </View>
@@ -167,6 +169,7 @@ export default function PremiumScreen() {
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <View style={styles.headerRow}>
         <View style={[styles.headerIcon, { backgroundColor: c.warningSoft }]}>
           <Crown color={c.warning} size={18} />

@@ -6,12 +6,13 @@ import React from 'react';
 import { ActivityIndicator, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react-native';
+import { CheckCircle2, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { grammarApi } from '@/api/grammar';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
@@ -34,10 +35,7 @@ export default function ExamGrammarDetailScreen() {
 
   return (
     <ScreenContainer>
-      <Pressable onPress={() => router.back()} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
-        <ArrowLeft color={c.textSecondary} size={18} />
-        <Text style={{ color: c.textSecondary, marginLeft: spacing.xs, fontSize: 14, fontWeight: '600' }}>{et.backBtn}</Text>
-      </Pressable>
+      <ScreenNavBar />
 
       {isLoading ? (
         <View style={{ marginTop: spacing.xxl, alignItems: 'center' }}>

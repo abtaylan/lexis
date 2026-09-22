@@ -11,6 +11,7 @@ import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Card } from '@/components/ui/Card';
 
@@ -153,6 +154,7 @@ export default function NotificationsScreen() {
 
   return (
     <ScreenContainer refreshing={isRefetching} onRefresh={refetch}>
+      <ScreenNavBar />
       <View style={styles.headerTitleRow}>
         <View style={styles.headerLeft}>
           <View style={[styles.headerIcon, { backgroundColor: c.primarySoft }]}>

@@ -18,6 +18,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { useThemeMode } from '@/store/theme';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 
 // ── Görev haritası v3 — web'deki app/(app)/quests/page.tsx'in mobil
 // karşılığı (bkz. o dosyanın üst yorumu — aynı gerekçe, aynı content_type
@@ -298,6 +299,7 @@ export default function QuestsScreen() {
 
   return (
     <ScreenContainer refreshing={query.isRefetching} onRefresh={query.refetch}>
+      <ScreenNavBar />
       <View style={styles.headerRow}>
         <View style={[styles.headerIcon, { backgroundColor: c.accentSoft }]}>
           <Map color={c.accent} size={20} />

@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Send } from 'lucide-react-native';
+import { ArrowLeft, Home, Send } from 'lucide-react-native';
 import { socialApi } from '@/api/social';
 import type { MessageItem } from '@/api/types';
 import { MESSAGES_STRINGS } from '@/i18n/messagesStrings';
@@ -96,6 +96,10 @@ export default function MessageThreadScreen() {
             <ArrowLeft color={c.primary} size={16} />
             <Text style={{ color: c.primary, fontSize: 13, fontWeight: '600' }}>{ms.threadBack}</Text>
           </Pressable>
+          <Pressable onPress={() => router.replace('/(app)/dashboard')} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm }}>
+            <Home color={c.primary} size={16} />
+            <Text style={{ color: c.primary, fontSize: 13, fontWeight: '600' }}>{locale === 'tr' ? 'Ana Menü' : 'Home'}</Text>
+          </Pressable>
         </View>
       </SafeAreaView>
     );
@@ -122,6 +126,9 @@ export default function MessageThreadScreen() {
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{otherName.charAt(0).toUpperCase()}</Text>
             </View>
             <Text style={{ color: c.text, fontSize: 15, fontWeight: '700' }} numberOfLines={1}>{otherName}</Text>
+          </Pressable>
+          <Pressable onPress={() => router.replace('/(app)/dashboard')} hitSlop={10}>
+            <Home color={c.textMuted} size={20} />
           </Pressable>
         </View>
 

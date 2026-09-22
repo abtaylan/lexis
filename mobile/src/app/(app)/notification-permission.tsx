@@ -5,6 +5,7 @@ import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Button } from '@/components/ui/Button';
 import { useNotificationsSetup } from '@/hooks/useNotificationsSetup';
 
@@ -28,6 +29,7 @@ export default function NotificationPermissionScreen() {
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <View style={styles.wrap}>
         <Text style={styles.emoji}>🔔</Text>
         <Text style={[styles.title, { color: c.text }]}>{mt('notifPermTitle')}</Text>

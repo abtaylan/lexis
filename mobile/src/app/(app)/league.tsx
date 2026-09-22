@@ -9,6 +9,7 @@ import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { LeagueTable } from '@/components/LeagueTable';
@@ -62,6 +63,7 @@ export default function LeagueScreen() {
 
   return (
     <ScreenContainer refreshing={query.isRefetching} onRefresh={refresh}>
+      <ScreenNavBar />
       <View style={styles.headerRow}>
         <View style={[styles.headerIcon, { backgroundColor: c.warningSoft }]}>
           <Trophy color={c.warning} size={20} />

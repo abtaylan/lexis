@@ -11,6 +11,7 @@ import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 
 // ── Düello odası — web'deki app/(app)/duels/[id]/page.tsx'in mobil
@@ -183,6 +184,7 @@ export default function DuelRoomScreen() {
   if (loading && !duel) {
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <View style={{ alignItems: 'center', paddingVertical: spacing.xxl }}>
           <ActivityIndicator color={c.primary} />
         </View>
@@ -193,6 +195,7 @@ export default function DuelRoomScreen() {
   if (error && !duel) {
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <Text style={{ color: c.danger, fontSize: 13, textAlign: 'center', paddingVertical: spacing.xl }}>{error}</Text>
       </ScreenContainer>
     );
@@ -208,6 +211,7 @@ export default function DuelRoomScreen() {
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <View style={styles.headerRow}>
         <View style={[styles.headerIcon, { backgroundColor: c.primarySoft }]}>
           <Swords color={c.primary} size={20} />

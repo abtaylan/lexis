@@ -12,6 +12,7 @@ import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
 
@@ -98,6 +99,7 @@ export default function DuelsLobbyScreen() {
 
   return (
     <ScreenContainer refreshing={duelsQuery.isRefetching} onRefresh={duelsQuery.refetch}>
+      <ScreenNavBar />
       <View style={styles.headerRow}>
         <View style={styles.headerLeft}>
           <View style={[styles.headerIcon, { backgroundColor: c.primarySoft }]}>

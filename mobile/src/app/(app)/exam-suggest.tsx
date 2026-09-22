@@ -14,6 +14,7 @@ import type { ExamType } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
+import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
@@ -77,6 +78,7 @@ export default function ExamSuggestScreen() {
   if (done) {
     return (
       <ScreenContainer>
+        <ScreenNavBar />
         <Card style={{ alignItems: 'center', paddingVertical: spacing.xl }}>
           <CheckCircle2 color={c.success} size={40} />
           <Text style={{ fontSize: 18, fontWeight: '700', color: c.text, marginTop: spacing.md, textAlign: 'center' }}>
@@ -101,6 +103,7 @@ export default function ExamSuggestScreen() {
 
   return (
     <ScreenContainer>
+      <ScreenNavBar />
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={{ fontSize: 20, fontWeight: '700', color: c.text }}>{et.suggestTitle}</Text>
         <Text style={{ fontSize: 14, marginTop: spacing.xs, lineHeight: 20, color: c.textSecondary }}>{et.suggestSubtitle}</Text>
