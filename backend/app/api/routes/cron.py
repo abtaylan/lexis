@@ -294,3 +294,30 @@ async def run_send_ios_update_notification(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 1: dinamik seviye
+# degerlendirmesi. backend/reassess_user_levels.py "Railway cron'dan
+# gunluk calistirilmali" diyordu ama hic zamanlanmamisti (cron_job_runs'ta
+# tek kayit yok). Diger gunluk isler gibi GitHub Actions'tan tetikleniyor
+# (.github/workflows/reassess-user-levels.yml), gunde tek calisma
+# already_ran_today ile garanti.
+@router.post("/reassess-user-levels")
+async def run_reassess_user_levels(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    if already_ran_today("reassess_user_levels"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
+    def _run() -> dict:
+        from app.services.level_assessment_service import reassess_all_users
+
+        with job_run("reassess_user_levels") as run:
+            result = reassess_all_users()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}

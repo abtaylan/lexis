@@ -1,0 +1,30 @@
+name: Lexis - daily user level reassessment
+
+# Adaptif Ogrenme Motoru Madde 1 (24 Eylul 2026): kullanicilarin mevcut
+# CEFR seviyesini son oyun performansina gore bir kademe yukari/asagi
+# gunceller (backend/app/services/level_assessment_service.py).
+on:
+  schedule:
+    # 03:00 UTC (06:00 Turkiye) civari, 10 dakikada bir 3 deneme -- GitHub
+    # Actions cron tick'leri bazen atlanabildigi icin (bkz.
+    # daily-word-email.yml). Backend already_ran_today ile gunde tek
+    # calismayi garanti ediyor.
+    - cron: '5,15,25 3 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  trigger-reassess-user-levels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/reassess-user-levels
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/reassess-user-levels" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "Istek basarisiz (HTTP $http_code)"
+            exit 1
+          fi

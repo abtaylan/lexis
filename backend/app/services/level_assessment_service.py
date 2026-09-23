@@ -71,17 +71,27 @@ LEVEL_TO_BAND: dict[str, str] = {
     "c2": "advanced",
 }
 
+# 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 1 (onaylanan tasarim):
+# dogruluk, kullanicinin mevcut bandinda SON ROLLING_WINDOW_ATTEMPTS
+# cevaptan hesaplanir (sabit bir takvim penceresi yerine "rolling"); en az
+# MIN_ATTEMPTS_FOR_REASSESSMENT cevap gerekir. Surekli %90 ustu -> bir
+# kademe yukari, surekli %60 alti -> bir kademe asagi. Eski degerler
+# (30 gun / min 15 / %85 / %40) hic canlida calismamisti (bkz.
+# games.py::create_session -- learning_lang yazilmiyordu).
+# Son seviye degisikliginden ONCEKI cevaplar sayilmaz: ayni bant icinde
+# (a1->a2 gibi) ayni eski cevaplarla ard arda iki kez yukselmeyi onler.
 REASSESS_WINDOW_DAYS = 30
-MIN_ATTEMPTS_FOR_REASSESSMENT = 15
-UPGRADE_ACCURACY_THRESHOLD = 0.85
-DOWNGRADE_ACCURACY_THRESHOLD = 0.40
+ROLLING_WINDOW_ATTEMPTS = 30
+MIN_ATTEMPTS_FOR_REASSESSMENT = 20
+UPGRADE_ACCURACY_THRESHOLD = 0.90
+DOWNGRADE_ACCURACY_THRESHOLD = 0.60
 
 # reassess_all_users bir kullaniciyi en fazla bu kadar sik tekrar kontrol
 # eder (level_last_assessed_at'e gore) -- gereksiz sorgu yukunu azaltir,
 # ayrica dogruluk orani zaten REASSESS_WINDOW_DAYS'lik bir pencereye
 # bakiyor, o yuzden gunluk tekrar kontrol anlamli bir sinyal degismesine
 # yol acmaz.
-RECHECK_COOLDOWN_DAYS = 6
+RECHECK_COOLDOWN_DAYS = 3
 
 
 def _step_level(level: str, direction: int) -> str:
@@ -93,7 +103,12 @@ def _step_level(level: str, direction: int) -> str:
 
 
 def _band_accuracy(
-    user_id: str, learning_lang: str, band: str, days: int
+    user_id: str,
+    learning_lang: str,
+    band: str,
+    days: int,
+    since_iso: str | None = None,
+    window: int = ROLLING_WINDOW_ATTEMPTS,
 ) -> tuple[int, int]:
     """Son `days` gunde, verilen dil + zorluk bandinda cozulen general-pool
     sorularindan (dogru_sayisi, toplam_sayisi) dondurur.
@@ -104,7 +119,12 @@ def _band_accuracy(
     learning_lang uzerinden yapiliyor (009_user_learning_languages.sql ile
     eklenen sutun -- her oyun oturumu hangi dil icin oynandigini tasir).
     """
-    since_iso = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+    # Oturumlar takvim penceresiyle, CEVAPLAR ise ayrica son seviye
+    # degisikliginden itibaren filtrelenir -- degisiklikten once baslayip
+    # sonra da devam eden bir oturumun yeni cevaplari kaybolmasin.
+    window_start = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+    attempts_since = since_iso if since_iso and since_iso > window_start else window_start
+    since_iso = window_start
 
     session_ids = [
         s["id"]
@@ -124,9 +144,10 @@ def _band_accuracy(
 
     attempts = (
         supabase_admin.table("game_attempts")
-        .select("general_word_id, is_correct")
+        .select("general_word_id, is_correct, created_at")
         .in_("session_id", session_ids)
         .not_.is_("general_word_id", "null")
+        .gte("created_at", attempts_since)
         .execute()
         .data
     ) or []
@@ -143,15 +164,25 @@ def _band_accuracy(
     ) or []
     band_by_id = {p["id"]: p.get("difficulty_level") for p in pool_rows}
 
-    correct = 0
-    total = 0
-    for a in attempts:
-        if band_by_id.get(a["general_word_id"]) != band:
-            continue
-        total += 1
-        if a.get("is_correct"):
-            correct += 1
-    return (correct, total)
+    in_band = [a for a in attempts if band_by_id.get(a["general_word_id"]) == band]
+    in_band.sort(key=lambda a: a.get("created_at") or "", reverse=True)
+    recent = in_band[:window]
+    correct = sum(1 for a in recent if a.get("is_correct"))
+    return (correct, len(recent))
+
+
+def _last_level_change_at(user_id: str, learning_lang: str) -> str | None:
+    rows = (
+        supabase_admin.table("user_level_history")
+        .select("assessed_at")
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .order("assessed_at", desc=True)
+        .limit(1)
+        .execute()
+        .data
+    ) or []
+    return rows[0]["assessed_at"] if rows else None
 
 
 def reassess_user_level(user_id: str, learning_lang: str) -> dict[str, Any] | None:
@@ -185,7 +216,13 @@ def reassess_user_level(user_id: str, learning_lang: str) -> dict[str, Any] | No
     if band is None:
         return None  # beklenmeyen deger (veri tutarsizligi) -- guvenli tarafta kal
 
-    correct, total = _band_accuracy(user_id, learning_lang, band, REASSESS_WINDOW_DAYS)
+    correct, total = _band_accuracy(
+        user_id,
+        learning_lang,
+        band,
+        REASSESS_WINDOW_DAYS,
+        since_iso=_last_level_change_at(user_id, learning_lang),
+    )
     now_iso = datetime.now(UTC).isoformat()
 
     if total < MIN_ATTEMPTS_FOR_REASSESSMENT:
@@ -195,7 +232,7 @@ def reassess_user_level(user_id: str, learning_lang: str) -> dict[str, Any] | No
     if accuracy >= UPGRADE_ACCURACY_THRESHOLD:
         direction = "up"
         new_level = _step_level(baseline_level, +1)
-    elif accuracy <= DOWNGRADE_ACCURACY_THRESHOLD:
+    elif accuracy < DOWNGRADE_ACCURACY_THRESHOLD:
         direction = "down"
         new_level = _step_level(baseline_level, -1)
     else:

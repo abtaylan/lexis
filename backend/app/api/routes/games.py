@@ -109,9 +109,8 @@ def _get_current_level(user_id: str, learning_lang: str) -> str | None:
     """user_learning_languages.current_level'i okur (bkz. 079_user_level_
     tracking.sql / app/services/level_assessment_service.py -- periyodik
     olarak yukari/asagi guncellenen 'su anki' CEFR seviyesi). Satir yoksa
-    veya hic placement yapilmamissa None doner -- bu durumda kelime secimi
-    ESKI (tam rastgele, bant filtresiz) davranisa duser (bkz.
-    _band_biased_choice)."""
+    veya hic placement yapilmamissa None doner -- bu durumda yeni kelime
+    secimi bant filtresiz yapilir (bkz. _pick_band)."""
     rows = (
         supabase_admin.table("user_learning_languages")
         .select("current_level")
@@ -144,43 +143,6 @@ _BAND_ORDER: list[str] = ["beginner", "intermediate", "advanced"]
 _BAND_WEIGHTS: dict[str, float] = {"current": 0.70, "below": 0.20, "above": 0.10}
 
 
-def _band_biased_choice(candidates: list[dict], current_level: str | None) -> dict:
-    """general_word_pool adaylarindan (difficulty_level alani secilmis
-    olmali) kullanicinin current_level'ine gore agirlikli rastgele secim
-    yapar. current_level bilinmiyorsa (hic placement yapilmamis), beklenmeyen
-    bir deger tasiyorsa, ya da secilen bantlarin HICBIRINDE aday yoksa (icerik
-    o bantta simdilik seyrek olabilir -- oturumun bosuna 'finished' donup
-    erken bitmemesi icin) ESKI davranisa (tam rastgele) duser."""
-    if not current_level:
-        return random.choice(candidates)
-
-    band = _LEVEL_TO_BAND.get(current_level)
-    if band is None:
-        return random.choice(candidates)
-
-    band_idx = _BAND_ORDER.index(band)
-    by_band: dict[str, list[dict]] = {b: [] for b in _BAND_ORDER}
-    for c in candidates:
-        b = c.get("difficulty_level")
-        if b in by_band:
-            by_band[b].append(c)
-
-    weighted_bands: list[tuple[str, float]] = [(band, _BAND_WEIGHTS["current"])]
-    if band_idx > 0:
-        weighted_bands.append((_BAND_ORDER[band_idx - 1], _BAND_WEIGHTS["below"]))
-    if band_idx < len(_BAND_ORDER) - 1:
-        weighted_bands.append((_BAND_ORDER[band_idx + 1], _BAND_WEIGHTS["above"]))
-
-    # Sadece adayi OLAN bantlari tut -- bos banda agirlik vermek anlamsiz.
-    weighted_bands = [(b, w) for b, w in weighted_bands if by_band[b]]
-    if not weighted_bands:
-        return random.choice(candidates)
-
-    bands, weights = zip(*weighted_bands)
-    chosen_band = random.choices(bands, weights=weights, k=1)[0]
-    return random.choice(by_band[chosen_band])
-
-
 def _get_session(session_id: str, user_id: str) -> dict:
     result = (
         supabase_admin.table("game_sessions")
@@ -202,6 +164,160 @@ def _attempted_ids(session_id: str, field: str) -> list[str]:
         .execute()
     )
     return [row[field] for row in (result.data or []) if row.get(field)]
+
+
+# ── Adaptif Ogrenme Motoru Madde 1 (24 Eylul 2026) -- tekrar + yeni karisimi ──
+# Onaylanan tasarim: gunluk calisma = vadesi gelen SM-2 tekrarlari (%70) +
+# yeni kelimeler (%30). Tekrar kelimeleri kullanicinin `words` tablosundaki
+# next_review_at <= simdi olan kelimeleridir; genel havuz oturumunda bunlar
+# general_word_pool'daki karsiliklari uzerinden sorulur (boylece
+# game_attempts.general_word_id ve _sync_word_progress akisi degismez,
+# SM-2 guncellemesi otomatik olur). Vadesi gelen kelime yoksa oturum
+# tamamen yeni kelimelerle devam eder.
+REVIEW_SHARE = 0.70
+DUE_WORDS_FETCH_LIMIT = 100
+KNOWN_WORDS_FETCH_LIMIT = 3000
+
+
+def _due_word_texts(user_id: str, learning_lang: str) -> list[str]:
+    now_iso = datetime.now(UTC).isoformat()
+    rows = (
+        supabase_admin.table("words")
+        .select("word")
+        .eq("user_id", user_id)
+        .eq("source_lang", learning_lang)
+        .neq("status", "archived")
+        .lte("next_review_at", now_iso)
+        .order("next_review_at")
+        .limit(DUE_WORDS_FETCH_LIMIT)
+        .execute()
+        .data
+    ) or []
+    return [r["word"] for r in rows if r.get("word")]
+
+
+def _known_word_texts(user_id: str, learning_lang: str) -> set[str]:
+    rows = (
+        supabase_admin.table("words")
+        .select("word")
+        .eq("user_id", user_id)
+        .eq("source_lang", learning_lang)
+        .limit(KNOWN_WORDS_FETCH_LIMIT)
+        .execute()
+        .data
+    ) or []
+    return {r["word"].strip().lower() for r in rows if r.get("word")}
+
+
+def _general_pool_query(learning_lang: str, native_lang: str, attempted: list[str], direction: str):
+    query = (
+        supabase_admin.table("general_word_pool")
+        .select("id, word, meaning, example, definition, difficulty_level")
+        .eq("source_lang", learning_lang)
+        .eq("target_lang", native_lang)
+        .eq("is_active", True)
+    )
+    if attempted:
+        query = query.not_.in_("id", attempted)
+    if direction == Direction.definition_to_word.value:
+        # Sadece tanımı backfill edilmiş kelimeler bu yönde sorulabilir.
+        query = query.not_.is_("definition", "null")
+    return query
+
+
+def _band_count(
+    learning_lang: str, native_lang: str, attempted: list[str], direction: str, band: str | None
+) -> int:
+    query = (
+        supabase_admin.table("general_word_pool")
+        .select("id", count="exact")
+        .eq("source_lang", learning_lang)
+        .eq("target_lang", native_lang)
+        .eq("is_active", True)
+    )
+    if attempted:
+        query = query.not_.in_("id", attempted)
+    if direction == Direction.definition_to_word.value:
+        query = query.not_.is_("definition", "null")
+    if band:
+        query = query.eq("difficulty_level", band)
+    return query.limit(1).execute().count or 0
+
+
+def _pick_band(current_level: str | None) -> str | None:
+    """current_level'e gore agirlikli bant secer (kendi %70 / alt %20 /
+    ust %10 -- _BAND_WEIGHTS). Seviye bilinmiyorsa None (bant filtresi yok)."""
+    band = _LEVEL_TO_BAND.get(current_level or "")
+    if band is None:
+        return None
+    idx = _BAND_ORDER.index(band)
+    options: list[tuple[str, float]] = [(band, _BAND_WEIGHTS["current"])]
+    if idx > 0:
+        options.append((_BAND_ORDER[idx - 1], _BAND_WEIGHTS["below"]))
+    if idx < len(_BAND_ORDER) - 1:
+        options.append((_BAND_ORDER[idx + 1], _BAND_WEIGHTS["above"]))
+    bands, weights = zip(*options)
+    return random.choices(bands, weights=weights, k=1)[0]
+
+
+def _random_window(
+    learning_lang: str, native_lang: str, attempted: list[str], direction: str, band: str | None
+) -> list[dict]:
+    """Bant icinden RASTGELE bir ofsetle CANDIDATE_FETCH_LIMIT'lik pencere
+    ceker.
+
+    24 Eylul 2026 HATA DUZELTMESI: eskiden aday sorgusu siralamasiz
+    .limit(CANDIDATE_FETCH_LIMIT) ile yapiliyordu -> Postgres her seferinde
+    AYNI fiziksel ilk satirlari donduruyordu. Uretimde en-tr cevaplarinin
+    %60'i havuzun ilk 200 satirindan geliyordu, 1.322 kelimenin sadece
+    501'i hic gorulmustu. Ayni kelimelerin tekrar tekrar gelmesi hem
+    cesitliligi oldurur hem de dogruluk oranini sisirip seviye
+    degerlendirmesini yaniltir."""
+    total = _band_count(learning_lang, native_lang, attempted, direction, band)
+    if total == 0:
+        return []
+    offset = random.randint(0, max(0, total - CANDIDATE_FETCH_LIMIT))
+    query = _general_pool_query(learning_lang, native_lang, attempted, direction)
+    if band:
+        query = query.eq("difficulty_level", band)
+    return (
+        query.order("id").range(offset, offset + CANDIDATE_FETCH_LIMIT - 1).execute().data
+    ) or []
+
+
+def _choose_general_word(
+    user_id: str,
+    learning_lang: str,
+    native_lang: str,
+    attempted: list[str],
+    direction: str,
+) -> dict | None:
+    # 1) Vadesi gelen tekrar kelimesi (%70 olasilikla)
+    if random.random() < REVIEW_SHARE:
+        due = _due_word_texts(user_id, learning_lang)
+        if due:
+            review_candidates = (
+                _general_pool_query(learning_lang, native_lang, attempted, direction)
+                .in_("word", due)
+                .limit(CANDIDATE_FETCH_LIMIT)
+                .execute()
+                .data
+            ) or []
+            if review_candidates:
+                return random.choice(review_candidates)
+
+    # 2) Yeni kelime: seviyeye gore agirlikli bant + rastgele pencere,
+    #    kullanicinin kelime hazinesinde zaten olanlar tercihen elenir.
+    current_level = _get_current_level(user_id, learning_lang)
+    band = _pick_band(current_level)
+    candidates = _random_window(learning_lang, native_lang, attempted, direction, band)
+    if not candidates and band is not None:
+        candidates = _random_window(learning_lang, native_lang, attempted, direction, None)
+    if not candidates:
+        return None
+    known = _known_word_texts(user_id, learning_lang)
+    fresh = [c for c in candidates if (c.get("word") or "").strip().lower() not in known]
+    return random.choice(fresh or candidates)
 
 
 def _prior_attempt_count(
@@ -357,6 +473,11 @@ async def create_session(
             "kendi kelimelerinde tanım metni tutulmuyor.",
         )
 
+    # 24 Eylul 2026 HATA DUZELTMESI: game_sessions.learning_lang hic
+    # yazilmiyordu (uretimde son 30 gunun 202 oturumunun 0'inda dolu).
+    # level_assessment_service.py oyun dogrulugunu TAM bu kolona gore
+    # filtreledigi icin dinamik seviye degerlendirmesi hic veri bulamiyordu.
+    learning_lang, _ = _get_profile_langs(current_user.id)
     row = {
         "user_id": current_user.id,
         "mode": session_in.mode.value,
@@ -364,6 +485,7 @@ async def create_session(
         "direction": session_in.direction.value,
         "score": 0,
         "xp_earned": 0,
+        "learning_lang": learning_lang,
     }
     result = supabase_admin.table("game_sessions").insert(row).execute()
     if not result.data:
@@ -388,7 +510,7 @@ async def next_word(
         attempted = _attempted_ids(session_id, "word_id")
         query = (
             supabase_admin.table("words")
-            .select("id, word, meaning, meaning_native, example")
+            .select("id, word, meaning, meaning_native, example, next_review_at")
             .eq("user_id", current_user.id)
         )
         if attempted:
@@ -398,7 +520,14 @@ async def next_word(
         if not candidates:
             return NextWordResponse(finished=True)
 
-        chosen = random.choice(candidates)
+        # 24 Eylul 2026 -- kendi kelimelerinde de vadesi gelen SM-2
+        # tekrarlari %70 olasilikla once sorulur.
+        now_iso = datetime.now(UTC).isoformat()
+        due = [c for c in candidates if c.get("next_review_at") and c["next_review_at"] <= now_iso]
+        if due and random.random() < REVIEW_SHARE:
+            chosen = random.choice(due)
+        else:
+            chosen = random.choice(candidates)
         meaning_text = chosen.get("meaning_native") or chosen.get("meaning")
         chosen_word_id = chosen["id"]
         chosen_general_word_id = None
@@ -406,31 +535,14 @@ async def next_word(
         # pool_source == "general"
         learning_lang, native_lang = _get_profile_langs(current_user.id)
         attempted = _attempted_ids(session_id, "general_word_id")
-        query = (
-            supabase_admin.table("general_word_pool")
-            .select("id, word, meaning, example, definition, difficulty_level")
-            .eq("source_lang", learning_lang)
-            .eq("target_lang", native_lang)
-            .eq("is_active", True)
+        # 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 1: vadesi gelen
+        # tekrarlar (%70) + seviyeye gore agirlikli, rastgele pencereden
+        # yeni kelimeler (%30). Ayrinti: _choose_general_word().
+        chosen = _choose_general_word(
+            current_user.id, learning_lang, native_lang, attempted, direction
         )
-        if attempted:
-            query = query.not_.in_("id", attempted)
-        if direction == Direction.definition_to_word.value:
-            # Sadece tanımı backfill edilmiş kelimeler bu yönde
-            # sorulabilir (definition NULL olan kelimeler atlanır).
-            query = query.not_.is_("definition", "null")
-        candidates = (query.limit(CANDIDATE_FETCH_LIMIT).execute().data) or []
-
-        if not candidates:
+        if chosen is None:
             return NextWordResponse(finished=True)
-
-        # Task #66 (18 Eylul 2026 kullanici istegi -- adaptif seviye): kelime
-        # secimi artik TAM rastgele degil, kullanicinin current_level'ine
-        # gore banda agirlikli (bkz. _band_biased_choice / _get_current_level
-        # yukarida). current_level yoksa (hic placement yapilmamis) davranis
-        # onceki (tam rastgele) ile birebir aynidir.
-        current_level = _get_current_level(current_user.id, learning_lang)
-        chosen = _band_biased_choice(candidates, current_level)
         meaning_text = (
             chosen.get("definition") if direction == Direction.definition_to_word.value
             else chosen["meaning"]
