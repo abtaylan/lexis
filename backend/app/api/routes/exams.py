@@ -54,13 +54,13 @@ from app.schemas.exams import (
     ExamSessionResponse,
     ExamType,
     ExamTypeInfo,
+    MyMistakePatternItem,
+    MyMistakePatternsResult,
     NextQuestionResponse,
     PendingExamQuestion,
     PlacementStatusResponse,
     RelatedGrammarTopic,
     TopicPracticeAttemptCreate,
-    MyMistakePatternItem,
-    MyMistakePatternsResult,
     WeakTopicItem,
     WeakTopicsResult,
 )
@@ -1238,6 +1238,7 @@ async def practice_questions_by_topic(
                 options=[ExamQuestionOption(**opt) for opt in q["options"]],
                 correct_option=q["correct_option"],
                 explanation=q["explanation"],
+                topic_tag=topic_tag,
             )
             for q in chosen
         ],

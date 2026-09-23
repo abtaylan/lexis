@@ -74,6 +74,8 @@ export type ExamStrings = {
   practiceThisTopicBtn: string;
   topicPracticeTitle: string;
   topicPracticeSubtitle: string;
+  weeklyQuizTitle: string;
+  weeklyQuizSubtitle: string;
   topicPracticeDoneTitle: string;
   weakTopicsTitle: string;
   weakTopicsSubtitle: string;
@@ -157,6 +159,8 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     practiceThisTopicBtn: 'Bu Konudan Pratik Yap',
     topicPracticeTitle: 'Konu Pratiği',
     topicPracticeSubtitle: 'Bu konudan birkaç soru daha — XP verilmez, sadece pekiştirme içindir.',
+    weeklyQuizTitle: 'Hafta Sonu Quizi',
+    weeklyQuizSubtitle: 'Bu haftanın odak konularından karışık sorular.',
     topicPracticeDoneTitle: 'Bu tur tamamlandı!',
     weakTopicsTitle: 'Zayıf Konuların',
     weakTopicsSubtitle: 'Son dönemde en çok yanlış yaptığın konular',
@@ -236,6 +240,8 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     practiceThisTopicBtn: 'Practice This Topic',
     topicPracticeTitle: 'Topic Practice',
     topicPracticeSubtitle: 'A few more questions on this topic — no XP, just reinforcement.',
+    weeklyQuizTitle: 'Weekend Quiz',
+    weeklyQuizSubtitle: "Mixed questions from this week's focus topics.",
     topicPracticeDoneTitle: 'Round complete!',
     weakTopicsTitle: 'Your Weak Topics',
     weakTopicsSubtitle: 'Topics you have missed most recently',

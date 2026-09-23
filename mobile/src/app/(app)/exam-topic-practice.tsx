@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CheckCircle2, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { examsApi } from '@/api/exams';
+import { studyProgramApi } from '@/api/studyProgram';
 import type { ExamPracticeQuestionItem } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
@@ -21,6 +22,8 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+
+const WEEKLY_QUIZ_TAG = 'weekly-quiz';
 
 export default function ExamTopicPracticeScreen() {
   const { topic_tag: topicTagParam, exclude_question_id: excludeParam } = useLocalSearchParams<{
@@ -33,9 +36,15 @@ export default function ExamTopicPracticeScreen() {
   const { et } = useLocale();
   const c = useThemeColors();
 
+  // 24 Eylül 2026 — Adaptif Öğrenme Motoru Madde 2: topic_tag=weekly-quiz ise
+  // haftalık programın odak konularından karışık hafta sonu quizi açılır.
+  const isWeeklyQuiz = topicTag === WEEKLY_QUIZ_TAG;
   const { data, isLoading, isError } = useQuery({
     queryKey: ['exam-topic-practice', topicTag, excludeQuestionId],
-    queryFn: () => examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit: 5 }),
+    queryFn: () =>
+      isWeeklyQuiz
+        ? studyProgramApi.weeklyQuiz()
+        : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit: 5 }),
     enabled: !!topicTag,
   });
 
@@ -58,7 +67,7 @@ export default function ExamTopicPracticeScreen() {
     setSelectedOption(optionId);
     setRevealed(true);
     if (current) {
-      examsApi.logTopicPracticeAttempt(topicTag, current.id, optionId === current.correct_option);
+      examsApi.logTopicPracticeAttempt(current.topic_tag ?? topicTag, current.id, optionId === current.correct_option);
     }
   }
 
@@ -73,9 +82,11 @@ export default function ExamTopicPracticeScreen() {
       <ScreenNavBar />
 
       <Text style={{ fontSize: 20, fontWeight: '700', color: c.text }}>
-        {data?.related_grammar_topic?.title_tr ?? et.topicPracticeTitle}
+        {isWeeklyQuiz ? et.weeklyQuizTitle : data?.related_grammar_topic?.title_tr ?? et.topicPracticeTitle}
       </Text>
-      <Text style={{ fontSize: 13, color: c.textMuted, marginTop: 4 }}>{et.topicPracticeSubtitle}</Text>
+      <Text style={{ fontSize: 13, color: c.textMuted, marginTop: 4 }}>
+        {isWeeklyQuiz ? et.weeklyQuizSubtitle : et.topicPracticeSubtitle}
+      </Text>
 
       {isLoading ? (
         <View style={{ marginTop: spacing.xxl, alignItems: 'center' }}>

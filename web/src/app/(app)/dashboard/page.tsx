@@ -7,12 +7,13 @@ import {
   BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, MessageCircle, Sun, Moon,
   GraduationCap, ChevronRight,
 } from 'lucide-react';
-import { statsApi, wordsApi, gamesApi, languagesApi, userLanguagesApi, notificationsApi, socialApi, examsApi } from '@/lib/api';
+import { statsApi, wordsApi, gamesApi, languagesApi, userLanguagesApi, notificationsApi, socialApi, examsApi, studyProgramApi } from '@/lib/api';
+import { StudyProgramCard } from '@/components/study/StudyProgramCard';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
 import { Leaderboard } from '@/components/layout/Leaderboard';
-import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem } from '@/types';
+import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem, StudyProgram } from '@/types';
 
 // Kullanici geri bildirimi (10 Eylul 2026 -- "bir dashboard'a bu saate
 // gunaydin yaziyor, mobildeki gibi hallet"): mobile/src/app/(app)/
@@ -215,11 +216,19 @@ export default function DashboardPage() {
 
   // ── Madde #3c: zayıf konu özeti (dashboard widget'ı) ──
   const [weakTopics, setWeakTopics] = useState<WeakTopicItem[]>([]);
+  // Adaptif Öğrenme Motoru Madde 2 — haftalık çalışma programı kartı.
+  const [studyProgram, setStudyProgram] = useState<StudyProgram | null>(null);
   // V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan widget'lari.
   const [weakWordTypes, setWeakWordTypes] = useState<WeakWordTypeItem[]>([]);
   const [weakDifficulty, setWeakDifficulty] = useState<WeakDifficultyItem[]>([]);
 
   useEffect(() => {
+    studyProgramApi
+      .current()
+      .then(setStudyProgram)
+      .catch(() => {
+        /* soft-disable: hata durumunda kart gösterilmez */
+      });
     examsApi
       .weakTopics(7, 3)
       .then((res) => setWeakTopics(res.items))
@@ -649,8 +658,14 @@ export default function DashboardPage() {
         </div>
       </button>
 
+      {/* Adaptif Öğrenme Motoru Madde 2: haftalık program kartı. Zayıf konuları
+          zaten içerdiği için gösterildiğinde eski "Zayıf Konuların" kartı gizlenir. */}
+      {studyProgram?.available && studyProgram.focus_topics.length > 0 && (
+        <StudyProgramCard program={studyProgram} locale={locale} />
+      )}
+
       {/* Madde #3c: zayıf konu özeti — sadece en az bir zayıf konu varsa gösterilir. */}
-      {weakTopics.length > 0 && (
+      {weakTopics.length > 0 && !(studyProgram?.available && studyProgram.focus_topics.length > 0) && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
           <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
             {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.title}

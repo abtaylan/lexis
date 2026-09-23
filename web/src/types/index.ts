@@ -355,6 +355,8 @@ export interface ExamPracticeQuestionItem {
   options: ExamQuestionOption[];
   correct_option: string;
   explanation: string;
+  // 24 Eylül 2026 — hafta sonu quizinde her sorunun kendi konusu
+  topic_tag?: string | null;
 }
 
 export interface ExamPracticeQuestionsResult {
@@ -1319,4 +1321,29 @@ export interface PlatformSnapshotBenchmark {
   previous: PlatformSnapshotBenchmarkMetrics;
   pct_change: Record<string, number | null>;
   insufficient_data: boolean;
+}
+
+// ── Adaptif Öğrenme Motoru Madde 2 (24 Eylül 2026) — haftalık çalışma programı ──
+export interface StudyProgramTopic {
+  topic_tag: string;
+  reason: 'weak' | 'next' | string;
+  title: string;
+  grammar_slug?: string | null;
+  wrong_count: number;
+  total_count: number;
+  practiced_count: number;
+  practiced_correct: number;
+  target_count: number;
+  done: boolean;
+}
+
+export interface StudyProgram {
+  available: boolean;
+  learning_lang: string;
+  week_start?: string | null;
+  level?: string | null;
+  focus_topics: StudyProgramTopic[];
+  today?: { new_words_today: number; new_word_goal: number; reviews_due: number } | null;
+  weekend_quiz?: { available: boolean; answered_count: number; target_count: number; done: boolean } | null;
+  completed_topics: number;
 }

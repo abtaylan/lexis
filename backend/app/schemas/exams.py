@@ -224,6 +224,9 @@ class ExamPracticeQuestionItem(BaseModel):
     options: list[ExamQuestionOption]
     correct_option: str
     explanation: str
+    # 24 Eylul 2026 -- hafta sonu quizinde (study_program.py) sorular farkli
+    # konulardan gelir; istemci cevabi bu etiketle loglar.
+    topic_tag: str | None = None
 
 
 class ExamPracticeQuestionsResult(BaseModel):

@@ -30,6 +30,7 @@ import type {
   ExamAttemptResult,
   ExamPracticeQuestionsResult,
   WeakTopicsResult,
+  StudyProgram,
   WeakWordTypesResult,
   WeakDifficultyResult,
   ExamFinishResult,
@@ -1603,5 +1604,18 @@ export const organizationsApi = {
   },
   removeMember: async (orgId: string, userId: string): Promise<void> => {
     await api.delete(`/organizations/${orgId}/members/${userId}`);
+  },
+};
+
+// ── Adaptif Öğrenme Motoru Madde 2 (24 Eylül 2026) — haftalık çalışma programı ──
+// backend/app/api/routes/study_program.py
+export const studyProgramApi = {
+  current: async (): Promise<StudyProgram> => {
+    const res = await api.get<StudyProgram>('/study-program/current');
+    return res.data;
+  },
+  weeklyQuiz: async (): Promise<ExamPracticeQuestionsResult> => {
+    const res = await api.get<ExamPracticeQuestionsResult>('/study-program/weekly-quiz');
+    return res.data;
   },
 };

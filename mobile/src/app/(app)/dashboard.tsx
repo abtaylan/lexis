@@ -12,6 +12,7 @@ import { REPORT_STRINGS } from '@/i18n/reportStrings';
 import { statsApi } from '@/api/stats';
 import { scheduleApi } from '@/api/schedule';
 import { examsApi } from '@/api/exams';
+import { studyProgramApi } from '@/api/studyProgram';
 import { wordsApi } from '@/api/words';
 import { gamesApi } from '@/api/games';
 import type { WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem } from '@/api/types';
@@ -22,6 +23,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { DashboardHeader } from '@/components/DashboardHeader';
+import { StudyProgramCard } from '@/components/StudyProgramCard';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
 
@@ -129,6 +131,12 @@ export default function DashboardScreen() {
   const { data: weakTopics } = useQuery({
     queryKey: ['exam-weak-topics'],
     queryFn: () => examsApi.weakTopics(7, 3),
+  });
+
+  // Adaptif Öğrenme Motoru Madde 2 — haftalık çalışma programı kartı.
+  const { data: studyProgram } = useQuery({
+    queryKey: ['study-program-current'],
+    queryFn: studyProgramApi.current,
   });
 
   // V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan widget'lari.
@@ -306,9 +314,16 @@ export default function DashboardScreen() {
           </View>
         </Pressable>
 
+        {/* Adaptif Öğrenme Motoru Madde 2: haftalık program kartı. Zayıf
+            konuları zaten içerdiği için gösterildiğinde eski "Zayıf Konuların"
+            kartı gizlenir. */}
+        {!!studyProgram?.available && studyProgram.focus_topics.length > 0 && (
+          <StudyProgramCard program={studyProgram} locale={locale} />
+        )}
+
         {/* Madde #3c: zayıf konu özeti — sadece en az bir zayıf konu varsa
             gösterilir (backend boş liste dönerse widget hiç render edilmez). */}
-        {!!weakTopics?.items?.length && (
+        {!(studyProgram?.available && studyProgram.focus_topics.length > 0) && !!weakTopics?.items?.length && (
           <Card style={{ marginTop: spacing.sm }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
               <TrendingDown color={c.danger} size={18} />

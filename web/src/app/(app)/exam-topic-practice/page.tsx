@@ -11,15 +11,19 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react';
-import { examsApi } from '@/lib/api';
+import { examsApi, studyProgramApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import type { ExamPracticeQuestionItem } from '@/types';
+
+const WEEKLY_QUIZ_TAG = 'weekly-quiz';
 
 const L: Partial<Record<Locale, Record<string, string>>> = {
   tr: {
     back: 'Geri',
     error: 'Bir şeyler ters gitti, tekrar dene.',
     subtitle: 'Bu konudan birkaç soru daha — XP verilmez, sadece pekiştirme içindir.',
+    weeklyQuizTitle: 'Hafta Sonu Quizi',
+    weeklyQuizSubtitle: 'Bu haftanın odak konularından karışık sorular.',
     noQuestionsYet: 'Bu konu için henüz pratik sorusu eklenmedi.',
     explanationLabel: 'Açıklama',
     questionCounterTpl: 'Soru {current} / {total}',
@@ -33,6 +37,8 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     back: 'Back',
     error: 'Something went wrong, please try again.',
     subtitle: 'A few more questions on this topic — no XP, just reinforcement.',
+    weeklyQuizTitle: 'Weekend Quiz',
+    weeklyQuizSubtitle: "Mixed questions from this week's focus topics.",
     noQuestionsYet: 'No practice questions for this topic yet.',
     explanationLabel: 'Explanation',
     questionCounterTpl: 'Question {current} / {total}',
@@ -52,9 +58,15 @@ export default function ExamTopicPracticePage() {
   const { locale } = useLocale();
   const t = L[locale] ?? L.tr!;
 
+  // 24 Eylül 2026 — Adaptif Öğrenme Motoru Madde 2: topic_tag=weekly-quiz ise
+  // haftalık programın odak konularından karışık hafta sonu quizi açılır.
+  const isWeeklyQuiz = topicTag === WEEKLY_QUIZ_TAG;
   const { data, isLoading, isError } = useQuery({
     queryKey: ['exam-topic-practice', topicTag, excludeQuestionId],
-    queryFn: () => examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit: 5 }),
+    queryFn: () =>
+      isWeeklyQuiz
+        ? studyProgramApi.weeklyQuiz()
+        : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit: 5 }),
     enabled: !!topicTag,
   });
 
@@ -78,7 +90,8 @@ export default function ExamTopicPracticePage() {
     setSelectedOption(optionId);
     setRevealed(true);
     if (current) {
-      examsApi.logTopicPracticeAttempt(topicTag, current.id, optionId === current.correct_option);
+      // Hafta sonu quizinde her soru kendi konusuyla loglanır.
+      examsApi.logTopicPracticeAttempt(current.topic_tag ?? topicTag, current.id, optionId === current.correct_option);
     }
   }
 
@@ -99,9 +112,9 @@ export default function ExamTopicPracticePage() {
       </button>
 
       <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">
-        {data?.related_grammar_topic?.title_tr ?? t.defaultTitle}
+        {isWeeklyQuiz ? t.weeklyQuizTitle : data?.related_grammar_topic?.title_tr ?? t.defaultTitle}
       </h1>
-      <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{t.subtitle}</p>
+      <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{isWeeklyQuiz ? t.weeklyQuizSubtitle : t.subtitle}</p>
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-gray-400 dark:text-slate-500">
