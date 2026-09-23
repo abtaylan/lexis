@@ -30,6 +30,7 @@ kullanıcıya hiç gösterilmiyor (bkz. supabase/migrations/026_exam_prep_stats_
 """
 
 import random
+import re
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -268,6 +269,21 @@ async def create_session(session_in: ExamSessionCreate, current_user=Depends(get
 
     _, learning_lang = _profile_langs(current_user.id)
 
+    # 24 Eylul 2026 -- seviye tespit sinavi DEVAM (resume) destegi. Uretimde
+    # 23 placement oturumundan sadece 2'si bitmisti: uygulama her acilista
+    # (ve istemcideki otomatik-baslatma effect'i iki kez tetiklendiginde,
+    # saniyeler icinde) YENI bir oturum aciyordu, yarim kalan cevaplar
+    # tamamen kayboluyordu. Artik suresi dolmamis, bitmemis bir placement
+    # oturumu varsa AYNISI dondurulur (next_question zaten cevaplanan soru
+    # sayisindan devam ediyor); suresi dolmuslar ise once kapatilir.
+    if exam_type == "placement":
+        _finalize_stale_placement_sessions(current_user.id, learning_lang)
+        resumable = _resumable_placement_session(
+            current_user.id, learning_lang, total_questions
+        )
+        if resumable:
+            return _session_response(resumable, resumed=True)
+
     row = {
         "user_id": current_user.id,
         "exam_type": exam_type,
@@ -281,7 +297,7 @@ async def create_session(session_in: ExamSessionCreate, current_user=Depends(get
     result = supabase_admin.table("exam_sessions").insert(row).execute()
     if not result.data:
         raise HTTPException(status_code=500, detail="Sınav oturumu oluşturulamadı.")
-    return result.data[0]
+    return _session_response(result.data[0], resumed=False)
 
 
 @router.get("/sessions/{session_id}/next-question", response_model=NextQuestionResponse)
@@ -498,17 +514,45 @@ def _compute_placement_level(session_id: str) -> str | None:
         if a["is_correct"]:
             correct_by_level[level] = correct_by_level.get(level, 0) + 1
 
+    level, _determined = _estimate_level_from_counts(correct_by_level, total_by_level)
+    return level
+
+
+def _estimate_level_from_counts(
+    correct_by_level: dict[str, int], total_by_level: dict[str, int]
+) -> tuple[str | None, bool]:
+    """(tahmini_seviye, kesin_mi) dondurur.
+
+    kesin_mi=True: kullanicinin gecemedigi bir seviyeye ulasildi ya da c2'ye
+    kadar tum seviyeler olculdu -- yani tahmin bir "tavan" iceriyor.
+    kesin_mi=False: cevaplanan tum seviyeler gecildi ama daha ust seviyeler
+    hic olculmedi (yarim birakilan sinav) -- tahmin sadece bir ALT SINIR.
+
+    24 Eylul 2026 HATA DUZELTMESI: eskiden kullanici ilk olculen seviyede
+    (a1) bile %50'nin altinda kalirsa None donuyordu -> seviye hic
+    yazilmiyordu -> placement/status needs_placement=True kalmaya devam
+    ediyordu ve gercek bir baslangic seviyesindeki kullanici her giriste
+    TEKRAR sinava yonlendiriliyordu (sonsuz dongu). En dusuk olculebilir
+    seviye a1 oldugu icin artik taban a1'dir."""
     estimated_level: str | None = None
+    any_measured = False
     for level in CEFR_LEVEL_ORDER:
         total = total_by_level.get(level, 0)
         if total == 0:
             continue
+        any_measured = True
         accuracy = correct_by_level.get(level, 0) / total
         if accuracy >= PLACEMENT_LEVEL_PASS_THRESHOLD:
             estimated_level = level
         else:
-            break
-    return estimated_level
+            return (estimated_level or CEFR_LEVEL_ORDER[0], True)
+    if not any_measured:
+        return (None, False)
+    measured_top = max(
+        (lv for lv in CEFR_LEVEL_ORDER if total_by_level.get(lv, 0) > 0),
+        key=CEFR_LEVEL_ORDER.index,
+    )
+    return (estimated_level, measured_top == CEFR_LEVEL_ORDER[-1])
 
 
 def _store_placement_level(user_id: str, learning_lang: str, level: str, completed_at: str) -> None:
@@ -607,6 +651,159 @@ def _store_placement_level(user_id: str, learning_lang: str, level: str, complet
 
 
 
+# ── Seviye Tespit Sınavı — devam (resume) ve yarım kalan oturumları kapatma ──
+# 24 Eylul 2026. Bir oturumun "suresi" = time_limit_seconds (timed_mock);
+# suresiz (practice) placement oturumlari icin PLACEMENT_UNTIMED_RESUME_WINDOW
+# kullanilir. Suresinin bitmesine RESUME_MIN_REMAINING_SECONDS'tan az kalmis
+# bir oturum devam ettirilmez (kullaniciya 30 saniyelik bir sinav vermek
+# anlamsiz) -- kapatilir ve yenisi acilir.
+PLACEMENT_UNTIMED_RESUME_WINDOW = timedelta(hours=24)
+RESUME_MIN_REMAINING_SECONDS = 60
+# Yarida birakilip suresi dolan bir oturumdan seviye yazmak icin gereken en
+# az cevap orani. Sorular a1 -> c2 artan sirada soruldugu icin yarim bir
+# sinavda ust seviyeler hic olculmemis olur; bu durumda tahmin sadece bir alt
+# sinirdir. Alt sinir yine de yazilir (dinamik seviye sistemi --
+# level_assessment_service.py -- zamanla yukari tasir) ama ancak sinavin en
+# az yarisi cevaplandiysa. Daha az cevapta, kullanicinin gecemedigi bir
+# seviyeye ulasilmissa (tahmin kesinse) yine yazilir.
+PLACEMENT_PARTIAL_MIN_RATIO = 0.5
+
+
+def _parse_ts(value: str) -> datetime:
+    """PostgREST zaman damgalarini (orn. '2026-09-23T16:00:30.88917+00:00',
+    kesir hanesi degisken) timezone-aware datetime'a cevirir."""
+    v = value.replace("Z", "+00:00")
+    m = re.match(r"^(.*?\.)(\d+)(.*)$", v)
+    if m:
+        v = m.group(1) + m.group(2)[:6].ljust(6, "0") + m.group(3)
+    dt = datetime.fromisoformat(v)
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+
+def _session_deadline(session: dict) -> datetime:
+    started = _parse_ts(session["started_at"])
+    limit = session.get("time_limit_seconds")
+    if limit:
+        return started + timedelta(seconds=int(limit))
+    return started + PLACEMENT_UNTIMED_RESUME_WINDOW
+
+
+def _session_response(session: dict, resumed: bool) -> ExamSessionResponse:
+    remaining: int | None = None
+    if session.get("time_limit_seconds"):
+        remaining = max(
+            0, int((_session_deadline(session) - datetime.now(UTC)).total_seconds())
+        )
+    return ExamSessionResponse(
+        id=session["id"],
+        exam_type=session["exam_type"],
+        session_mode=session["session_mode"],
+        total_questions=session["total_questions"],
+        time_limit_seconds=session.get("time_limit_seconds"),
+        score=session.get("score") or 0,
+        xp_earned=session.get("xp_earned") or 0,
+        started_at=session["started_at"],
+        ended_at=session.get("ended_at"),
+        remaining_seconds=remaining,
+        resumed=resumed,
+        answered_count=len(_attempted_question_ids(session["id"])) if resumed else 0,
+    )
+
+
+def _open_placement_sessions(user_id: str, learning_lang: str) -> list[dict]:
+    return (
+        supabase_admin.table("exam_sessions")
+        .select("*")
+        .eq("user_id", user_id)
+        .eq("exam_type", "placement")
+        .eq("learning_lang", learning_lang)
+        .is_("ended_at", "null")
+        .order("started_at", desc=True)
+        .execute()
+        .data
+    ) or []
+
+
+def _resumable_placement_session(
+    user_id: str, learning_lang: str, total_questions: int
+) -> dict | None:
+    now = datetime.now(UTC)
+    for session in _open_placement_sessions(user_id, learning_lang):
+        if session["total_questions"] != total_questions:
+            continue  # eski 50 soruluk format -- devam ettirilmez
+        remaining = (_session_deadline(session) - now).total_seconds()
+        if remaining >= RESUME_MIN_REMAINING_SECONDS:
+            return session
+    return None
+
+
+def _finalize_stale_placement_sessions(user_id: str, learning_lang: str) -> str | None:
+    """Suresi dolmus (ya da eski formatta kalmis) ama hic finish edilmemis
+    placement oturumlarini kapatir. Yeterli cevap varsa seviyeyi hesaplayip
+    yazar. Yazilan son seviyeyi (varsa) dondurur. Kullanici basina birkac
+    satirlik is -- placement/status ve create_session icinden cagrilir,
+    ayri bir cron gerekmez."""
+    now = datetime.now(UTC)
+    stored_level: str | None = None
+    current_total = EXAM_MOCK_CONFIG["placement"]["total_questions"]
+    # En eskiden yeniye: en guncel sinav sonucu en son yazilsin.
+    for session in reversed(_open_placement_sessions(user_id, learning_lang)):
+        deadline = _session_deadline(session)
+        legacy_format = session["total_questions"] != current_total
+        if deadline - now >= timedelta(seconds=RESUME_MIN_REMAINING_SECONDS) and not legacy_format:
+            continue  # hala devam ettirilebilir
+
+        attempts = (
+            supabase_admin.table("exam_attempts")
+            .select("question_id, is_correct, created_at")
+            .eq("session_id", session["id"])
+            .execute()
+            .data
+        ) or []
+        ended_at_dt = min(deadline, now)
+        if attempts:
+            last_answer = max(_parse_ts(a["created_at"]) for a in attempts)
+            ended_at_dt = min(ended_at_dt, max(last_answer, _parse_ts(session["started_at"])))
+        ended_at = ended_at_dt.isoformat()
+
+        closed = (
+            supabase_admin.table("exam_sessions")
+            .update({"ended_at": ended_at})
+            .eq("id", session["id"])
+            .is_("ended_at", "null")
+            .execute()
+            .data
+        )
+        if not closed or not attempts:
+            continue  # baska bir istek zaten kapatti / hic cevap yok
+
+        question_ids = list({a["question_id"] for a in attempts})
+        questions = (
+            supabase_admin.table("exam_questions")
+            .select("id, difficulty_level")
+            .in_("id", question_ids)
+            .execute()
+            .data
+        ) or []
+        level_by_question = {q["id"]: q.get("difficulty_level") for q in questions}
+        correct_by_level: dict[str, int] = {}
+        total_by_level: dict[str, int] = {}
+        for a in attempts:
+            lv = level_by_question.get(a["question_id"])
+            if lv not in CEFR_LEVEL_ORDER:
+                continue
+            total_by_level[lv] = total_by_level.get(lv, 0) + 1
+            if a["is_correct"]:
+                correct_by_level[lv] = correct_by_level.get(lv, 0) + 1
+
+        level, determined = _estimate_level_from_counts(correct_by_level, total_by_level)
+        enough = len(attempts) >= session["total_questions"] * PLACEMENT_PARTIAL_MIN_RATIO
+        if level and (determined or enough):
+            _store_placement_level(user_id, learning_lang, level, ended_at)
+            stored_level = level
+    return stored_level
+
+
 @router.post("/sessions/{session_id}/finish", response_model=ExamFinishResponse)
 async def finish_session(session_id: str, current_user=Depends(get_current_user)):
     session = _get_session(session_id, current_user.id)
@@ -666,6 +863,10 @@ async def finish_session(session_id: str, current_user=Depends(get_current_user)
 @router.get("/placement/status", response_model=PlacementStatusResponse)
 async def get_placement_status(current_user=Depends(get_current_user)):
     _, learning_lang = _profile_langs(current_user.id)
+    # 24 Eylul 2026 -- uygulama girisinde yarim kalip suresi dolan placement
+    # oturumlari burada kapatilir; yeterli cevap varsa seviye yazilir ve
+    # kullanici bir daha sinava yonlendirilmez.
+    _finalize_stale_placement_sessions(current_user.id, learning_lang)
     rows = (
         supabase_admin.table("user_learning_languages")
         .select("placement_level, placement_completed_at")
@@ -682,6 +883,14 @@ async def get_placement_status(current_user=Depends(get_current_user)):
         needs_placement=has_content and not completed_at,
         current_level=row.get("placement_level"),
         completed_at=completed_at,
+        has_resumable_session=bool(
+            not completed_at
+            and _resumable_placement_session(
+                current_user.id,
+                learning_lang,
+                EXAM_MOCK_CONFIG["placement"]["total_questions"],
+            )
+        ),
     )
 
 

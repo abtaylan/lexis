@@ -270,7 +270,8 @@ export default function ExamPrepPage() {
     try {
       const s = await examsApi.createSession(effectiveType, effectiveMode);
       setSession(s);
-      setTimeLeft(s.time_limit_seconds ?? null);
+      // Yarim kalan placement oturumu devam ettiriliyorsa sayac kalan sureden baslar.
+      setTimeLeft(s.remaining_seconds ?? s.time_limit_seconds ?? null);
       setStage('playing');
       await loadNextQuestion(s.id);
     } catch {

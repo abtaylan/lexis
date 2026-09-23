@@ -296,6 +296,10 @@ export interface ExamSession {
   session_mode: ExamSessionMode;
   total_questions: number;
   time_limit_seconds: number | null;
+  // 24 Eylul 2026 -- placement devam (resume): kalan sure ve devam bayragi
+  remaining_seconds?: number | null;
+  resumed?: boolean;
+  answered_count?: number;
   score: number;
   xp_earned: number;
   started_at: string;
@@ -419,6 +423,7 @@ export interface PlacementStatusResult {
   needs_placement: boolean;
   current_level: string | null;
   completed_at: string | null;
+  has_resumable_session?: boolean;
 }
 
 export interface AddWordFromQuestionResult {

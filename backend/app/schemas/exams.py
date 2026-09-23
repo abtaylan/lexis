@@ -46,6 +46,14 @@ class ExamSessionResponse(BaseModel):
     xp_earned: int
     started_at: datetime
     ended_at: datetime | None = None
+    # 24 Eylul 2026 -- seviye tespit sinavi devam (resume) destegi.
+    # remaining_seconds: sureli oturumda kalan sure (istemci geri sayimi
+    # bununla baslatmali; eski istemciler time_limit_seconds kullanmaya
+    # devam eder, bu da sadece sayacin fazla gosterilmesi demek).
+    # resumed: True ise bu yeni degil, yarim kalan oturumun kendisidir.
+    remaining_seconds: int | None = None
+    resumed: bool = False
+    answered_count: int = 0
 
 
 class ExamQuestionOption(BaseModel):
@@ -125,6 +133,9 @@ class PlacementStatusResponse(BaseModel):
     needs_placement: bool
     current_level: str | None = None
     completed_at: datetime | None = None
+    # 24 Eylul 2026 -- devam ettirilebilir yarim bir placement oturumu var mi
+    # (istemci "Kaldigin yerden devam et" metni gosterebilir).
+    has_resumable_session: bool = False
 
 
 class AddWordFromQuestionResponse(BaseModel):
