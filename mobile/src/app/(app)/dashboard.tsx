@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2 } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2, MessagesSquare } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import type { Locale } from '@/i18n/locales';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
@@ -551,6 +551,15 @@ export default function DashboardScreen() {
             <ActionTile icon={Trophy} label={lgs.title} onPress={() => router.push('/(app)/league')} bg={c.warningSoft} fg={c.warning} />
             <ActionTile icon={Map} label={qs.title} onPress={() => router.push('/(app)/quests')} bg={c.accentSoft} fg={c.accent} />
             <ActionTile icon={FileBarChart2} label={rs.title} onPress={() => router.push('/(app)/report')} bg={c.successSoft} fg={c.success} />
+            {/* Roleplay/diyalog botu (24 Eylül 2026, Madde 2 -- ikinci
+                seçim) -- diğerleriyle AYNI kısayol grid'i. */}
+            <ActionTile
+              icon={MessagesSquare}
+              label={locale === 'tr' ? 'Diyalog' : 'Roleplay'}
+              onPress={() => router.push('/(app)/roleplay')}
+              bg={c.primarySoft}
+              fg={c.primary}
+            />
           </View>
         </View>
 

@@ -8,7 +8,7 @@ import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
   Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award, FileBarChart2,
-  Building2,
+  Building2, MessagesSquare,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { organizationsApi } from '@/lib/api';
@@ -59,6 +59,13 @@ const LEAGUE_LABEL: Record<Locale, string> = {
 const QUESTS_LABEL: Record<Locale, string> = {
   tr: 'Görev Haritası', en: 'Quest Map', ar: 'خريطة المهام', ru: 'Карта заданий', de: 'Aufgabenkarte',
   fr: 'Carte des Quêtes', es: 'Mapa de Misiones', it: 'Mappa delle Missioni', ja: 'クエストマップ', pt: 'Mapa de Missões',
+};
+
+// "Roleplay/diyalog botu" (24 Eylül 2026, Madde 2 — ikinci seçim). Aynı
+// yerel çeviri deseni (DUELS_LABEL/QUESTS_LABEL ile aynı).
+const ROLEPLAY_LABEL: Record<Locale, string> = {
+  tr: 'Diyalog Pratiği', en: 'Roleplay', ar: 'لعب الأدوار', ru: 'Ролевая игра', de: 'Rollenspiel',
+  fr: 'Jeu de rôle', es: 'Juego de roles', it: 'Gioco di ruolo', ja: 'ロールプレイ', pt: 'Roleplay',
 };
 
 // V2 öncelik #2 (11 Eylül 2026) — Rozetler ve Ödüller tam katalog sayfası
@@ -150,6 +157,7 @@ export function Sidebar() {
     { href: '/duels', label: DUELS_LABEL[locale], icon: Swords },
     { href: '/league', label: LEAGUE_LABEL[locale], icon: Trophy },
     { href: '/quests', label: QUESTS_LABEL[locale], icon: Map },
+    { href: '/roleplay', label: ROLEPLAY_LABEL[locale], icon: MessagesSquare },
     { href: '/rewards', label: REWARDS_LABEL[locale], icon: Award },
     { href: '/report', label: REPORT_LABEL[locale], icon: FileBarChart2 },
     // Sadece zaten bir kurumun üyesi olan kullanıcıya görünür (yukarıdaki effect).

@@ -149,6 +149,10 @@ export default function AppTabsLayout() {
           düzeltmesinin AYNI uyarısı: burada listelenmezse Expo Router
           sekme çubuğuna varsayılan ikonlu, istenmeyen bir sekme ekler. */}
       <Tabs.Screen name="daily-word" options={{ href: null, headerShown: false }} />
+      {/* Roleplay/diyalog botu (24 Eylül 2026, Madde 2 -- ikinci seçim) --
+          daily-word ile AYNI desen: kendi sekmesi yok, dashboard'daki
+          kısayoldan açılıyor. */}
+      <Tabs.Screen name="roleplay" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }
