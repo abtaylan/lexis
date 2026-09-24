@@ -1,0 +1,32 @@
+name: Lexis - daily word pool growth
+
+# Adaptif Ogrenme Motoru Madde 4 (24 Eylul 2026): kullanicilarin kendi
+# kelime listelerine ekledigi yeni Ingilizce kelimeleri CEFR seviyesine
+# gore siniflandirip general_word_pool'a otomatik ekler
+# (backend/app/services/word_pool_growth_service.py).
+on:
+  schedule:
+    # 05:00 UTC (08:00 Turkiye) civari, diger gunluk AI-destekli cron'lardan
+    # (reassess: 03:00, replenish: 04:00) sonra -- ayni gun icinde
+    # cakismasin diye bir saat daha kaydirildi. 10 dakikada bir 3 deneme,
+    # GitHub Actions cron tick atlamalarina karsi (bkz. daily-word-email.yml).
+    # Backend already_ran_today ile gunde tek calismayi garanti ediyor.
+    - cron: '5,15,25 5 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  trigger-grow-word-pool:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/grow-word-pool
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/grow-word-pool" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "Istek basarisiz (HTTP $http_code)"
+            exit 1
+          fi

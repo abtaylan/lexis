@@ -351,3 +351,36 @@ async def run_replenish_exam_questions(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 4: general_word_pool'u
+# kullanicilarin kendi eklediği yeni Ingilizce kelimelerle otomatik
+# buyutur (CEFR seviyesi Anthropic API ile siniflandirilir, bkz.
+# word_pool_growth_service.py docstring -- Cambridge canli scraping
+# denemesi bu ozellik gelistirilirken Cloudflare bot korumasina takilip
+# dogrulanamadi, kullanici onayiyla AI siniflandirmasina gecildi). Diger
+# gunluk job'lar gibi GitHub Actions'tan tetiklenir
+# (.github/workflows/grow-word-pool.yml), gunde tek calisma
+# already_ran_today ile garanti. Icerik URETILMIYOR (sadece kullanicinin
+# zaten kendi sozluk aramasiyla dogruladigi kelime+anlam siniflandiriliyor),
+# bu yuzden admin moderasyon kuyrugu GEREKMIYOR -- diger iki AI-destekli
+# cron'un (reassess-user-levels, replenish-exam-questions) aksine.
+@router.post("/grow-word-pool")
+async def run_grow_word_pool(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    if already_ran_today("grow_word_pool"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
+    def _run() -> dict:
+        from app.services.word_pool_growth_service import grow_word_pool
+
+        with job_run("grow_word_pool") as run:
+            result = grow_word_pool()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
