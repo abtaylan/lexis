@@ -70,6 +70,11 @@ XPSourceType = Literal[
     # daily_challenge_service.py'nin guess_letter()'inda, gunun kelimesi
     # ILK KEZ tamamlaninca (o gun icin ikinci kez verilmez) cagrilir.
     "daily_word_challenge",
+    # "Roleplay/diyalog botu" (24 Eylul 2026, Madde 2 -- ikinci secim) --
+    # roleplay_service.py'nin finish_session()'inda, oturum EN AZ
+    # MIN_TURNS_FOR_XP kullanici mesaji icerdiginde VE bu oturumda daha
+    # once XP verilmediyse (roleplay_sessions.xp_awarded) cagrilir.
+    "roleplay_session",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -131,6 +136,10 @@ XP_AMOUNTS: dict[str, int] = {
     # tahmin mekanigi, ama gunde sadece BIR kez kazanilabilir (klasik
     # Wordle'in "gunde bir bulmaca" kisitiyla tutarli bir odul buyuklugu).
     "daily_word_challenge": 15,
+    # Roleplay -- duel_win/exam_mock_complete/quest_complete (20) ile ayni
+    # buyuklukte: en az 4 gercek, serbest metin uretimi gerektiren bir
+    # diyalog turu -- tek bir wordle turundan (15) daha fazla emek.
+    "roleplay_session": 20,
 }
 
 LEVEL_BASE = 50
