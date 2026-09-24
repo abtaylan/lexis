@@ -745,6 +745,7 @@ export interface PlacementStatusResult {
   current_level: string | null;
   completed_at: string | null;
   has_resumable_session?: boolean;
+  needs_recheck?: boolean;
 }
 
 export interface AddWordFromQuestionResult {

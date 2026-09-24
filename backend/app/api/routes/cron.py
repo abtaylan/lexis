@@ -321,3 +321,33 @@ async def run_reassess_user_levels(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 3 (2. bolum): soru
+# tukenmesi otomatik tamamlama. Periyodik recheck sinavlari onceki gorulen
+# sorulari haric tuttugu icin dil+seviye havuzlari zamanla tukenebilir
+# (bkz. question_replenishment_service.py docstring). Diger gunluk
+# job'lar gibi GitHub Actions'tan tetiklenir
+# (.github/workflows/replenish-exam-questions.yml), gunde tek calisma
+# already_ran_today ile garanti. Uretilen sorular status='pending' --
+# admin onayi olmadan kullaniciya asla gosterilmez (seed script'iyle
+# AYNI moderasyon guvenligi).
+@router.post("/replenish-exam-questions")
+async def run_replenish_exam_questions(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    if already_ran_today("replenish_exam_questions"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
+    def _run() -> dict:
+        from app.services.question_replenishment_service import replenish_exam_questions
+
+        with job_run("replenish_exam_questions") as run:
+            result = replenish_exam_questions()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}

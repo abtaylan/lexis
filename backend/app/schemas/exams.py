@@ -136,6 +136,9 @@ class PlacementStatusResponse(BaseModel):
     # 24 Eylul 2026 -- devam ettirilebilir yarim bir placement oturumu var mi
     # (istemci "Kaldigin yerden devam et" metni gosterebilir).
     has_resumable_session: bool = False
+    # 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 3: periyodik yeniden
+    # seviye tespiti onerisi (ZORUNLU DEGIL, needs_placement'in aksine).
+    needs_recheck: bool = False
 
 
 class AddWordFromQuestionResponse(BaseModel):

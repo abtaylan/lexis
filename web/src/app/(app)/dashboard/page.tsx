@@ -120,6 +120,27 @@ const PLACEMENT_ALERT_STRINGS: Partial<Record<Locale, { title: string; message: 
   },
 };
 
+// 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 3: periyodik yeniden
+// seviye tespiti onerisi. PLACEMENT_ALERT_STRINGS'in aksine bu ZORUNLU
+// DEGIL -- kullanici kapatabilir (dismissible banner, not a blocking
+// modal), backend needs_recheck=true dondugunde gosterilir (14 gunde bir
+// veya sureklilik gosteren seviye sapma sinyaliyle, bkz. exams.py::
+// get_placement_status).
+const RECHECK_BANNER_STRINGS: Partial<Record<Locale, { title: string; message: string; cta: string; dismiss: string }>> = {
+  tr: {
+    title: 'Seviyeni Yeniden Kontrol Et',
+    message: 'Son dönemki performansına göre seviyen değişmiş olabilir. Kısa bir sınavla seviyeni güncelleyebilirsin.',
+    cta: 'Kısa Sınavı Başlat',
+    dismiss: 'Daha sonra',
+  },
+  en: {
+    title: 'Recheck Your Level',
+    message: 'Your level may have shifted based on your recent performance. A short exam can update it.',
+    cta: 'Start Short Exam',
+    dismiss: 'Later',
+  },
+};
+
 // Çalışma dili seçicisi ile mesaj simgesi arasındaki hızlı erişim tema
 // butonunun etiketi — Sidebar.tsx'teki THEME_LABEL ile aynı çeviri deseni
 // (merkezi i18n.tsx sözlüğüne dokunmadan yerel çeviri).
@@ -199,6 +220,9 @@ export default function DashboardPage() {
   // Kullanıcı isteği (19 Eylül 2026): seviye tespit sınavına artık sessizce
   // değil, bu Alert modalı gösterilip CTA'ya basılınca yönlendiriliyor.
   const [showPlacementAlert, setShowPlacementAlert] = useState(false);
+  // Madde 3: dismissible recheck onerisi -- zorunlu placement modalinin
+  // aksine kullanici kapatabilir, kapatilirsa bugun icin bir daha gosterilmez.
+  const [showRecheckBanner, setShowRecheckBanner] = useState(false);
 
   // ── Aktif öğrenme dili değiştirici (Kullanıcı Madde 2: çoklu dil) ──
   const [userLangs, setUserLangs] = useState<UserLanguage[]>([]);
@@ -257,6 +281,20 @@ export default function DashboardPage() {
       .then((res) => {
         if (res.needs_placement) {
           setShowPlacementAlert(true);
+          return;
+        }
+        // Madde 3: sadece placement zaten tamamlanmışsa anlamlı -- zorunlu
+        // akışla çakışmasın diye needs_placement true ise hiç kontrol edilmez.
+        if (res.needs_recheck) {
+          try {
+            const dismissedAt = localStorage.getItem('lexis_recheck_dismissed_at');
+            const today = new Date().toDateString();
+            if (dismissedAt !== today) {
+              setShowRecheckBanner(true);
+            }
+          } catch {
+            setShowRecheckBanner(true);
+          }
         }
       })
       .catch(() => {
@@ -657,6 +695,44 @@ export default function DashboardPage() {
           </span>
         </div>
       </button>
+
+      {/* Adaptif Öğrenme Motoru Madde 3: dismissible periyodik yeniden seviye
+          tespiti önerisi -- zorunlu placement modalinin aksine kapatılabilir. */}
+      {showRecheckBanner && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 flex items-start gap-3">
+          <div className="w-10 h-10 shrink-0 rounded-xl bg-[#EEEDFE] flex items-center justify-center">
+            <GraduationCap className="w-5 h-5 text-[#534AB7]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
+              {(RECHECK_BANNER_STRINGS[locale] ?? RECHECK_BANNER_STRINGS.tr)!.title}
+            </p>
+            <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+              {(RECHECK_BANNER_STRINGS[locale] ?? RECHECK_BANNER_STRINGS.tr)!.message}
+            </p>
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                onClick={() => router.push('/exam-prep?examType=placement&sessionMode=timed_mock')}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg text-white transition-colors"
+                style={{ background: '#534AB7' }}
+              >
+                {(RECHECK_BANNER_STRINGS[locale] ?? RECHECK_BANNER_STRINGS.tr)!.cta}
+              </button>
+              <button
+                onClick={() => {
+                  setShowRecheckBanner(false);
+                  try {
+                    localStorage.setItem('lexis_recheck_dismissed_at', new Date().toDateString());
+                  } catch {}
+                }}
+                className="text-xs font-medium px-3 py-1.5 rounded-lg text-gray-500 dark:text-slate-400 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+              >
+                {(RECHECK_BANNER_STRINGS[locale] ?? RECHECK_BANNER_STRINGS.tr)!.dismiss}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Adaptif Öğrenme Motoru Madde 2: haftalık program kartı. Zayıf konuları
           zaten içerdiği için gösterildiğinde eski "Zayıf Konuların" kartı gizlenir. */}

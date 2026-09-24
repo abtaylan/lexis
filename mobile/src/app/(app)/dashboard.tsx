@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2 } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
+import type { Locale } from '@/i18n/locales';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
 import { DUELS_STRINGS } from '@/i18n/duelsStrings';
 import { LEAGUE_STRINGS } from '@/i18n/leagueStrings';
@@ -109,6 +110,28 @@ const PLACEMENT_ALERT_STRINGS: Record<'tr' | 'en', { title: string; message: str
   },
 };
 
+// 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 3: periyodik yeniden
+// seviye tespiti onerisi. PLACEMENT_ALERT_STRINGS'in aksine ZORUNLU DEGIL
+// -- kapatilabilir kart (Alert.alert degil), backend needs_recheck=true
+// dondugunde gosterilir (bkz. web/dashboard/page.tsx RECHECK_BANNER_STRINGS
+// ile birebir ayni tr/en metinler).
+const RECHECK_BANNER_STRINGS: Partial<Record<Locale, { title: string; message: string; cta: string; dismiss: string }>> = {
+  tr: {
+    title: 'Seviyeni Yeniden Kontrol Et',
+    message: 'Son dönemki performansına göre seviyen değişmiş olabilir. Kısa bir sınavla seviyeni güncelleyebilirsin.',
+    cta: 'Kısa Sınavı Başlat',
+    dismiss: 'Daha sonra',
+  },
+  en: {
+    title: 'Recheck Your Level',
+    message: 'Your level may have shifted based on your recent performance. A short exam can update it.',
+    cta: 'Start Short Exam',
+    dismiss: 'Later',
+  },
+};
+
+const RECHECK_DISMISSED_KEY = 'lexis_recheck_dismissed_at';
+
 export default function DashboardScreen() {
   const { t, mt, locale, et } = useLocale();
   const c = useThemeColors();
@@ -119,6 +142,10 @@ export default function DashboardScreen() {
   const qs = QUESTS_STRINGS[locale] ?? QUESTS_STRINGS.tr;
   const pas = PLACEMENT_ALERT_STRINGS[locale] ?? PLACEMENT_ALERT_STRINGS.tr;
   const rs = REPORT_STRINGS[locale] ?? REPORT_STRINGS.tr;
+  const rbs = (RECHECK_BANNER_STRINGS[locale] ?? RECHECK_BANNER_STRINGS.tr)!;
+  // Madde 3: dismissible recheck onerisi -- zorunlu placement Alert'inin
+  // aksine kullanici kapatabilir, kapatilirsa bugun icin bir daha gosterilmez.
+  const [showRecheckBanner, setShowRecheckBanner] = useState(false);
 
   const { data: stats, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['stats-summary'],
@@ -176,6 +203,30 @@ export default function DashboardScreen() {
         );
       }
     }, [placementStatus, pas])
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (placementStatus?.needs_placement) {
+        // Zorunlu placement akisiyla cakismasin diye recheck sadece
+        // placement zaten tamamlanmissa kontrol edilir.
+        setShowRecheckBanner(false);
+        return;
+      }
+      if (!placementStatus?.needs_recheck) {
+        setShowRecheckBanner(false);
+        return;
+      }
+      let cancelled = false;
+      bulkStorage.getItem(RECHECK_DISMISSED_KEY).then((dismissedAt) => {
+        if (cancelled) return;
+        const today = new Date().toDateString();
+        setShowRecheckBanner(dismissedAt !== today);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [placementStatus])
   );
 
   // Kullanıcı isteği (9 Eylül 2026): "ana ekrana bu sınav programı için bir
@@ -313,6 +364,43 @@ export default function DashboardScreen() {
             </View>
           </View>
         </Pressable>
+
+        {/* Adaptif Öğrenme Motoru Madde 3: dismissible periyodik yeniden
+            seviye tespiti önerisi. */}
+        {showRecheckBanner && (
+          <Card style={{ marginTop: spacing.sm }}>
+            <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' }}>
+              <View style={[styles.examBannerIcon, { backgroundColor: c.surface }]}>
+                <GraduationCap color={c.warning} size={20} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>{rbs.title}</Text>
+                <Text style={{ fontSize: 13, color: c.textMuted, marginTop: 2 }}>{rbs.message}</Text>
+                <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
+                  <Pressable
+                    onPress={() =>
+                      router.push({ pathname: '/(app)/exam-prep', params: { examType: 'placement', sessionMode: 'timed_mock' } })
+                    }
+                    style={({ pressed }) => [
+                      { paddingVertical: 8, paddingHorizontal: 14, borderRadius: radius.md, backgroundColor: c.warning, opacity: pressed ? 0.85 : 1 },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: c.surface }}>{rbs.cta}</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setShowRecheckBanner(false);
+                      bulkStorage.setItem(RECHECK_DISMISSED_KEY, new Date().toDateString());
+                    }}
+                    style={({ pressed }) => [{ paddingVertical: 8, paddingHorizontal: 14, opacity: pressed ? 0.6 : 1 }]}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: c.textMuted }}>{rbs.dismiss}</Text>
+                  </Pressable>
+                </View>
+              </View>
+            </View>
+          </Card>
+        )}
 
         {/* Adaptif Öğrenme Motoru Madde 2: haftalık program kartı. Zayıf
             konuları zaten içerdiği için gösterildiğinde eski "Zayıf Konuların"

@@ -110,6 +110,25 @@ EXAM_MOCK_CONFIG: dict[str, dict[str, int]] = {
     "toefl": {"total_questions": 15, "time_limit_seconds": 20 * 60},
 }
 
+# 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 3: periyodik yeniden seviye
+# tespiti. Kullanici zaten bir kez placement (EXAM_MOCK_CONFIG['placement'],
+# 25 soru) cozmusse, bir sonraki placement oturumu artik "recheck" sayilir --
+# tam bir yeniden olcum yerine, mevcut seviyesinin etrafinda daha kisa,
+# odakli bir kontrol (bkz. _recheck_level_sequence). create_session bu
+# konfigurasyonu is_recheck durumuna gore secer; next_question de
+# session['total_questions'] degerinden hangi konfigurasyonun kullanildigini
+# (dolayisiyla hangi soru dagilim stratejisinin gerektigini) anlar.
+RECHECK_MOCK_CONFIG: dict[str, int] = {"total_questions": 15, "time_limit_seconds": 12 * 60}
+# Takvimsel varsayilan: son placement/recheck sinavindan RECHECK_INTERVAL_DAYS
+# gun sonra otomatik olarak yeni bir recheck onerilir (placement/status
+# uzerinden, ZORUNLU DEGIL -- sadece dashboard'da bir teklif karti).
+RECHECK_INTERVAL_DAYS = 14
+# Erken tetikleme: Madde 1'in periyodik (oyun performansina dayali, dolayli)
+# degerlendirmesi ust uste ayni yonde SURUKLENME gosterirse (iki ardisik
+# 'up' ya da iki ardisik 'down'), bu dolayli sinyali doGrulamak icin takvimi
+# beklemeden bir recheck onerilir.
+DRIFT_SIGNAL_COUNT = 2
+
 
 def _profile_langs(user_id: str) -> tuple[str, str]:
     profile = (
@@ -259,15 +278,24 @@ async def create_session(session_in: ExamSessionCreate, current_user=Depends(get
         )
 
     exam_type = session_in.exam_type.value
+    _, learning_lang = _profile_langs(current_user.id)
+
+    # 24 Eylul 2026 -- Madde 3: kullanici bu dilde daha once placement
+    # tamamladiysa (placement_completed_at dolu), sonraki her placement
+    # oturumu artik bir "recheck" -- daha kisa, mevcut seviye etrafinda
+    # odakli. Ilk kez cozuyorsa (needs_placement=True durumu) tam surum.
+    is_recheck = (
+        exam_type == "placement"
+        and _existing_placement_completed_at(current_user.id, learning_lang) is not None
+    )
+
     if session_in.session_mode.value == "timed_mock":
-        config = EXAM_MOCK_CONFIG[exam_type]
+        config = RECHECK_MOCK_CONFIG if is_recheck else EXAM_MOCK_CONFIG[exam_type]
         total_questions = config["total_questions"]
         time_limit_seconds = config["time_limit_seconds"]
     else:
         total_questions = session_in.total_questions or PRACTICE_DEFAULT_QUESTIONS
         time_limit_seconds = None
-
-    _, learning_lang = _profile_langs(current_user.id)
 
     # 24 Eylul 2026 -- seviye tespit sinavi DEVAM (resume) destegi. Uretimde
     # 23 placement oturumundan sadece 2'si bitmisti: uygulama her acilista
@@ -311,15 +339,34 @@ async def next_question(session_id: str, current_user=Depends(get_current_user))
         return NextQuestionResponse(finished=True)
 
     # placement sinavinda bu soru indexi icin hedeflenen CEFR seviyesi --
-    # bkz. _placement_level_sequence() yorumu. Diger sinav turlerinde
-    # (yds/yokdil/ielts/toefl) davranis DEGISMEDI, target_level None kalir.
+    # bkz. _placement_level_sequence()/_recheck_level_sequence() yorumlari.
+    # Diger sinav turlerinde (yds/yokdil/ielts/toefl) davranis DEGISMEDI,
+    # target_level None kalir.
+    #
+    # 24 Eylul 2026 -- Madde 3: total_questions RECHECK_MOCK_CONFIG'daki
+    # degere esitse (create_session bunu is_recheck durumuna gore secmisti)
+    # bu bir recheck oturumudur -- mevcut seviye etrafinda odakli dagilim
+    # kullanilir. Aksi halde (25 initial ya da eski 50 legacy) tam spread.
     target_level = None
+    previously_seen: list[str] = []
     if session["exam_type"] == "placement":
-        level_sequence = _placement_level_sequence(session["total_questions"])
+        learning_lang = session.get("learning_lang", "en")
+        is_recheck_session = session["total_questions"] == RECHECK_MOCK_CONFIG["total_questions"]
+        if is_recheck_session:
+            center_level = _current_or_placement_level(current_user.id, learning_lang)
+            level_sequence = _recheck_level_sequence(session["total_questions"], center_level)
+            # Recheck'in amaci "hala orada mi" sorusuna TAZE bir cevap vermek
+            # -- initial sinavda (ya da onceki bir recheck'te) zaten gorulmus
+            # sorular haric tutulur.
+            previously_seen = _user_seen_placement_question_ids(
+                current_user.id, learning_lang, exclude_session_id=session_id
+            )
+        else:
+            level_sequence = _placement_level_sequence(session["total_questions"])
         if len(attempted) < len(level_sequence):
             target_level = level_sequence[len(attempted)]
 
-    def _fetch_candidates(filter_level: str | None) -> list[dict]:
+    def _fetch_candidates(filter_level: str | None, exclude_seen: bool) -> list[dict]:
         q = (
             supabase_admin.table("exam_questions")
             .select("id, question_text, options")
@@ -328,18 +375,24 @@ async def next_question(session_id: str, current_user=Depends(get_current_user))
             .eq("status", "approved")
             .eq("learning_lang", session.get("learning_lang", "en"))
         )
-        if attempted:
-            q = q.not_.in_("id", attempted)
+        exclude = list(attempted) + (previously_seen if exclude_seen else [])
+        if exclude:
+            q = q.not_.in_("id", exclude)
         if filter_level:
             q = q.eq("difficulty_level", filter_level)
         return (q.limit(CANDIDATE_FETCH_LIMIT).execute().data) or []
 
-    candidates = _fetch_candidates(target_level)
+    # Kademeli gevseme: once hic gorulmemis + hedef seviye, sonra sirayla
+    # seviye filtresi, sonra "daha once gorulmus" kisitlamasi kaldirilir --
+    # sinav asla tikanmasin (bir seviyede/dilde soru havuzu zayifsa bile),
+    # sadece o soru icin hedeflenen ozellik(ler) kacirilmis olur.
+    candidates = _fetch_candidates(target_level, exclude_seen=True)
     if not candidates and target_level:
-        # O seviyede (nadiren) yeterli onayli soru kalmadiysa seviye
-        # filtresini kaldirip devam et -- sinavin tamamen tikanmasindan
-        # iyidir, sadece o tek soru icin dagilim hedefi kacirilmis olur.
-        candidates = _fetch_candidates(None)
+        candidates = _fetch_candidates(None, exclude_seen=True)
+    if not candidates and previously_seen:
+        candidates = _fetch_candidates(target_level, exclude_seen=False)
+    if not candidates and previously_seen and target_level:
+        candidates = _fetch_candidates(None, exclude_seen=False)
 
     if not candidates:
         return NextQuestionResponse(finished=True)
@@ -465,6 +518,32 @@ PLACEMENT_LEVEL_PASS_THRESHOLD = 0.5
 # seviyesi olur ve o seviyeden soru cekilir. Gercek adaptif/IRT modeli
 # degil (kapsam disi, yukaridaki yoruma bkz.) ama artik "sansa birak"
 # yerine "her seviyeden olcum al" garantisi var.
+def _existing_placement_completed_at(user_id: str, learning_lang: str) -> str | None:
+    rows = (
+        supabase_admin.table("user_learning_languages")
+        .select("placement_completed_at")
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .execute()
+        .data
+    ) or []
+    return rows[0].get("placement_completed_at") if rows else None
+
+
+def _current_or_placement_level(user_id: str, learning_lang: str) -> str | None:
+    rows = (
+        supabase_admin.table("user_learning_languages")
+        .select("current_level, placement_level")
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .execute()
+        .data
+    ) or []
+    if not rows:
+        return None
+    return rows[0].get("current_level") or rows[0].get("placement_level")
+
+
 def _placement_level_sequence(total_questions: int) -> list[str]:
     """total_questions sorusunu CEFR_LEVEL_ORDER seviyelerine mumkun oldugunca
     esit dagitip, dusuk seviyeden yuksege dogru sirali bir liste dondurur
@@ -481,6 +560,99 @@ def _placement_level_sequence(total_questions: int) -> list[str]:
     for level in CEFR_LEVEL_ORDER:
         sequence.extend([level] * counts[level])
     return sequence
+
+
+# 24 Eylul 2026 -- Madde 3 (recheck). Full spread yerine kullanicinin
+# MEVCUT seviyesi etrafinda yogunlasan bir dagilim: %40 tam seviyesi,
+# %25+%25 bir alt/bir ust, kalan (varsa) iki alt/iki ust'e esit paylastirilir
+# -- amaci "hala orada mi, kaymis mi" sorusuna 15 soruyla cevap vermek,
+# tum CEFR yelpazesini yeniden olcmek degil (o zaten placement_level'da var).
+_RECHECK_OFFSET_WEIGHTS: list[tuple[int, float]] = [(0, 0.40), (-1, 0.25), (1, 0.25), (-2, 0.05), (2, 0.05)]
+
+
+def _recheck_level_sequence(total_questions: int, center_level: str | None) -> list[str]:
+    center = center_level if center_level in CEFR_LEVEL_ORDER else CEFR_LEVEL_ORDER[1]  # varsayilan a2
+    center_idx = CEFR_LEVEL_ORDER.index(center)
+
+    in_range: list[tuple[str, float]] = []
+    for offset, weight in _RECHECK_OFFSET_WEIGHTS:
+        idx = center_idx + offset
+        if 0 <= idx < len(CEFR_LEVEL_ORDER):
+            in_range.append((CEFR_LEVEL_ORDER[idx], weight))
+    total_weight = sum(w for _, w in in_range)
+
+    # En buyuk kalan (largest remainder) yontemi: once tam sayi kismi
+    # verilir, kalan sorular en buyuk kesirli kalanlara (esitlikte merkeze
+    # en yakin seviyeye) dagitilir -- boylece toplam TAM total_questions'a
+    # esitlenir (basit floor/round ile es gecebilecegi gibi bir sapma yok).
+    raw = {level: total_questions * (weight / total_weight) for level, weight in in_range}
+    counts = {level: int(v) for level, v in raw.items()}
+    remainder = total_questions - sum(counts.values())
+    order_by_closeness = sorted(
+        in_range, key=lambda lw: (-((raw[lw[0]]) % 1), abs(CEFR_LEVEL_ORDER.index(lw[0]) - center_idx))
+    )
+    for level, _ in order_by_closeness[:remainder]:
+        counts[level] += 1
+
+    sequence: list[str] = []
+    for level in CEFR_LEVEL_ORDER:
+        if level in counts:
+            sequence.extend([level] * counts[level])
+    return sequence
+
+
+def _user_seen_placement_question_ids(
+    user_id: str, learning_lang: str, exclude_session_id: str | None = None
+) -> list[str]:
+    """Kullanicinin BASKA placement oturumlarinda (bu oturum haric) daha once
+    cevapladigi soru id'leri -- recheck sinavinin, initial sinavdakiyle AYNI
+    sorulari tekrar sormamasi icin (bkz. Madde 3 plani: 'kullanicinin daha
+    once gordugu sorulari tekrar gostermemeye dikkat et'). Eski/yarim kalmis
+    (finalize edilmis) oturumlar da dahildir -- gorulmus soru gorulmus
+    sayilir, oturum bitmis olsa da."""
+    query = (
+        supabase_admin.table("exam_sessions")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("exam_type", "placement")
+        .eq("learning_lang", learning_lang)
+    )
+    if exclude_session_id:
+        query = query.neq("id", exclude_session_id)
+    session_ids = [s["id"] for s in (query.execute().data or [])]
+    if not session_ids:
+        return []
+    attempts = (
+        supabase_admin.table("exam_attempts")
+        .select("question_id")
+        .in_("session_id", session_ids)
+        .execute()
+        .data
+    ) or []
+    return [a["question_id"] for a in attempts]
+
+
+def _has_recent_drift_signal(user_id: str, learning_lang: str, since_iso: str | None) -> bool:
+    """Son DRIFT_SIGNAL_COUNT 'periodic_reassessment' kaydi ayni yonde
+    (hepsi 'up' ya da hepsi 'down') mi? since_iso verilirse (son placement/
+    recheck sinavinin tarihi) sadece ONDAN SONRAKI kayitlar sayilir -- bir
+    recheck zaten o sapmayi ele almissa ayni sinyal tekrar erken tetiklemesin."""
+    query = (
+        supabase_admin.table("user_level_history")
+        .select("direction, assessed_at")
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .eq("source", "periodic_reassessment")
+        .order("assessed_at", desc=True)
+        .limit(DRIFT_SIGNAL_COUNT)
+    )
+    rows = query.execute().data or []
+    if since_iso:
+        rows = [r for r in rows if r["assessed_at"] > since_iso]
+    if len(rows) < DRIFT_SIGNAL_COUNT:
+        return False
+    directions = {r["direction"] for r in rows}
+    return directions in ({"up"}, {"down"})
 
 
 def _compute_placement_level(session_id: str) -> str | None:
@@ -746,10 +918,16 @@ def _finalize_stale_placement_sessions(user_id: str, learning_lang: str) -> str 
     now = datetime.now(UTC)
     stored_level: str | None = None
     current_total = EXAM_MOCK_CONFIG["placement"]["total_questions"]
+    recheck_total = RECHECK_MOCK_CONFIG["total_questions"]
     # En eskiden yeniye: en guncel sinav sonucu en son yazilsin.
     for session in reversed(_open_placement_sessions(user_id, learning_lang)):
         deadline = _session_deadline(session)
-        legacy_format = session["total_questions"] != current_total
+        # 24 Eylul 2026 -- Madde 3: recheck oturumlari (15 soru) da GECERLI
+        # bir guncel format -- sadece ilk-kez (25 soru) formatiyla eslesmiyor
+        # diye "legacy" sayilip zamanindan once kapatilmamali. legacy_format
+        # artik SADECE ne guncel ilk-kez ne de guncel recheck boyutuyla
+        # eslesen (gercekten eski/terk edilmis) oturumlari isaretler.
+        legacy_format = session["total_questions"] not in (current_total, recheck_total)
         if deadline - now >= timedelta(seconds=RESUME_MIN_REMAINING_SECONDS) and not legacy_format:
             continue  # hala devam ettirilebilir
 
@@ -878,9 +1056,26 @@ async def get_placement_status(current_user=Depends(get_current_user)):
     row = rows[0] if rows else {}
     completed_at = row.get("placement_completed_at")
     has_content = learning_lang in _exam_content_learning_langs()
+    needs_placement = has_content and not completed_at
+
+    # 24 Eylul 2026 -- Madde 3: periyodik yeniden seviye tespiti onerisi.
+    # SADECE placement zaten tamamlanmissa anlamli (ilk kez cozecek
+    # kullaniciya zaten needs_placement zorunlu akisi devreye giriyor).
+    # Iki tetikleyiciden biri yeterli: takvim (RECHECK_INTERVAL_DAYS gun
+    # gecmis) ya da Madde 1'in sureklilik gosteren sapma sinyali (bkz.
+    # _has_recent_drift_signal). Bu ZORUNLU DEGIL -- sadece dashboard'da
+    # bir oneri karti (needs_placement'in aksine kullanici isterse
+    # gecebilir).
+    needs_recheck = False
+    if has_content and completed_at:
+        days_since = (datetime.now(UTC) - _parse_ts(completed_at)).days
+        needs_recheck = days_since >= RECHECK_INTERVAL_DAYS or _has_recent_drift_signal(
+            current_user.id, learning_lang, since_iso=completed_at
+        )
+
     return PlacementStatusResponse(
         learning_lang=learning_lang,
-        needs_placement=has_content and not completed_at,
+        needs_placement=needs_placement,
         current_level=row.get("placement_level"),
         completed_at=completed_at,
         has_resumable_session=bool(
@@ -891,6 +1086,7 @@ async def get_placement_status(current_user=Depends(get_current_user)):
                 EXAM_MOCK_CONFIG["placement"]["total_questions"],
             )
         ),
+        needs_recheck=needs_recheck,
     )
 
 
