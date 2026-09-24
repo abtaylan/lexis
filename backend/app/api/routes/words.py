@@ -12,12 +12,14 @@ from app.schemas.words import (
     WeakWordTypesResult,
     WordCreate,
     WordListResponse,
+    WordOfTheDayResponse,
     WordResponse,
     WordUpdate,
 )
 from app.services.spaced_repetition import calculate_next_review
 from app.services.streak import update_streak
 from app.services.weak_categories_service import get_weak_word_types
+from app.services.word_of_the_day_service import get_word_of_the_day
 from app.services.xp_service import award_xp
 
 router = APIRouter()
@@ -250,6 +252,32 @@ async def weak_word_types(
     items = [WeakWordTypeItem(**item) for item in raw_items]
 
     return WeakWordTypesResult(period_days=days, items=items)
+
+@router.get("/word-of-the-day", response_model=WordOfTheDayResponse)
+async def word_of_the_day(current_user=Depends(get_current_user)):
+    """Dashboard 'Günün Kelimesi' kartı (Madde 5, 24 Eylül 2026) — kullanıcının
+    zaten e-posta/sosyal medyada aldığı günlük kelime içeriğini (bkz.
+    send_daily_word_email.py, daily_word_content/general_word_pool
+    rotasyonu) dashboard'da da gösterir. Salt okunur — hiçbir satırı
+    güncellemez, rotasyon tamamen cron'a ait (bkz. word_of_the_day_service.py
+    modül docstring'i)."""
+    profile = (
+        supabase_admin.table("profiles")
+        .select("native_lang, learning_lang")
+        .eq("id", current_user.id)
+        .single()
+        .execute()
+    )
+    prof_data = profile.data or {}
+    target_lang = (prof_data.get("learning_lang") or "en").lower()
+    native_lang = (prof_data.get("native_lang") or "tr").lower()
+
+    word = get_word_of_the_day(target_lang, native_lang)
+    if not word:
+        return WordOfTheDayResponse(found=False)
+    word.pop("source", None)  # dahili alan, response şemasında yok
+    return WordOfTheDayResponse(found=True, **word)
+
 
 @router.get("/due/today")
 async def get_due_words(current_user=Depends(get_current_user)):

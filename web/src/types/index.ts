@@ -390,6 +390,23 @@ export interface WeakWordTypesResult {
   items: WeakWordTypeItem[];
 }
 
+// Madde 5 (24 Eylul 2026) -- dashboard "Gunun Kelimesi" karti. Backend
+// GET /words/word-of-the-day cevabinin karsiligi (bkz. backend/app/schemas/
+// words.py::WordOfTheDayResponse). found=false iken diger alanlar yoktur --
+// widget bu durumda sessizce hic render edilmez.
+export interface WordOfTheDayResult {
+  found: boolean;
+  word?: string;
+  meaning_target?: string;
+  meaning_native?: string;
+  example_1_target?: string;
+  example_1_native?: string;
+  grammar_note_native?: string;
+  level?: string;
+  target_lang?: string;
+  native_lang?: string;
+}
+
 // V2 madde #6 (Faz 2) -- oyun tarafi zayif alan istatistigi.
 export interface WeakDifficultyItem {
   difficulty_level: string;

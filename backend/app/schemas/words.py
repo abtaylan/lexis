@@ -102,6 +102,25 @@ class StudySessionResponse(BaseModel):
     ended_at: datetime | None = None
 
 
+class WordOfTheDayResponse(BaseModel):
+    """GET /words/word-of-the-day cevabı (Madde 5, 24 Eylül 2026) — dashboard
+    'Günün Kelimesi' kartı. app/services/word_of_the_day_service.py'den gelir,
+    hiçbir satırı güncellemez (salt okunur önizleme, rotasyon send_daily_word_
+    email.py cron'una ait). `found=False` iken diğer alanlar None'dır --
+    widget bu durumda sessizce hiç render edilmez (soft-disable deseni)."""
+
+    found: bool
+    word: str | None = None
+    meaning_target: str | None = None
+    meaning_native: str | None = None
+    example_1_target: str | None = None
+    example_1_native: str | None = None
+    grammar_note_native: str | None = None
+    level: str | None = None
+    target_lang: str | None = None
+    native_lang: str | None = None
+
+
 class WeakWordTypesResult(BaseModel):
     """GET /words/stats/weak-word-types cevabı — V2 madde #6, Faz 2.
 

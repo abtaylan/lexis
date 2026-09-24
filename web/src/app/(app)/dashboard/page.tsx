@@ -14,6 +14,7 @@ import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
 import { CefrBadge } from '@/components/layout/CefrBadge';
 import { DailyWordCard } from '@/components/layout/DailyWordCard';
+import { WordOfTheDayCard } from '@/components/layout/WordOfTheDayCard';
 import { StreakHeatmap } from '@/components/layout/StreakHeatmap';
 import { MascotGreeting } from '@/components/layout/MascotGreeting';
 import { OnboardingTour } from '@/components/layout/OnboardingTour';
@@ -577,6 +578,12 @@ export default function DashboardPage() {
           ile AYNI soft-disable deseni: bugünün kelimesi yoksa kart hiç
           render edilmez. */}
       <DailyWordCard />
+
+      {/* Günün Kelimesi (Madde 5, 24 Eylül 2026) — DailyWordCard ile
+          KARIŞTIRILMASIN: o "Günlük Kelime Avı" (Wordle tarzı oyun), bu ise
+          salt okunur, e-postayla gelen günlük kelime içeriğinin dashboard'a
+          taşınmış hali. Aynı soft-disable deseni: içerik yoksa render edilmez. */}
+      <WordOfTheDayCard />
 
       {/* Sıralama — kendi puanın + rakip karşılaştırması (Genel/Haftalık/Aylık).
           limit=5: ilk 5 gösterilir; kullanıcı ilk 5'te değilse (örn. 10.
