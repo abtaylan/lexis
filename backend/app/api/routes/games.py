@@ -67,6 +67,7 @@ from app.schemas.games import (
     AttemptResponse,
     Direction,
     FinishSessionResponse,
+    GameMode,
     GameSessionCreate,
     GameSessionResponse,
     GameWordOption,
@@ -285,6 +286,67 @@ def _random_window(
     ) or []
 
 
+# "Cumle Kurma" (24 Eylul 2026, Madde 2 -- ucuncu secim) icin sabitler --
+# general_word_pool.example zaten dogal kaynak (Cambridge-tabanli seed,
+# oturumda canli SQL ile dogrulandi: 9 dilde toplam binlerce "temiz" -- kisa,
+# tam, egik cizgi/parantez/esittir icermeyen -- ornek cumle var). Cok kisa
+# ornekler (2-3 kelime) yeterince "kurulacak" bir cumle olmuyor, cok uzunlar
+# (10+) mobilde tek satira/ekrana sigmiyor.
+SENTENCE_MIN_WORDS = 4
+SENTENCE_MAX_WORDS = 9
+
+
+def _choose_sentence_word(learning_lang: str, native_lang: str, attempted: list[str]) -> dict | None:
+    """sentence_building modu icin TEMIZ (kisa, tam, alternatif/aciklama
+    icermeyen) bir ornek cumleye sahip kelime secer. _random_window'daki
+    AYNI "rastgele ofsetli pencere" deseni (Postgres'in her seferinde ayni
+    fiziksel ilk satirlari donmesini onlemek icin, bkz. o fonksiyonun 24
+    Eylul 2026 hata duzeltmesi notu)."""
+    query = (
+        supabase_admin.table("general_word_pool")
+        .select("id, word, meaning, example")
+        .eq("source_lang", learning_lang)
+        .eq("target_lang", native_lang)
+        .eq("is_active", True)
+        .not_.is_("example", "null")
+        .not_.like("example", "%/%")
+        .not_.like("example", "%(%")
+        .not_.like("example", "%=%")
+    )
+    if attempted:
+        query = query.not_.in_("id", attempted)
+
+    count_query = (
+        supabase_admin.table("general_word_pool")
+        .select("id", count="exact")
+        .eq("source_lang", learning_lang)
+        .eq("target_lang", native_lang)
+        .eq("is_active", True)
+        .not_.is_("example", "null")
+        .not_.like("example", "%/%")
+        .not_.like("example", "%(%")
+        .not_.like("example", "%=%")
+    )
+    if attempted:
+        count_query = count_query.not_.in_("id", attempted)
+    total = count_query.limit(1).execute().count or 0
+    if total == 0:
+        return None
+
+    offset = random.randint(0, max(0, total - CANDIDATE_FETCH_LIMIT))
+    rows = (
+        query.order("id").range(offset, offset + CANDIDATE_FETCH_LIMIT - 1).execute().data
+    ) or []
+
+    candidates = [
+        r for r in rows
+        if SENTENCE_MIN_WORDS <= len((r.get("example") or "").split()) <= SENTENCE_MAX_WORDS
+    ]
+    if not candidates:
+        return None
+    return random.choice(candidates)
+
+
 def _choose_general_word(
     user_id: str,
     learning_lang: str,
@@ -473,6 +535,16 @@ async def create_session(
             "kendi kelimelerinde tanım metni tutulmuyor.",
         )
 
+    # Cümle Kurma (24 Eylül 2026, Madde 2) — sadece genel havuzla çalışır:
+    # temiz/kısa örnek cümle filtresi general_word_pool'un Cambridge-tabanlı
+    # seed verisine dayanıyor, kullanıcının kendi "words" tablosundaki
+    # örnekler bu şekilde kürate edilmemiş.
+    if session_in.mode == GameMode.sentence_building and session_in.pool_source == PoolSource.own:
+        raise HTTPException(
+            status_code=422,
+            detail="Cümle kurma modu sadece genel kelime havuzuyla kullanılabilir.",
+        )
+
     # 24 Eylul 2026 HATA DUZELTMESI: game_sessions.learning_lang hic
     # yazilmiyordu (uretimde son 30 gunun 202 oturumunun 0'inda dolu).
     # level_assessment_service.py oyun dogrulugunu TAM bu kolona gore
@@ -535,18 +607,26 @@ async def next_word(
         # pool_source == "general"
         learning_lang, native_lang = _get_profile_langs(current_user.id)
         attempted = _attempted_ids(session_id, "general_word_id")
-        # 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 1: vadesi gelen
-        # tekrarlar (%70) + seviyeye gore agirlikli, rastgele pencereden
-        # yeni kelimeler (%30). Ayrinti: _choose_general_word().
-        chosen = _choose_general_word(
-            current_user.id, learning_lang, native_lang, attempted, direction
-        )
-        if chosen is None:
-            return NextWordResponse(finished=True)
-        meaning_text = (
-            chosen.get("definition") if direction == Direction.definition_to_word.value
-            else chosen["meaning"]
-        )
+        if mode == "sentence_building":
+            # 24 Eylul 2026, Madde 2 -- ucuncu secim: temiz (kisa, tam) bir
+            # ornek cumleye sahip kelime secilir -- bkz. _choose_sentence_word().
+            chosen = _choose_sentence_word(learning_lang, native_lang, attempted)
+            if chosen is None:
+                return NextWordResponse(finished=True)
+            meaning_text = chosen["meaning"]
+        else:
+            # 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 1: vadesi gelen
+            # tekrarlar (%70) + seviyeye gore agirlikli, rastgele pencereden
+            # yeni kelimeler (%30). Ayrinti: _choose_general_word().
+            chosen = _choose_general_word(
+                current_user.id, learning_lang, native_lang, attempted, direction
+            )
+            if chosen is None:
+                return NextWordResponse(finished=True)
+            meaning_text = (
+                chosen.get("definition") if direction == Direction.definition_to_word.value
+                else chosen["meaning"]
+            )
         chosen_word_id = None
         chosen_general_word_id = chosen["id"]
 
@@ -572,6 +652,19 @@ async def next_word(
             word_length=len(word_text),
             revealed=_reveal_pattern(word_text, []),
             max_wrong_guesses=MAX_WRONG_GUESSES,
+        )
+
+    # ── sentence_building (cümle kurma) modu: DOĞRU sırada tokenlar
+    # gönderilir (word_to_meaning'de kelimenin kendisinin gönderilmesiyle
+    # AYNI güven modeli) -- istemci kendi karıştırır, kendi kontrol eder,
+    # submit_attempt'e is_correct olarak kendi bildirir. ──
+    if mode == "sentence_building":
+        return NextWordResponse(
+            finished=False,
+            general_word_id=chosen_general_word_id,
+            meaning=meaning_text,
+            example=chosen.get("example"),
+            sentence_tokens=(chosen.get("example") or "").split(),
         )
 
     # ── multiple_choice modu (direction'a göre iki farklı yön) ──

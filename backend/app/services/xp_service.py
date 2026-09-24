@@ -29,6 +29,10 @@ XPSourceType = Literal[
     "game_matching",
     "game_listening",
     "game_sprint",
+    # "Cümle Kurma" (24 Eylül 2026, Madde 2 — üçüncü seçim) — games.py'nin
+    # dinamik f"game_{session['mode']}" deseniyle (submit_attempt) otomatik
+    # üretilir, diğer oyun modlarıyla AYNI şekilde.
+    "game_sentence_building",
     # Ödül sistemi (bkz. badge_service.py / distribute_leaderboard_rewards.py) —
     # streak.py içinde seri kilometre taşına (7/30/100/365 gün) ulaşınca,
     # ya da haftalık/aylık liderlik tablosu ödülleri dağıtılırken kullanılır.
@@ -103,6 +107,10 @@ XP_AMOUNTS: dict[str, int] = {
     "game_matching": 6,
     "game_listening": 8,
     "game_sprint": 4,
+    # Cümle Kurma — game_typing (8) ile aynı büyüklükte: tek kelimelik
+    # modlardan (multiple_choice/matching/sprint) daha fazla dil üretimi/
+    # cümle yapısı kavrayışı gerektiriyor.
+    "game_sentence_building": 8,
     # Bu ikisi için çağıran kod (streak.py / distribute_leaderboard_rewards.py)
     # her zaman kendi `amount`ını açıkça geçer (kilometre taşı / sıralamaya göre
     # değişken miktar) — buradaki değerler sadece olası bir eksik-amount çağrısına

@@ -11,6 +11,9 @@ class GameMode(str, Enum):
     matching = "matching"
     listening = "listening"
     sprint = "sprint"
+    # "Cümle Kurma" (24 Eylül 2026, Madde 2 — üçüncü seçim) — bkz.
+    # 084_sentence_building_mode.sql modül notu.
+    sentence_building = "sentence_building"
 
 
 class PoolSource(str, Enum):
@@ -65,6 +68,11 @@ class NextWordResponse(BaseModel):
     word_length: int | None = None
     revealed: str | None = None  # örn. "_ e _ _ e" (harf aralarında boşluk)
     max_wrong_guesses: int | None = None
+    # ── sentence_building (cümle kurma) moduna özel alan ──
+    # DOĞRU sırada gönderilir (word_to_meaning'de kelimenin kendisinin
+    # gönderilmesiyle AYNI güven modeli) — istemci kendi karıştırır, kendi
+    # kontrol eder.
+    sentence_tokens: list[str] | None = None
 
 
 class AttemptCreate(BaseModel):
