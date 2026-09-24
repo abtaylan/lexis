@@ -183,3 +183,22 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .qm-pulse::before, .qm-node-enter, .qm-check-enter { animation: none !important; }
 }
+
+/* Madde 3 (Görsel/GUI) — 3D flip flashcards + ses dalga formu (24 Eylül
+   2026). "wave-" öneki qm- (quest map) desenindeki isimlendirmeyle aynı
+   yaklaşım: küçük, sayfaya özel bir animasyon için global.css'e eklenen
+   izole bir sınıf ailesi. Telaffuz (TTS) çalarken flashcards kartında
+   gösterilen kısa dalga formu çubukları — her çubuk farklı bir
+   animation-delay ile aynı keyframe'i kullanır. */
+@keyframes wave-bar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+.wave-bar {
+  animation: wave-bar 0.9s ease-in-out infinite;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave-bar { animation: none !important; transform: scaleY(0.65) !important; }
+}

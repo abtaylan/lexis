@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
-import { CircleCheckBig, CircleX, RotateCcw, Layers, ChevronRight, BookPlus } from 'lucide-react-native';
+import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { CircleCheckBig, CircleX, RotateCcw, Layers, ChevronRight, BookPlus, Volume2 } from 'lucide-react-native';
+import * as Speech from 'expo-speech';
 import { router, useFocusEffect } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
@@ -14,6 +15,19 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+
+// game.tsx::SPEECH_LANG_MAP ile BİREBİR aynı (kasıtlı küçük tekrar).
+const SPEECH_LANG_MAP: Record<string, string> = {
+  en: 'en-US',
+  tr: 'tr-TR',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  it: 'it-IT',
+  ja: 'ja-JP',
+  ar: 'ar-SA',
+  ru: 'ru-RU',
+};
 
 // ── Flashcards — web'deki app/(app)/flashcards/page.tsx'in mobil karşılığı.
 // Bugün için tekrar bekleyen kelimeler (wordsApi.getDue) öncelikli; yoksa
@@ -47,6 +61,58 @@ export default function FlashcardsScreen() {
   const [error, setError] = useState('');
   const sessionStartRef = useRef<number>(Date.now());
 
+  // ── Gerçek 3D çevirme (Madde 3, 24 Eylül 2026) — web'deki
+  // app/(app)/flashcards/page.tsx ile AYNI mantık: ön/arka yüz AYNI ANDA
+  // View ağacında (mutlak konumlanmış, backfaceVisibility: 'hidden'),
+  // Animated.Value ile rotateY döndürülüyor. `flipped` her değiştiğinde
+  // (hem tıklamada hem bir sonraki karta geçerken) flipAnim 0<->1 arası
+  // animasyonla geçiyor. ──
+  const flipAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(flipAnim, {
+      toValue: flipped ? 1 : 0,
+      duration: 500,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [flipped, flipAnim]);
+  const frontRotate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
+  const backRotate = flipAnim.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
+
+  // ── Ses dalga formu — telaffuz TTS çalarken kartta gösterilen animasyonlu
+  // çubuklar. expo-speech zaten game.tsx'te kullanılan bir bağımlılık
+  // (bkz. o dosyadaki aynı isimli speakWord) — burada YENİ bir native
+  // modül eklenmedi, sadece flashcards ekranında da kullanılıyor. ──
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const speakWord = useCallback(
+    (text: string) => {
+      if (!text) return;
+      const langCode = SPEECH_LANG_MAP[user?.learning_lang ?? ''];
+      try {
+        Speech.stop();
+        Speech.speak(text, {
+          language: langCode,
+          onStart: () => setIsSpeaking(true),
+          onDone: () => setIsSpeaking(false),
+          onStopped: () => setIsSpeaking(false),
+          onError: () => {
+            setIsSpeaking(false);
+            if (langCode) {
+              try {
+                Speech.speak(text, { onStart: () => setIsSpeaking(true), onDone: () => setIsSpeaking(false) });
+              } catch {
+                /* sessiz */
+              }
+            }
+          },
+        });
+      } catch {
+        setIsSpeaking(false);
+      }
+    },
+    [user?.learning_lang]
+  );
+
   const shuffle = (arr: Word[]) => [...arr].sort(() => Math.random() - 0.5);
 
   const loadCards = useCallback(async () => {
@@ -76,6 +142,17 @@ export default function FlashcardsScreen() {
   useEffect(() => {
     loadCards();
   }, [loadCards]);
+
+  // Kart değiştiğinde hâlâ çalan bir telaffuz varsa kes.
+  useEffect(() => {
+    return () => {
+      try {
+        Speech.stop();
+      } catch {
+        /* sessiz */
+      }
+    };
+  }, [index]);
 
   // Kullanıcı geri bildirimi: yeni eklenen bir kelime "tekrar et" kartlarında
   // hemen çıkmıyordu, ancak uygulamadan tamamen çıkıp tekrar girince
@@ -200,16 +277,28 @@ export default function FlashcardsScreen() {
         <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: c.primary }]} />
       </View>
 
-      <Pressable
-        onPress={() => !reviewing && setFlipped((f) => !f)}
-        style={[
-          styles.flashCard,
-          { backgroundColor: c.surface, borderColor: c.border, minHeight: flipped ? 240 : 190 },
-        ]}
-      >
-        {!flipped ? (
+      <Pressable onPress={() => !reviewing && setFlipped((f) => !f)} style={styles.flashCardWrap}>
+        {/* Ön yüz */}
+        <Animated.View
+          style={[
+            styles.flashCardFace,
+            { backgroundColor: c.surface, borderColor: c.border, transform: [{ perspective: 1200 }, { rotateY: frontRotate }] },
+          ]}
+        >
           <View style={styles.cardFront}>
-            <Text style={{ color: c.text, fontSize: 28, fontWeight: '700', textAlign: 'center' }}>{current.word}</Text>
+            <View style={styles.wordRow}>
+              <Text style={{ color: c.text, fontSize: 28, fontWeight: '700', textAlign: 'center' }}>{current.word}</Text>
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  speakWord(current.word);
+                }}
+                style={[styles.speakBtn, { backgroundColor: c.primarySoft }]}
+              >
+                <Volume2 color={c.primary} size={16} />
+              </Pressable>
+            </View>
+            {isSpeaking && <WaveformBars color={c.primary} />}
             {current.word_type ? (
               <View style={[styles.typeBadge, { backgroundColor: c.primarySoft, marginTop: spacing.sm }]}>
                 <Text style={{ color: c.primary, fontSize: 11, fontWeight: '600' }}>{current.word_type}</Text>
@@ -220,8 +309,16 @@ export default function FlashcardsScreen() {
               <ChevronRight color={c.textMuted} size={12} />
             </View>
           </View>
-        ) : (
-          <View style={styles.cardBack}>
+        </Animated.View>
+
+        {/* Arka yüz */}
+        <Animated.View
+          style={[
+            styles.flashCardFace,
+            { backgroundColor: c.surface, borderColor: c.border, transform: [{ perspective: 1200 }, { rotateY: backRotate }] },
+          ]}
+        >
+          <ScrollView contentContainerStyle={styles.cardBack}>
             <View style={{ width: '100%' }}>
               <Text style={[styles.fieldLabel, { color: c.textMuted }]}>{t('colMeaning')}</Text>
               <Text style={{ color: c.text, fontSize: 17, fontWeight: '600' }}>{current.meaning}</Text>
@@ -244,8 +341,8 @@ export default function FlashcardsScreen() {
                 <Text style={{ color: c.textMuted, fontSize: 12, fontStyle: 'italic' }}>{current.example}</Text>
               </View>
             ) : null}
-          </View>
-        )}
+          </ScrollView>
+        </Animated.View>
       </Pressable>
 
       {flipped ? (
@@ -276,6 +373,35 @@ export default function FlashcardsScreen() {
         <Text style={{ color: c.textMuted, fontSize: 11 }}>{t('wrongCountTpl', { n: index - correct })}</Text>
       </View>
     </ScreenContainer>
+  );
+}
+
+// Ses dalga formu — telaffuz TTS çalarken 5 çubuk, her biri farklı bir
+// gecikmeyle Animated.loop üzerinden scaleY animasyonu yapıyor (web'deki
+// globals.css::.wave-bar keyframe'inin RN Animated karşılığı).
+function WaveformBars({ color }: { color: string }) {
+  const bars = useRef([0, 1, 2, 3, 4].map(() => new Animated.Value(0.3))).current;
+  useEffect(() => {
+    const anims = bars.map((v, i) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(i * 120),
+          Animated.timing(v, { toValue: 1, duration: 450, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+          Animated.timing(v, { toValue: 0.3, duration: 450, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        ])
+      )
+    );
+    anims.forEach((a) => a.start());
+    return () => anims.forEach((a) => a.stop());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <View style={styles.waveRow}>
+      {bars.map((v, i) => (
+        <Animated.View key={i} style={[styles.waveBar, { backgroundColor: color, transform: [{ scaleY: v }] }]} />
+      ))}
+    </View>
   );
 }
 
@@ -348,9 +474,24 @@ const styles = StyleSheet.create({
   iconBadgeSm: { width: 28, height: 28, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   progressTrack: { height: 6, borderRadius: radius.full, overflow: 'hidden', marginTop: spacing.md },
   progressFill: { height: 6, borderRadius: radius.full },
-  flashCard: { borderWidth: 1, borderRadius: radius.lg, marginTop: spacing.md, marginBottom: spacing.md, overflow: 'hidden' },
+  flashCardWrap: { height: 300, marginTop: spacing.md, marginBottom: spacing.md },
+  flashCardFace: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backfaceVisibility: 'hidden',
+  },
   cardFront: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
-  cardBack: { flex: 1, padding: spacing.lg },
+  cardBack: { flexGrow: 1, padding: spacing.lg },
+  wordRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  speakBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  waveRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 16, marginTop: spacing.sm },
+  waveBar: { width: 3, height: 16, borderRadius: 2 },
   fieldLabel: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginBottom: 4 },
   exampleBox: { width: '100%', borderTopWidth: 1, marginTop: spacing.sm, paddingTop: spacing.sm },
   typeBadge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },

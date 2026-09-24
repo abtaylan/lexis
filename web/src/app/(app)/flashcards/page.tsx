@@ -1,12 +1,27 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { CheckCircle2, XCircle, RotateCcw, Loader2, Layers, ChevronRight, BookPlus, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, XCircle, RotateCcw, Loader2, Layers, ChevronRight, BookPlus, ArrowLeft, Volume2 } from 'lucide-react';
 import { wordsApi, languagesApi } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
 import { useLocale } from '@/lib/i18n';
 import type { Word, Language } from '@/types';
+
+// KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026, game/page.tsx'teki aynı not): dil
+// koduna göre TTS sesi — game/page.tsx::SPEECH_LANG_MAP ile BİREBİR aynı
+// harita (kasıtlı küçük tekrar, aynı codebase konvansiyonu).
+const SPEECH_LANG_MAP: Record<string, string> = {
+  en: 'en-US',
+  tr: 'tr-TR',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  it: 'it-IT',
+  ja: 'ja-JP',
+  ar: 'ar-SA',
+  ru: 'ru-RU',
+};
 
 // ── Oturum sonu ekranı ────────────────────────────────────────
 function DoneScreen({ total, correct, onRestart }: { total: number; correct: number; onRestart: () => void }) {
@@ -88,6 +103,45 @@ export default function FlashcardsPage() {
   const [error, setError] = useState('');
   const sessionStartRef = useRef<number>(0); // ilk gerçek değer loadCards içinde (mount'ta çalışır) atanır -- render sırasında Date.now() çağırmamak için
 
+  // ── Ses dalga formu (Madde 3, 24 Eylül 2026) — telaffuz TTS çalarken
+  // kartta gösterilen küçük animasyonlu çubuklar için, bkz. globals.css
+  // ::.wave-bar. speakWord game/page.tsx'teki aynı isimli fonksiyonla
+  // BİREBİR aynı (dil koduna göre BCP-47, tarayıcıda o dil için ses yoksa
+  // dil belirtmeden bir kez daha deneme) — tek fark burada isSpeaking
+  // state'i de yönetiliyor.
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const speakWord = useCallback(
+    (text: string) => {
+      if (typeof window === 'undefined' || !window.speechSynthesis || !text) return;
+      const langCode = SPEECH_LANG_MAP[user?.learning_lang ?? ''];
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        if (langCode) utter.lang = langCode;
+        utter.onstart = () => setIsSpeaking(true);
+        utter.onend = () => setIsSpeaking(false);
+        utter.onerror = () => {
+          setIsSpeaking(false);
+          if (langCode) {
+            try {
+              const retry = new SpeechSynthesisUtterance(text);
+              retry.onstart = () => setIsSpeaking(true);
+              retry.onend = () => setIsSpeaking(false);
+              retry.onerror = () => setIsSpeaking(false);
+              window.speechSynthesis.speak(retry);
+            } catch {
+              /* sessiz */
+            }
+          }
+        };
+        window.speechSynthesis.speak(utter);
+      } catch {
+        setIsSpeaking(false);
+      }
+    },
+    [user?.learning_lang]
+  );
+
   const shuffle = (arr: Word[]) => [...arr].sort(() => Math.random() - 0.5);
 
   const loadCards = useCallback(async () => {
@@ -117,6 +171,14 @@ export default function FlashcardsPage() {
 
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
   useEffect(() => { loadCards(); }, [loadCards]);
+
+  // Kart değiştiğinde (yeni kelimeye geçildiğinde) hâlâ çalan bir telaffuz
+  // varsa kes — yoksa bir sonraki kartta öncekinin sesi üstüne biner.
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
+    };
+  }, [index]);
 
   const current = queue[index];
   const progress = queue.length > 0 ? (index / queue.length) * 100 : 0;
@@ -242,20 +304,58 @@ export default function FlashcardsPage() {
         />
       </div>
 
-      {/* Kart */}
-      <div
-        className={`
-          w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm
-          cursor-pointer select-none transition-all duration-200
-          hover:shadow-md hover:border-gray-200 hover:dark:border-slate-700
-          ${flipped ? 'min-h-[280px]' : 'min-h-[220px]'}
-        `}
-        onClick={() => !reviewing && setFlipped((f) => !f)}
-      >
-        {!flipped ? (
-          /* Ön yüz */
-          <div className="flex flex-col items-center justify-center gap-3 p-10 h-full min-h-[220px]">
-            <p className="text-4xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">{current.word}</p>
+      {/* Kart — gerçek 3D çevirme (Madde 3, 24 Eylül 2026). Önceki sürüm
+          tıklamada içeriği anında değiştiriyordu; artık ön/arka yüz AYNI ANDA
+          DOM'da (mutlak konumlanmış, backface-visibility: hidden), dış
+          kapsayıcı perspective + rotateY(180deg) ile döndürülüyor. Bu sayede
+          `flipped` state'i değiştiğinde (hem tıklamada hem bir sonraki karta
+          geçerken handleRate'in setFlipped(false) çağrısında) içerik hiç
+          "anlık değişmiyor" — kart gerçekten dönüyor, görünmeyen yüz zaten
+          arkada güncelleniyor. Yükseklik: arka yüzün en uzun olası içeriğine
+          göre sabit (300px) tutuluyor, çok uzun örnek cümlelerde arka yüz
+          kendi içinde kayar (overflow-y-auto). */}
+      <div style={{ perspective: '1600px' }} className="w-full">
+        <div
+          onClick={() => !reviewing && setFlipped((f) => !f)}
+          className="relative w-full cursor-pointer select-none"
+          style={{
+            height: 300,
+            transformStyle: 'preserve-3d',
+            transition: 'transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1)',
+            transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+          }}
+        >
+          {/* Ön yüz */}
+          <div
+            style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-10 bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md hover:border-gray-200 hover:dark:border-slate-700 transition-shadow"
+          >
+            <div className="flex items-center gap-3">
+              <p className="text-4xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">{current.word}</p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  speakWord(current.word);
+                }}
+                aria-label={t('listenBtn')}
+                title={t('listenBtn')}
+                className="w-9 h-9 rounded-full flex items-center justify-center bg-[#E6F1FB] dark:bg-blue-500/10 text-[#378ADD] dark:text-blue-400 hover:bg-[#d3e7fa] hover:dark:bg-blue-500/20 transition-colors shrink-0"
+              >
+                <Volume2 className="w-4 h-4" />
+              </button>
+            </div>
+            {isSpeaking && (
+              <div className="flex items-end gap-[3px] h-4" aria-hidden="true">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <span
+                    key={i}
+                    className="wave-bar w-[3px] rounded-full bg-[#378ADD]"
+                    style={{ height: '100%', animationDelay: `${i * 0.12}s` }}
+                  />
+                ))}
+              </div>
+            )}
             {current.word_type && (
               <span className="text-xs font-medium bg-[#EEEDFE] text-[#534AB7] px-2.5 py-1 rounded-full">
                 {current.word_type}
@@ -266,9 +366,16 @@ export default function FlashcardsPage() {
               <ChevronRight className="w-3 h-3" />
             </div>
           </div>
-        ) : (
-          /* Arka yüz */
-          <div className="flex flex-col items-start gap-4 p-8 min-h-[280px]">
+
+          {/* Arka yüz */}
+          <div
+            style={{
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: 'rotateY(180deg)',
+            }}
+            className="absolute inset-0 flex flex-col items-start gap-4 p-8 overflow-y-auto bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm hover:shadow-md hover:border-gray-200 hover:dark:border-slate-700 transition-shadow"
+          >
             {/* Ana anlam */}
             <div className="w-full">
               <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-1.5">{t('colMeaning')}</p>
@@ -299,7 +406,7 @@ export default function FlashcardsPage() {
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Değerlendirme butonları */}
