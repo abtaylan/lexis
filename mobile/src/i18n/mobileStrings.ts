@@ -77,6 +77,10 @@ export interface MobileStrings {
   referralPendingStatus: string;
   referralRewardedStatus: string;
   referralAnonymousUser: string;
+  // Dashboard'daki referral promo kartinin CTA metni (24 Eylul 2026, Task #12 --
+  // referral programini daha gorunur kilma). Baslik/aciklama icin mevcut
+  // referralSectionTitle/referralSectionDesc yeniden kullaniliyor.
+  referralDashboardCta: string;
   referralCodeFieldLabel: string;
   referralCodeFieldPlaceholder: string;
   referralCodeAppliedHint: string;
@@ -139,6 +143,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: 'Bekliyor',
     referralRewardedStatus: 'Ödüllendirildi',
     referralAnonymousUser: 'İsimsiz kullanıcı',
+    referralDashboardCta: 'Şimdi Davet Et',
     referralCodeFieldLabel: 'Davet Kodu (opsiyonel)',
     referralCodeFieldPlaceholder: 'Örn. A1B2C3D4',
     referralCodeAppliedHint: 'Bir arkadaşının davetiyle katılıyorsun 🎉',
@@ -199,6 +204,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: 'Pending',
     referralRewardedStatus: 'Rewarded',
     referralAnonymousUser: 'Anonymous user',
+    referralDashboardCta: 'Invite Now',
     referralCodeFieldLabel: 'Invite Code (optional)',
     referralCodeFieldPlaceholder: 'e.g. A1B2C3D4',
     referralCodeAppliedHint: "You're joining via a friend's invite 🎉",
@@ -259,6 +265,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: 'قيد الانتظار',
     referralRewardedStatus: 'تمت المكافأة',
     referralAnonymousUser: 'مستخدم مجهول',
+    referralDashboardCta: 'ادعُ الآن',
     referralCodeFieldLabel: 'رمز الدعوة (اختياري)',
     referralCodeFieldPlaceholder: 'مثال A1B2C3D4',
     referralCodeAppliedHint: 'أنت تنضم عبر دعوة صديق 🎉',
@@ -319,6 +326,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: 'Ожидание',
     referralRewardedStatus: 'Награждён',
     referralAnonymousUser: 'Анонимный пользователь',
+    referralDashboardCta: 'Пригласить сейчас',
     referralCodeFieldLabel: 'Код приглашения (необязательно)',
     referralCodeFieldPlaceholder: 'напр. A1B2C3D4',
     referralCodeAppliedHint: 'Вы присоединяетесь по приглашению друга 🎉',
@@ -379,6 +387,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: 'Ausstehend',
     referralRewardedStatus: 'Belohnt',
     referralAnonymousUser: 'Anonymer Nutzer',
+    referralDashboardCta: 'Jetzt einladen',
     referralCodeFieldLabel: 'Einladungscode (optional)',
     referralCodeFieldPlaceholder: 'z. B. A1B2C3D4',
     referralCodeAppliedHint: 'Du trittst über die Einladung eines Freundes bei 🎉',
@@ -439,6 +448,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: 'En attente',
     referralRewardedStatus: 'Récompensé',
     referralAnonymousUser: 'Utilisateur anonyme',
+    referralDashboardCta: 'Inviter maintenant',
     referralCodeFieldLabel: "Code d'invitation (optionnel)",
     referralCodeFieldPlaceholder: 'ex. A1B2C3D4',
     referralCodeAppliedHint: "Tu rejoins via l'invitation d'un ami 🎉",
@@ -499,6 +509,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: 'Pendiente',
     referralRewardedStatus: 'Recompensado',
     referralAnonymousUser: 'Usuario anónimo',
+    referralDashboardCta: 'Invitar ahora',
     referralCodeFieldLabel: 'Código de invitación (opcional)',
     referralCodeFieldPlaceholder: 'ej. A1B2C3D4',
     referralCodeAppliedHint: 'Te unes mediante la invitación de un amigo 🎉',
@@ -559,6 +570,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: 'In attesa',
     referralRewardedStatus: 'Premiato',
     referralAnonymousUser: 'Utente anonimo',
+    referralDashboardCta: 'Invita ora',
     referralCodeFieldLabel: 'Codice invito (opzionale)',
     referralCodeFieldPlaceholder: 'es. A1B2C3D4',
     referralCodeAppliedHint: "Ti stai unendo tramite l'invito di un amico 🎉",
@@ -619,6 +631,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: '保留中',
     referralRewardedStatus: '報酬付与済み',
     referralAnonymousUser: '匿名ユーザー',
+    referralDashboardCta: '今すぐ招待',
     referralCodeFieldLabel: '招待コード(任意)',
     referralCodeFieldPlaceholder: '例: A1B2C3D4',
     referralCodeAppliedHint: '友達の招待から参加しています 🎉',
@@ -679,6 +692,7 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralPendingStatus: 'Pendente',
     referralRewardedStatus: 'Recompensado',
     referralAnonymousUser: 'Utilizador anónimo',
+    referralDashboardCta: 'Convidar agora',
     referralCodeFieldLabel: 'Código de convite (opcional)',
     referralCodeFieldPlaceholder: 'ex. A1B2C3D4',
     referralCodeAppliedHint: 'Estás a juntar-te através do convite de um amigo 🎉',

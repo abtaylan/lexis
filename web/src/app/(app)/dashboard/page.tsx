@@ -15,6 +15,7 @@ import { XPBar } from '@/components/layout/XPBar';
 import { CefrBadge } from '@/components/layout/CefrBadge';
 import { DailyWordCard } from '@/components/layout/DailyWordCard';
 import { WordOfTheDayCard } from '@/components/layout/WordOfTheDayCard';
+import { ReferralPromoCard } from '@/components/layout/ReferralPromoCard';
 import { StreakHeatmap } from '@/components/layout/StreakHeatmap';
 import { MascotGreeting } from '@/components/layout/MascotGreeting';
 import { OnboardingTour } from '@/components/layout/OnboardingTour';
@@ -584,6 +585,13 @@ export default function DashboardPage() {
           salt okunur, e-postayla gelen günlük kelime içeriğinin dashboard'a
           taşınmış hali. Aynı soft-disable deseni: içerik yoksa render edilmez. */}
       <WordOfTheDayCard />
+
+      {/* Referans/Davet Programı — Task #12 (24 Eylül 2026): program zaten
+          profile/page.tsx'te tam olarak var, burada sadece dashboard'a
+          (günlük görülen sayfa) bir görünürlük/giriş noktası ekleniyor.
+          Aynı soft-disable deseni: referral_code gelmezse hiç render
+          edilmez. */}
+      <ReferralPromoCard />
 
       {/* Sıralama — kendi puanın + rakip karşılaştırması (Genel/Haftalık/Aylık).
           limit=5: ilk 5 gösterilir; kullanıcı ilk 5'te değilse (örn. 10.

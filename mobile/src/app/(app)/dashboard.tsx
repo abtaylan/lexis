@@ -26,6 +26,7 @@ import { DashboardHeader } from '@/components/DashboardHeader';
 import { StudyProgramCard } from '@/components/StudyProgramCard';
 import { DailyWordCard } from '@/components/DailyWordCard';
 import { WordOfTheDayCard } from '@/components/WordOfTheDayCard';
+import { ReferralPromoCard } from '@/components/ReferralPromoCard';
 import { StreakHeatmap } from '@/components/StreakHeatmap';
 import { MascotGreeting } from '@/components/MascotGreeting';
 import { OnboardingTour } from '@/components/OnboardingTour';
@@ -438,6 +439,12 @@ export default function DashboardScreen() {
             ise salt okunur, e-postayla gelen günlük kelime içeriğinin
             dashboard'a taşınmış hali. Aynı soft-disable deseni. */}
         <WordOfTheDayCard />
+
+        {/* Referans/Davet Programı — Task #12 (24 Eylül 2026): program zaten
+            profile.tsx'te tam olarak var, burada sadece dashboard'a (günlük
+            görülen ekran) bir görünürlük/giriş noktası ekleniyor. Aynı
+            soft-disable deseni: referral_code gelmezse hiç render edilmez. */}
+        <ReferralPromoCard />
 
         {/* Çalışma takvimi (streak heatmap) — Madde 3 (Görsel/GUI), 24 Eylül
             2026. web'deki StreakHeatmap ile aynı, mevcut statsApi.getHistory
