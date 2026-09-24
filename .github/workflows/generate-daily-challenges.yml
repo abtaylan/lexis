@@ -1,0 +1,34 @@
+name: Lexis - generate daily word challenges
+
+# "Gunluk Kelime Avi" (24 Eylul 2026, Madde 2 secimi -- bkz.
+# backend/app/services/daily_challenge_service.py modul docstring'i): her
+# aktif ogrenilen dil icin GUNUN kelimesini once uretir (TUM kullanicilar
+# ayni kelimeyi gorsun diye). Diger gunluk cron'lardan (reassess: 03:00,
+# replenish: 04:00, grow-word-pool: 05:00) onceki bir saatte, gunun EN
+# BASINDA calisiyor ki kullanicilar gune girdiklerinde kelime hazir olsun.
+on:
+  schedule:
+    # 02:00 UTC (05:00 Turkiye) civari -- diger gunluk AI-destekli
+    # cron'lardan once. 10 dakikada bir 3 deneme, GitHub Actions cron tick
+    # atlamalarina karsi (bkz. daily-word-email.yml / grow-word-pool.yml
+    # ile AYNI kanitlanmis desen). Backend already_ran_today ile gunde tek
+    # calismayi garanti ediyor.
+    - cron: '5,15,25 2 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  trigger-generate-daily-challenges:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/generate-daily-challenges
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/generate-daily-challenges" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "Istek basarisiz (HTTP $http_code)"
+            exit 1
+          fi

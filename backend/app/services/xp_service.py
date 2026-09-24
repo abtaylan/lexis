@@ -66,6 +66,10 @@ XPSourceType = Literal[
     # sorularında ödül yok, katkıyı yapan kullanıcı yok).
     "exam_question_suggested",
     "exam_question_approved",
+    # "Gunluk Kelime Avi" (24 Eylul 2026, Madde 2 secimi) --
+    # daily_challenge_service.py'nin guess_letter()'inda, gunun kelimesi
+    # ILK KEZ tamamlaninca (o gun icin ikinci kez verilmez) cagrilir.
+    "daily_word_challenge",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -123,6 +127,10 @@ XP_AMOUNTS: dict[str, int] = {
     # gerçekten havuza giren bir katkı, mock sınav tamamlamayla eşdeğer emek).
     "exam_question_suggested": 3,
     "exam_question_approved": 20,
+    # Gunluk Kelime Avi -- game_wordle (15) ile ayni buyuklukte: ayni harf-
+    # tahmin mekanigi, ama gunde sadece BIR kez kazanilabilir (klasik
+    # Wordle'in "gunde bir bulmaca" kisitiyla tutarli bir odul buyuklugu).
+    "daily_word_challenge": 15,
 }
 
 LEVEL_BASE = 50

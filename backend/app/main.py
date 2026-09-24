@@ -9,6 +9,7 @@ from app.api.routes import (
     auth,
     cron,
     custom_leagues,
+    daily_challenge,
     dictionary,
     duels,
     exam_reminders,
@@ -67,6 +68,9 @@ app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(admin_platform.router, prefix="/api/v1/admin", tags=["Admin Platform"])
 app.include_router(languages.router, prefix="/api/v1/languages", tags=["Languages"])
 app.include_router(games.router, prefix="/api/v1/games", tags=["Games"])
+app.include_router(
+    daily_challenge.router, prefix="/api/v1/daily-challenge", tags=["Daily Challenge"]
+)
 # V2 madde #6/#7 Faz 3a+3e -- Gercek Zamanli Duello (oda yasam dongusu +
 # round-servis uclari, bkz. duels.py modul docstring'i).
 app.include_router(duels.router, prefix="/api/v1/duels", tags=["Duels"])

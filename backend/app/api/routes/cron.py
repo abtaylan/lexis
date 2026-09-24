@@ -384,3 +384,33 @@ async def run_grow_word_pool(
 
     result = await run_in_threadpool(_run)
     return {"status": "ok", "result": result}
+
+
+# "Gunluk Kelime Avi" (24 Eylul 2026, Madde 2 secimi -- bkz.
+# daily_challenge_service.py modul docstring'i): her aktif ogrenilen dil
+# icin GUNUN kelimesini onceden uretir (kullanicilar /daily-challenge/today
+# istek atinca CANLI secim yapmak yerine -- boylece TUM kullanicilar ayni
+# kelimeyi gorur, klasik Wordle'in "herkes ayni bulmacayi cozuyor" sosyal
+# mekanigiyle tutarli). Diger gunluk job'lar gibi GitHub Actions'tan
+# tetiklenir (.github/workflows/generate-daily-challenges.yml), gunde tek
+# calisma already_ran_today ile garanti (+ tablodaki UNIQUE (learning_lang,
+# puzzle_date) kisiti ikinci bir guvenlik agi).
+@router.post("/generate-daily-challenges")
+async def run_generate_daily_challenges(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    if already_ran_today("generate_daily_challenges"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
+    def _run() -> dict:
+        from app.services.daily_challenge_service import generate_daily_word_challenges
+
+        with job_run("generate_daily_challenges") as run:
+            result = generate_daily_word_challenges()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
