@@ -21,6 +21,7 @@ import {
   Zap,
   Shuffle,
   Volume2,
+  Rows3,
 } from 'lucide-react';
 import {
   gamesApi,
@@ -60,6 +61,11 @@ type Strings = {
   modeMatchingLabel: string;
   modeMatchingDesc: string;
   matchingPromptLabel: string;
+  modeSentenceLabel: string;
+  modeSentenceDesc: string;
+  sentencePromptLabel: string;
+  sentenceEmptyHint: string;
+  sentenceResetBtn: string;
   chooseDirectionTitle: string;
   dirWordToMeaningLabel: string;
   dirWordToMeaningDesc: string;
@@ -133,6 +139,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'Eşleştirme',
     modeMatchingDesc: 'Kelimeleri anlamlarıyla eşleştir',
     matchingPromptLabel: 'Kelimeleri doğru anlamlarıyla eşleştir',
+    modeSentenceLabel: 'Cümle Kurma',
+    modeSentenceDesc: 'Karışık kelimelerden doğru cümleyi kur',
+    sentencePromptLabel: 'Kelimeleri doğru sırada diz',
+    sentenceEmptyHint: 'Kelimeleri aşağıdan seç',
+    sentenceResetBtn: 'Sıfırla',
     chooseDirectionTitle: 'Hangi yönde çalışmak istersin?',
     dirWordToMeaningLabel: 'Kelime → Anlam',
     dirWordToMeaningDesc: 'Kelimeyi gör, doğru anlamı seç',
@@ -203,6 +214,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'Matching',
     modeMatchingDesc: 'Match each word with its meaning',
     matchingPromptLabel: 'Match the words with their meanings',
+    modeSentenceLabel: 'Sentence Building',
+    modeSentenceDesc: 'Arrange the shuffled words into the correct sentence',
+    sentencePromptLabel: 'Put the words in the right order',
+    sentenceEmptyHint: 'Tap the words below',
+    sentenceResetBtn: 'Reset',
     chooseDirectionTitle: 'Which direction do you want to practice?',
     dirWordToMeaningLabel: 'Word → Meaning',
     dirWordToMeaningDesc: 'See the word, pick the right meaning',
@@ -273,6 +289,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'المطابقة',
     modeMatchingDesc: 'طابق كل كلمة مع معناها',
     matchingPromptLabel: 'طابق الكلمات مع معانيها',
+    modeSentenceLabel: 'ترتيب الجملة',
+    modeSentenceDesc: 'رتب الكلمات المبعثرة لتكوين الجملة الصحيحة',
+    sentencePromptLabel: 'رتب الكلمات بالترتيب الصحيح',
+    sentenceEmptyHint: 'اختر الكلمات أدناه',
+    sentenceResetBtn: 'إعادة تعيين',
     chooseDirectionTitle: 'بأي اتجاه تريد التدرب؟',
     dirWordToMeaningLabel: 'كلمة ← معنى',
     dirWordToMeaningDesc: 'شاهد الكلمة، اختر المعنى الصحيح',
@@ -343,6 +364,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'Сопоставление',
     modeMatchingDesc: 'Сопоставь слова с их значениями',
     matchingPromptLabel: 'Сопоставь слова с их значениями',
+    modeSentenceLabel: 'Составление предложений',
+    modeSentenceDesc: 'Расставь перемешанные слова в правильном порядке',
+    sentencePromptLabel: 'Расставь слова в правильном порядке',
+    sentenceEmptyHint: 'Выбери слова ниже',
+    sentenceResetBtn: 'Сбросить',
     chooseDirectionTitle: 'В каком направлении хочешь тренироваться?',
     dirWordToMeaningLabel: 'Слово → Значение',
     dirWordToMeaningDesc: 'Смотри слово, выбирай правильное значение',
@@ -413,6 +439,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'Zuordnen',
     modeMatchingDesc: 'Ordne die Wörter ihrer Bedeutung zu',
     matchingPromptLabel: 'Ordne die Wörter ihrer Bedeutung zu',
+    modeSentenceLabel: 'Satzbau',
+    modeSentenceDesc: 'Ordne die durcheinandergewürfelten Wörter zum richtigen Satz',
+    sentencePromptLabel: 'Bring die Wörter in die richtige Reihenfolge',
+    sentenceEmptyHint: 'Wähle die Wörter unten aus',
+    sentenceResetBtn: 'Zurücksetzen',
     chooseDirectionTitle: 'In welche Richtung möchtest du üben?',
     dirWordToMeaningLabel: 'Wort → Bedeutung',
     dirWordToMeaningDesc: 'Sieh das Wort, wähle die richtige Bedeutung',
@@ -483,6 +514,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'Association',
     modeMatchingDesc: 'Associe chaque mot à son sens',
     matchingPromptLabel: 'Associe les mots à leur sens',
+    modeSentenceLabel: 'Construction de phrase',
+    modeSentenceDesc: 'Remets les mots mélangés dans le bon ordre',
+    sentencePromptLabel: 'Place les mots dans le bon ordre',
+    sentenceEmptyHint: 'Choisis les mots ci-dessous',
+    sentenceResetBtn: 'Réinitialiser',
     chooseDirectionTitle: 'Dans quel sens veux-tu t\u2019entraîner ?',
     dirWordToMeaningLabel: 'Mot → Sens',
     dirWordToMeaningDesc: 'Vois le mot, choisis le bon sens',
@@ -553,6 +589,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'Emparejar',
     modeMatchingDesc: 'Empareja cada palabra con su significado',
     matchingPromptLabel: 'Empareja las palabras con sus significados',
+    modeSentenceLabel: 'Construcción de frases',
+    modeSentenceDesc: 'Ordena las palabras mezcladas para formar la frase correcta',
+    sentencePromptLabel: 'Coloca las palabras en el orden correcto',
+    sentenceEmptyHint: 'Elige las palabras de abajo',
+    sentenceResetBtn: 'Reiniciar',
     chooseDirectionTitle: '¿En qué dirección quieres practicar?',
     dirWordToMeaningLabel: 'Palabra → Significado',
     dirWordToMeaningDesc: 'Ve la palabra, elige el significado correcto',
@@ -623,6 +664,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'Abbinamento',
     modeMatchingDesc: 'Abbina ogni parola al suo significato',
     matchingPromptLabel: 'Abbina le parole ai loro significati',
+    modeSentenceLabel: 'Costruzione di frasi',
+    modeSentenceDesc: 'Riordina le parole mescolate nella frase corretta',
+    sentencePromptLabel: 'Metti le parole nell\'ordine giusto',
+    sentenceEmptyHint: 'Scegli le parole qui sotto',
+    sentenceResetBtn: 'Reimposta',
     chooseDirectionTitle: 'In quale direzione vuoi esercitarti?',
     dirWordToMeaningLabel: 'Parola → Significato',
     dirWordToMeaningDesc: 'Vedi la parola, scegli il significato corretto',
@@ -693,6 +739,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'マッチング',
     modeMatchingDesc: '単語とその意味を結びつける',
     matchingPromptLabel: '単語をその意味と結びつけてください',
+    modeSentenceLabel: '文章組み立て',
+    modeSentenceDesc: 'バラバラになった単語を正しい順番に並べよう',
+    sentencePromptLabel: '単語を正しい順番に並べてください',
+    sentenceEmptyHint: '下から単語を選んでください',
+    sentenceResetBtn: 'リセット',
     chooseDirectionTitle: 'どの方向で練習しますか?',
     dirWordToMeaningLabel: '単語 → 意味',
     dirWordToMeaningDesc: '単語を見て正しい意味を選ぶ',
@@ -763,6 +814,11 @@ const STRINGS: Record<Locale, Strings> = {
     modeMatchingLabel: 'Correspondência',
     modeMatchingDesc: 'Associa cada palavra ao seu significado',
     matchingPromptLabel: 'Associa as palavras aos seus significados',
+    modeSentenceLabel: 'Construção de frases',
+    modeSentenceDesc: 'Organize as palavras embaralhadas na frase correta',
+    sentencePromptLabel: 'Coloque as palavras na ordem correta',
+    sentenceEmptyHint: 'Escolha as palavras abaixo',
+    sentenceResetBtn: 'Redefinir',
     chooseDirectionTitle: 'Em que direção queres praticar?',
     dirWordToMeaningLabel: 'Palavra → Significado',
     dirWordToMeaningDesc: 'Vê a palavra, escolhe o significado certo',
@@ -938,6 +994,15 @@ export default function GamePage() {
   const [selectedMeaningUid, setSelectedMeaningUid] = useState<string | null>(null);
   const [wrongPairFlash, setWrongPairFlash] = useState<{ w: string; m: string } | null>(null);
 
+  // ── cümle kurma (sentence_building) state — backend next-word yanıtında
+  // gelen `sentence_tokens` (örnek cümlenin kelimeleri, doğru sırada)
+  // istemci tarafında karıştırılıp fişler halinde gösteriliyor; kullanıcı
+  // fişlere sırayla tıklayıp cümleyi yeniden kurmaya çalışıyor. Doğruluk
+  // (matching/typing ile aynı desen) istemci tarafında belirleniyor. ──
+  const [sentenceTiles, setSentenceTiles] = useState<{ uid: string; text: string; originalIndex: number }[]>([]);
+  const [sentencePicked, setSentencePicked] = useState<string[]>([]);
+  const [sentenceResult, setSentenceResult] = useState<'correct' | 'wrong' | null>(null);
+
   const [score, setScore] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
   const [questionNum, setQuestionNum] = useState(0);
@@ -1009,6 +1074,19 @@ export default function GamePage() {
       setRevealedWord(null);
       setTypedAnswer('');
       setTypingResult(null);
+      setSentenceTiles(
+        nw.sentence_tokens
+          ? shuffleArray(
+              nw.sentence_tokens.map((w, i) => ({
+                uid: `${i}-${Math.random().toString(36).slice(2)}`,
+                text: w,
+                originalIndex: i,
+              }))
+            )
+          : []
+      );
+      setSentencePicked([]);
+      setSentenceResult(null);
       setQuestionNum((n) => n + 1);
       setStage('playing');
     } catch {
@@ -1185,6 +1263,60 @@ export default function GamePage() {
   const handleSkip = async () => {
     if (typingResult || !current || !sessionId) return;
     setTypingResult('wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        word_id: current.word_id ?? undefined,
+        general_word_id: current.general_word_id ?? undefined,
+        is_correct: false,
+      });
+      setScore(res.session_score);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(() => {
+      loadNext(sessionId, true, poolSource);
+    }, 1600);
+  };
+
+  // ── cümle kurma (sentence_building) — kullanıcı karışık fişlere sırayla
+  // tıklıyor; tüm fişler seçilince istemci tarafında sıra kontrolü yapılıp
+  // sonuç otomatik gönderiliyor (matching modundaki "tüm çiftler eşleşince
+  // otomatik yeni tur" deseniyle aynı mantık). ──
+  const handleSentenceTileClick = (uid: string) => {
+    if (sentenceResult || sentencePicked.includes(uid) || !sessionId || !current) return;
+    const nextPicked = [...sentencePicked, uid];
+    setSentencePicked(nextPicked);
+    if (nextPicked.length === sentenceTiles.length) {
+      const isCorrect = nextPicked.every(
+        (u, i) => sentenceTiles.find((tl) => tl.uid === u)?.originalIndex === i
+      );
+      setSentenceResult(isCorrect ? 'correct' : 'wrong');
+      gamesApi
+        .submitAttempt(sessionId, {
+          word_id: current.word_id ?? undefined,
+          general_word_id: current.general_word_id ?? undefined,
+          is_correct: isCorrect,
+        })
+        .then((res) => {
+          setScore(res.session_score);
+          setXpEarned((x) => x + res.xp_awarded);
+          if (res.leveled_up) setLevelUp(res.new_level);
+        })
+        .catch(() => {
+          /* sessiz */
+        });
+      setTimeout(
+        () => {
+          loadNext(sessionId, true, poolSource);
+        },
+        isCorrect ? 900 : 1600
+      );
+    }
+  };
+
+  const handleSentenceSkip = async () => {
+    if (sentenceResult || !current || !sessionId) return;
+    setSentenceResult('wrong');
     try {
       const res = await gamesApi.submitAttempt(sessionId, {
         word_id: current.word_id ?? undefined,
@@ -1480,6 +1612,22 @@ export default function GamePage() {
                 <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeMatchingDesc}</p>
               </div>
             </button>
+            <button
+              onClick={() => {
+                setGameMode('sentence_building');
+                setDirection('meaning_to_word');
+                setStage('setup');
+              }}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-[#FDEAF0] flex items-center justify-center">
+                <Rows3 className="w-4 h-4 text-[#9F1D53]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeSentenceLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeSentenceDesc}</p>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -1566,7 +1714,7 @@ export default function GamePage() {
                   <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.poolGeneralLabel}</p>
                   <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.poolGeneralDesc}</p>
                 </button>
-                {direction !== 'definition_to_word' && (
+                {direction !== 'definition_to_word' && gameMode !== 'sentence_building' && (
                   <button
                     onClick={() => start(gameMode, 'own', direction)}
                     className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
@@ -1779,6 +1927,7 @@ export default function GamePage() {
   const isTyping = gameMode === 'typing';
   const isListening = gameMode === 'listening';
   const isSprint = gameMode === 'sprint';
+  const isSentence = gameMode === 'sentence_building';
   const isMultipleChoice = gameMode === 'multiple_choice';
   const keyboardRows = user?.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
   const activeDirection = current.direction ?? direction;
@@ -2168,6 +2317,93 @@ export default function GamePage() {
               {typingResult === 'correct'
                 ? t.correctLabel
                 : `${t.wrongLabel} — ${t.correctWordTpl.replace('{word}', current.word ?? '')}`}
+            </p>
+          )}
+        </>
+      )}
+
+      {isSentence && (
+        <>
+          <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">
+              {t.sentencePromptLabel}
+            </p>
+            <p className="text-sm text-gray-500 dark:text-slate-400">{current.meaning}</p>
+          </div>
+
+          <div className="w-full min-h-[3.5rem] flex flex-wrap items-center gap-2 border-2 border-dashed border-gray-200 dark:border-slate-700 rounded-xl px-4 py-3">
+            {sentencePicked.length === 0 && (
+              <span className="text-xs text-gray-300 dark:text-slate-600">{t.sentenceEmptyHint}</span>
+            )}
+            {sentencePicked.map((uid) => {
+              const tile = sentenceTiles.find((tl) => tl.uid === uid);
+              if (!tile) return null;
+              return (
+                <button
+                  key={uid}
+                  type="button"
+                  disabled={sentenceResult !== null}
+                  onClick={() => setSentencePicked((prev) => prev.filter((u) => u !== uid))}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                    sentenceResult === null
+                      ? 'bg-[#E6F1FB] text-[#378ADD]'
+                      : sentenceResult === 'correct'
+                        ? 'bg-[#EAF3DE] text-[#3B6D11]'
+                        : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                  }`}
+                >
+                  {tile.text}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="w-full flex flex-wrap justify-center gap-2">
+            {sentenceTiles
+              .filter((tl) => !sentencePicked.includes(tl.uid))
+              .map((tile) => (
+                <button
+                  key={tile.uid}
+                  type="button"
+                  onClick={() => handleSentenceTileClick(tile.uid)}
+                  disabled={sentenceResult !== null}
+                  className="px-3 py-1.5 rounded-lg border-2 border-gray-200 dark:border-slate-700 text-sm font-medium text-gray-700 dark:text-slate-300 hover:border-[#378ADD] hover:bg-[#E6F1FB] disabled:opacity-40 transition-all"
+                >
+                  {tile.text}
+                </button>
+              ))}
+          </div>
+
+          <div className="w-full flex items-center justify-center gap-4">
+            {sentenceResult === null && sentencePicked.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSentencePicked([])}
+                className="text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400"
+              >
+                {t.sentenceResetBtn}
+              </button>
+            )}
+            {sentenceResult === null && (
+              <button
+                type="button"
+                onClick={handleSentenceSkip}
+                className="text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400"
+              >
+                {t.typingSkipBtn}
+              </button>
+            )}
+          </div>
+
+          {sentenceResult !== null && (
+            <p
+              className={`text-sm font-semibold text-center ${
+                sentenceResult === 'correct' ? 'text-[#3B6D11]' : 'text-red-500 dark:text-red-400'
+              }`}
+            >
+              {sentenceResult === 'correct'
+                ? t.correctLabel
+                : `${t.wrongLabel} — ${(current.sentence_tokens ?? []).join(' ')}`}
             </p>
           )}
         </>

@@ -526,7 +526,14 @@ export interface UserReport {
 }
 
 // ── Games ────────────────────────────────────────────────────
-export type GameMode = 'wordle' | 'multiple_choice' | 'typing' | 'matching' | 'listening' | 'sprint';
+export type GameMode =
+  | 'wordle'
+  | 'multiple_choice'
+  | 'typing'
+  | 'matching'
+  | 'listening'
+  | 'sprint'
+  | 'sentence_building';
 export type PoolSource = 'own' | 'general';
 export type Direction = 'word_to_meaning' | 'meaning_to_word' | 'definition_to_word';
 
@@ -558,6 +565,8 @@ export interface NextWordResult {
   word_length?: number | null;
   revealed?: string | null;
   max_wrong_guesses?: number | null;
+  // ── sentence_building (cümle kurma) moduna özel alan ──
+  sentence_tokens?: string[] | null;
 }
 
 export interface GameAttemptResult {

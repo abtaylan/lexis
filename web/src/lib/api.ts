@@ -1048,7 +1048,14 @@ export const adminApi = {
 };
 
 // ── Games API (Kelime Tahmin Oyunu) ────────────────────────────
-export type GameMode = 'wordle' | 'multiple_choice' | 'typing' | 'matching' | 'listening' | 'sprint';
+export type GameMode =
+  | 'wordle'
+  | 'multiple_choice'
+  | 'typing'
+  | 'matching'
+  | 'listening'
+  | 'sprint'
+  | 'sentence_building';
 export type PoolSource = 'own' | 'general';
 // multiple_choice modunda soru yönü. wordle modunda kullanılmaz (her zaman anlam
 // gösterilip kelime bulunur). "definition_to_word" (Faz 2, monolingual) sadece
@@ -1084,6 +1091,8 @@ export interface NextWordResult {
   word_length?: number | null;
   revealed?: string | null;
   max_wrong_guesses?: number | null;
+  // ── sentence_building (cümle kurma) moduna özel alan ──
+  sentence_tokens?: string[] | null;
 }
 
 export interface GameAttemptResult {

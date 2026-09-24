@@ -138,6 +138,14 @@ export default function GameScreen() {
   const [selectedMeaningUid, setSelectedMeaningUid] = useState<string | null>(null);
   const [wrongPairFlash, setWrongPairFlash] = useState<{ w: string; m: string } | null>(null);
 
+  // ── cümle kurma (sentence_building) state — bkz. web/game/page.tsx'teki
+  // aynı isimli state: backend'in verdiği sentence_tokens karıştırılıp
+  // fişlere dönüştürülüyor, kullanıcı sırayla tıklayarak cümleyi yeniden
+  // kuruyor, doğruluk istemci tarafında belirleniyor. ──
+  const [sentenceTiles, setSentenceTiles] = useState<{ uid: string; text: string; originalIndex: number }[]>([]);
+  const [sentencePicked, setSentencePicked] = useState<string[]>([]);
+  const [sentenceResult, setSentenceResult] = useState<'correct' | 'wrong' | null>(null);
+
   const [score, setScore] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
   const [questionNum, setQuestionNum] = useState(0);
@@ -160,7 +168,7 @@ export default function GameScreen() {
       setDirection('meaning_to_word');
       setSprintSecondsLeft(SPRINT_DURATION_SECS);
       setStage('setup');
-    } else if (['wordle', 'typing', 'listening', 'matching'].includes(mode)) {
+    } else if (['wordle', 'typing', 'listening', 'matching', 'sentence_building'].includes(mode)) {
       setGameMode(mode);
       setDirection('meaning_to_word');
       setStage('setup');
@@ -197,6 +205,19 @@ export default function GameScreen() {
       setRevealedWord(null);
       setTypedAnswer('');
       setTypingResult(null);
+      setSentenceTiles(
+        nw.sentence_tokens
+          ? shuffleArray(
+              nw.sentence_tokens.map((w, i) => ({
+                uid: `${i}-${Math.random().toString(36).slice(2)}`,
+                text: w,
+                originalIndex: i,
+              }))
+            )
+          : []
+      );
+      setSentencePicked([]);
+      setSentenceResult(null);
       setQuestionNum((n) => n + 1);
       setStage('playing');
     } catch {
@@ -460,6 +481,55 @@ export default function GameScreen() {
     setTimeout(() => loadNext(sessionId, true, poolSource), 1600);
   };
 
+  // ── cümle kurma (sentence_building) — kullanıcı karışık fişlere sırayla
+  // tıklıyor; tüm fişler seçilince istemci tarafında sıra kontrolü yapılıp
+  // sonuç otomatik gönderiliyor (bkz. web/game/page.tsx'teki aynı isimli
+  // fonksiyon). ──
+  const handleSentenceTileClick = (uid: string) => {
+    if (sentenceResult || sentencePicked.includes(uid) || !sessionId || !current) return;
+    const nextPicked = [...sentencePicked, uid];
+    setSentencePicked(nextPicked);
+    if (nextPicked.length === sentenceTiles.length) {
+      const isCorrect = nextPicked.every(
+        (u, i) => sentenceTiles.find((tl) => tl.uid === u)?.originalIndex === i
+      );
+      setSentenceResult(isCorrect ? 'correct' : 'wrong');
+      gamesApi
+        .submitAttempt(sessionId, {
+          word_id: current.word_id ?? undefined,
+          general_word_id: current.general_word_id ?? undefined,
+          is_correct: isCorrect,
+        })
+        .then((res) => {
+          setScore(res.session_score);
+          setXpEarned((x) => x + res.xp_awarded);
+          queryClient.invalidateQueries({ queryKey: ['xp'] });
+          queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
+          if (res.leveled_up) setLevelUp(res.new_level);
+        })
+        .catch(() => {
+          /* sessiz */
+        });
+      setTimeout(() => loadNext(sessionId, true, poolSource), isCorrect ? 900 : 1600);
+    }
+  };
+
+  const handleSentenceSkip = async () => {
+    if (sentenceResult || !current || !sessionId) return;
+    setSentenceResult('wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        word_id: current.word_id ?? undefined,
+        general_word_id: current.general_word_id ?? undefined,
+        is_correct: false,
+      });
+      setScore(res.session_score);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(() => loadNext(sessionId, true, poolSource), 1600);
+  };
+
   // ── dinleme (listening) — kelimeyi expo-speech ile sesli okur. KULLANICI
   // GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor ki bu" — dil kodu hiç
   // verilmiyordu, cihazın varsayılan (genelde TR/EN) TTS sesi Arapça metni
@@ -640,6 +710,15 @@ export default function GameScreen() {
             setStage('setup');
           }}
         />
+        <OptionButton
+          title={gt.modeSentenceLabel}
+          desc={gt.modeSentenceDesc}
+          onPress={() => {
+            setGameMode('sentence_building');
+            setDirection('meaning_to_word');
+            setStage('setup');
+          }}
+        />
       </CenterScreen>
     );
   }
@@ -672,7 +751,7 @@ export default function GameScreen() {
         ) : (
           <>
             <OptionButton title={gt.poolGeneralLabel} desc={gt.poolGeneralDesc} onPress={() => start(gameMode, 'general', direction)} />
-            {direction !== 'definition_to_word' && (
+            {direction !== 'definition_to_word' && gameMode !== 'sentence_building' && (
               <OptionButton title={gt.poolOwnLabel} desc={gt.poolOwnDesc} onPress={() => start(gameMode, 'own', direction)} />
             )}
             <BackLink label={gt.backBtn} onPress={() => setStage(gameMode === 'multiple_choice' ? 'direction' : 'mode')} />
@@ -806,6 +885,7 @@ export default function GameScreen() {
   const isTyping = gameMode === 'typing';
   const isListening = gameMode === 'listening';
   const isSprint = gameMode === 'sprint';
+  const isSentence = gameMode === 'sentence_building';
   const isMultipleChoice = gameMode === 'multiple_choice';
   const keyboardRows = user?.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
   const activeDirection = current.direction ?? direction;
@@ -1144,6 +1224,82 @@ export default function GameScreen() {
         </>
       )}
 
+      {isSentence && (
+        <>
+          <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.sm, textTransform: 'uppercase' }}>
+              {gt.sentencePromptLabel}
+            </Text>
+            <Text style={{ color: c.textMuted, fontSize: 14, textAlign: 'center' }}>{current.meaning}</Text>
+          </Card>
+
+          <View style={[styles.sentenceBox, { borderColor: c.border }]}>
+            {sentencePicked.length === 0 && (
+              <Text style={{ color: c.textMuted, fontSize: 12 }}>{gt.sentenceEmptyHint}</Text>
+            )}
+            {sentencePicked.map((uid) => {
+              const tile = sentenceTiles.find((tl) => tl.uid === uid);
+              if (!tile) return null;
+              const bg = sentenceResult === null ? c.primarySoft : sentenceResult === 'correct' ? c.successSoft : c.dangerSoft;
+              const fg = sentenceResult === null ? c.primary : sentenceResult === 'correct' ? c.success : c.danger;
+              return (
+                <Pressable
+                  key={uid}
+                  disabled={sentenceResult !== null}
+                  onPress={() => setSentencePicked((prev) => prev.filter((u) => u !== uid))}
+                  style={[styles.sentenceTile, { backgroundColor: bg }]}
+                >
+                  <Text style={{ color: fg, fontSize: 13, fontWeight: '600' }}>{tile.text}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', marginTop: spacing.md }}>
+            {sentenceTiles
+              .filter((tl) => !sentencePicked.includes(tl.uid))
+              .map((tile) => (
+                <Pressable
+                  key={tile.uid}
+                  disabled={sentenceResult !== null}
+                  onPress={() => handleSentenceTileClick(tile.uid)}
+                  style={[styles.sentenceTile, { borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, opacity: sentenceResult !== null ? 0.4 : 1 }]}
+                >
+                  <Text style={{ color: c.text, fontSize: 13, fontWeight: '600' }}>{tile.text}</Text>
+                </Pressable>
+              ))}
+          </View>
+
+          <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginTop: spacing.md }}>
+            {sentenceResult === null && sentencePicked.length > 0 && (
+              <Pressable onPress={() => setSentencePicked([])}>
+                <Text style={{ color: c.textMuted, fontSize: 12 }}>{gt.sentenceResetBtn}</Text>
+              </Pressable>
+            )}
+            {sentenceResult === null && (
+              <Pressable onPress={handleSentenceSkip}>
+                <Text style={{ color: c.textMuted, fontSize: 12 }}>{gt.typingSkipBtn}</Text>
+              </Pressable>
+            )}
+          </View>
+
+          {sentenceResult !== null && (
+            <Text
+              style={{
+                color: sentenceResult === 'correct' ? c.success : c.danger,
+                fontWeight: '700',
+                textAlign: 'center',
+                marginTop: spacing.md,
+              }}
+            >
+              {sentenceResult === 'correct'
+                ? gt.correctLabel
+                : `${gt.wrongLabel} — ${(current.sentence_tokens ?? []).join(' ')}`}
+            </Text>
+          )}
+        </>
+      )}
+
       <Pressable onPress={handleFinish} style={{ alignItems: 'center', marginTop: spacing.lg }}>
         <Text style={{ color: c.textMuted, fontSize: 12, textDecorationLine: 'underline' }}>{gt.finishBtn}</Text>
       </Pressable>
@@ -1208,5 +1364,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  sentenceBox: {
+    minHeight: 56,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: radius.lg,
+    padding: spacing.sm,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sentenceTile: {
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm - 2,
+    paddingHorizontal: spacing.sm + 2,
   },
 });
