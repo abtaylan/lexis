@@ -69,6 +69,7 @@ export type GameStrings = {
   wordleWonTitle: string;
   wordleLostTitle: string;
   correctWordTpl: string;
+  exampleHintLabel: string;
 };
 
 export const GAME_STRINGS: Record<Locale, GameStrings> = {
@@ -139,6 +140,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: 'Kelimeyi buldun! 🎉',
     wordleLostTitle: 'Hakların bitti',
     correctWordTpl: 'Doğru kelime: {word}',
+    exampleHintLabel: 'Örnek cümle:',
   },
   en: {
     pageTitle: 'Word Game',
@@ -207,6 +209,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: 'You got it! 🎉',
     wordleLostTitle: 'Out of lives',
     correctWordTpl: 'Correct word: {word}',
+    exampleHintLabel: 'Example sentence:',
   },
   ar: {
     pageTitle: 'لعبة الكلمات',
@@ -275,6 +278,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: 'لقد عرفتها! 🎉',
     wordleLostTitle: 'انتهت محاولاتك',
     correctWordTpl: 'الكلمة الصحيحة: {word}',
+    exampleHintLabel: 'جملة مثال:',
   },
   ru: {
     pageTitle: 'Словесная игра',
@@ -343,6 +347,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: 'Вы угадали! 🎉',
     wordleLostTitle: 'Жизни закончились',
     correctWordTpl: 'Правильное слово: {word}',
+    exampleHintLabel: 'Пример предложения:',
   },
   de: {
     pageTitle: 'Wortspiel',
@@ -411,6 +416,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: 'Du hast es erraten! 🎉',
     wordleLostTitle: 'Keine Leben mehr',
     correctWordTpl: 'Richtiges Wort: {word}',
+    exampleHintLabel: 'Beispielsatz:',
   },
   fr: {
     pageTitle: 'Jeu de mots',
@@ -479,6 +485,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: "Tu l'as trouvé ! 🎉",
     wordleLostTitle: 'Plus de vies',
     correctWordTpl: 'Mot correct : {word}',
+    exampleHintLabel: "Phrase d'exemple :",
   },
   es: {
     pageTitle: 'Juego de palabras',
@@ -547,6 +554,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: '¡La adivinaste! 🎉',
     wordleLostTitle: 'Sin vidas',
     correctWordTpl: 'Palabra correcta: {word}',
+    exampleHintLabel: 'Frase de ejemplo:',
   },
   it: {
     pageTitle: 'Gioco di parole',
@@ -615,6 +623,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: "L'hai indovinata! 🎉",
     wordleLostTitle: 'Vite finite',
     correctWordTpl: 'Parola corretta: {word}',
+    exampleHintLabel: 'Frase di esempio:',
   },
   ja: {
     pageTitle: '単語ゲーム',
@@ -683,6 +692,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: '正解です! 🎉',
     wordleLostTitle: 'ライフがなくなりました',
     correctWordTpl: '正解の単語: {word}',
+    exampleHintLabel: '例文:',
   },
   pt: {
     pageTitle: 'Jogo de Palavras',
@@ -751,5 +761,6 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleWonTitle: 'Acertaste! 🎉',
     wordleLostTitle: 'Sem vidas',
     correctWordTpl: 'Palavra correta: {word}',
+    exampleHintLabel: 'Frase de exemplo:',
   },
 };

@@ -22,6 +22,7 @@ import {
   Shuffle,
   Volume2,
   Rows3,
+  Lightbulb,
 } from 'lucide-react';
 import {
   gamesApi,
@@ -106,6 +107,7 @@ type Strings = {
   wordleWonTitle: string;
   wordleLostTitle: string;
   correctWordTpl: string;
+  exampleHintLabel: string;
   // Madde 6, Faz 3 — Meydan okuma (challenge) entegrasyonu
   challengeModeHint: string;
   challengeSubmittedMsg: string;
@@ -184,6 +186,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Kelimeyi buldun! 🎉',
     wordleLostTitle: 'Hakların bitti',
     correctWordTpl: 'Doğru kelime: {word}',
+    exampleHintLabel: 'Örnek cümle:',
     challengeModeHint: 'Bu oyunu bir meydan okuma için oynuyorsun.',
     challengeSubmittedMsg: 'Skorun meydan okumaya gönderildi!',
     challengeSubmitError: 'Skor gönderilemedi, Arkadaşlar sayfasından tekrar deneyebilirsin.',
@@ -259,6 +262,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'You got it! 🎉',
     wordleLostTitle: 'Out of lives',
     correctWordTpl: 'Correct word: {word}',
+    exampleHintLabel: 'Example sentence:',
     challengeModeHint: "You're playing this game for a challenge.",
     challengeSubmittedMsg: 'Your score was submitted to the challenge!',
     challengeSubmitError: 'Could not submit your score — you can retry from the Friends page.',
@@ -334,6 +338,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'لقد عرفتها! 🎉',
     wordleLostTitle: 'انتهت محاولاتك',
     correctWordTpl: 'الكلمة الصحيحة: {word}',
+    exampleHintLabel: 'جملة مثال:',
     challengeModeHint: 'أنت تلعب هذه اللعبة من أجل مبارزة.',
     challengeSubmittedMsg: 'تم إرسال نتيجتك إلى المبارزة!',
     challengeSubmitError: 'تعذّر إرسال النتيجة — يمكنك المحاولة مرة أخرى من صفحة الأصدقاء.',
@@ -409,6 +414,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Вы угадали! 🎉',
     wordleLostTitle: 'Жизни закончились',
     correctWordTpl: 'Правильное слово: {word}',
+    exampleHintLabel: 'Пример предложения:',
     challengeModeHint: 'Вы играете в эту игру ради состязания.',
     challengeSubmittedMsg: 'Ваш результат отправлен в состязание!',
     challengeSubmitError: 'Не удалось отправить результат — попробуйте снова со страницы «Друзья».',
@@ -484,6 +490,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Du hast es erraten! 🎉',
     wordleLostTitle: 'Keine Leben mehr',
     correctWordTpl: 'Richtiges Wort: {word}',
+    exampleHintLabel: 'Beispielsatz:',
     challengeModeHint: 'Du spielst dieses Spiel für eine Herausforderung.',
     challengeSubmittedMsg: 'Dein Ergebnis wurde an die Herausforderung gesendet!',
     challengeSubmitError: 'Ergebnis konnte nicht gesendet werden — versuche es erneut über die Freunde-Seite.',
@@ -559,6 +566,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: "Tu l'as trouvé ! 🎉",
     wordleLostTitle: 'Plus de vies',
     correctWordTpl: 'Mot correct : {word}',
+    exampleHintLabel: "Phrase d'exemple :",
     challengeModeHint: 'Tu joues cette partie pour un défi.',
     challengeSubmittedMsg: 'Ton score a été envoyé au défi !',
     challengeSubmitError: "Impossible d'envoyer le score — réessaie depuis la page Amis.",
@@ -634,6 +642,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: '¡La adivinaste! 🎉',
     wordleLostTitle: 'Sin vidas',
     correctWordTpl: 'Palabra correcta: {word}',
+    exampleHintLabel: 'Frase de ejemplo:',
     challengeModeHint: 'Estás jugando esta partida para un desafío.',
     challengeSubmittedMsg: '¡Tu puntuación fue enviada al desafío!',
     challengeSubmitError: 'No se pudo enviar la puntuación — puedes reintentar desde la página de Amigos.',
@@ -709,6 +718,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: "L'hai indovinata! 🎉",
     wordleLostTitle: 'Vite finite',
     correctWordTpl: 'Parola corretta: {word}',
+    exampleHintLabel: 'Frase di esempio:',
     challengeModeHint: 'Stai giocando questa partita per una sfida.',
     challengeSubmittedMsg: 'Il tuo punteggio è stato inviato alla sfida!',
     challengeSubmitError: 'Impossibile inviare il punteggio — riprova dalla pagina Amici.',
@@ -784,6 +794,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: '正解です! 🎉',
     wordleLostTitle: 'ライフがなくなりました',
     correctWordTpl: '正解の単語: {word}',
+    exampleHintLabel: '例文:',
     challengeModeHint: 'これはチャレンジのためのプレイです。',
     challengeSubmittedMsg: 'スコアをチャレンジに送信しました!',
     challengeSubmitError: 'スコアを送信できませんでした — フレンドページから再試行できます。',
@@ -859,6 +870,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Conseguiste! 🎉',
     wordleLostTitle: 'Sem vidas',
     correctWordTpl: 'Palavra correta: {word}',
+    exampleHintLabel: 'Frase de exemplo:',
     challengeModeHint: 'Estás a jogar este jogo para um desafio.',
     challengeSubmittedMsg: 'A tua pontuação foi enviada para o desafio!',
     challengeSubmitError: 'Não foi possível enviar a tua pontuação — podes tentar novamente na página Amigos.',
@@ -2034,6 +2046,21 @@ export default function GamePage() {
               {feedback ? t.correctLabel : t.wrongLabel}
             </p>
           )}
+
+          {/* Yanlış cevap sonrası mikro-açıklama (24 Eylül 2026, Madde 4) —
+              `isReverse` (anlamdan kelimeye / tanımdan kelimeye) yönünde
+              örnek cümle hiçbir yerde gösterilmiyordu (word_to_meaning'de
+              yukarıda zaten gösteriliyor, bkz. satır ~2003) — client-trust
+              modelinde NextWordResponse.example zaten backend'den geliyor,
+              yeni bir backend/LLM çağrısı gerekmedi. */}
+          {feedback === false && isReverse && current.example && (
+            <div className="w-full flex items-start gap-2.5 rounded-xl bg-[#FFF8E8] dark:bg-amber-500/10 border border-[#FDE9B8] dark:border-amber-500/20 px-3.5 py-3">
+              <Lightbulb className="w-4 h-4 text-[#B8860B] dark:text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
+                <span className="font-semibold">{t.exampleHintLabel}</span> &ldquo;{current.example}&rdquo;
+              </p>
+            </div>
+          )}
         </>
       )}
 
@@ -2220,6 +2247,18 @@ export default function GamePage() {
                 : `${t.wrongLabel} — ${t.correctWordTpl.replace('{word}', current.word ?? '')}`}
             </p>
           )}
+
+          {/* Yanlış cevap sonrası mikro-açıklama (24 Eylül 2026, Madde 4) —
+              typing/sprint modunda örnek cümle hiç gösterilmiyordu (sadece
+              anlam soru olarak gösteriliyor, bkz. yukarıdaki current.meaning). */}
+          {typingResult === 'wrong' && current.example && (
+            <div className="w-full flex items-start gap-2.5 rounded-xl bg-[#FFF8E8] dark:bg-amber-500/10 border border-[#FDE9B8] dark:border-amber-500/20 px-3.5 py-3">
+              <Lightbulb className="w-4 h-4 text-[#B8860B] dark:text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
+                <span className="font-semibold">{t.exampleHintLabel}</span> &ldquo;{current.example}&rdquo;
+              </p>
+            </div>
+          )}
         </>
       )}
 
@@ -2318,6 +2357,17 @@ export default function GamePage() {
                 ? t.correctLabel
                 : `${t.wrongLabel} — ${t.correctWordTpl.replace('{word}', current.word ?? '')}`}
             </p>
+          )}
+
+          {/* Yanlış cevap sonrası mikro-açıklama (24 Eylül 2026, Madde 4) —
+              listening modunda da örnek cümle hiç gösterilmiyordu. */}
+          {typingResult === 'wrong' && current.example && (
+            <div className="w-full flex items-start gap-2.5 rounded-xl bg-[#FFF8E8] dark:bg-amber-500/10 border border-[#FDE9B8] dark:border-amber-500/20 px-3.5 py-3">
+              <Lightbulb className="w-4 h-4 text-[#B8860B] dark:text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
+                <span className="font-semibold">{t.exampleHintLabel}</span> &ldquo;{current.example}&rdquo;
+              </p>
+            </div>
           )}
         </>
       )}
