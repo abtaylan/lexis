@@ -1047,7 +1047,7 @@ async def get_placement_status(current_user=Depends(get_current_user)):
     _finalize_stale_placement_sessions(current_user.id, learning_lang)
     rows = (
         supabase_admin.table("user_learning_languages")
-        .select("placement_level, placement_completed_at")
+        .select("placement_level, placement_completed_at, current_level")
         .eq("user_id", current_user.id)
         .eq("learning_lang", learning_lang)
         .execute()
@@ -1076,7 +1076,17 @@ async def get_placement_status(current_user=Depends(get_current_user)):
     return PlacementStatusResponse(
         learning_lang=learning_lang,
         needs_placement=needs_placement,
-        current_level=row.get("placement_level"),
+        # 24 Eylul 2026 (CEFR rozeti ozelligi) -- onceden burada sadece
+        # placement_level (baslangic sinav sonucu, SABIT) donuyordu. Ama
+        # Madde 1'in adaptif motoru current_level'i oyun performansina gore
+        # SUREKLI guncelliyor (level_assessment_service.py) -- yani placement_
+        # level zamanla "yasayan" seviyeden geri kalabiliyordu. Diger servisler
+        # (study_program_service, user_report_service) zaten current_level'i
+        # ONCELIKLI okuyordu, bu uc nokta ayni deseni takip etmiyordu -- artik
+        # ediyor. Hicbir istemci su ana kadar bu alani okumuyordu (dashboard'da
+        # kullanilacak yeni CEFR rozeti haric), o yuzden davranis degisikligi
+        # guvenli.
+        current_level=row.get("current_level") or row.get("placement_level"),
         completed_at=completed_at,
         has_resumable_session=bool(
             not completed_at

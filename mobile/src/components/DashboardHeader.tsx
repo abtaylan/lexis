@@ -7,10 +7,21 @@ import { Bell, MessageCircle, Flame } from 'lucide-react-native';
 import { notificationsApi } from '@/api/notifications';
 import { socialApi } from '@/api/social';
 import { statsApi } from '@/api/stats';
+import { examsApi } from '@/api/exams';
 import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useLocale } from '@/i18n';
 import { radius, spacing } from '@/constants/theme';
+
+// 24 Eylül 2026 -- CEFR rozeti (bkz. web/src/components/layout/CefrBadge.tsx
+// -- AYNI gerekçe: Adaptif Öğrenme Motoru current_level'i sürekli
+// güncelliyor ama hiçbir ekranda gösterilmiyordu). Web'deki gibi kısa
+// tr/en isim seti -- bu dosyadaki diğer bazı etiketler (ör. "SERİ") zaten
+// tam i18n kapsamında değil, aynı hafif desen izleniyor.
+const CEFR_LEVEL_NAMES: Record<'tr' | 'en', Record<string, string>> = {
+  tr: { a1: 'Başlangıç', a2: 'Temel', b1: 'Orta', b2: 'Orta-Üstü', c1: 'İleri', c2: 'Uzman' },
+  en: { a1: 'Beginner', a2: 'Elementary', b1: 'Intermediate', b2: 'Upper-Int.', c1: 'Advanced', c2: 'Proficient' },
+};
 
 // ── Dashboard hero header — onaylanan tasarım canvas'ındaki (Main.dc.html,
 // "Gradient hero (Yön B'den)") nihai haliyle birebir: marka renklerinde
@@ -28,7 +39,7 @@ interface DashboardHeaderProps {
 export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
   const c = useThemeColors();
   const { user } = useAuth();
-  const { xpLabels } = useLocale();
+  const { xpLabels, locale } = useLocale();
 
   const { data: notifData } = useQuery({
     queryKey: ['notifications'],
@@ -42,6 +53,11 @@ export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
   });
   const { data: stats, refetch: refetchStats } = useQuery({ queryKey: ['stats-summary'], queryFn: statsApi.getSummary });
   const { data: xp, refetch: refetchXp } = useQuery({ queryKey: ['xp'], queryFn: statsApi.getXp });
+  // 24 Eylül 2026 -- CEFR rozeti verisi. Ayrı ve bağımsız bir sorgu (kendi
+  // queryKey'i, hiçbir mevcut sorguyu/refetch zincirini etkilemiyor) --
+  // veri gelmezse/hata verirse rozet aşağıda sessizce render edilmiyor
+  // (XPBar.tsx'teki web tarafındaki AYNI soft-disable deseni).
+  const { data: placementStatus } = useQuery({ queryKey: ['placement-status'], queryFn: examsApi.placementStatus });
 
   // KULLANICI GERİ BİLDİRİMİ (6 Eylül 2026): "Xp puanlarım artmasına rağmen
   // ana ekranda seviye ve Xp göstergesi değişmiyor". Sebep: bu sorgu
@@ -65,6 +81,10 @@ export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
   const xpSpan = xp ? Math.max(1, xp.next_level_xp_target - xp.current_level_xp_floor) : 1;
   const xpPct = xp ? Math.min(100, Math.max(0, Math.round((xp.xp_into_level / xpSpan) * 100))) : 0;
 
+  const cefrLevel = placementStatus?.current_level?.toLowerCase() ?? null;
+  const cefrNames = CEFR_LEVEL_NAMES[locale === 'tr' ? 'tr' : 'en'];
+  const cefrName = cefrLevel ? cefrNames[cefrLevel] : null;
+
   return (
     <LinearGradient
       colors={[c.primary, c.accent]}
@@ -80,6 +100,15 @@ export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
           <Text style={styles.subtitle} numberOfLines={1}>
             {subtitle}
           </Text>
+          {/* 24 Eylül 2026 -- CEFR rozeti: cefrLevel yoksa (henüz seviye
+              tespit sınavı çözülmemiş/hata) hiç render edilmez. */}
+          {cefrLevel && (
+            <View style={styles.cefrPill}>
+              <Text style={styles.cefrPillText}>
+                {cefrLevel.toUpperCase()}{cefrName ? ` · ${cefrName}` : ''}
+              </Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.actions}>
@@ -165,6 +194,15 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center' },
   greeting: { color: '#fff', fontSize: 20, fontWeight: '700' },
   subtitle: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
+  cefrPill: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+  },
+  cefrPillText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   iconBtn: {
     width: 36,

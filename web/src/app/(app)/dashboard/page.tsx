@@ -12,6 +12,7 @@ import { StudyProgramCard } from '@/components/study/StudyProgramCard';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
+import { CefrBadge } from '@/components/layout/CefrBadge';
 import { Leaderboard } from '@/components/layout/Leaderboard';
 import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem, StudyProgram } from '@/types';
 
@@ -543,6 +544,11 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* CEFR rozeti (24 Eylül 2026) — Adaptif Öğrenme Motoru'nun sürekli
+          güncellediği güncel A1-C2 seviyesini görünür kılar; veri yoksa
+          bileşen kendi içinde sessizce hiçbir şey render etmez. */}
+      <CefrBadge />
 
       {/* Seviye / XP — Madde: XPBar ön yüz bileşeni */}
       <XPBar />
