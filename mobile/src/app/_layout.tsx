@@ -1,7 +1,10 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
+import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
 import { initAds } from '@/lib/adsInit';
@@ -22,8 +25,20 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // kullanılamıyor, olası bir hata sessizce yutulur.
 initAds();
 
+// Offline mod / onbellekleme (24 Eylul 2026, V2 oncelik #11): sorgu
+// onbellegi AsyncStorage'a yaziliyor, boylece uygulama internetsiz
+// yeniden acildiginda ekranlar son bilinen veriyi gosterebiliyor.
+// gcTime, persister'in maxAge'inden KUCUK OLAMAZ -- kucuk olursa React
+// Query, persister diske yazmadan onbellegi cop toplayabilir.
+const ONE_DAY_MS = 1000 * 60 * 60 * 24;
+
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
+  defaultOptions: { queries: { retry: 1, staleTime: 30_000, gcTime: ONE_DAY_MS } },
+});
+
+const asyncStoragePersister = createAsyncStoragePersister({
+  storage: AsyncStorage,
+  key: 'lexis_query_cache_v1',
 });
 
 export default function RootLayout() {
@@ -38,7 +53,10 @@ export default function RootLayout() {
     // da yakalansın diye.
     <AppErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={{ persister: asyncStoragePersister, maxAge: ONE_DAY_MS }}
+        >
           <ThemeProvider>
             <LocaleProvider>
               <AuthProvider>
@@ -46,7 +64,7 @@ export default function RootLayout() {
               </AuthProvider>
             </LocaleProvider>
           </ThemeProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </GestureHandlerRootView>
     </AppErrorBoundary>
   );

@@ -16,6 +16,9 @@ import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Mascot } from '@/components/Mascot';
+import { useIsOnline } from '@/hooks/useIsOnline';
+import { bulkStorage } from '@/utils/storage';
+import { enqueueReview, enqueueLogStudySession, flushOfflineOutbox } from '@/utils/offlineOutbox';
 
 // game.tsx::SPEECH_LANG_MAP ile BİREBİR aynı (kasıtlı küçük tekrar).
 const SPEECH_LANG_MAP: Record<string, string> = {
@@ -29,6 +32,12 @@ const SPEECH_LANG_MAP: Record<string, string> = {
   ar: 'ar-SA',
   ru: 'ru-RU',
 };
+
+// Offline mod / onbellekleme (24 Eylul 2026, V2 oncelik #11): en son
+// basariyla cekilen kart havuzu burada AsyncStorage'a yaziliyor -- ag
+// yokken loadCards() basarisiz olursa jenerik hata yerine bu onbellekten
+// devam edilebiliyor.
+const FLASHCARDS_CACHE_KEY = 'lexis_flashcards_pool_cache_v1';
 
 // ── Flashcards — web'deki app/(app)/flashcards/page.tsx'in mobil karşılığı.
 // Bugün için tekrar bekleyen kelimeler (wordsApi.getDue) öncelikli; yoksa
@@ -60,7 +69,9 @@ export default function FlashcardsScreen() {
   const [done, setDone] = useState(false);
   const [correct, setCorrect] = useState(0);
   const [error, setError] = useState('');
+  const [isOfflineFallback, setIsOfflineFallback] = useState(false);
   const sessionStartRef = useRef<number>(Date.now());
+  const isOnline = useIsOnline();
 
   // ── Gerçek 3D çevirme (Madde 3, 24 Eylül 2026) — web'deki
   // app/(app)/flashcards/page.tsx ile AYNI mantık: ön/arka yüz AYNI ANDA
@@ -119,6 +130,7 @@ export default function FlashcardsScreen() {
   const loadCards = useCallback(async () => {
     setLoading(true);
     setError('');
+    setIsOfflineFallback(false);
     try {
       const due = await wordsApi.getDue();
       let pool = due;
@@ -132,8 +144,27 @@ export default function FlashcardsScreen() {
       setDone(false);
       setCorrect(0);
       sessionStartRef.current = Date.now();
+      // Basarili cekim -- bir sonraki cevrimdisi acilis icin onbellege yaz.
+      bulkStorage.setItem(FLASHCARDS_CACHE_KEY, JSON.stringify(pool)).catch(() => {});
     } catch {
-      setError(t('wordsLoadError'));
+      // Ag hatasi olabilir -- son bilinen kart havuzunu onbellekten dene.
+      try {
+        const cached = await bulkStorage.getItem(FLASHCARDS_CACHE_KEY);
+        const pool: Word[] = cached ? JSON.parse(cached) : [];
+        if (pool.length > 0) {
+          setQueue(shuffle(pool));
+          setIndex(0);
+          setFlipped(false);
+          setDone(false);
+          setCorrect(0);
+          sessionStartRef.current = Date.now();
+          setIsOfflineFallback(true);
+        } else {
+          setError(t('wordsLoadError'));
+        }
+      } catch {
+        setError(t('wordsLoadError'));
+      }
     } finally {
       setLoading(false);
     }
@@ -182,19 +213,25 @@ export default function FlashcardsScreen() {
       queryClient.invalidateQueries({ queryKey: ['xp'] });
       queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
     } catch {
-      /* sessiz */
+      // Ag yoksa (ya da istek baska bir sebeple basarisiz olursa) bu
+      // degerlendirmeyi sessizce yutmak yerine offline kuyruga aliyoruz --
+      // baglanti donunce flushOfflineOutbox ile tekrar denenecek.
+      enqueueReview(current.id, success).catch(() => {});
     } finally {
       setReviewing(false);
     }
     if (success) setCorrect((cc) => cc + 1);
     if (index + 1 >= queue.length) {
       const finalCorrect = success ? correct + 1 : correct;
-      wordsApi.logStudySession({
+      const sessionPayload = {
         words_studied: queue.length,
         correct_count: finalCorrect,
         wrong_count: queue.length - finalCorrect,
         duration_secs: Math.round((Date.now() - sessionStartRef.current) / 1000),
         study_type: 'flashcard',
+      };
+      wordsApi.logStudySession(sessionPayload).catch(() => {
+        enqueueLogStudySession(sessionPayload).catch(() => {});
       });
       setDone(true);
     } else {
@@ -202,6 +239,16 @@ export default function FlashcardsScreen() {
       setFlipped(false);
     }
   };
+
+  // Baglanti geri geldiginde (isOnline false -> true) bekleyen offline
+  // review/logStudySession kayitlarini sirayla backend'e gondermeyi dener.
+  const wasOnlineRef = useRef(isOnline);
+  useEffect(() => {
+    if (isOnline && !wasOnlineRef.current) {
+      flushOfflineOutbox().catch(() => {});
+    }
+    wasOnlineRef.current = isOnline;
+  }, [isOnline]);
 
   const restart = () => loadCards();
 
@@ -262,6 +309,11 @@ export default function FlashcardsScreen() {
   return (
     <ScreenContainer>
       <ScreenNavBar />
+      {!isOnline || isOfflineFallback ? (
+        <View style={[styles.offlineBanner, { backgroundColor: c.warningSoft }]}>
+          <Text style={{ color: c.warning, fontSize: 11, fontWeight: '600' }}>{t('offlineBannerText')}</Text>
+        </View>
+      ) : null}
       <View style={styles.topBar}>
         <View style={styles.topBarLeft}>
           <View style={[styles.iconBadgeSm, { backgroundColor: c.primarySoft }]}>
@@ -470,6 +522,7 @@ function DoneScreen({
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center', paddingTop: spacing.xl },
+  offlineBanner: { paddingVertical: 6, paddingHorizontal: spacing.sm, borderRadius: radius.md, marginBottom: spacing.sm, alignItems: 'center' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   iconBadge: { width: 56, height: 56, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
