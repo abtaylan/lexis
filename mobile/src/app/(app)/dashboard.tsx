@@ -21,7 +21,6 @@ import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { StudyProgramCard } from '@/components/StudyProgramCard';
@@ -293,21 +292,13 @@ export default function DashboardScreen() {
 
   return (
     <ScreenContainer refreshing={isRefetching} onRefresh={refetch} padded={false}>
-      <View
-        style={{
-          paddingHorizontal: spacing.lg,
-          paddingTop: spacing.md,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: spacing.sm,
-        }}
-      >
-        <ScreenNavBar style={{ marginBottom: 0, flex: 1 }} />
-        {/* Onboarding turu (24 Eylül 2026, Madde 3d) — ilk ziyarette
-            otomatik açılır (AsyncStorage bayrağı yoksa), buradaki "?"
-            butonuyla istendiğinde tekrar açılabilir. */}
-        <OnboardingTour />
-      </View>
+      {/* Kullanıcı geri bildirimi (24 Eylül 2026): dashboard zaten ana
+          ekran olduğu için üstteki Geri/Ana Menü satırı (ScreenNavBar)
+          ve tanıtım turu "?" ikonu buraya yakışmıyordu — ikisi de
+          kaldırıldı. Onboarding turu ilk ziyarette hâlâ otomatik açılıyor
+          (showTrigger={false} sadece görünür ikonu gizliyor, bkz.
+          OnboardingTour.tsx), sadece elle yeniden açma yolu şimdilik yok. */}
+      <OnboardingTour showTrigger={false} />
       <DashboardHeader
         greeting={`${greetingText}${user?.display_name ? `, ${user.display_name}` : ''} 👋`}
         subtitle={t('dailySummarySubtitle')}

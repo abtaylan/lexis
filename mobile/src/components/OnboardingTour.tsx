@@ -72,7 +72,13 @@ const UI: Record<'tr' | 'en', { next: string; back: string; start: string; help:
   en: { next: 'Next', back: 'Back', start: "Let's start!", help: 'Guided tour' },
 };
 
-export function OnboardingTour() {
+// 24 Eylül 2026 -- showTrigger: kullanıcı geri bildirimi ("dashboard zaten
+// ana ekran, oraya '?' ikonu yakışmadı") üzerine dashboard.tsx artık bu
+// bileşeni showTrigger={false} ile kullanıyor -- ilk ziyarette otomatik
+// açılma davranışı AYNEN korunuyor, sadece elle-yeniden-açma ikonu
+// (helpBtn) render edilmiyor. Varsayılan true, diğer kullanım yerleri
+// (varsa ileride) etkilenmez.
+export function OnboardingTour({ showTrigger = true }: { showTrigger?: boolean }) {
   const c = useThemeColors();
   const { locale } = useLocale();
   const lang = locale === 'tr' ? 'tr' : 'en';
@@ -97,19 +103,21 @@ export function OnboardingTour() {
 
   return (
     <>
-      <Pressable
-        onPress={() => {
-          setStep(0);
-          setVisible(true);
-        }}
-        style={({ pressed }) => [
-          styles.helpBtn,
-          { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.7 : 1 },
-        ]}
-        accessibilityLabel={ui.help}
-      >
-        <CircleHelp color={c.textMuted} size={16} />
-      </Pressable>
+      {showTrigger && (
+        <Pressable
+          onPress={() => {
+            setStep(0);
+            setVisible(true);
+          }}
+          style={({ pressed }) => [
+            styles.helpBtn,
+            { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.7 : 1 },
+          ]}
+          accessibilityLabel={ui.help}
+        >
+          <CircleHelp color={c.textMuted} size={16} />
+        </Pressable>
+      )}
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
         <View style={styles.backdrop}>
