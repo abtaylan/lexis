@@ -28,6 +28,7 @@ import { StudyProgramCard } from '@/components/StudyProgramCard';
 import { DailyWordCard } from '@/components/DailyWordCard';
 import { StreakHeatmap } from '@/components/StreakHeatmap';
 import { MascotGreeting } from '@/components/MascotGreeting';
+import { OnboardingTour } from '@/components/OnboardingTour';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
 
@@ -292,8 +293,20 @@ export default function DashboardScreen() {
 
   return (
     <ScreenContainer refreshing={isRefetching} onRefresh={refetch} padded={false}>
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
-        <ScreenNavBar style={{ marginBottom: 0 }} />
+      <View
+        style={{
+          paddingHorizontal: spacing.lg,
+          paddingTop: spacing.md,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+        }}
+      >
+        <ScreenNavBar style={{ marginBottom: 0, flex: 1 }} />
+        {/* Onboarding turu (24 Eylül 2026, Madde 3d) — ilk ziyarette
+            otomatik açılır (AsyncStorage bayrağı yoksa), buradaki "?"
+            butonuyla istendiğinde tekrar açılabilir. */}
+        <OnboardingTour />
       </View>
       <DashboardHeader
         greeting={`${greetingText}${user?.display_name ? `, ${user.display_name}` : ''} 👋`}

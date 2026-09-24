@@ -16,6 +16,7 @@ import { CefrBadge } from '@/components/layout/CefrBadge';
 import { DailyWordCard } from '@/components/layout/DailyWordCard';
 import { StreakHeatmap } from '@/components/layout/StreakHeatmap';
 import { MascotGreeting } from '@/components/layout/MascotGreeting';
+import { OnboardingTour } from '@/components/layout/OnboardingTour';
 import { Leaderboard } from '@/components/layout/Leaderboard';
 import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem, StudyProgram } from '@/types';
 
@@ -496,6 +497,12 @@ export default function DashboardPage() {
               </select>
             </div>
           )}
+
+          {/* Onboarding turu (24 Eylül 2026, Madde 3d) — ilk ziyarette
+              otomatik açılır (localStorage bayrağı yoksa), buradaki "?"
+              butonuyla istendiğinde tekrar açılabilir. Kendi state'ini ve
+              modalını yönetiyor, backend/veri bağımlılığı yok. */}
+          <OnboardingTour />
 
           {/* Çalışma dili seçicisi ile mesaj simgesi arasında hızlı erişim
               tema butonu — tek tıkla açık/koyu tema geçişi (sistem tercihini
