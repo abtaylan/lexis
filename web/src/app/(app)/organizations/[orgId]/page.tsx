@@ -20,7 +20,7 @@ import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import {
   Loader2, AlertCircle, UserPlus, Trash2, FileBarChart2, ShieldCheck,
-  ShieldOff, Crown, Shield, User as UserIcon,
+  ShieldOff, Crown, Shield, User as UserIcon, Sparkles, Trophy,
 } from 'lucide-react';
 import { organizationsApi, type OrganizationListItem, type OrganizationMember } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -93,6 +93,20 @@ export default function OrganizationDetailPage() {
   const isMemberLimitReached = Boolean(
     org?.member_limit != null && members && members.length >= org.member_limit
   );
+
+  // Genişletilmiş kurum/B2B paneli (24 Eylül 2026, Madde 5) — "Genel
+  // Bakış" özet kartı. Yeni bir backend çağrısı GEREKMEDİ: üye listesi
+  // zaten total_xp/consent_given ile birlikte geliyor (bkz.
+  // organizations.py::list_organization_members'ın döndürdüğü liderlik
+  // tablosu verisi) — bu sadece o veri üzerinden istemci tarafında
+  // türetilen bir özet.
+  const totalXp = members ? members.reduce((sum, m) => sum + m.total_xp, 0) : 0;
+  const avgXp = members && members.length > 0 ? Math.round(totalXp / members.length) : 0;
+  const consentRate =
+    members && members.length > 0
+      ? Math.round((members.filter((m) => m.consent_given).length / members.length) * 100)
+      : 0;
+  const topPerformer = members && members.length > 0 ? members[0] : null; // members zaten total_xp'ye göre azalan sıralı geliyor
 
   const handleInvite = async () => {
     if (!inviteEmail.trim()) return;
@@ -178,6 +192,40 @@ export default function OrganizationDetailPage() {
               {t.consentLinkLabel}
             </Link>
           </div>
+
+          {members.length > 0 && (
+            <Card>
+              <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100 mb-3 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-[#378ADD]" />
+                {t.overviewTitle}
+              </h2>
+              <div className="grid grid-cols-3 gap-3 mb-3">
+                <div className="rounded-xl bg-gray-50 dark:bg-slate-800/60 px-3 py-2.5 text-center">
+                  <p className="text-lg font-bold text-gray-900 dark:text-slate-100">{totalXp}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">{t.overviewTotalXpLabel}</p>
+                </div>
+                <div className="rounded-xl bg-gray-50 dark:bg-slate-800/60 px-3 py-2.5 text-center">
+                  <p className="text-lg font-bold text-gray-900 dark:text-slate-100">{avgXp}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">{t.overviewAvgXpLabel}</p>
+                </div>
+                <div className="rounded-xl bg-gray-50 dark:bg-slate-800/60 px-3 py-2.5 text-center">
+                  <p className="text-lg font-bold text-gray-900 dark:text-slate-100">%{consentRate}</p>
+                  <p className="text-[11px] text-gray-400 dark:text-slate-500 mt-0.5">{t.overviewConsentRateLabel}</p>
+                </div>
+              </div>
+              {topPerformer && (
+                <div className="flex items-center gap-2.5 rounded-xl bg-[#FFF8E8] dark:bg-amber-500/10 border border-[#FDE9B8] dark:border-amber-500/20 px-3.5 py-2.5">
+                  <Trophy className="w-4 h-4 text-[#B8860B] dark:text-amber-400 shrink-0" />
+                  <p className="text-xs text-[#8A6416] dark:text-amber-300">
+                    <span className="font-semibold">{t.overviewTopPerformerLabel}:</span>{' '}
+                    {topPerformer.username ?? topPerformer.email ?? topPerformer.user_id.slice(0, 8)} — {topPerformer.total_xp} {t.xpUnit}
+                  </p>
+                </div>
+              )}
+            </Card>
+          )}
+
+          <div className="h-4" />
 
           {canManage && (
             <Card>
