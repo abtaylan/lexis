@@ -1,0 +1,30 @@
+name: Lexis - weekly weak categories email
+
+on:
+  schedule:
+    # Pazar 19:00 Turkiye saati (UTC+3, DST yok) civari, 10 dakikada bir
+    # 6 deneme (16:00-16:50 UTC Pazar) -- weekly-admin-report.yml (Pazartesi
+    # sabahi) ile CAKISMASIN diye farkli gun/saat secildi; "haftani
+    # degerlendir" e-postasi icin hafta sonu aksami mantikli. Ayni gerekce:
+    # GitHub Actions'in haftada tek bir sabit dakikadaki cron tick'i bazen
+    # sessizce hic calismayabiliyor, backend tarafinda already_ran_today
+    # (gunluk takvim gunu bazinda) ile haftada tek gonderim garantisi var.
+    - cron: '5,15,25,35,45,55 16 * * 0'
+  workflow_dispatch: {}
+
+jobs:
+  trigger-weekly-weak-categories-email:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/weekly-weak-categories-email
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/weekly-weak-categories-email" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "Istek basarisiz (HTTP $http_code)"
+            exit 1
+          fi

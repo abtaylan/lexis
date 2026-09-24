@@ -28,6 +28,16 @@ CAMBRIDGE_NATIVE_SLUG = {
     # eklendi (daha once haritada yoktu, bu yuzden bu diller icin sadece
     # Ingilizce tek dilli sayfa taranip hicbir zaman ceviri donmuyordu).
     "ko": "korean", "zh": "chinese-simplified",
+    # 23 Eylul 2026 (seed_en_remaining.py calistirmasinda bulundu): ru ve pt
+    # haritada HIC yoktu -- bu yuzden bu iki dil icin Cambridge daima sadece
+    # Ingilizce tek dilli sayfayi tariyordu ve meaning_native HICBIR ZAMAN
+    # dolmuyordu; lookup_word() her seferinde free_dictionary+mymemory
+    # adimina dusuyor, o da paylasimli MyMemory kotasi dolduğunda sistematik
+    # olarak "bulunamadi" donduruyordu (ru/pt icin ~%0 basari orani --
+    # kelime bazli bir eksiklik degildi). Cambridge'in kendi
+    # english-russian/english-portuguese iki dilli sozlukleri var, sadece
+    # haritaya eklenmemisti.
+    "ru": "russian", "pt": "portuguese",
 }
 
 HEADERS = {
