@@ -270,6 +270,31 @@ async def run_monthly_user_report(
     return {"status": "ok", "result": result}
 
 
+# Madde 4b (24 Eylul 2026) -- "haftalik AI zayif kategori ozeti e-postasi".
+# Yukaridaki job'larla ayni sebep/desen: Resend (e-posta) gercek dis ag
+# erisimi gerektiriyor, bu yuzden burada, disaridan (GitHub Actions)
+# tetikleniyor. Script: backend/weekly_weak_categories_email.py.
+@router.post("/weekly-weak-categories-email")
+async def run_weekly_weak_categories_email(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    if already_ran_today("weekly_weak_categories_email"):
+        return {"status": "skipped", "reason": "already_ran_today"}
+
+    def _run() -> dict:
+        import weekly_weak_categories_email
+
+        with job_run("weekly_weak_categories_email") as run:
+            result = weekly_weak_categories_email.main()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
+
+
 # Kullanici istegi (18 Eylul 2026) -- iOS App Store'da 1.0.2 (acilis cokmesi
 # duzeltmesi) yayina girdiginde tum kayitli iOS push token'larina tek seferlik
 # "yeni surum yayinda, hemen guncelleyin" bildirimi. Yukaridaki job'larla ayni

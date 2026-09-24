@@ -909,3 +909,107 @@ def send_monthly_user_report_email(
         print(f"MONTHLY USER REPORT EMAIL SEND ERROR via SMTP ({to_email}): {e}")
         log_notification("email", "monthly_user_report", to_email, "failed", {"error": str(e), "via": "smtp"})
         return False
+
+
+def send_weekly_weak_categories_email(
+    to_email: str,
+    display_name: str | None,
+    report_date: str,
+    weak_word_types: list[dict],
+    weak_difficulty_levels: list[dict],
+) -> bool:
+    """
+    Madde 4b (24 Eylül 2026) — "haftalık AI zayıf kategori özeti e-postası".
+    send_monthly_user_report_email ile AYNI OTP_MODE/RESEND/SMTP altyapısı
+    ve HTML stili (bu dosyadaki tüm diğer rapor e-postalarıyla tutarlı).
+
+    weak_word_types: app/services/weak_categories_service.py::get_weak_word_types
+    çıktısı (kelime türü bazında ortalama ease_factor 2.5 altı olanlar).
+    weak_difficulty_levels: aynı dosyadaki get_weak_difficulty_levels çıktısı
+    (oyunlarda en çok yanlış yapılan zorluk seviyeleri).
+
+    Çağıran taraf: weekly_weak_categories_email.py. Her iki liste de boşsa
+    (kullanıcının o hafta hiç zayıf kategori verisi yoksa) bu fonksiyon
+    ÇAĞRILMAZ — script tarafında filtreleniyor, boş bir e-posta
+    gönderilmiyor (diğer soft-disable desenleriyle aynı mantık).
+    """
+    name = display_name or "Lexis kullanicisi"
+    subject = f"Lexis Haftalik Zayif Kategori Ozetin - {report_date}"
+
+    def _word_type_list() -> str:
+        if not weak_word_types:
+            return ""
+        items = "".join(
+            f'<li>{w["word_type"]}: ortalama kolaylik puani {w["avg_ease_factor"]} '
+            f'({w["word_count"]} kelime)</li>'
+            for w in weak_word_types
+        )
+        return f"""
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-bottom:0;">En cok zorlandigin kelime turleri</p>
+      <ul style="margin:8px 0 0; padding-left:20px; font-size:14px; color:#0f172a;">{items}</ul>
+      <p style="color:#64748b; font-size:12px; margin-top:6px;">Bu kelime turlerini flashcard'larla tekrar etmeyi dene.</p>
+        """
+
+    def _difficulty_list() -> str:
+        if not weak_difficulty_levels:
+            return ""
+        items = "".join(
+            f'<li>{d["difficulty_level"]}: {d["wrong_count"]}/{d["total_count"]} yanlis '
+            f'(dogruluk %{round(d["accuracy_ratio"] * 100)})</li>'
+            for d in weak_difficulty_levels
+        )
+        return f"""
+      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:18px; margin-bottom:0;">Oyunlarda en cok zorlandigin zorluk seviyeleri</p>
+      <ul style="margin:8px 0 0; padding-left:20px; font-size:14px; color:#0f172a;">{items}</ul>
+        """
+
+    html_body = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+      <h2 style="color:#0284c7; margin-bottom: 4px;">Merhaba {name}, haftalik zayif kategori ozetin hazir!</h2>
+      <p style="color:#64748b; font-size: 13px; margin-top:0;">{report_date}</p>
+      {_word_type_list()}
+      {_difficulty_list()}
+      <p style="color:#94a3b8; font-size: 11px; margin-top: 24px;">
+        Bu otomatik, haftalik bir ozettir. E-posta tercihlerini profil ayarlarindan degistirebilirsin.
+      </p>
+    </div>
+    """
+
+    if settings.OTP_MODE != "real":
+        print(f"[WEEKLY-WEAK-CATEGORIES-DEV] {to_email} -> {report_date}: "
+              f"word_types={len(weak_word_types)}, difficulty={len(weak_difficulty_levels)}")
+        log_notification("email", "weekly_weak_categories", to_email, "skipped", {"reason": "OTP_MODE=fixed"})
+        return True
+
+    if not settings.RESEND_API_KEY and (not settings.SMTP_USER or not settings.SMTP_PASSWORD):
+        print(f"[WEEKLY-WEAK-CATEGORIES] Mail saglayicisi ayarlanmamis, rapor gonderilemedi: {to_email}")
+        log_notification("email", "weekly_weak_categories", to_email, "failed", {"reason": "no email provider configured"})
+        return False
+
+    if settings.RESEND_API_KEY:
+        try:
+            _send_via_resend(to_email, subject, html_body)
+            log_notification("email", "weekly_weak_categories", to_email, "sent", {"via": "resend"})
+            return True
+        except Exception as e:
+            print(f"WEEKLY WEAK CATEGORIES EMAIL SEND ERROR via Resend ({to_email}): {e}")
+            log_notification("email", "weekly_weak_categories", to_email, "failed", {"error": str(e), "via": "resend"})
+            return False
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(html_body, "html"))
+
+    try:
+        with _IPv4SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+            server.starttls()
+            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            server.sendmail(settings.SMTP_USER, [to_email], msg.as_string())
+        log_notification("email", "weekly_weak_categories", to_email, "sent", {"via": "smtp"})
+        return True
+    except Exception as e:
+        print(f"WEEKLY WEAK CATEGORIES EMAIL SEND ERROR via SMTP ({to_email}): {e}")
+        log_notification("email", "weekly_weak_categories", to_email, "failed", {"error": str(e), "via": "smtp"})
+        return False

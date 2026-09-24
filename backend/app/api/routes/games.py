@@ -56,7 +56,7 @@ LEXIS_XP_YENI_KURALLAR.md
 """
 
 import random
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -80,6 +80,7 @@ from app.schemas.games import (
 )
 from app.services.spaced_repetition import calculate_next_review
 from app.services.streak import update_streak
+from app.services.weak_categories_service import get_weak_difficulty_levels
 from app.services.xp_service import award_xp
 
 router = APIRouter()
@@ -1006,72 +1007,16 @@ async def weak_difficulty_levels(
     tutulur (words tablosunda difficulty_level yok) -- sadece general_word_id
     dolu (pool_source="general") denemeler sayilir; 10 Eylul 2026 itibariyla
     bu, tum oyun denemelerinin ~%95'ini kapsiyor.
+
+    Hesaplama mantığı 24 Eylül 2026'da app/services/weak_categories_service.py
+    ::get_weak_difficulty_levels'a taşındı (Madde 4b — haftalık zayıf
+    kategori e-postası da AYNI fonksiyonu çağırabilsin diye, davranış
+    değişikliği yok, bu route artık ince bir sarmalayıcı).
     """
     days = max(1, min(days, 365))
     limit = max(1, min(limit, 20))
-    since_iso = (datetime.now(UTC) - timedelta(days=days)).isoformat()
 
-    session_ids = [
-        s["id"]
-        for s in (
-            supabase_admin.table("game_sessions")
-            .select("id")
-            .eq("user_id", current_user.id)
-            .gte("started_at", since_iso)
-            .execute()
-            .data
-            or []
-        )
-    ]
-    if not session_ids:
-        return WeakDifficultyResult(period_days=days, items=[])
+    raw_items = get_weak_difficulty_levels(current_user.id, days=days, limit=limit)
+    items = [WeakDifficultyItem(**item) for item in raw_items]
 
-    attempts = (
-        supabase_admin.table("game_attempts")
-        .select("general_word_id, is_correct")
-        .in_("session_id", session_ids)
-        .not_.is_("general_word_id", "null")
-        .execute()
-        .data
-    ) or []
-    if not attempts:
-        return WeakDifficultyResult(period_days=days, items=[])
-
-    general_word_ids = list({a["general_word_id"] for a in attempts})
-    pool_rows = (
-        supabase_admin.table("general_word_pool")
-        .select("id, difficulty_level")
-        .in_("id", general_word_ids)
-        .execute()
-        .data
-    ) or []
-    difficulty_by_id = {p["id"]: p.get("difficulty_level") for p in pool_rows}
-
-    counts: dict[str, dict[str, int]] = {}
-    for a in attempts:
-        level = difficulty_by_id.get(a["general_word_id"])
-        if not level:
-            continue
-        bucket = counts.setdefault(level, {"total": 0, "wrong": 0})
-        bucket["total"] += 1
-        if not a["is_correct"]:
-            bucket["wrong"] += 1
-
-    rows = [
-        {"difficulty_level": level, "total_count": c["total"], "wrong_count": c["wrong"]}
-        for level, c in counts.items()
-        if c["wrong"] > 0
-    ]
-    rows.sort(key=lambda r: (-r["wrong_count"], r["wrong_count"] / r["total_count"]))
-    rows = rows[:limit]
-
-    items = [
-        WeakDifficultyItem(
-            difficulty_level=r["difficulty_level"],
-            total_count=r["total_count"],
-            wrong_count=r["wrong_count"],
-            accuracy_ratio=round((r["total_count"] - r["wrong_count"]) / r["total_count"], 4),
-        )
-        for r in rows
-    ]
     return WeakDifficultyResult(period_days=days, items=items)

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -17,6 +17,7 @@ from app.schemas.words import (
 )
 from app.services.spaced_repetition import calculate_next_review
 from app.services.streak import update_streak
+from app.services.weak_categories_service import get_weak_word_types
 from app.services.xp_service import award_xp
 
 router = APIRouter()
@@ -227,6 +228,11 @@ async def weak_word_types(
     word_type hiç gönderilmiyordu (bkz. mobile/src/app/(app)/words.tsx bug
     fix), o yüzden eski kelimelerde bu alan büyük oranda boş olacaktır; yeni
     eklenen kelimelerle zamanla dolacak.
+
+    Hesaplama mantığı 24 Eylül 2026'da app/services/weak_categories_service.py
+    ::get_weak_word_types'a taşındı (Madde 4b — haftalık zayıf kategori
+    e-postası da AYNI fonksiyonu çağırabilsin diye, davranış değişikliği
+    yok, bu route artık ince bir sarmalayıcı).
     """
     days = max(1, min(days, 365))
     limit = max(1, min(limit, 20))
@@ -239,40 +245,9 @@ async def weak_word_types(
         .execute()
     )
     active_lang = (profile.data or {}).get("learning_lang", "en")
-    since_iso = (datetime.now(UTC) - timedelta(days=days)).isoformat()
 
-    rows = (
-        supabase_admin.table("words")
-        .select("word_type, ease_factor")
-        .eq("user_id", current_user.id)
-        .eq("source_lang", active_lang)
-        .not_.is_("word_type", "null")
-        .not_.is_("last_reviewed_at", "null")
-        .gte("last_reviewed_at", since_iso)
-        .execute()
-        .data
-    ) or []
-
-    buckets: dict[str, dict[str, float]] = {}
-    for r in rows:
-        wt = (r.get("word_type") or "").strip().lower()
-        if not wt:
-            continue
-        b = buckets.setdefault(wt, {"count": 0, "ease_sum": 0.0})
-        b["count"] += 1
-        b["ease_sum"] += float(r.get("ease_factor") or 2.5)
-
-    items = [
-        WeakWordTypeItem(
-            word_type=wt,
-            word_count=int(b["count"]),
-            avg_ease_factor=round(b["ease_sum"] / b["count"], 2),
-        )
-        for wt, b in buckets.items()
-        if (b["ease_sum"] / b["count"]) < 2.5
-    ]
-    items.sort(key=lambda i: i.avg_ease_factor)
-    items = items[:limit]
+    raw_items = get_weak_word_types(current_user.id, active_lang, days=days, limit=limit)
+    items = [WeakWordTypeItem(**item) for item in raw_items]
 
     return WeakWordTypesResult(period_days=days, items=items)
 
