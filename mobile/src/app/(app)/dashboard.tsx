@@ -25,6 +25,7 @@ import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { StudyProgramCard } from '@/components/StudyProgramCard';
+import { DailyWordCard } from '@/components/DailyWordCard';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
 
@@ -408,6 +409,11 @@ export default function DashboardScreen() {
         {!!studyProgram?.available && studyProgram.focus_topics.length > 0 && (
           <StudyProgramCard program={studyProgram} locale={locale} />
         )}
+
+        {/* Günlük Kelime Avı (24 Eylül 2026, Madde 2 seçimi) — kendi sorgusunu
+            kendi yapan soft-disable kart, bugünün kelimesi yoksa hiç render
+            edilmez. */}
+        <DailyWordCard />
 
         {/* Madde #3c: zayıf konu özeti — sadece en az bir zayıf konu varsa
             gösterilir (backend boş liste dönerse widget hiç render edilmez). */}

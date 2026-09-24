@@ -143,6 +143,12 @@ export default function AppTabsLayout() {
           "Raporum" ekranı, rewards/quests ile aynı desen: kendi sekmesi yok,
           dashboard'daki Faz 3 kısayol grid'inden açılıyor. */}
       <Tabs.Screen name="report" options={{ href: null, headerShown: false }} />
+      {/* Günlük Kelime Avı (24 Eylül 2026, Madde 2 seçimi) — rewards/report
+          ile AYNI desen: kendi sekmesi yok, dashboard'daki DailyWordCard
+          kısayolundan açılıyor. exam-topic-practice'teki 11 Eylül 2026
+          düzeltmesinin AYNI uyarısı: burada listelenmezse Expo Router
+          sekme çubuğuna varsayılan ikonlu, istenmeyen bir sekme ekler. */}
+      <Tabs.Screen name="daily-word" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

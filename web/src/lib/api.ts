@@ -1619,3 +1619,50 @@ export const studyProgramApi = {
     return res.data;
   },
 };
+
+// ── "Günlük Kelime Avı" (24 Eylül 2026, Madde 2 seçimi) ────────────────
+// backend/app/api/routes/daily_challenge.py ile birebir aynı alan eşleşmesi
+// (mobile/src/api/dailyChallenge.ts ile de aynı).
+export interface DailyChallengeState {
+  puzzle_date: string;
+  learning_lang: string;
+  revealed: string;
+  guessed_letters: string[];
+  wrong_guesses: number;
+  max_wrong_guesses: number;
+  is_complete: boolean;
+  is_failed: boolean;
+  word: string | null;
+  meaning: string | null;
+  example: string | null;
+  streak: number;
+}
+
+export interface DailyChallengeGuessResult {
+  letter: string;
+  correct: boolean;
+  revealed: string;
+  guessed_letters: string[];
+  wrong_guesses: number;
+  max_wrong_guesses: number;
+  is_complete: boolean;
+  is_failed: boolean;
+  word: string | null;
+  meaning: string | null;
+  example: string | null;
+  streak: number;
+}
+
+export const dailyChallengeApi = {
+  // Gün için henüz kelime üretilmediyse backend null döner (cron henüz
+  // çalışmadı / bu dil için uygun kelime yok) — CefrBadge/XPBar'daki AYNI
+  // soft-disable deseni: çağıran taraf null'ı "kart hiç gösterme" olarak ele alır.
+  today: async (): Promise<DailyChallengeState | null> => {
+    const res = await api.get<DailyChallengeState | null>('/daily-challenge/today');
+    return res.data;
+  },
+  guessLetter: async (letter: string): Promise<DailyChallengeGuessResult> => {
+    const res = await api.post<DailyChallengeGuessResult>('/daily-challenge/guess-letter', { letter });
+    return res.data;
+  },
+};

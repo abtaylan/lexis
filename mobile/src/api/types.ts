@@ -1061,3 +1061,36 @@ export interface StudyProgram {
   weekend_quiz?: { available: boolean; answered_count: number; target_count: number; done: boolean } | null;
   completed_topics: number;
 }
+
+// ── "Günlük Kelime Avı" (24 Eylül 2026, Madde 2 seçimi) ────────────────
+// backend/app/api/routes/daily_challenge.py ile birebir aynı alan eşleşmesi
+// (web/src/lib/api.ts ile de aynı).
+export interface DailyChallengeState {
+  puzzle_date: string;
+  learning_lang: string;
+  revealed: string;
+  guessed_letters: string[];
+  wrong_guesses: number;
+  max_wrong_guesses: number;
+  is_complete: boolean;
+  is_failed: boolean;
+  word: string | null;
+  meaning: string | null;
+  example: string | null;
+  streak: number;
+}
+
+export interface DailyChallengeGuessResult {
+  letter: string;
+  correct: boolean;
+  revealed: string;
+  guessed_letters: string[];
+  wrong_guesses: number;
+  max_wrong_guesses: number;
+  is_complete: boolean;
+  is_failed: boolean;
+  word: string | null;
+  meaning: string | null;
+  example: string | null;
+  streak: number;
+}

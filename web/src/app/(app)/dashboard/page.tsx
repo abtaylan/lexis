@@ -13,6 +13,7 @@ import { useLocale, type Locale } from '@/lib/i18n';
 import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
 import { CefrBadge } from '@/components/layout/CefrBadge';
+import { DailyWordCard } from '@/components/layout/DailyWordCard';
 import { Leaderboard } from '@/components/layout/Leaderboard';
 import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem, StudyProgram } from '@/types';
 
@@ -552,6 +553,11 @@ export default function DashboardPage() {
 
       {/* Seviye / XP — Madde: XPBar ön yüz bileşeni */}
       <XPBar />
+
+      {/* Günlük Kelime Avı (24 Eylül 2026, Madde 2 seçimi) — CefrBadge/XPBar
+          ile AYNI soft-disable deseni: bugünün kelimesi yoksa kart hiç
+          render edilmez. */}
+      <DailyWordCard />
 
       {/* Sıralama — kendi puanın + rakip karşılaştırması (Genel/Haftalık/Aylık).
           limit=5: ilk 5 gösterilir; kullanıcı ilk 5'te değilse (örn. 10.
