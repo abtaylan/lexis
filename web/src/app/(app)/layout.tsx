@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { useAuth } from '@/store/auth';
 import { useLocale } from '@/lib/i18n';
@@ -9,10 +9,21 @@ import { Spinner } from '@/components/ui';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { BackHomeBar } from '@/components/layout/BackHomeBar';
 
+// Kullanıcı geri bildirimi (24 Eylül 2026): Dashboard zaten ana ekran
+// olduğu için Geri/Ana Menü'ye hiç gerek yok; Görev Haritası da kendi tam
+// ekran/canvas düzenini kullanıyor, alt kısımda bir gezinme çubuğu oraya
+// yakışmıyor. Her iki rota da (ve varsa alt sayfaları) BackHomeBar'dan
+// muaf.
+const BACK_HOME_BAR_EXCLUDED_PREFIXES = ['/dashboard', '/quests'];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const { t } = useLocale();
+  const showBackHomeBar = !BACK_HOME_BAR_EXCLUDED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)
+  );
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -51,8 +62,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         (mobilde) devreye giriyor; md ve üstünde (masaüstü) davranış aynı kaldı.
       */}
       <main className="flex-1 md:ml-60 min-h-screen overflow-y-auto pt-14 md:pt-0">
-        <BackHomeBar />
         {children}
+        {showBackHomeBar && <BackHomeBar />}
         {/*
           Tüm (app) sayfalarının altında tek noktadan reklam gösterimi.
           AdBanner kendi içinde zaten !isPremium ve NEXT_PUBLIC_ADSENSE_CLIENT_ID
