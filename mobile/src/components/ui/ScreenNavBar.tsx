@@ -6,16 +6,21 @@
 // menuye donus yoktu; duels/league/custom-leagues/quests/friends/messages/
 // stats/premium/quiz/flashcards/duel-room ekranlarinda ise geri donus bile
 // yoktu (yalnizca donanim geri tusu/iOS kaydirma jestiyle cikilabiliyordu).
-// Bu bilesen ikisini tek satirda, tutarli bir gorunumle veriyor -- mevcut
-// "Geri" satirlarinin yerini alacak sekilde tasarlandi (ayni ArrowLeft ikonu,
-// ayni stil), sag tarafa Home ikonlu "Ana Menu" butonu eklendi.
-import React from 'react';
-import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { router } from 'expo-router';
-import { ArrowLeft, Home } from 'lucide-react-native';
-import { useThemeColors } from '@/hooks/useThemeColors';
-import { useLocale } from '@/i18n';
-import { spacing } from '@/constants/theme';
+//
+// GERI ALINDI (24 Eylul 2026, kullanici geri bildirimi + ekran goruntusu):
+// "mobilde bu ikonlar hicbir bolumde olmasin". 28 ekran dosyasinda ~50
+// cagri noktasi var (bkz. git grep "ScreenNavBar" mobile/src) -- her birini
+// tek tek duzenlemek yerine (ve JSX yapisini bozma riskine girmeden) TEK
+// noktadan, bu bilesenin kendisi hicbir sey render etmeyecek sekilde
+// degistirildi. Tum cagri yerleri (prop imzasi dahil) aynen kaliyor, sadece
+// gorunmuyor -- boylece TypeScript/derleme tarafinda hicbir dosyaya
+// dokunmadan sonuc aliniyor. DIKKAT: bu ekranlarin bir kismi (duels/league/
+// custom-leagues/quests/friends/messages/stats/premium/quiz/flashcards/
+// duel-room) bu bilesenden ONCE hic gorunur "Geri" secenegi sunmuyordu --
+// donanim geri tusu (Android) ve kenardan kaydirma jesti (iOS) hala
+// calisiyor, ama gorunur bir buton yok. Kullanici bunu istedi, ama ileride
+// bu ekranlarda kaybolma sikayeti gelirse ilk bakilacak yer burasi.
+import type { ViewStyle } from 'react-native';
 
 interface ScreenNavBarProps {
   // Geri butonuna ozel davranis gerekiyorsa (orn. placement sinavinda
@@ -26,32 +31,6 @@ interface ScreenNavBarProps {
   style?: ViewStyle;
 }
 
-export function ScreenNavBar({ onBack, showBack = true, style }: ScreenNavBarProps) {
-  const c = useThemeColors();
-  const { locale } = useLocale();
-  const backLabel = locale === 'tr' ? 'Geri' : 'Back';
-  const homeLabel = locale === 'tr' ? 'Ana Menü' : 'Home';
-
-  return (
-    <View style={[styles.row, style]}>
-      {showBack ? (
-        <Pressable onPress={onBack ?? (() => router.back())} style={styles.btn} hitSlop={8}>
-          <ArrowLeft color={c.textSecondary} size={18} />
-          <Text style={[styles.text, { color: c.textSecondary }]}>{backLabel}</Text>
-        </Pressable>
-      ) : (
-        <View />
-      )}
-      <Pressable onPress={() => router.replace('/(app)/dashboard')} style={styles.btn} hitSlop={8}>
-        <Home color={c.textSecondary} size={18} />
-        <Text style={[styles.text, { color: c.textSecondary }]}>{homeLabel}</Text>
-      </Pressable>
-    </View>
-  );
+export function ScreenNavBar(_props: ScreenNavBarProps) {
+  return null;
 }
-
-const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
-  btn: { flexDirection: 'row', alignItems: 'center' },
-  text: { marginLeft: spacing.xs, fontSize: 14, fontWeight: '600' },
-});
