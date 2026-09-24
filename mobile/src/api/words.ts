@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { DictionaryResult, Word, WordCreate, WordUpdate, WeakWordTypesResult } from './types';
+import type { DictionaryResult, Word, WordCreate, WordUpdate, WeakWordTypesResult, WordOfTheDayResult } from './types';
 
 export interface PaginatedWords {
   items: Word[];
@@ -77,6 +77,12 @@ export const wordsApi = {
     const res = await api.get<WeakWordTypesResult>('/words/stats/weak-word-types', {
       params: { days, limit },
     });
+    return res.data;
+  },
+
+  // Madde 5 (24 Eylul 2026) -- dashboard "Gunun Kelimesi" karti, salt okunur.
+  wordOfTheDay: async (): Promise<WordOfTheDayResult> => {
+    const res = await api.get<WordOfTheDayResult>('/words/word-of-the-day');
     return res.data;
   },
 };

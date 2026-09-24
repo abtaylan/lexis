@@ -25,6 +25,7 @@ import { Card } from '@/components/ui/Card';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { StudyProgramCard } from '@/components/StudyProgramCard';
 import { DailyWordCard } from '@/components/DailyWordCard';
+import { WordOfTheDayCard } from '@/components/WordOfTheDayCard';
 import { StreakHeatmap } from '@/components/StreakHeatmap';
 import { MascotGreeting } from '@/components/MascotGreeting';
 import { OnboardingTour } from '@/components/OnboardingTour';
@@ -431,6 +432,12 @@ export default function DashboardScreen() {
             kendi yapan soft-disable kart, bugünün kelimesi yoksa hiç render
             edilmez. */}
         <DailyWordCard />
+
+        {/* Günün Kelimesi (Madde 5, 24 Eylül 2026) — DailyWordCard ile
+            KARIŞTIRILMASIN: o "Günlük Kelime Avı" (Wordle tarzı oyun), bu
+            ise salt okunur, e-postayla gelen günlük kelime içeriğinin
+            dashboard'a taşınmış hali. Aynı soft-disable deseni. */}
+        <WordOfTheDayCard />
 
         {/* Çalışma takvimi (streak heatmap) — Madde 3 (Görsel/GUI), 24 Eylül
             2026. web'deki StreakHeatmap ile aynı, mevcut statsApi.getHistory
