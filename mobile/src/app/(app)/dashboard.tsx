@@ -26,6 +26,7 @@ import { Card } from '@/components/ui/Card';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { StudyProgramCard } from '@/components/StudyProgramCard';
 import { DailyWordCard } from '@/components/DailyWordCard';
+import { StreakHeatmap } from '@/components/StreakHeatmap';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
 
@@ -414,6 +415,11 @@ export default function DashboardScreen() {
             kendi yapan soft-disable kart, bugünün kelimesi yoksa hiç render
             edilmez. */}
         <DailyWordCard />
+
+        {/* Çalışma takvimi (streak heatmap) — Madde 3 (Görsel/GUI), 24 Eylül
+            2026. web'deki StreakHeatmap ile aynı, mevcut statsApi.getHistory
+            çağrısı daha geniş bir pencereyle (18 hafta) tekrar kullanılıyor. */}
+        <StreakHeatmap />
 
         {/* Madde #3c: zayıf konu özeti — sadece en az bir zayıf konu varsa
             gösterilir (backend boş liste dönerse widget hiç render edilmez). */}

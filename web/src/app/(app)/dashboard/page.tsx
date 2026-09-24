@@ -14,6 +14,7 @@ import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
 import { CefrBadge } from '@/components/layout/CefrBadge';
 import { DailyWordCard } from '@/components/layout/DailyWordCard';
+import { StreakHeatmap } from '@/components/layout/StreakHeatmap';
 import { Leaderboard } from '@/components/layout/Leaderboard';
 import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem, StudyProgram } from '@/types';
 
@@ -583,6 +584,13 @@ export default function DashboardPage() {
           <span className="text-3xl">🔥</span>
         </div>
       )}
+
+      {/* Çalışma takvimi (streak heatmap) — Madde 3 (Görsel/GUI), 24 Eylül
+          2026. Mevcut statsApi.getHistory çağrısı (backend'de zaten vardı,
+          değişiklik gerekmedi) daha geniş bir pencereyle (18 hafta) tekrar
+          çağrılıyor; CefrBadge/XPBar/DailyWordCard ile aynı soft-disable
+          deseni. */}
+      <StreakHeatmap />
 
       {/* 3 stat kart */}
       <div className="grid grid-cols-3 gap-3">
