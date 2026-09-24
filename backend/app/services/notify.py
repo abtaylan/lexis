@@ -32,6 +32,7 @@ def notify_user(
     title: str,
     message: str,
     push_category: str | None = None,
+    data: dict | None = None,
 ) -> None:
     """
     user_id: bildirimin gideceği kullanıcı.
@@ -39,6 +40,9 @@ def notify_user(
     title / message: hem uygulama-içi bildirim hem push başlığı/gövdesi.
     push_category: notification_log kategori adı — verilmezse notif_type
                    kullanılır (örn. 'friend_request', 'new_message').
+    data: mobil tarafta bildirime dokununca ilgili ekrana yönlendirmek
+          (deep-link) icin push mesajina eklenen opsiyonel yük, örn.
+          {"type": "duel_invite", "duelId": "..."}.
     """
     supabase_admin.table("notifications").insert(
         {
@@ -58,7 +62,7 @@ def notify_user(
         )
         tokens = [r["token"] for r in (tokens_res.data or []) if r.get("token")]
         if tokens:
-            send_push_batch(tokens, title, message, push_category or notif_type)
+            send_push_batch(tokens, title, message, push_category or notif_type, data=data)
     except Exception as e:
         # Push best-effort — uygulama-içi bildirim zaten kaydedildi, bu
         # hatayı yutup devam ediyoruz (kullanıcı en azından listede görür).

@@ -1515,6 +1515,7 @@ async def invite_friend_to_duel(
         "duel_invite",
         "Yeni duello daveti",
         f"{inviter_name} seni bir duelloya davet etti.",
+        data={"type": "duel_invite", "duelId": duel["id"], "inviteId": invite_row["id"]},
     )
 
     return _to_invite_item(invite_row, current_user.id)
@@ -1564,6 +1565,7 @@ async def accept_duel_invite(invite_id: str, current_user=Depends(get_current_us
         "duel_invite_accept",
         "Duello daveti kabul edildi",
         f"{accepter_name} duello davetini kabul etti -- oda hazir!",
+        data={"type": "duel_invite_accept", "duelId": duel["id"], "inviteId": invite_id},
     )
 
     return _to_duel_response(duel)

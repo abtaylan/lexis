@@ -41,11 +41,22 @@ def _chunks(items: list, size: int):
         yield items[i : i + size]
 
 
-def send_push_batch(tokens: list[str], title: str, body: str, category: str) -> dict:
+def send_push_batch(
+    tokens: list[str],
+    title: str,
+    body: str,
+    category: str,
+    data: dict | None = None,
+) -> dict:
     """
     tokens: Expo push token listesi (push_tokens.token).
     category: notification_log'a yazılacak kategori, örn.
               'daily_reminder_morning' / 'daily_reminder_evening'.
+    data: Expo push mesajına eklenen opsiyonel yük (örn.
+          {"type": "duel_invite", "duelId": "..."}) — mobil tarafta
+          bildirime dokununca doğru ekrana yönlendirmek (deep-link) icin
+          kullanılıyor (bkz. mobile useNotificationsSetup.ts response
+          listener'ı). Verilmezse Expo mesajına data alanı hiç eklenmez.
     Döner: {"sent": int, "failed": int}
     """
     if not tokens:
@@ -62,6 +73,7 @@ def send_push_batch(tokens: list[str], title: str, body: str, category: str) -> 
                 "body": body,
                 "sound": "default",
                 "channelId": "default",
+                **({"data": data} if data else {}),
             }
             for token in batch
         ]

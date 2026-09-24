@@ -45,7 +45,17 @@ export default function DuelsLobbyScreen() {
 
   const duelsQuery = useQuery({ queryKey: ['duels-list'], queryFn: duelsApi.list });
   const friendsQuery = useQuery({ queryKey: ['friends-list'], queryFn: socialApi.getFriends });
-  const invitesQuery = useQuery({ queryKey: ['duel-invites'], queryFn: duelsApi.listInvites });
+  // Push bildirimi (bkz. useNotificationsSetup.ts) zaten anlik dokunusu
+  // yakaliyor, ama kullanici bu ekrandayken (push izni yoksa ya da
+  // bildirim kacirilirsa) yeni bir davetin kendiliginden gorunmesi icin
+  // hafif bir polling ekleniyor -- realtime/websocket kurulumuna gerek
+  // yok, 20sn'de bir tek satirlik sorgu yeterli (24 Eylul 2026, Duello
+  // daveti bildirimi gorevi).
+  const invitesQuery = useQuery({
+    queryKey: ['duel-invites'],
+    queryFn: duelsApi.listInvites,
+    refetchInterval: 20000,
+  });
   const friends = (friendsQuery.data ?? []).filter((f: FriendshipItem) => f.status === 'accepted');
   const invites = invitesQuery.data?.items ?? [];
 

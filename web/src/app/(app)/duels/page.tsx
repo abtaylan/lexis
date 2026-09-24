@@ -222,6 +222,17 @@ export default function DuelsLobbyPage() {
     loadInvites();
   }, [load, loadFriends, loadInvites]);
 
+  // Duello daveti bildirimi (24 Eylul 2026): web'de push bildirimi yok
+  // (bkz. proje notlari -- tarayici service worker push altyapisi kurulu
+  // degil), bu yuzden yeni bir davetin kullanici bu sayfadayken kendiliginden
+  // gorunmesinin tek yolu hafif bir polling -- 20sn'de bir tek satirlik sorgu.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadInvites();
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [loadInvites]);
+
   const handleCreate = async () => {
     setCreating(true);
     try {

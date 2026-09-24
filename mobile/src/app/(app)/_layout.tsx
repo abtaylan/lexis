@@ -7,6 +7,7 @@ import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { WordsTabIcon, GameTabIcon, DashboardTabIcon } from '@/components/icons/TabIcons';
 import { useNotificationsSetup } from '@/hooks/useNotificationsSetup';
+import { router } from 'expo-router';
 
 // Alt sekme çubuğu — telefon ekranlarında 5 sekmenin metin etiketiyle sığmaması
 // (tablet için tasarlanmış "Dashboard" gibi uzun etiketler dar ekranlarda
@@ -59,6 +60,31 @@ export default function AppTabsLayout() {
     });
     return () => sub.remove();
   }, [ensureTokenRegistered]);
+
+  // Duello daveti bildirimi (24 Eylul 2026) -- backend zaten notify_user()
+  // ile hem uygulama-ici bildirim hem gercek push gonderiyordu (bkz.
+  // duels.py::invite_friend_to_duel), ama bildirime DOKUNUNCA hicbir yere
+  // yonlendirme yoktu -- kullanici sadece uygulamayi acmis oluyordu, davet
+  // ekranini kendisi bulmasi gerekiyordu. Bu listener push'in `data` alanina
+  // (bkz. push_service.py::send_push_batch data parametresi) gore doğru
+  // ekrana yonlendiriyor. Bu layout (app) grubuna girildiginde bir kez
+  // mount olup sekme degisiminde unmount olmadigi icin global bir yer.
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as
+        | { type?: string; duelId?: string }
+        | undefined;
+      if (data?.type === 'duel_invite') {
+        // Davet edilen kisi: bekleyen davetler listesi Düello ekraninda.
+        router.push('/(app)/duels');
+      } else if (data?.type === 'duel_invite_accept' && data.duelId) {
+        // Daveti gonderen kisi: arkadasi kabul etti, oda hazir -- direkt
+        // odaya gotur.
+        router.push({ pathname: '/(app)/duel-room', params: { id: data.duelId } });
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   return (
     <Tabs
