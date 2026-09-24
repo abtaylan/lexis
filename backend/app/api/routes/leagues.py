@@ -23,6 +23,19 @@ Supabase yazıyor) bir Claude scheduled task + Supabase MCP SQL ile
 çalıştırılıyor (bkz. supabase/migrations/041 yorumu ve bu özelliğin
 devir notundaki "Lig rollover" script'i).
 
+GÜNCELLEME (24 Eylul 2026, V2 oncelik #10 "Haftalik/herkese acik lig"):
+rollover artik gercekten kuruldu -- "Lexis — haftalik lig kapanisi
+(rollover)" adli Claude scheduled task (trig_013jceA9cde1H15VGyM2x9Ro,
+her Pazar 21:10 UTC = Turkiye Pazartesi 00:10), week_end'i gecmis aktif
+lig gruplarini kapatir, final_xp/final_rank/outcome yazar, terfi/dusme
+uygular (grup buyuklugune gore ilk/son 1-5 kisi, 3'ten kucuk gruplarda
+kimse, en ust/en alt kademede ilgili yon calismaz), profiles.current_
+league_tier'i gunceller ve gercek kullanicilara (is_bot=false)
+notifications tablosuna bir satir birakir (push YOK -- bu is SQL-only
+oldugu icin Expo push cagrisi bu gorevin kapsaminda degil). Yeni
+haftanin gruplari burada acilmiyor, ensure_active_league_membership
+zaten lazy aciyor (yukarida).
+
 FAZ 3F GÜNCELLEMESİ (10 Eylül 2026 kullanıcı isteği — "tüm kişiler
 otomatik olarak en düşük lige dahil edilmeli" + "user eksikliği
 noktasında bot'lar"): "bul ya da oluştur" mantığı artık BU MODÜLDE
