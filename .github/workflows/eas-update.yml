@@ -47,6 +47,22 @@ jobs:
 
       - run: npm ci
 
+      # 24 Eylul 2026 -- KOK NEDEN BULUNDU: commit mesaji COK SATIRLI oldugunda
+      # (bu repoda artik norm -- detayli gerekce + zorunlu Co-Authored-By/
+      # Claude-Session trailer'lari) asagidaki $ {{ github.event.head_commit.
+      # message }} run: script'inin ICINE DOGRUDAN metin olarak gomuluyordu.
+      # "eas update" CLI'i (yargs tabanli) --message degerindeki gomulu
+      # satir sonlarini "beklenmeyen argumanlar" olarak yorumlayip HER SEFERINDE
+      # patliyordu -- run #31/#32/#33 (son 3 mobile/** push'u -- Madde 2, Madde 3,
+      # CEFR rozeti) SESSIZCE basarisiz olmustu, kullanici GitHub e-postasiyla
+      # fark etti. Ayrica bu desen (kullanici kontrolundeki -- burada commit
+      # mesaji -- serbest metni dogrudan run: script'ine gommek) genel olarak
+      # shell injection riski tasir; GitHub'in onerdigi guvenli desen, degeri
+      # once bir env degiskenine atayip scriptte $VAR olarak kullanmak (YAML
+      # duzeyinde substitude edilse de env atamasi shell script metnine
+      # KARISMIYOR, ayri bir mekanizma). Commit mesajinin SADECE ilk satiri
+      # (baslik) update etiketi icin zaten yeterli/istenen -- `head -n1` ile
+      # aliniyor, bu da coklu-satir sorununu kaynagindan cozuyor.
       - name: Publish EAS update (iOS)
         # ios ve android AYRI CAGRILAR olarak calistiriliyor -- "eas update"
         # (eas build'in aksine) --platform bayraginda virgulle ayrilmis liste
@@ -62,9 +78,15 @@ jobs:
         # ... Importing native-only module ... on web"). Bu yuzden web'i
         # tamamen atlamanin tek yolu ios ve android'i AYRI AYRI, "all"
         # kullanmadan yayinlamak.
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          eas update --branch production --platform ios --message "CI: ${{ github.event.head_commit.message }}" --non-interactive
+          FIRST_LINE=$(printf '%s' "$COMMIT_MSG" | head -n1)
+          eas update --branch production --platform ios --message "CI: $FIRST_LINE" --non-interactive
 
       - name: Publish EAS update (Android)
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
-          eas update --branch production --platform android --message "CI: ${{ github.event.head_commit.message }}" --non-interactive
+          FIRST_LINE=$(printf '%s' "$COMMIT_MSG" | head -n1)
+          eas update --branch production --platform android --message "CI: $FIRST_LINE" --non-interactive
