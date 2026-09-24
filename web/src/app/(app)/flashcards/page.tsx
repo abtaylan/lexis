@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/store/auth';
 import { useLocale } from '@/lib/i18n';
 import type { Word, Language } from '@/types';
+import { Mascot } from '@/components/layout/Mascot';
 
 // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026, game/page.tsx'teki aynı not): dil
 // koduna göre TTS sesi — game/page.tsx::SPEECH_LANG_MAP ile BİREBİR aynı
@@ -28,14 +29,15 @@ function DoneScreen({ total, correct, onRestart }: { total: number; correct: num
   const { t } = useLocale();
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
   const color = pct >= 80 ? '#3B6D11' : pct >= 50 ? '#854F0B' : '#b91c1c';
-  const bgColor = pct >= 80 ? '#EAF3DE' : pct >= 50 ? '#FAEEDA' : '#FEE2E2';
+  // Maskot/avatar sistemi (24 Eylül 2026, Madde 3c) — skor kademesine göre
+  // maskotun ruh hali: %80+ kutlama, %50+ mutlu, altı ise üzgün (motive
+  // edici bir sonraki mesajla birlikte, aşağıdaki t('successRate') alanı).
+  const mascotMood = pct >= 80 ? 'celebrate' : pct >= 50 ? 'happy' : 'sad';
 
   return (
     <div className="p-6 flex flex-col items-center justify-center min-h-[70vh] gap-6">
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-10 flex flex-col items-center gap-5 w-full max-w-sm text-center">
-        <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: bgColor }}>
-          <CheckCircle2 className="w-8 h-8" style={{ color }} />
-        </div>
+        <Mascot mood={mascotMood} size={72} />
         <div>
           <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t('sessionComplete')}</p>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{t('reviewedCountTpl').replace('{n}', String(total))}</p>

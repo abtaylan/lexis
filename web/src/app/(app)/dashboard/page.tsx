@@ -15,6 +15,7 @@ import { XPBar } from '@/components/layout/XPBar';
 import { CefrBadge } from '@/components/layout/CefrBadge';
 import { DailyWordCard } from '@/components/layout/DailyWordCard';
 import { StreakHeatmap } from '@/components/layout/StreakHeatmap';
+import { MascotGreeting } from '@/components/layout/MascotGreeting';
 import { Leaderboard } from '@/components/layout/Leaderboard';
 import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem, StudyProgram } from '@/types';
 
@@ -546,6 +547,16 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Maskot karşılama (24 Eylül 2026, Madde 3c) — günün durumuna
+          (bugünkü hedef ilerlemesi + seri) göre ruh hali değişen bir
+          maskot + konuşma balonu. Kendi veri çekmiyor, dashboard'ın
+          zaten sahip olduğu `stats`'ı kullanıyor. */}
+      <MascotGreeting
+        streak={stats?.current_streak ?? 0}
+        todayAdded={stats?.today_added ?? 0}
+        dailyGoal={stats?.daily_goal ?? 0}
+      />
 
       {/* CEFR rozeti (24 Eylül 2026) — Adaptif Öğrenme Motoru'nun sürekli
           güncellediği güncel A1-C2 seviyesini görünür kılar; veri yoksa

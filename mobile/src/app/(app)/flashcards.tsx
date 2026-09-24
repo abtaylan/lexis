@@ -15,6 +15,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { Mascot } from '@/components/Mascot';
 
 // game.tsx::SPEECH_LANG_MAP ile BİREBİR aynı (kasıtlı küçük tekrar).
 const SPEECH_LANG_MAP: Record<string, string> = {
@@ -419,15 +420,16 @@ function DoneScreen({
   const { t, gt } = useLocale();
   const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
   const tone = pct >= 80 ? { bg: c.successSoft, text: c.success } : pct >= 50 ? { bg: c.warningSoft, text: c.warning } : { bg: c.dangerSoft, text: c.danger };
+  // Maskot/avatar sistemi (24 Eylül 2026, Madde 3c) — web'deki
+  // flashcards/page.tsx::DoneScreen ile aynı skor-kademesi eşiği.
+  const mascotMood = pct >= 80 ? 'celebrate' : pct >= 50 ? 'happy' : 'sad';
 
   return (
     <ScreenContainer>
       <ScreenNavBar />
       <View style={styles.center}>
         <Card style={{ alignItems: 'center', width: '100%', paddingVertical: spacing.xl }}>
-          <View style={[styles.iconBadge, { backgroundColor: tone.bg }]}>
-            <CircleCheckBig color={tone.text} size={28} />
-          </View>
+          <Mascot mood={mascotMood} size={64} />
           <Text style={{ color: c.text, fontSize: 20, fontWeight: '700', marginTop: spacing.md }}>{t('sessionComplete')}</Text>
           <Text style={{ color: c.textMuted, fontSize: 13, marginTop: 4, marginBottom: spacing.lg }}>
             {t('reviewedCountTpl', { n: total })}

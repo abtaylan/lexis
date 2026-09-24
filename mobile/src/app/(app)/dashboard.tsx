@@ -27,6 +27,7 @@ import { DashboardHeader } from '@/components/DashboardHeader';
 import { StudyProgramCard } from '@/components/StudyProgramCard';
 import { DailyWordCard } from '@/components/DailyWordCard';
 import { StreakHeatmap } from '@/components/StreakHeatmap';
+import { MascotGreeting } from '@/components/MascotGreeting';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
 
@@ -300,6 +301,17 @@ export default function DashboardScreen() {
       />
 
       <View style={styles.content}>
+        {/* Maskot karşılama (24 Eylül 2026, Madde 3c) — günün durumuna göre
+            ruh hali değişen bir maskot + konuşma balonu. Kendi veri
+            çekmiyor, bu ekranın zaten sahip olduğu `stats`'ı kullanıyor. */}
+        {!isLoading && stats && (
+          <MascotGreeting
+            streak={stats.current_streak}
+            todayAdded={stats.today_added}
+            dailyGoal={stats.daily_goal}
+          />
+        )}
+
         {!isLoading && stats && (
           <View style={styles.grid}>
             <StatTile icon={BookOpen} label={t('totalWords')} value={String(stats.total_words)} bg="primarySoft" fg="primary" color={c} />
