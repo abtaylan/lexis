@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Volume2 } from 'lucide-react-native';
+import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
 import { useAuth } from '@/store/auth';
@@ -659,6 +659,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeMultipleLabel}
           desc={gt.modeMultipleDesc}
+          icon={CheckSquare}
+          bg={c.primarySoft}
+          fg={c.primary}
           onPress={() => {
             setGameMode('multiple_choice');
             setStage('direction');
@@ -667,6 +670,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeWordleLabel}
           desc={gt.modeWordleDesc}
+          icon={Puzzle}
+          bg={c.accentSoft}
+          fg={c.accent}
           onPress={() => {
             setGameMode('wordle');
             setDirection('meaning_to_word');
@@ -676,6 +682,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeTypingLabel}
           desc={gt.modeTypingDesc}
+          icon={Type}
+          bg={c.successSoft}
+          fg={c.success}
           onPress={() => {
             setGameMode('typing');
             setDirection('meaning_to_word');
@@ -685,6 +694,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeListeningLabel}
           desc={gt.modeListeningDesc}
+          icon={Volume2}
+          bg={c.warningSoft}
+          fg={c.warning}
           onPress={() => {
             setGameMode('listening');
             setDirection('meaning_to_word');
@@ -694,6 +706,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeSprintLabel}
           desc={gt.modeSprintDesc}
+          icon={Timer}
+          bg={c.dangerSoft}
+          fg={c.danger}
           onPress={() => {
             setGameMode('sprint');
             setDirection('meaning_to_word');
@@ -704,6 +719,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeMatchingLabel}
           desc={gt.modeMatchingDesc}
+          icon={Shuffle}
+          bg={c.primarySoft}
+          fg={c.primary}
           onPress={() => {
             setGameMode('matching');
             setDirection('meaning_to_word');
@@ -713,6 +731,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeSentenceLabel}
           desc={gt.modeSentenceDesc}
+          icon={AlignLeft}
+          bg={c.accentSoft}
+          fg={c.accent}
           onPress={() => {
             setGameMode('sentence_building');
             setDirection('meaning_to_word');
@@ -1326,12 +1347,41 @@ function SectionLabel({ children, c }: { children: React.ReactNode; c: ReturnTyp
   return <Text style={{ fontSize: 11, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase', alignSelf: 'flex-start', marginBottom: spacing.sm }}>{children}</Text>;
 }
 
-function OptionButton({ title, desc, onPress }: { title: string; desc: string; onPress: () => void }) {
+// 25 Eylül 2026 -- Bento Modern/Gamified canvas'ı (GameModes.dc.html)
+// canlıya alınırken: mod seçim kartlarına opsiyonel bir ikon-rozet
+// eklendi (icon/bg/fg verilmezse eskisi gibi düz metin satırı olarak
+// kalıyor -- bu bileşen mod seçimi DIŞINDA yön/havuz seçiminde de
+// kullanılıyor, oralarda hiçbir şey değişmedi).
+function OptionButton({
+  title,
+  desc,
+  onPress,
+  icon: Icon,
+  bg,
+  fg,
+}: {
+  title: string;
+  desc: string;
+  onPress: () => void;
+  icon?: React.ComponentType<{ color?: string; size?: number }>;
+  bg?: string;
+  fg?: string;
+}) {
   const c = useThemeColors();
   return (
-    <Pressable onPress={onPress} style={[styles.optionCard, { borderColor: c.border, backgroundColor: c.surface }]}>
-      <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{title}</Text>
-      <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>{desc}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[styles.optionCard, { borderColor: c.border, backgroundColor: c.surface }, Icon ? styles.optionCardWithIcon : null]}
+    >
+      {Icon && (
+        <View style={[styles.optionIconBadge, { backgroundColor: bg }]}>
+          <Icon color={fg} size={19} />
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{title}</Text>
+        <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>{desc}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -1349,6 +1399,8 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', paddingTop: spacing.xl },
   emoji: { fontSize: 44, marginBottom: spacing.sm },
   optionCard: { width: '100%', borderWidth: 1.5, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm },
+  optionCardWithIcon: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  optionIconBadge: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   playHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   optionRow: { borderWidth: 1.5, borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center' },
   livesRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, marginBottom: spacing.md },

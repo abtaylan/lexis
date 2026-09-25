@@ -10,6 +10,7 @@ import { scheduleApi } from '@/api/schedule';
 import { examReminderApi } from '@/api/examReminders';
 import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ExamReminder } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { useThemeMode } from '@/store/theme';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
@@ -56,17 +57,34 @@ interface Template {
   id: string;
   name: string;
   desc: string;
-  icon: React.ReactNode;
+  IconComp: React.ComponentType<{ color?: string; size?: number }>;
   accent: string;
   items: ScheduleCreate[];
 }
+
+// 25 Eylül 2026 -- Bento Modern/Gamified canvas'ı canlıya alınırken bulunan
+// gerçek bug: bu 7 şablon rengi (TEMPLATES[].accent) hep açık temaya göre
+// ayarlanmış koyu/doygun tonlardı (badge arka planı %10 opaklıkla bu rengi
+// kullanıyor) -- koyu temada koyu kart üzerine %10 opaklıkla bindirilince
+// neredeyse görünmez oluyorlardı. Her şablon için koyu temada daha canlı/
+// açık bir eşleniği eklendi (constants/theme.ts'teki dark palet mantığıyla
+// aynı desen: aynı renk ailesi, daha yüksek parlaklık).
+const DARK_ACCENTS: Record<string, string> = {
+  yogun: '#F0B549',
+  orta: '#4E9CEE',
+  hafif: '#7BC24B',
+  podcast: '#F0935B',
+  okuma: '#34D399',
+  yokdil: '#A78BFA',
+  ydstaktik: '#FB923C',
+};
 
 const TEMPLATES: Template[] = [
   {
     id: 'yogun',
     name: 'Yoğun',
     desc: 'Her gün, sabah + akşam · ~hızlı ilerleme',
-    icon: <Flame color="#854F0B" size={20} />,
+    IconComp: Flame,
     accent: '#854F0B',
     items: [
       { day_of_week: 1, time_slot: '08:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
@@ -87,7 +105,7 @@ const TEMPLATES: Template[] = [
     id: 'orta',
     name: 'Dengeli',
     desc: 'Hafta içi günde 1 oturum · sürdürülebilir',
-    icon: <Zap color="#185FA5" size={20} />,
+    IconComp: Zap,
     accent: '#185FA5',
     items: [
       { day_of_week: 1, time_slot: '19:00', activity: 'Teknik Makale', duration_min: 30, link_url: link('Teknik Makale') },
@@ -101,7 +119,7 @@ const TEMPLATES: Template[] = [
     id: 'hafif',
     name: 'Hafif',
     desc: 'Haftada 3 gün · yoğun programa alternatif',
-    icon: <Coffee color="#3B6D11" size={20} />,
+    IconComp: Coffee,
     accent: '#3B6D11',
     items: [
       { day_of_week: 1, time_slot: '20:00', activity: 'Kelime Tekrarı', duration_min: 20, link_url: '' },
@@ -113,7 +131,7 @@ const TEMPLATES: Template[] = [
     id: 'podcast',
     name: 'Podcast Ağırlıklı',
     desc: 'Dinleme becerisine odaklı · haftada 4 oturum',
-    icon: <Headphones color="#B7451B" size={20} />,
+    IconComp: Headphones,
     accent: '#B7451B',
     items: [
       { day_of_week: 1, time_slot: '20:00', activity: 'Voice of America', duration_min: 20, link_url: link('Voice of America') },
@@ -126,7 +144,7 @@ const TEMPLATES: Template[] = [
     id: 'okuma',
     name: 'Okuma Ağırlıklı',
     desc: 'Okuma-kelime dağarcığı odaklı · haftada 4 oturum',
-    icon: <BookOpen color="#0F6E56" size={20} />,
+    IconComp: BookOpen,
     accent: '#0F6E56',
     items: [
       { day_of_week: 1, time_slot: '19:30', activity: 'News in Levels', duration_min: 20, link_url: link('News in Levels') },
@@ -139,7 +157,7 @@ const TEMPLATES: Template[] = [
     id: 'yokdil',
     name: 'YÖKDİL Hazırlık',
     desc: 'Sınav odaklı · yoğun kelime + okuma',
-    icon: <GraduationCap color="#6D1B7B" size={20} />,
+    IconComp: GraduationCap,
     accent: '#6D1B7B',
     items: [
       { day_of_week: 1, time_slot: '08:00', activity: 'YÖKDİL Sözlük Kitabı', duration_min: 30, link_url: link('YÖKDİL Sözlük Kitabı') },
@@ -154,7 +172,7 @@ const TEMPLATES: Template[] = [
     id: 'ydstaktik',
     name: 'Sınav Taktiği (YDS/YÖKDİL)',
     desc: 'Çıkmış soru analizi + düzenli okuma · video tavsiyesi',
-    icon: <GraduationCap color="#9A3412" size={20} />,
+    IconComp: GraduationCap,
     accent: '#9A3412',
     items: [
       { day_of_week: 1, time_slot: '08:00', activity: 'Taktik Kaynak Kitap', duration_min: 30, link_url: link('Taktik Kaynak Kitap') },
@@ -556,6 +574,8 @@ function TemplateModal({
 }) {
   const { t } = useLocale();
   const c = useThemeColors();
+  const { scheme } = useThemeMode();
+  const isDark = scheme === 'dark';
   const [replace, setReplace] = useState(true);
   const [applyingId, setApplyingId] = useState<string | null>(null);
   const [customTemplates, setCustomTemplates] = useState<ScheduleTemplate[]>([]);
@@ -627,30 +647,35 @@ function TemplateModal({
             </View>
           )}
 
-          {TEMPLATES.map((tpl) => (
-            <View key={tpl.id} style={[styles.templateCard, { borderColor: c.border }]}>
-              <View style={styles.templateCardRow}>
-                <View style={styles.templateCardLeft}>
-                  <View style={[styles.iconBadge, { backgroundColor: `${tpl.accent}1a` }]}>{tpl.icon}</View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{tpl.name}</Text>
-                    <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2 }}>{tpl.desc}</Text>
-                    <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2, opacity: 0.8 }}>
-                      {t('perWeekTpl', { n: String(tpl.items.length) })}
-                    </Text>
+          {TEMPLATES.map((tpl) => {
+            const activeAccent = isDark ? (DARK_ACCENTS[tpl.id] ?? tpl.accent) : tpl.accent;
+            return (
+              <View key={tpl.id} style={[styles.templateCard, { borderColor: c.border }]}>
+                <View style={styles.templateCardRow}>
+                  <View style={styles.templateCardLeft}>
+                    <View style={[styles.iconBadge, { backgroundColor: `${activeAccent}${isDark ? '29' : '1a'}` }]}>
+                      <tpl.IconComp color={activeAccent} size={20} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{tpl.name}</Text>
+                      <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2 }}>{tpl.desc}</Text>
+                      <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2, opacity: 0.8 }}>
+                        {t('perWeekTpl', { n: String(tpl.items.length) })}
+                      </Text>
+                    </View>
                   </View>
+                  <Pressable
+                    disabled={applyingId !== null}
+                    onPress={() => apply(tpl.id, tpl.items)}
+                    style={[styles.applyBtn, { backgroundColor: activeAccent, opacity: applyingId !== null ? 0.6 : 1 }]}
+                  >
+                    <Check color="#fff" size={14} />
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{t('applyBtn')}</Text>
+                  </Pressable>
                 </View>
-                <Pressable
-                  disabled={applyingId !== null}
-                  onPress={() => apply(tpl.id, tpl.items)}
-                  style={[styles.applyBtn, { backgroundColor: tpl.accent, opacity: applyingId !== null ? 0.6 : 1 }]}
-                >
-                  <Check color="#fff" size={14} />
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{t('applyBtn')}</Text>
-                </Pressable>
               </View>
-            </View>
-          ))}
+            );
+          })}
 
           <View style={{ marginTop: spacing.md }}>
             <View style={styles.customHeader}>

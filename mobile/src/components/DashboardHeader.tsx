@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Circle } from 'react-native-svg';
 import { Bell, MessageCircle, Flame } from 'lucide-react-native';
 import { notificationsApi } from '@/api/notifications';
 import { socialApi } from '@/api/social';
@@ -10,6 +11,7 @@ import { statsApi } from '@/api/stats';
 import { examsApi } from '@/api/exams';
 import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { useThemeMode } from '@/store/theme';
 import { useLocale } from '@/i18n';
 import { radius, spacing } from '@/constants/theme';
 
@@ -23,14 +25,21 @@ const CEFR_LEVEL_NAMES: Record<'tr' | 'en', Record<string, string>> = {
   en: { a1: 'Beginner', a2: 'Elementary', b1: 'Intermediate', b2: 'Upper-Int.', c1: 'Advanced', c2: 'Proficient' },
 };
 
-// ── Dashboard hero header — onaylanan tasarım canvas'ındaki (Main.dc.html,
-// "Gradient hero (Yön B'den)") nihai haliyle birebir: marka renklerinde
-// (primary → accent) 135°'lik gradyan, sağ üstte bildirim/mesaj/profil
-// kısayolları, altında seri (streak) ve seviye/XP kartları gömülü olarak
-// yer alır. Önceki sürüm expo-linear-gradient'i yeni bir native bağımlılık
-// olarak eklememek için düz renk kullanıyordu — tasarımın kendisi gradyan
-// üzerine kurulu olduğundan bu sürümde resmi Expo paketi (expo-linear-gradient,
-// mobile/package.json'a eklendi) ile gerçek gradyana geçildi.
+// 25 Eylül 2026 -- Bento Modern (açık) / Gamified (koyu) canvas yeniden
+// tasarımı canlıya alındı (onaylanan Cowork Design canvas'ı,
+// https://claude.ai/artifact/9WdZvZiwYtdsXLzb9kd2hj). Önceki sürüm her iki
+// temada da tek bir mor→lacivert gradyanlı "hero" kutusuydu -- yeni
+// tasarım temaya göre KÖKTEN farklı bir yapı kullanıyor:
+//   - Açık tema: düz/beyaz üst satır (karşılama + 3 ikon rozeti) ve
+//     altında ayrı, gradyanlı bir "seri" kartı (streak + seviye + XP bar).
+//   - Koyu tema: düz/koyu üst satır (aynı 3 ikon, cam görünümlü) ve
+//     altında dairesel bir XP halkası + seri/CEFR seviye çipleri.
+// İkisi de burada zaten çekilen GERÇEK veriyi kullanıyor (stats, xp,
+// notifData, unreadMessages, placementStatus) -- yeni bir API çağrısı
+// eklenmedi, sadece görsel katman değişti. 3 ikonlu üst satır (mesaj/
+// bildirim/profil) zaten mevcuttu, sadece "cam" kare-rozet stiline
+// (12px radius) çevrildi -- Main.dc.html/ConceptB_GamifiedDark.dc.html'deki
+// onaylanmış ikon grubuyla birebir.
 interface DashboardHeaderProps {
   greeting: string;
   subtitle: string;
@@ -38,6 +47,8 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
   const c = useThemeColors();
+  const { scheme } = useThemeMode();
+  const isDark = scheme === 'dark';
   const { user } = useAuth();
   const { xpLabels, locale } = useLocale();
 
@@ -85,26 +96,26 @@ export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
   const cefrNames = CEFR_LEVEL_NAMES[locale === 'tr' ? 'tr' : 'en'];
   const cefrName = cefrLevel ? cefrNames[cefrLevel] : null;
 
+  const iconTileBg = isDark ? 'rgba(255,255,255,0.06)' : c.surface;
+  const iconTileBorder = isDark ? 'rgba(255,255,255,0.14)' : c.border;
+  const iconStroke = isDark ? '#E7E8FF' : c.textSecondary;
+  const dotColor = isDark ? '#FB7185' : c.danger;
+
   return (
-    <LinearGradient
-      colors={[c.primary, c.accent]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.wrap}
-    >
+    <View style={[styles.wrap, { backgroundColor: isDark ? c.background : c.surface, borderBottomColor: c.border }]}>
       <View style={styles.topRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.greeting} numberOfLines={1}>
+          <Text style={[styles.greeting, { color: c.text }]} numberOfLines={1}>
             {greeting}
           </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text style={[styles.subtitle, { color: c.textMuted }]} numberOfLines={1}>
             {subtitle}
           </Text>
           {/* 24 Eylül 2026 -- CEFR rozeti: cefrLevel yoksa (henüz seviye
               tespit sınavı çözülmemiş/hata) hiç render edilmez. */}
           {cefrLevel && (
-            <View style={styles.cefrPill}>
-              <Text style={styles.cefrPillText}>
+            <View style={[styles.cefrPill, { backgroundColor: c.primarySoft }]}>
+              <Text style={[styles.cefrPillText, { color: c.primary }]}>
                 {cefrLevel.toUpperCase()}{cefrName ? ` · ${cefrName}` : ''}
               </Text>
             </View>
@@ -113,122 +124,248 @@ export function DashboardHeader({ greeting, subtitle }: DashboardHeaderProps) {
 
         <View style={styles.actions}>
           <HeaderIconButton
-            icon={<Bell color="#fff" size={17} />}
+            icon={<Bell color={iconStroke} size={16} />}
             count={unreadNotifications}
+            bg={iconTileBg}
+            border={iconTileBorder}
+            dotColor={dotColor}
             onPress={() => router.push('/(app)/notifications')}
           />
           <HeaderIconButton
-            icon={<MessageCircle color="#fff" size={17} />}
+            icon={<MessageCircle color={iconStroke} size={16} />}
             count={unreadMessages ?? 0}
+            bg={iconTileBg}
+            border={iconTileBorder}
+            dotColor={dotColor}
             onPress={() => router.push('/(app)/messages')}
           />
-          <Pressable onPress={() => router.push('/(app)/profile')} style={styles.avatar} hitSlop={8}>
-            <Text style={styles.avatarText}>{initial}</Text>
+          <Pressable
+            onPress={() => router.push('/(app)/profile')}
+            style={[styles.iconBtn, { backgroundColor: iconTileBg, borderColor: iconTileBorder, borderWidth: 1 }]}
+            hitSlop={8}
+          >
+            <Text style={[styles.avatarText, { color: isDark ? '#fff' : c.primary }]}>{initial}</Text>
           </Pressable>
         </View>
       </View>
 
-      <View style={styles.cardsRow}>
-        <View style={styles.miniCard}>
-          <View style={styles.miniCardHead}>
-            <Flame color="#fff" size={16} />
-            <Text style={styles.miniCardLabel}>SERİ</Text>
-          </View>
-          <Text style={styles.miniCardValue}>{stats?.current_streak ?? 0} gün</Text>
-        </View>
+      {isDark ? (
+        <DarkHero
+          streak={stats?.current_streak ?? 0}
+          level={xp?.level}
+          xpIntoLevel={xp?.xp_into_level}
+          xpPct={xpPct}
+          xpLabel={xpLabels.level}
+          cefrLevel={cefrLevel}
+          cefrName={cefrName}
+        />
+      ) : (
+        <LightHero
+          c={c}
+          streak={stats?.current_streak ?? 0}
+          level={xp?.level}
+          xpIntoLevel={xp?.xp_into_level}
+          xpPct={xpPct}
+          xpLabel={xpLabels.level}
+          cefrLevel={cefrLevel}
+          cefrName={cefrName}
+        />
+      )}
+    </View>
+  );
+}
 
-        <View style={styles.miniCard}>
-          <View style={[styles.miniCardHead, { justifyContent: 'space-between' }]}>
-            <Text style={styles.miniCardLabel}>{xp ? `${xpLabels.level.toUpperCase()} ${xp.level}` : '—'}</Text>
-            {/* KULLANICI İSTEĞİ (7 Eylül 2026): "seviye geçmek için şu kadar
-                kaldı demesin, mevcut xp değeri artarak devam etsin, zaten
-                dolunca seviye 2 yazar." — geri sayım yerine bu seviye
-                içindeki mevcut XP'yi (xp_into_level) artan bir sayı olarak
-                gösteriyoruz; bar zaten dolunca backend seviyeyi bir üste
-                çıkarıyor ve bu sayı otomatik sıfırlanıp yeniden başlıyor. */}
-            {xp && <Text style={styles.xpRemaining}>{xp.xp_into_level} XP</Text>}
+// Açık tema hero'su -- onaylanan Main.dc.html'deki "12 günlük seri" gradyan
+// kartıyla birebir: navy→mor 135° gradyan, sol üstte alev+seri, sağ üstte
+// seviye/CEFR rozeti, altında XP ilerleme çubuğu. Gerçek veri: stats'tan
+// seri, xp'den seviye+bu seviyedeki XP.
+function LightHero({
+  c,
+  streak,
+  level,
+  xpIntoLevel,
+  xpPct,
+  xpLabel,
+  cefrLevel,
+  cefrName,
+}: {
+  c: ReturnType<typeof useThemeColors>;
+  streak: number;
+  level?: number;
+  xpIntoLevel?: number;
+  xpPct: number;
+  xpLabel: string;
+  cefrLevel: string | null;
+  cefrName: string | null;
+}) {
+  return (
+    <LinearGradient colors={['#0B1B40', c.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.lightHero}>
+      <View style={styles.lightHeroTop}>
+        <View style={styles.lightHeroStreak}>
+          <Flame color="#FDBA74" size={18} />
+          <Text style={styles.lightHeroStreakText}>{streak} günlük seri</Text>
+        </View>
+        {(level || cefrLevel) && (
+          <View style={styles.lightHeroPill}>
+            <Text style={styles.lightHeroPillText}>
+              {level ? `${xpLabel} ${level}` : ''}{level && cefrName ? ' · ' : ''}{cefrName ?? ''}
+            </Text>
+          </View>
+        )}
+      </View>
+      {xpIntoLevel != null && (
+        <View style={{ marginTop: spacing.md }}>
+          <View style={styles.lightHeroTrackRow}>
+            <Text style={styles.lightHeroTrackLabel}>Bu seviyedeki XP</Text>
+            <Text style={styles.lightHeroTrackValue}>{xpIntoLevel} XP</Text>
           </View>
           <View style={styles.track}>
             <View style={[styles.fill, { width: `${xpPct}%` }]} />
           </View>
         </View>
-      </View>
+      )}
     </LinearGradient>
+  );
+}
+
+// Koyu tema hero'su -- onaylanan ConceptB_GamifiedDark.dc.html'deki dairesel
+// XP halkasıyla birebir (react-native-svg zaten bağımlılıkta kuruluydu).
+// Halka içinde seviye + bu seviyedeki XP; altında seri ve CEFR seviye
+// çipleri -- ikisi de bu bileşenin zaten çektiği gerçek veri.
+function DarkHero({
+  streak,
+  level,
+  xpIntoLevel,
+  xpPct,
+  xpLabel,
+  cefrLevel,
+  cefrName,
+}: {
+  streak: number;
+  level?: number;
+  xpIntoLevel?: number;
+  xpPct: number;
+  xpLabel: string;
+  cefrLevel: string | null;
+  cefrName: string | null;
+}) {
+  const size = 148;
+  const strokeWidth = 12;
+  const radiusPx = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radiusPx;
+  const dashOffset = circumference * (1 - xpPct / 100);
+
+  return (
+    <View style={styles.darkHero}>
+      <View style={styles.ringWrap}>
+        <Svg width={size} height={size}>
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radiusPx}
+            stroke="rgba(255,255,255,0.12)"
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radiusPx}
+            stroke="#A78BFA"
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={dashOffset}
+            rotation={-90}
+            originX={size / 2}
+            originY={size / 2}
+          />
+        </Svg>
+        <View style={styles.ringCenter}>
+          <Text style={styles.ringLevel}>{level ? `${xpLabel} ${level}` : '—'}</Text>
+          {xpIntoLevel != null && <Text style={styles.ringXp}>{xpIntoLevel} XP</Text>}
+        </View>
+      </View>
+
+      <View style={styles.darkChipsRow}>
+        <View style={styles.darkChip}>
+          <Flame color="#FB923C" size={15} />
+          <Text style={styles.darkChipText}>{streak} gün seri</Text>
+        </View>
+        {cefrLevel && (
+          <View style={styles.darkChip}>
+            <Text style={styles.darkChipText}>{cefrLevel.toUpperCase()}{cefrName ? ` · ${cefrName}` : ''}</Text>
+          </View>
+        )}
+      </View>
+    </View>
   );
 }
 
 function HeaderIconButton({
   icon,
   count,
-  dot,
+  bg,
+  border,
+  dotColor,
   onPress,
 }: {
   icon: React.ReactNode;
   count?: number;
-  dot?: boolean;
+  bg: string;
+  border: string;
+  dotColor: string;
   onPress: () => void;
 }) {
   return (
-    <Pressable onPress={onPress} style={styles.iconBtn} hitSlop={8}>
+    <Pressable onPress={onPress} style={[styles.iconBtn, { backgroundColor: bg, borderColor: border, borderWidth: 1 }]} hitSlop={8}>
       {icon}
       {!!count && count > 0 && (
-        <View style={styles.badge}>
+        <View style={[styles.badge, { backgroundColor: dotColor }]}>
           <Text style={styles.badgeText}>{count > 9 ? '9+' : count}</Text>
         </View>
       )}
-      {!count && dot && <View style={styles.badgeDot} />}
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
-    borderBottomLeftRadius: radius.xl + 8,
-    borderBottomRightRadius: radius.xl + 8,
-    paddingTop: spacing.xl,
+    paddingTop: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.lg,
     marginBottom: spacing.md,
     gap: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   topRow: { flexDirection: 'row', alignItems: 'center' },
-  greeting: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  subtitle: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
+  greeting: { fontSize: 19, fontWeight: '700' },
+  subtitle: { fontSize: 12.5, marginTop: 2 },
   cefrPill: {
     alignSelf: 'flex-start',
     marginTop: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  cefrPillText: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  cefrPillText: { fontSize: 11, fontWeight: '700' },
+  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatar: {
     width: 38,
     height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  avatarText: { fontWeight: '700', fontSize: 15 },
   badge: {
     position: 'absolute',
-    top: -3,
-    right: -3,
+    top: -4,
+    right: -4,
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
@@ -236,29 +373,43 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   badgeText: { color: '#fff', fontSize: 9, fontWeight: '700' },
-  badgeDot: {
-    position: 'absolute',
-    top: -1,
-    right: -1,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#DC2626',
-    borderWidth: 1.5,
-    borderColor: '#fff',
+  // Açık tema hero
+  lightHero: {
+    borderRadius: radius.xl,
+    padding: spacing.lg,
   },
-  cardsRow: { flexDirection: 'row', gap: spacing.sm },
-  miniCard: {
-    flex: 1,
-    backgroundColor: 'rgba(255,255,255,0.14)',
-    borderRadius: radius.lg,
-    paddingVertical: spacing.sm + 4,
-    paddingHorizontal: spacing.md,
+  lightHeroTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  lightHeroStreak: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  lightHeroStreakText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  lightHeroPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  miniCardHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
-  miniCardLabel: { fontSize: 11, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
-  miniCardValue: { fontSize: 22, fontWeight: '700', color: '#fff' },
-  xpRemaining: { fontSize: 11, color: 'rgba(255,255,255,0.8)' },
-  track: { height: 7, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.25)', overflow: 'hidden' },
+  lightHeroPillText: { color: '#fff', fontSize: 11.5, fontWeight: '700' },
+  lightHeroTrackRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
+  lightHeroTrackLabel: { color: 'rgba(255,255,255,0.85)', fontSize: 12 },
+  lightHeroTrackValue: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  track: { height: 8, borderRadius: radius.full, backgroundColor: 'rgba(255,255,255,0.25)', overflow: 'hidden' },
   fill: { height: '100%', borderRadius: radius.full, backgroundColor: '#fff' },
+  // Koyu tema hero
+  darkHero: { alignItems: 'center', paddingTop: spacing.sm },
+  ringWrap: { alignItems: 'center', justifyContent: 'center' },
+  ringCenter: { position: 'absolute', alignItems: 'center', justifyContent: 'center' },
+  ringLevel: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  ringXp: { color: 'rgba(255,255,255,0.65)', fontSize: 12, marginTop: 2 },
+  darkChipsRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  darkChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  darkChipText: { color: '#E7E8FF', fontSize: 12.5, fontWeight: '600' },
 });

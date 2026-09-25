@@ -8,6 +8,7 @@ import { useLocale } from '@/i18n';
 import { statsApi } from '@/api/stats';
 import type { AnalyticsData } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
+import { useThemeMode } from '@/store/theme';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
@@ -20,7 +21,17 @@ import { Card } from '@/components/ui/Card';
 // efektleri react-native-svg'nin kendi <LinearGradient>'ini kullanıyor, bu
 // yüzden ekstra bir paket (expo-linear-gradient) gerekmiyor. ──
 
-const TYPE_COLORS = ['#378ADD', '#534AB7', '#3B6D11', '#854F0B', '#0F6E56', '#94a3b8'];
+// 25 Eylül 2026 -- Bento Modern/Gamified canvas'ı canlıya alınırken bulunan
+// gerçek bug: bu kelime-türü dağılımı pasta/çubuk grafiği rengi sabit
+// AÇIK temaya göre ayarlanmış koyu tonlardı -- koyu kart yüzeyinde
+// (c.surface, ör. #141A26) neredeyse aynı karanlıkta kaldıkları için
+// dilim/çubuk ayrımı okunmuyordu. Koyu tema için kendi validated eşleniği
+// eklendi (dataviz skill: "dark mode is selected, its own steps from the
+// same ramps" -- otomatik parlaklaştırma değil, uygulamanın zaten kurulu
+// dark-tema tonlarıyla (constants/theme.ts) aynı aileden, koyu yüzeyde
+// ayrı ayrı okunur 6 renk).
+const TYPE_COLORS_LIGHT = ['#378ADD', '#534AB7', '#3B6D11', '#854F0B', '#0F6E56', '#64748b'];
+const TYPE_COLORS_DARK = ['#4E9CEE', '#A78BFA', '#7BC24B', '#F0B549', '#34D399', '#94a3b8'];
 
 function pad2(n: number) {
   return n < 10 ? `0${n}` : String(n);
@@ -57,6 +68,8 @@ function LegendDot({ color, label, value }: { color: string; label: string; valu
 export default function StatsScreen() {
   const { t } = useLocale();
   const c = useThemeColors();
+  const { scheme } = useThemeMode();
+  const TYPE_COLORS = scheme === 'dark' ? TYPE_COLORS_DARK : TYPE_COLORS_LIGHT;
   const { width } = useWindowDimensions();
   const chartWidth = Math.max(220, width - spacing.lg * 2 - spacing.lg * 2 - 8);
 

@@ -631,6 +631,12 @@ function StatTile({
   );
 }
 
+// 25 Eylül 2026 -- Bento Modern/Gamified canvas'ı canlıya alınırken bulunan
+// gerçek bug: bu karo daha önce arka plan/kenarlık/etiket rengini SABİT
+// (#FFFFFF/#F1F1F4/#374151) veriyordu -- koyu temada bu, koyu arka plan
+// üzerinde beyaz kutular olarak görünüyordu. Artık Card ile aynı desende
+// (bkz. components/ui/Card.tsx) useThemeColors()'tan geliyor, iki temada
+// da doğru.
 function ActionTile({
   icon: Icon,
   label,
@@ -644,12 +650,19 @@ function ActionTile({
   bg: string;
   fg: string;
 }) {
+  const c = useThemeColors();
   return (
-    <Pressable onPress={onPress} style={styles.actionTile}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.actionTile,
+        { backgroundColor: c.surface, borderColor: c.border, opacity: pressed ? 0.85 : 1 },
+      ]}
+    >
       <View style={[styles.tileIcon, { backgroundColor: bg }]}>
         <Icon color={fg} size={17} />
       </View>
-      <Text style={styles.actionLabel} numberOfLines={1}>
+      <Text style={[styles.actionLabel, { color: c.text }]} numberOfLines={1}>
         {label}
       </Text>
     </Pressable>
@@ -682,14 +695,12 @@ const styles = StyleSheet.create({
     width: '31%',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#F1F1F4',
     borderRadius: radius.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: 4,
   },
-  actionLabel: { fontSize: 11.5, fontWeight: '600', color: '#374151', textAlign: 'center' },
+  actionLabel: { fontSize: 11.5, fontWeight: '600', textAlign: 'center' },
   examBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
