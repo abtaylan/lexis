@@ -66,6 +66,11 @@ export type ExamStrings = {
   grammarListTitle: string;
   grammarListSubtitle: string;
   grammarEmptyState: string;
+  // Task #13/#14 (25 Eylul 2026) -- ogrenilen dil icin henuz Gramer
+  // Rehberi icerigi yoksa (grammar_topics tablosu su an sadece
+  // learning_lang='en' icin dolu) ekran tamamen bos gorunuyordu; bunun
+  // yerine acikca bilgilendiren bir bos durum mesaji.
+  grammarLangUnavailable: string;
   grammarExamplesTitle: string;
   grammarMistakesTitle: string;
   grammarPracticeCta: string;
@@ -151,6 +156,7 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     grammarListTitle: 'Gramer Rehberi',
     grammarListSubtitle: 'YDS/YÖKDİL sınavlarında en sık çıkan konular — kural, örnek ve Türkçe konuşanlara özgü hatalar.',
     grammarEmptyState: 'Bu kategoride henüz konu yok.',
+    grammarLangUnavailable: 'Gramer Rehberi şu anda sadece İngilizce öğrenenler için hazır. Diğer diller için içerik yakında eklenecek.',
     grammarExamplesTitle: 'Örnekler',
     grammarMistakesTitle: 'Sık Yapılan Hatalar',
     grammarPracticeCta: 'Bu Konuyu Pratik Et',
@@ -232,6 +238,7 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     grammarListTitle: 'Grammar Guide',
     grammarListSubtitle: 'The most common topics in YDS/YÖKDİL exams — rules, examples, and mistakes specific to Turkish speakers.',
     grammarEmptyState: 'No topics in this category yet.',
+    grammarLangUnavailable: 'The Grammar Guide is currently only available for English learners. Content for other languages is coming soon.',
     grammarExamplesTitle: 'Examples',
     grammarMistakesTitle: 'Common Mistakes',
     grammarPracticeCta: 'Practice This Topic',

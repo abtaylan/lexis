@@ -54,6 +54,14 @@ export default function ExamGrammarScreen() {
         <View style={{ marginTop: spacing.xxl, alignItems: 'center' }}>
           <ActivityIndicator color={c.primary} />
         </View>
+      ) : orderedCategories.length === 0 ? (
+        // Task #13/#14 (25 Eylul 2026): grammar_topics su an sadece
+        // learning_lang='en' icin dolu -- list_categories() bu durumda bos
+        // dizi donuyor (bkz. backend/app/api/routes/grammar.py::
+        // _grammar_area_enabled), ekran onceden sessizce bomboş kalıyordu.
+        <Card style={{ marginTop: spacing.lg }}>
+          <Text style={{ color: c.textMuted, fontSize: 13, lineHeight: 19 }}>{et.grammarLangUnavailable}</Text>
+        </Card>
       ) : (
         <View style={{ marginTop: spacing.lg, gap: spacing.lg }}>
           {orderedCategories.map((category) => {

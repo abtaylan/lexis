@@ -75,8 +75,31 @@ def _grammar_area_enabled(user_id: str) -> bool:
 async def list_categories(current_user=Depends(get_current_user)):
     if not _grammar_area_enabled(current_user.id):
         return []
+    # Task #14 (25 Eylul 2026): grammar_categories dil bazli degil, tum
+    # diller icin ortak/paylasilan bir tablo. Ama grammar_topics icerigi
+    # her dil icin FARKLI kategorilerde mevcut olabilir (orn. Arapca'da
+    # henuz "passive"/"conditionals" gibi kategoriler icin konu yokken
+    # Ingilizce'de var). Filtrelemeden tum kategorileri donmek, icerigi
+    # olmayan dillerde bombos kategori kartlari gosterilmesine yol acardi.
+    # Bu yuzden sadece kullanicinin diline ait YAYINLANMIS (published) en
+    # az bir konusu olan kategoriler donuluyor.
+    learning_lang = _profile_learning_lang(current_user.id)
+    topics_result = (
+        supabase_admin.table("grammar_topics")
+        .select("category_id")
+        .eq("status", "published")
+        .eq("learning_lang", learning_lang)
+        .execute()
+    )
+    category_ids_with_content = {row["category_id"] for row in (topics_result.data or []) if row.get("category_id")}
+    if not category_ids_with_content:
+        return []
     result = supabase_admin.table("grammar_categories").select("*").order("sort_order").execute()
-    return [GrammarCategoryResponse(**row) for row in (result.data or [])]
+    return [
+        GrammarCategoryResponse(**row)
+        for row in (result.data or [])
+        if row.get("id") in category_ids_with_content
+    ]
 
 
 @router.get("/topics", response_model=list[GrammarTopicSummary])

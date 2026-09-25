@@ -54,6 +54,7 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     doneLabel: 'Tamamlandı',
     inProgressTpl: '{done}/{total} konu',
     notStartedLabel: 'Henüz başlanmadı',
+    langUnavailable: 'Gramer Rehberi şu anda sadece İngilizce öğrenenler için hazır. Diğer diller için içerik yakında eklenecek.',
   },
   en: {
     back: 'Back',
@@ -66,6 +67,7 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     doneLabel: 'Completed',
     inProgressTpl: '{done}/{total} topics',
     notStartedLabel: 'Not started yet',
+    langUnavailable: 'The Grammar Guide is currently only available for English learners. Content for other languages is coming soon.',
   },
 };
 
@@ -186,6 +188,15 @@ export default function ExamGrammarPage() {
       {loading ? (
         <div className="flex items-center justify-center py-20 text-gray-400 dark:text-slate-500">
           <Loader2 className="w-6 h-6 animate-spin" />
+        </div>
+      ) : orderedCategories.length === 0 ? (
+        // Task #13/#14 (25 Eylul 2026): grammar_topics su an sadece
+        // learning_lang='en' icin dolu -- list_categories() bu durumda bos
+        // dizi donuyor (bkz. backend/app/api/routes/grammar.py::
+        // _grammar_area_enabled), sayfa onceden sessizce bomboş kalıyordu
+        // (sadece kesikli yol cizgisi gorunuyordu).
+        <div className="mt-8 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed">{t.langUnavailable}</p>
         </div>
       ) : (
         <div className="relative mt-8">
