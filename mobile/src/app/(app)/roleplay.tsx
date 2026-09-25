@@ -132,7 +132,15 @@ export default function RoleplayScreen() {
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: c.background }]} edges={['top']}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={8}>
+      {/* words.tsx'teki AYNI Android duzeltmesi (bkz. o dosyadaki yorum,
+          24 Eylul 2026, Task #15): Android'de 'padding' davranisi
+          beklendigi gibi calismiyor -- klavye acilinca composer alani
+          klavyenin arkasinda kalip gorunmuyordu. 'height' ile duzeltildi. */}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
+      >
         <View style={[styles.header, { borderBottomColor: c.border }]}>
           <Pressable onPress={() => router.back()} hitSlop={10}>
             <ArrowLeft color={c.textMuted} size={20} />
