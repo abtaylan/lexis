@@ -16,7 +16,7 @@ import { examsApi } from '@/api/exams';
 import { studyProgramApi } from '@/api/studyProgram';
 import { wordsApi } from '@/api/words';
 import { gamesApi } from '@/api/games';
-import type { WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem } from '@/api/types';
+import type { WeakTopicItem, WeakWordTypeItem } from '@/api/types';
 import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
@@ -25,9 +25,7 @@ import { Card } from '@/components/ui/Card';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { StudyProgramCard } from '@/components/StudyProgramCard';
 import { DailyWordCard } from '@/components/DailyWordCard';
-import { WordOfTheDayCard } from '@/components/WordOfTheDayCard';
 import { ReferralPromoCard } from '@/components/ReferralPromoCard';
-import { StreakHeatmap } from '@/components/StreakHeatmap';
 import { MascotGreeting } from '@/components/MascotGreeting';
 import { OnboardingTour } from '@/components/OnboardingTour';
 import { AdBanner } from '@/components/ads/AdBanner';
@@ -434,11 +432,11 @@ export default function DashboardScreen() {
             edilmez. */}
         <DailyWordCard />
 
-        {/* Günün Kelimesi (Madde 5, 24 Eylül 2026) — DailyWordCard ile
-            KARIŞTIRILMASIN: o "Günlük Kelime Avı" (Wordle tarzı oyun), bu
-            ise salt okunur, e-postayla gelen günlük kelime içeriğinin
-            dashboard'a taşınmış hali. Aynı soft-disable deseni. */}
-        <WordOfTheDayCard />
+        {/* Günün Kelimesi (salt okunur, e-postayla gelen günlük kelime
+            içeriği) kartı kaldırıldı — kullanıcı isteği (25 Eylül 2026):
+            "Günün kelimesi zaten mail olarak geliyor, o da mobil
+            uygulamadan kaldırılsın". Bileşen (WordOfTheDayCard.tsx) dosyası
+            duruyor ama artık hiçbir yerden kullanılmıyor. */}
 
         {/* Referans/Davet Programı — Task #12 (24 Eylül 2026): program zaten
             profile.tsx'te tam olarak var, burada sadece dashboard'a (günlük
@@ -446,10 +444,10 @@ export default function DashboardScreen() {
             soft-disable deseni: referral_code gelmezse hiç render edilmez. */}
         <ReferralPromoCard />
 
-        {/* Çalışma takvimi (streak heatmap) — Madde 3 (Görsel/GUI), 24 Eylül
-            2026. web'deki StreakHeatmap ile aynı, mevcut statsApi.getHistory
-            çağrısı daha geniş bir pencereyle (18 hafta) tekrar kullanılıyor. */}
-        <StreakHeatmap />
+        {/* Çalışma takvimi (streak heatmap) kaldırıldı — kullanıcı isteği
+            (25 Eylül 2026): "Çalışma Takvimi mobil uygulamadan kaldırılsın".
+            Bileşen (StreakHeatmap.tsx) dosyası duruyor ama artık hiçbir
+            yerden kullanılmıyor. */}
 
         {/* Madde #3c: zayıf konu özeti — sadece en az bir zayıf konu varsa
             gösterilir (backend boş liste dönerse widget hiç render edilmez). */}
@@ -525,38 +523,30 @@ export default function DashboardScreen() {
           </Card>
         )}
 
-        {/* V2 madde #6 (Faz 2): zayıf zorluk seviyesi özeti */}
+        {/* V2 madde #6 (Faz 2): zayıf zorluk seviyesi özeti — kullanıcı isteği
+            (25 Eylül 2026): "Zayıf Zorluk Seviyen bölümünde Odak konular
+            mantığına geçilsin, içine tıklayınca yeni bir ekran açılsın".
+            StudyProgramCard'daki "Odak konular" özet karosuyla aynı desen:
+            burada sadece küçük, tıklanabilir bir özet var; tam liste artık
+            weak-difficulty.tsx'te (bkz. app/(app)/weak-difficulty.tsx) —
+            ekran kendi sorgusunu aynı queryKey ile tekrar çekiyor. */}
         {!!weakDifficulty?.items?.length && (
-          <Card style={{ marginTop: spacing.sm }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>
-              {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).title}
-            </Text>
-            <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
-              {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).subtitle}
-            </Text>
-            <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-              {weakDifficulty.items.map((item: WeakDifficultyItem) => (
-                <View key={item.difficulty_level} style={[styles.weakTopicRow, { borderColor: c.border }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: c.text }} numberOfLines={1}>
-                      {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).levelLabels[item.difficulty_level] ?? item.difficulty_level}
-                    </Text>
-                    <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
-                      {et.weakTopicsAccuracyTpl.replace('{percent}', String(Math.round(item.accuracy_ratio * 100)))}
-                    </Text>
-                  </View>
-                  <Pressable
-                    onPress={() => router.push('/(app)/game')}
-                    style={[styles.weakTopicBtn, { borderColor: c.warning }]}
-                  >
-                    <Text style={{ color: c.warning, fontSize: 12, fontWeight: '700' }}>
-                      {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).cta}
-                    </Text>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          </Card>
+          <Pressable
+            onPress={() => router.push('/(app)/weak-difficulty')}
+            style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+          >
+            <Card style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>
+                  {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).title}
+                </Text>
+                <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }} numberOfLines={1}>
+                  {(WEAK_DIFFICULTY_STRINGS[locale as 'tr' | 'en'] ?? WEAK_DIFFICULTY_STRINGS.tr).subtitle}
+                </Text>
+              </View>
+              <ChevronRight color={c.textMuted} size={18} />
+            </Card>
+          </Pressable>
         )}
 
         <View>

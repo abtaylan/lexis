@@ -179,6 +179,15 @@ export default function AppTabsLayout() {
           daily-word ile AYNI desen: kendi sekmesi yok, dashboard'daki
           kısayoldan açılıyor. */}
       <Tabs.Screen name="roleplay" options={{ href: null, headerShown: false }} />
+      {/* Kullanıcı isteği (25 Eylül 2026): "Odak konular"/"Zayıf Zorluk
+          Seviyen" artık dashboard'da küçük, tıklanabilir özet karoları —
+          tam liste bu iki ayrı ekranda. daily-word/roleplay ile AYNI
+          desen: kendi sekmeleri yok, dashboard'daki özet karolarından
+          açılıyorlar; exam-topic-practice'teki 11 Eylül 2026 düzeltmesinin
+          AYNI uyarısı geçerli — burada listelenmezlerse Expo Router sekme
+          çubuğuna varsayılan ikonlu, istenmeyen bir sekme ekler. */}
+      <Tabs.Screen name="study-focus-topics" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="weak-difficulty" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

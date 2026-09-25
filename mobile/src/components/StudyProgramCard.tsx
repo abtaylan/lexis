@@ -9,6 +9,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
 import type { Locale } from '@/i18n/locales';
 import type { StudyProgram, StudyProgramTopic } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -17,7 +18,7 @@ import { Card } from '@/components/ui/Card';
 
 type ThemeColors = ReturnType<typeof useThemeColors>;
 
-type Strings = {
+export type Strings = {
   title: string;
   subtitle: string;
   levelTpl: string;
@@ -26,6 +27,7 @@ type Strings = {
   reviewsTpl: string;
   wordsCta: string;
   topicsTitle: string;
+  topicsCta: string;
   weak: string;
   next: string;
   progressTpl: string;
@@ -39,7 +41,7 @@ type Strings = {
   quizCta: string;
 };
 
-const STRINGS: Partial<Record<Locale, Strings>> = {
+export const STRINGS: Partial<Record<Locale, Strings>> = {
   tr: {
     title: 'Bu Haftanın Programı',
     subtitle: 'Performansına göre her Pazartesi yenilenir',
@@ -49,6 +51,7 @@ const STRINGS: Partial<Record<Locale, Strings>> = {
     reviewsTpl: '{n} tekrar bekliyor',
     wordsCta: 'Çalış',
     topicsTitle: 'Odak konular',
+    topicsCta: 'Tümünü görmek için dokun',
     weak: 'Zayıf konu',
     next: 'Sıradaki konu',
     progressTpl: '{done}/{target} soru',
@@ -70,6 +73,7 @@ const STRINGS: Partial<Record<Locale, Strings>> = {
     reviewsTpl: '{n} reviews due',
     wordsCta: 'Study',
     topicsTitle: 'Focus topics',
+    topicsCta: 'Tap to see all',
     weak: 'Weak topic',
     next: 'Next topic',
     progressTpl: '{done}/{target} questions',
@@ -84,11 +88,11 @@ const STRINGS: Partial<Record<Locale, Strings>> = {
   },
 };
 
-function fill(tpl: string, vars: Record<string, string | number>): string {
+export function fill(tpl: string, vars: Record<string, string | number>): string {
   return Object.entries(vars).reduce((acc, [k, v]) => acc.replace(`{${k}}`, String(v)), tpl);
 }
 
-function Bar({ value, max, color, c }: { value: number; max: number; color: string; c: ThemeColors }) {
+export function Bar({ value, max, color, c }: { value: number; max: number; color: string; c: ThemeColors }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
     <View style={{ height: 6, width: '100%', borderRadius: 999, backgroundColor: c.border, overflow: 'hidden' }}>
@@ -97,7 +101,7 @@ function Bar({ value, max, color, c }: { value: number; max: number; color: stri
   );
 }
 
-function TopicRow({ topic, s, c }: { topic: StudyProgramTopic; s: Strings; c: ThemeColors }) {
+export function TopicRow({ topic, s, c }: { topic: StudyProgramTopic; s: Strings; c: ThemeColors }) {
   return (
     <View style={[styles.topicRow, { borderColor: c.border }]}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
@@ -187,14 +191,27 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
         </View>
       )}
 
-      <Text style={{ fontSize: 12, fontWeight: '600', color: c.textMuted, marginTop: spacing.sm }}>
-        {s.topicsTitle} · {program.completed_topics}/{program.focus_topics.length}
-      </Text>
-      <View style={{ gap: spacing.sm, marginTop: spacing.xs }}>
-        {program.focus_topics.map((t) => (
-          <TopicRow key={t.topic_tag} topic={t} s={s} c={c} />
-        ))}
-      </View>
+      {/* Odak konular — kullanıcı isteği (25 Eylül 2026): "Odak konular
+          bölümü ekranda çok yer kaplıyor, orası küçük bir alan olsun,
+          oraya tıklayınca ek bir sayfa açılsın, onun içinde sıralansın
+          konular." Tam liste artık study-focus-topics.tsx'te (bkz.
+          app/(app)/study-focus-topics.tsx); burada sadece ilk konunun
+          önizlemesiyle küçük, tıklanabilir bir özet var. */}
+      <Pressable
+        onPress={() => router.push('/(app)/study-focus-topics')}
+        style={({ pressed }) => [styles.topicsSummaryRow, { borderColor: c.border, opacity: pressed ? 0.85 : 1 }]}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={{ fontSize: 12, fontWeight: '600', color: c.textMuted }}>
+            {s.topicsTitle} · {program.completed_topics}/{program.focus_topics.length}
+          </Text>
+          <Text style={{ fontSize: 14, fontWeight: '600', color: c.text, marginTop: 2 }} numberOfLines={1}>
+            {program.focus_topics[0]?.title}
+            {program.focus_topics.length > 1 ? `  +${program.focus_topics.length - 1}` : ''}
+          </Text>
+        </View>
+        <ChevronRight color={c.textMuted} size={18} />
+      </Pressable>
 
       {!!quiz && (
         <View style={[styles.quizRow, { borderColor: c.border }]}>
@@ -219,6 +236,16 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
 }
 
 const styles = StyleSheet.create({
+  topicsSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    borderWidth: 1,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
   topicRow: { borderWidth: 1, borderRadius: radius.md, padding: spacing.sm },
   pillBtn: { borderWidth: 1, borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 6 },
   levelBadge: { borderRadius: 999, paddingHorizontal: spacing.sm, paddingVertical: 4 },
