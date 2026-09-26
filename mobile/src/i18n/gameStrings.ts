@@ -70,6 +70,8 @@ export type GameStrings = {
   wordleLostTitle: string;
   correctWordTpl: string;
   exampleHintLabel: string;
+  wordleUnsupportedTitle: string;
+  wordleUnsupportedBody: string;
 };
 
 export const GAME_STRINGS: Record<Locale, GameStrings> = {
@@ -141,6 +143,8 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'Hakların bitti',
     correctWordTpl: 'Doğru kelime: {word}',
     exampleHintLabel: 'Örnek cümle:',
+    wordleUnsupportedTitle: 'Bu oyun modu bu dil için henüz yok',
+    wordleUnsupportedBody: 'Adam Asmaca şu an sadece harf tahminine dayalı diller için oynanabiliyor. Bu dil için yakında farklı bir oyun deneyimi ekleyeceğiz.',
   },
   en: {
     pageTitle: 'Word Game',
@@ -210,6 +214,8 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'Out of lives',
     correctWordTpl: 'Correct word: {word}',
     exampleHintLabel: 'Example sentence:',
+    wordleUnsupportedTitle: 'This mode isn\'t available for this language yet',
+    wordleUnsupportedBody: 'Hangman currently only works for languages that use letter-by-letter guessing. We\'ll bring a different game experience for this language soon.',
   },
   ar: {
     pageTitle: 'لعبة الكلمات',
@@ -279,6 +285,8 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'انتهت محاولاتك',
     correctWordTpl: 'الكلمة الصحيحة: {word}',
     exampleHintLabel: 'جملة مثال:',
+    wordleUnsupportedTitle: 'وضع اللعبة هذا غير متوفر بعد لهذه اللغة',
+    wordleUnsupportedBody: 'تعمل لعبة المشنقة حاليًا فقط مع اللغات التي تعتمد على تخمين الحروف واحدًا تلو الآخر. سنقدم قريبًا تجربة لعبة مختلفة لهذه اللغة.',
   },
   ru: {
     pageTitle: 'Словесная игра',
@@ -348,6 +356,8 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'Жизни закончились',
     correctWordTpl: 'Правильное слово: {word}',
     exampleHintLabel: 'Пример предложения:',
+    wordleUnsupportedTitle: 'Этот режим пока недоступен для этого языка',
+    wordleUnsupportedBody: 'Виселица сейчас работает только для языков с побуквенным угадыванием. Скоро мы добавим другой игровой режим для этого языка.',
   },
   de: {
     pageTitle: 'Wortspiel',
@@ -417,6 +427,8 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'Keine Leben mehr',
     correctWordTpl: 'Richtiges Wort: {word}',
     exampleHintLabel: 'Beispielsatz:',
+    wordleUnsupportedTitle: 'Dieser Modus ist für diese Sprache noch nicht verfügbar',
+    wordleUnsupportedBody: 'Galgenmännchen funktioniert derzeit nur für Sprachen mit buchstabenweisem Raten. Für diese Sprache bringen wir bald ein anderes Spielerlebnis.',
   },
   fr: {
     pageTitle: 'Jeu de mots',
@@ -486,6 +498,8 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'Plus de vies',
     correctWordTpl: 'Mot correct : {word}',
     exampleHintLabel: "Phrase d'exemple :",
+    wordleUnsupportedTitle: 'Ce mode n\'est pas encore disponible pour cette langue',
+    wordleUnsupportedBody: 'Le pendu ne fonctionne actuellement que pour les langues à devinette lettre par lettre. Nous proposerons bientôt une autre expérience de jeu pour cette langue.',
   },
   es: {
     pageTitle: 'Juego de palabras',
@@ -555,6 +569,8 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'Sin vidas',
     correctWordTpl: 'Palabra correcta: {word}',
     exampleHintLabel: 'Frase de ejemplo:',
+    wordleUnsupportedTitle: 'Este modo aún no está disponible para este idioma',
+    wordleUnsupportedBody: 'El ahorcado actualmente solo funciona para idiomas con adivinanza letra por letra. Pronto traeremos otra experiencia de juego para este idioma.',
   },
   it: {
     pageTitle: 'Gioco di parole',
@@ -624,6 +640,8 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'Vite finite',
     correctWordTpl: 'Parola corretta: {word}',
     exampleHintLabel: 'Frase di esempio:',
+    wordleUnsupportedTitle: 'Questa modalità non è ancora disponibile per questa lingua',
+    wordleUnsupportedBody: 'L\'impiccato funziona attualmente solo per le lingue con indovinello lettera per lettera. Presto proporremo un\'altra esperienza di gioco per questa lingua.',
   },
   ja: {
     pageTitle: '単語ゲーム',
@@ -693,6 +711,8 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'ライフがなくなりました',
     correctWordTpl: '正解の単語: {word}',
     exampleHintLabel: '例文:',
+    wordleUnsupportedTitle: 'このモードはまだこの言語では利用できません',
+    wordleUnsupportedBody: '現在、ハングマンは1文字ずつ推測する言語でのみ利用できます。この言語には近日中に別のゲーム体験を追加します。',
   },
   pt: {
     pageTitle: 'Jogo de Palavras',
@@ -762,5 +782,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     wordleLostTitle: 'Sem vidas',
     correctWordTpl: 'Palavra correta: {word}',
     exampleHintLabel: 'Frase de exemplo:',
+    wordleUnsupportedTitle: 'Este modo ainda não está disponível para este idioma',
+    wordleUnsupportedBody: 'A forca atualmente só funciona para idiomas com adivinhação letra por letra. Em breve traremos uma experiência de jogo diferente para este idioma.',
   },
 };

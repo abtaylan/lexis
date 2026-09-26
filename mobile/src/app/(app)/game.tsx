@@ -14,17 +14,19 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ARABIC_KEYBOARD_ROWS, getKeyboardRowsForLanguage, isLetterGuessSupported } from '@/constants/keyboards';
 
 type Stage = 'mode' | 'direction' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
 
-const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026 — eşin ekran görüntüsü): "burada
 // arapça harfler olması gerekiyor klavye seçeneği eksik" — kelime tahmin
 // (wordle) modundaki ekran-üstü klavye öğrenilen dil ne olursa olsun sabit
 // Latin QWERTY gösteriyordu; Arapça öğrenirken bu klavyeyle Arapça harf
 // tahmin etmek mümkün değildi. Öğrenilen dil Arapça ise bu satırlar
-// kullanılır (bkz. aşağıdaki keyboardRows).
-const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'فقكلمنهوي'];
+// kullanılır (bkz. aşağıdaki keyboardRows). Klavye satırları ve dil->alfabe
+// eşlemesi artık `@/constants/keyboards`'ta TEK bir yerden tanımlanıyor
+// (26 Eylül 2026 — Rusça/Kiril desteği ve "Günlük Kelime Avı" ekranıyla
+// paylaşım için, bkz. o dosyadaki kök neden notu).
 
 // ── Eşleştirme (matching) — web'deki app/(app)/game/page.tsx'teki aynı mantık
 // mobile'a taşındı: tek seferde MATCHING_BATCH_SIZE kadar kelime çekilip iki
@@ -908,7 +910,8 @@ export default function GameScreen() {
   const isSprint = gameMode === 'sprint';
   const isSentence = gameMode === 'sentence_building';
   const isMultipleChoice = gameMode === 'multiple_choice';
-  const keyboardRows = user?.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
+  const keyboardRows = getKeyboardRowsForLanguage(user?.learning_lang);
+  const letterGuessSupported = isLetterGuessSupported(user?.learning_lang);
   const activeDirection = current.direction ?? direction;
   const isDefinition = activeDirection === 'definition_to_word';
   const isReverse = !isWordle && (activeDirection === 'meaning_to_word' || isDefinition);
@@ -995,7 +998,17 @@ export default function GameScreen() {
         </>
       )}
 
-      {isWordle && (
+      {isWordle && !letterGuessSupported && (
+        <>
+          <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
+            <Text style={{ color: c.text, fontWeight: '700', fontSize: 14, textAlign: 'center' }}>{gt.wordleUnsupportedTitle}</Text>
+            <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' }}>{gt.wordleUnsupportedBody}</Text>
+          </Card>
+          <Button title={gt.playAgainBtn} onPress={() => setStage('mode')} />
+        </>
+      )}
+
+      {isWordle && letterGuessSupported && (
         <>
           <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
             <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>

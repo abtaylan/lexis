@@ -23,8 +23,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-
-const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+import { getKeyboardRowsForLanguage, isLetterGuessSupported } from '@/constants/keyboards';
 
 const L: Record<'tr' | 'en', Record<string, string>> = {
   tr: {
@@ -39,6 +38,8 @@ const L: Record<'tr' | 'en', Record<string, string>> = {
     correctWordTpl: 'Doğru kelime: {word}',
     guessedLabel: 'Denenen harfler',
     shareBtn: 'Paylaş',
+    unsupportedTitle: 'Bu oyun modu bu dil için henüz yok',
+    unsupportedBody: 'Günlük Kelime Avı şu an sadece harf tahminine dayalı diller için oynanabiliyor. Bu dil için yakında farklı bir oyun deneyimi ekleyeceğiz.',
   },
   en: {
     title: 'Daily Word Hunt',
@@ -52,6 +53,8 @@ const L: Record<'tr' | 'en', Record<string, string>> = {
     correctWordTpl: 'The word was: {word}',
     guessedLabel: 'Guessed letters',
     shareBtn: 'Share',
+    unsupportedTitle: "This mode isn't available for this language yet",
+    unsupportedBody: "Daily Word Hunt currently only works for languages that use letter-by-letter guessing. We'll bring a different game experience for this language soon.",
   },
 };
 
@@ -63,6 +66,8 @@ export default function DailyWordScreen() {
   const [state, setState] = useState<DailyChallengeState | null | undefined>(undefined);
   const [error, setError] = useState('');
   const [letterBusy, setLetterBusy] = useState(false);
+  const keyboardRows = getKeyboardRowsForLanguage(state?.learning_lang);
+  const letterGuessSupported = isLetterGuessSupported(state?.learning_lang);
 
   useEffect(() => {
     dailyChallengeApi
@@ -197,9 +202,16 @@ export default function DailyWordScreen() {
             </Card>
           )}
 
-          {!state.is_complete && !state.is_failed && (
+          {!state.is_complete && !state.is_failed && !letterGuessSupported && (
+            <Card style={{ alignItems: 'center', marginTop: spacing.md }}>
+              <Text style={{ color: c.text, fontWeight: '700', fontSize: 14, textAlign: 'center' }}>{t.unsupportedTitle}</Text>
+              <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' }}>{t.unsupportedBody}</Text>
+            </Card>
+          )}
+
+          {!state.is_complete && !state.is_failed && letterGuessSupported && (
             <View style={{ alignItems: 'center', gap: 6 }}>
-              {KEYBOARD_ROWS.map((row, i) => (
+              {keyboardRows.map((row, i) => (
                 <View key={i} style={{ flexDirection: 'row', gap: 5 }}>
                   {row.split('').map((letter) => {
                     const lower = letter.toLowerCase();
@@ -229,7 +241,7 @@ export default function DailyWordScreen() {
             </View>
           )}
 
-          {state.guessed_letters.length > 0 && !state.is_complete && !state.is_failed && (
+          {letterGuessSupported && state.guessed_letters.length > 0 && !state.is_complete && !state.is_failed && (
             <Text style={{ color: c.textMuted, fontSize: 11, textAlign: 'center', marginTop: spacing.md }}>
               {t.guessedLabel}: {state.guessed_letters.join(', ').toUpperCase()}
             </Text>
