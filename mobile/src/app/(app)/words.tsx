@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
+import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
-import { Search, Volume2, X, Plus, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { Search, Volume2, X, Plus, ChevronLeft, ChevronRight, Check, Tag } from 'lucide-react-native';
 import * as Speech from 'expo-speech';
 import { useLocale } from '@/i18n';
 import { wordsApi, dictionaryApi } from '@/api/words';
@@ -197,70 +198,78 @@ export default function WordsScreen() {
 
   return (
     <ScreenContainer scroll={false} padded={false}>
-      <View style={styles.topBar}>
-        <Text style={[styles.title, { color: c.text }]}>{t('words')}</Text>
-        <Pressable
-          onPress={() => setModalOpen(true)}
-          hitSlop={8}
-          style={[
-            styles.addBtn,
-            { backgroundColor: c.primary, shadowColor: c.primary },
-          ]}
-          accessibilityLabel={t('addWordBtn')}
-        >
-          <Plus color="#FFFFFF" size={19} strokeWidth={2.5} />
-        </Pressable>
-      </View>
+      {/* Üst panel artık düz bir arka plan değil, DashboardHeader.tsx'teki
+          aynı primary→accent gradyanı kullanan bir "hero" panel (kullanıcı
+          geri bildirimi, 27 Eylül 2026: "ek gelen pek bir şey olmamış" —
+          önceki sürümde sadece ince gölgeler vardı, marka rengiyle
+          bütünleşen belirgin bir görsel katman yoktu). Yapı (başlık solda +
+          ekle sağda, altında arama, altında filtre çipleri) AYNEN korundu —
+          kullanıcı açıkça "mevcut düzeni koru, sadece görseli zenginleştir"
+          dedi; sadece bu üç bloğun arka planı ve buna göre renk kontrastı
+          değişti. */}
+      <LinearGradient colors={[c.primary, c.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroPanel}>
+        <View style={styles.topBar}>
+          <Text style={styles.title}>{t('words')}</Text>
+          <Pressable
+            onPress={() => setModalOpen(true)}
+            hitSlop={8}
+            style={styles.addBtn}
+            accessibilityLabel={t('addWordBtn')}
+          >
+            <Plus color={c.primary} size={19} strokeWidth={2.7} />
+          </Pressable>
+        </View>
 
-      <View style={styles.searchWrap}>
-        <View style={[styles.searchBox, { backgroundColor: c.surface, borderColor: c.border, shadowColor: c.text }]}>
-          <Search color={c.textMuted} size={16} />
-          <TextField
-            placeholder={t('searchPlaceholder')}
-            value={search}
-            onChangeText={setSearch}
-            autoCorrect={false}
-            autoCapitalize="none"
-            // ★ ASIL HATA BURADAYDI (3 Eylül 2026'da bulundu, bkz. eski kod):
-            // `flex: 1` = flexBasis 0, yüksekliği "auto" olan bir kapsayıcıda
-            // içerik yüksekliğini 0'a çöktürüyordu (yazı görünmüyordu). Aynı
-            // hataya tekrar düşmemek için burada da flex'siz, tam genişlikte
-            // ve şeffaf arka planlı (dış kutu zaten arka planı veriyor) bir
-            // stil kullanıyoruz.
-            style={{
-              marginBottom: 0,
-              paddingVertical: spacing.sm + 2,
-              paddingHorizontal: 0,
-              fontSize: 14,
-              color: c.text,
-              backgroundColor: 'transparent',
-              borderWidth: 0,
-              flex: 1,
-            }}
+        <View style={styles.searchWrap}>
+          <View style={[styles.searchBox, { backgroundColor: c.surface }]}>
+            <Search color={c.textMuted} size={16} />
+            <TextField
+              placeholder={t('searchPlaceholder')}
+              value={search}
+              onChangeText={setSearch}
+              autoCorrect={false}
+              autoCapitalize="none"
+              // ★ ASIL HATA BURADAYDI (3 Eylül 2026'da bulundu, bkz. eski kod):
+              // `flex: 1` = flexBasis 0, yüksekliği "auto" olan bir kapsayıcıda
+              // içerik yüksekliğini 0'a çöktürüyordu (yazı görünmüyordu). Aynı
+              // hataya tekrar düşmemek için burada da flex'siz, tam genişlikte
+              // ve şeffaf arka planlı (dış kutu zaten arka planı veriyor) bir
+              // stil kullanıyoruz.
+              style={{
+                marginBottom: 0,
+                paddingVertical: spacing.sm + 2,
+                paddingHorizontal: 0,
+                fontSize: 14,
+                color: c.text,
+                backgroundColor: 'transparent',
+                borderWidth: 0,
+                flex: 1,
+              }}
+            />
+          </View>
+        </View>
+
+        <View style={styles.filterRow}>
+          <FilterChip
+            label={`${t('allFilterLabel')} · ${counts?.all ?? '—'}`}
+            active={statusFilter === 'all'}
+            onPress={() => setStatusFilter('all')}
+            c={c}
+          />
+          <FilterChip
+            label={`${t('statusLearning')} · ${counts?.learning ?? '—'}`}
+            active={statusFilter === 'learning'}
+            onPress={() => setStatusFilter('learning')}
+            c={c}
+          />
+          <FilterChip
+            label={`${t('statusLearned')} · ${counts?.learned ?? '—'}`}
+            active={statusFilter === 'learned'}
+            onPress={() => setStatusFilter('learned')}
+            c={c}
           />
         </View>
-      </View>
-
-      <View style={styles.filterRow}>
-        <FilterChip
-          label={`${t('allFilterLabel')} · ${counts?.all ?? '—'}`}
-          active={statusFilter === 'all'}
-          onPress={() => setStatusFilter('all')}
-          c={c}
-        />
-        <FilterChip
-          label={`${t('statusLearning')} · ${counts?.learning ?? '—'}`}
-          active={statusFilter === 'learning'}
-          onPress={() => setStatusFilter('learning')}
-          c={c}
-        />
-        <FilterChip
-          label={`${t('statusLearned')} · ${counts?.learned ?? '—'}`}
-          active={statusFilter === 'learned'}
-          onPress={() => setStatusFilter('learned')}
-          c={c}
-        />
-      </View>
+      </LinearGradient>
 
       <FlatList
         data={data?.items ?? []}
@@ -299,19 +308,21 @@ function FilterChip({
   onPress: () => void;
   c: ReturnType<typeof useThemeColors>;
 }) {
+  // Çipler artık gradyanlı hero panelinin üstünde oturuyor -- eski
+  // surface/border renkleri koyu zemin üzerinde görünmez olurdu. Aktif çip
+  // beyaz zemin + marka rengi yazı ile "seçili" hissini net veriyor; pasif
+  // çipler yarı saydam beyaz bir cam (glassmorphism) yüzey.
   return (
     <Pressable
       onPress={onPress}
       style={[
         styles.chip,
-        {
-          backgroundColor: active ? c.primary : c.surface,
-          borderColor: active ? c.primary : c.border,
-        },
-        active && { shadowColor: c.primary },
+        active
+          ? { backgroundColor: '#FFFFFF', shadowColor: '#000000' }
+          : { backgroundColor: 'rgba(255,255,255,0.16)', borderColor: 'rgba(255,255,255,0.35)', borderWidth: 1 },
       ]}
     >
-      <Text style={{ color: active ? '#FFFFFF' : c.textMuted, fontSize: 11, fontWeight: '700' }} numberOfLines={1}>
+      <Text style={{ color: active ? c.primary : '#FFFFFF', fontSize: 11, fontWeight: '700' }} numberOfLines={1}>
         {label}
       </Text>
     </Pressable>
@@ -412,7 +423,11 @@ const WordRow = React.memo(function WordRow({
   const badgeFg = word.status === 'learned' ? c.success : word.status === 'archived' ? c.textSecondary : c.primary;
 
   return (
-    <Card style={[styles.wordCard, { shadowColor: c.text }]}>
+    <Card style={[styles.wordCard, { shadowColor: '#000000', overflow: 'hidden' }]}>
+      {/* Sol kenardaki renkli şerit -- ustalık halkasının rengini kart
+          düzeyinde de tekrarlayıp listeyi tararken (halkanın küçük detayına
+          bakmadan) durumu bir bakışta ayırt etmeyi kolaylaştırıyor. */}
+      <View style={[styles.wordCardAccent, { backgroundColor: ringColor }]} />
       <View style={styles.ringWrap}>
         <Svg width={RING_SIZE} height={RING_SIZE}>
           <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R} stroke={ringTrack} strokeWidth={RING_STROKE} fill="none" />
@@ -602,36 +617,84 @@ function AddWordModal({
       >
       <View style={styles.modalOverlay}>
         <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
-          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {/* Üst sürükleme çubuğu + kapatma butonu + ortalanmış başlık
+              (kullanıcı isteği, 27 Eylül 2026: "yeni kelime ekle bölümü de
+              tasarlanmalı" -- eski sürüm düz bir başlık + altında dikey
+              sıralanmış alanlardı; artık bir iOS/Android "sheet" hissi
+              veren bir üst şerit, kapatma X'i ve arama alanını doğrudan bir
+              "ara" butonuyla birleştiren tek satırlık bir arayüz var). Bu X
+              bir EKRAN geri butonu değil, bu modal'a özel bir kapatma
+              affordance'ı -- ScreenNavBar.tsx'teki "hiçbir ekranda görünür
+              geri oku olmasın" kararı sekmeler arası gezinme için, modal
+              kapatma ile ilgisi yok. */}
+          <View style={styles.modalHandle} />
+          <View style={styles.modalTopRow}>
             <Text style={[styles.modalTitle, { color: c.text }]}>{t('addWordModalTitle')}</Text>
+            <Pressable onPress={onClose} hitSlop={8} style={[styles.modalCloseBtn, { backgroundColor: c.background }]}>
+              <X color={c.textSecondary} size={16} />
+            </Pressable>
+          </View>
 
-            {/* Etikette aktif dil çiftini gösteriyoruz. Sebep: kullanıcının
-                iOS cihazında aktif öğrenme dili Almanca'yken İngilizce kelime
-                aranıyordu; sonuç doğal olarak boş dönüyor ama ekranda bunun
-                sebebi hiç görünmüyordu ve "sözlük bozuk" sanıldı. Artık hangi
-                dilde arama yapıldığı kutunun hemen üstünde yazıyor. */}
-            <TextField
-              label={`${t('wordRequiredLabel')}${
-                learningLang ? `  ·  ${learningLang.toUpperCase()} → ${(nativeLang ?? 'tr').toUpperCase()}` : ''
-              }`}
-              value={word}
-              onChangeText={(v) => {
-                setWord(v);
-                if (lookupMsg) setLookupMsg('');
-              }}
-              autoCapitalize="none"
-              // iOS'ta sistem otomatik düzeltmesi/imla önerisi, kullanıcı yazmayı
-              // bitirmeden (boşluk/noktalama ile) kelimeyi sessizce farklı bir
-              // kelimeyle değiştirebiliyordu (Android'de bu davranış yok). Sonuç:
-              // sözlükte aranan kelime kullanıcının yazdığından farklı oluyor,
-              // eşleşme bulunamıyor, kayıt sırasında "anlam" alanı (bulunamayan
-              // çeviri yerine düşen) kelimenin kendisiyle doluyor ve "örnek cümle"
-              // boş kalıyordu. Otomatik düzeltmeyi kapatarak arananla kaydedilenin
-              // her zaman kullanıcının yazdığı kelime olmasını garantiliyoruz.
-              autoCorrect={false}
-              spellCheck={false}
-            />
-            <Button title={t('searchBtn')} variant="secondary" onPress={handleLookup} loading={looking} fullWidth={false} />
+          <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {learningLang ? (
+              <View style={[styles.langPill, { backgroundColor: c.primarySoft }]}>
+                <Text style={{ color: c.primary, fontSize: 11, fontWeight: '700' }}>
+                  {learningLang.toUpperCase()} → {(nativeLang ?? 'tr').toUpperCase()}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Kelime alanı + arama artık tek bir satırda birleşik: TextField
+                sola, dairesel "ara" butonu sağa. Önceki sürümde "Ara" tam
+                genişlikte, alanın ALTINDA ayrı bir buton olarak duruyordu --
+                sözlük araması ile veri girişini görsel olarak iki ayrı adım
+                gibi gösteriyordu. */}
+            <Text style={[styles.fieldLabel, { color: c.textSecondary }]}>{t('wordRequiredLabel')}</Text>
+            <View style={styles.lookupRow}>
+              <View style={{ flex: 1 }}>
+                <TextField
+                  value={word}
+                  onChangeText={(v) => {
+                    setWord(v);
+                    if (lookupMsg) setLookupMsg('');
+                  }}
+                  autoCapitalize="none"
+                  // iOS'ta sistem otomatik düzeltmesi/imla önerisi, kullanıcı yazmayı
+                  // bitirmeden (boşluk/noktalama ile) kelimeyi sessizce farklı bir
+                  // kelimeyle değiştirebiliyordu (Android'de bu davranış yok). Sonuç:
+                  // sözlükte aranan kelime kullanıcının yazdığından farklı oluyor,
+                  // eşleşme bulunamıyor, kayıt sırasında "anlam" alanı (bulunamayan
+                  // çeviri yerine düşen) kelimenin kendisiyle doluyor ve "örnek cümle"
+                  // boş kalıyordu. Otomatik düzeltmeyi kapatarak arananla kaydedilenin
+                  // her zaman kullanıcının yazdığı kelime olmasını garantiliyoruz.
+                  autoCorrect={false}
+                  spellCheck={false}
+                  style={{ marginBottom: 0 }}
+                />
+              </View>
+              <Pressable
+                onPress={handleLookup}
+                disabled={looking || !word.trim()}
+                style={[
+                  styles.lookupBtn,
+                  { backgroundColor: c.primary, opacity: !word.trim() ? 0.4 : 1, shadowColor: c.primary },
+                ]}
+                accessibilityLabel={t('searchBtn')}
+              >
+                {looking ? <ActivityIndicator color="#FFFFFF" size="small" /> : <Search color="#FFFFFF" size={18} />}
+              </Pressable>
+            </View>
+
+            {/* Sözlükten kelime türü (isim/fiil vb.) tespit edildiyse küçük
+                bir etiket olarak gösteriyoruz -- kullanıcı neyin otomatik
+                dolduğunu görsün diye (önceki sürümde bu bilgi state'te
+                tutulup sessizce kaydediliyordu, ekranda hiç görünmüyordu). */}
+            {wordTypeNative ? (
+              <View style={styles.wordTypeTag}>
+                <Tag color={c.textSecondary} size={11} />
+                <Text style={{ color: c.textSecondary, fontSize: 11, fontWeight: '600', marginLeft: 4 }}>{wordTypeNative}</Text>
+              </View>
+            ) : null}
 
             {lookupMsg ? (
               <View style={[styles.lookupMsgBox, { backgroundColor: c.warningSoft }]}>
@@ -639,19 +702,20 @@ function AddWordModal({
               </View>
             ) : null}
 
-            <View style={{ height: spacing.sm }} />
+            <View style={{ height: spacing.md }} />
             <TextField label={t('meaningRequiredLabel')} value={meaning} onChangeText={setMeaning} />
             <TextField label={t('exampleLabel')} value={example} onChangeText={setExample} multiline />
 
             {error ? <Text style={{ color: c.danger, fontSize: 12, marginBottom: spacing.sm }}>{error}</Text> : null}
 
             <View style={styles.modalActions}>
-              <View style={{ flex: 1 }}>
-                <Button title={t('cancelBtn')} variant="ghost" onPress={onClose} />
-              </View>
+              <Pressable onPress={onClose} hitSlop={8} style={styles.cancelLink}>
+                <Text style={{ color: c.textSecondary, fontSize: 15, fontWeight: '600' }}>{t('cancelBtn')}</Text>
+              </Pressable>
               <View style={{ flex: 1 }}>
                 <Button
                   title={t('saveBtn')}
+                  icon={<Check color="#FFFFFF" size={17} />}
                   onPress={() => {
                     if (!word.trim() || !meaning.trim()) {
                       setError(t('meaningRequired'));
@@ -681,60 +745,70 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     paddingBottom: spacing.xs,
   },
-  title: { fontSize: 20, fontWeight: '800' },
-  // Ekle butonu, filtre çiplerinin aktifi ve sayfa numarası butonu artık
-  // kendi rengine yakın (shadowColor prop'u yukarıda ayrı ayrı veriliyor)
-  // hafif bir "glow" gölgesi taşıyor -- düz/renksiz tasarımı biraz daha
-  // "premium" ve tıklanabilir hissettirmek için (kullanıcı isteği:
-  // "biraz daha güzelleştir").
+  // Başlık + arama + filtre çiplerini saran gradyanlı "hero" panel (bkz.
+  // DashboardHeader.tsx'teki aynı primary→accent gradyanı) -- altındaki
+  // beyaz listeyle net bir kontrast oluşturması için alt köşeleri
+  // yuvarlatıldı.
+  heroPanel: {
+    paddingTop: spacing.md,
+    borderBottomLeftRadius: radius.xl + 4,
+    borderBottomRightRadius: radius.xl + 4,
+  },
+  title: { fontSize: 21, fontWeight: '800', color: '#FFFFFF', letterSpacing: -0.3 },
+  // Ekle butonu artık gradyan üstünde beyaz bir zemin üzerinde marka rengi
+  // ikonla duruyor (renk tersine çevrildi) -- koyu bir zeminde önceki düz
+  // mavi buton neredeyse görünmüyordu.
   addBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.md,
+    width: 36,
+    height: 36,
+    borderRadius: radius.md + 2,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.22,
     shadowRadius: 6,
     elevation: 3,
   },
-  searchWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xs },
+  searchWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.xs },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    borderWidth: 1,
     borderRadius: radius.lg,
     paddingHorizontal: spacing.sm + 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.16,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  filterRow: { flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  filterRow: { flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.lg, paddingBottom: spacing.lg },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: radius.full,
-    borderWidth: 1,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.18,
     shadowRadius: 5,
     elevation: 2,
   },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: 24 },
+  listContent: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: 24 },
   wordCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.sm,
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.sm + 2,
+    marginBottom: spacing.sm + 2,
+    paddingVertical: spacing.sm + 4,
+    paddingHorizontal: spacing.sm + 4,
+    paddingLeft: spacing.sm + 8,
     borderWidth: 0,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 10,
+    elevation: 2,
   },
+  wordCardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
   ringWrap: { width: RING_SIZE, height: RING_SIZE, alignItems: 'center', justifyContent: 'center' },
   ringCheck: { position: 'absolute' },
   statusBadge: {
@@ -769,9 +843,45 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  modalCard: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, paddingBottom: spacing.xxl, maxHeight: '90%' },
-  modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.md },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalCard: {
+    borderTopLeftRadius: radius.xl + 4,
+    borderTopRightRadius: radius.xl + 4,
+    padding: spacing.lg,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xxl,
+    maxHeight: '90%',
+  },
+  // iOS/Android "sheet" hissi veren üst sürükleme çubuğu -- gerçek bir
+  // sürükle-kapat davranışı yok (o ayrı bir jest kütüphanesi gerektirir),
+  // sadece bunun bir alt sayfa olduğunu görsel olarak imliyor.
+  modalHandle: { width: 36, height: 4, borderRadius: radius.full, backgroundColor: 'rgba(120,120,128,0.28)', alignSelf: 'center', marginBottom: spacing.sm },
+  modalTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
+  modalCloseBtn: { width: 28, height: 28, borderRadius: radius.full, alignItems: 'center', justifyContent: 'center' },
+  modalTitle: { fontSize: 18, fontWeight: '800' },
+  langPill: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.full, marginBottom: spacing.md },
+  fieldLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6 },
+  lookupRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
+  lookupBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  wordTypeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: -spacing.sm,
+    marginBottom: spacing.sm,
+  },
   lookupMsgBox: { borderRadius: radius.md, paddingHorizontal: spacing.sm, paddingVertical: 8, marginTop: spacing.xs },
-  modalActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  modalActions: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.sm },
+  cancelLink: { paddingHorizontal: spacing.sm, paddingVertical: spacing.md },
 });

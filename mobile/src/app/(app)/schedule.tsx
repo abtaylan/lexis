@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Star, Save, X, Trash2, Plus, Check, CalendarClock,
   Flame, Zap, Coffee, Headphones, BookOpen, GraduationCap, User as UserIcon,
+  Tv, RotateCcw, Search as SearchIcon, CalendarDays,
 } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { scheduleApi } from '@/api/schedule';
@@ -51,6 +53,21 @@ const TASK_LINKS: Record<string, string> = {
 
 function link(activity: string): string {
   return TASK_LINKS[activity] ?? '';
+}
+
+// 27 Eylül 2026 — "Sıralama - Çalışma Programı - Profil sayfalarını yapalım"
+// isteğiyle her aktivite satırına anlamlı bir ikon eklendi (kullanıcı serbest
+// metin de girebildiği için TASK_LINKS anahtarlarına değil, anahtar kelime
+// eşleşmesine dayanıyor — Kelimeler sayfasındaki renkli vurgu-çubuğu deseninin
+// bu ekrandaki karşılığı). Eşleşme yoksa BookOpen'a düşer.
+function activityIcon(activity: string): React.ComponentType<{ color?: string; size?: number }> {
+  const a = activity.toLowerCase();
+  if (a.includes('podcast') || a.includes('voa') || a.includes('luke')) return Headphones;
+  if (a.includes('video') || a.includes('dizi') || a.includes('film') || a.includes('ted')) return Tv;
+  if (a.includes('kelime') || a.includes('tekrar')) return RotateCcw;
+  if (a.includes('soru') || a.includes('analiz')) return SearchIcon;
+  if (a.includes('sınav') || a.includes('yökdil') || a.includes('yds')) return GraduationCap;
+  return BookOpen;
 }
 
 interface Template {
@@ -371,90 +388,123 @@ export default function ScheduleScreen() {
   const hasItems = !!items && items.length > 0;
 
   return (
-    <ScreenContainer refreshing={isRefetching} onRefresh={refetch}>
+    <ScreenContainer scroll={false} padded={false}>
       <ScreenNavBar />
-      <View style={{ marginBottom: spacing.lg }}>
-        <Text style={{ color: c.text, fontSize: 20, fontWeight: '700' }}>{t('scheduleTitle')}</Text>
-        {hasItems ? (
-          <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>
-            {t('activeDaysStatsTpl', { days: String(activeDays), items: String(totalItems) })}
-          </Text>
-        ) : null}
+
+      {/* 27 Eylül 2026 — Kelimeler ve Sıralama sayfalarındaki gradient hero
+          panel deseni buraya da taşındı: başlık + aktif gün/aktivite özeti +
+          cam görünümlü aksiyon çipleri (Şablon Kaydet/Şablonlar/Ekle). */}
+      <LinearGradient colors={[c.primary, c.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+        <View style={styles.heroTop}>
+          <View style={styles.heroIconWrap}>
+            <CalendarDays color="#FFFFFF" size={20} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.heroTitle}>{t('scheduleTitle')}</Text>
+            {hasItems ? (
+              <Text style={styles.heroSubtitle}>
+                {t('activeDaysStatsTpl', { days: String(activeDays), items: String(totalItems) })}
+              </Text>
+            ) : null}
+          </View>
+        </View>
 
         <View style={styles.actionsRow}>
           {hasItems && (
-            <Pressable onPress={() => setSaveTemplateOpen(true)} style={[styles.pillBtn, { backgroundColor: c.warningSoft }]}>
-              <Save color={c.warning} size={14} />
-              <Text style={{ color: c.warning, fontWeight: '700', fontSize: 12 }}>{t('saveAsTemplateBtn')}</Text>
+            <Pressable onPress={() => setSaveTemplateOpen(true)} style={styles.pillBtnGhost}>
+              <Save color="#FFFFFF" size={13} />
+              <Text style={styles.pillBtnGhostText}>{t('saveAsTemplateBtn')}</Text>
             </Pressable>
           )}
-          <Pressable onPress={() => setTemplatesOpen(true)} style={[styles.pillBtn, { backgroundColor: c.accentSoft }]}>
-            <Sparkles color={c.accent} size={14} />
-            <Text style={{ color: c.accent, fontWeight: '700', fontSize: 12 }}>{t('templatesBtn')}</Text>
+          <Pressable onPress={() => setTemplatesOpen(true)} style={styles.pillBtnGhost}>
+            <Sparkles color="#FFFFFF" size={13} />
+            <Text style={styles.pillBtnGhostText}>{t('templatesBtn')}</Text>
           </Pressable>
-          <Pressable onPress={() => setModalOpen(true)} style={[styles.pillBtn, { backgroundColor: c.primary }]}>
-            <Plus color="#fff" size={14} />
-            <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{t('addActivityBtn')}</Text>
+          <Pressable onPress={() => setModalOpen(true)} style={styles.pillBtnSolid}>
+            <Plus color={c.primary} size={13} />
+            <Text style={[styles.pillBtnSolidText, { color: c.primary }]}>{t('addActivityBtn')}</Text>
           </Pressable>
         </View>
-      </View>
+      </LinearGradient>
 
-      <ExamRemindersCard />
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+        showsVerticalScrollIndicator={false}
+      >
+        <ExamRemindersCard />
 
-      {!isLoading && !hasItems && (
-        <View>
-          <EmptyState title={t('noScheduleYet')} subtitle={t('noScheduleYetSub')} />
-          <View style={[styles.actionsRow, { justifyContent: 'center', marginTop: -spacing.md }]}>
-            <Pressable onPress={() => setTemplatesOpen(true)} style={[styles.pillBtn, { backgroundColor: c.accent }]}>
-              <Sparkles color="#fff" size={14} />
-              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{t('chooseTemplateBtn')}</Text>
-            </Pressable>
-            <Pressable onPress={() => setModalOpen(true)} style={[styles.pillBtn, styles.pillBtnOutline, { borderColor: c.border }]}>
-              <Plus color={c.textSecondary} size={14} />
-              <Text style={{ color: c.textSecondary, fontWeight: '700', fontSize: 12 }}>{t('manualAddBtn')}</Text>
-            </Pressable>
+        {!isLoading && !hasItems && (
+          <View>
+            <EmptyState title={t('noScheduleYet')} subtitle={t('noScheduleYetSub')} />
+            <View style={[styles.actionsRowCentered]}>
+              <Pressable onPress={() => setTemplatesOpen(true)} style={[styles.pillBtn, { backgroundColor: c.accent }]}>
+                <Sparkles color="#fff" size={14} />
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{t('chooseTemplateBtn')}</Text>
+              </Pressable>
+              <Pressable onPress={() => setModalOpen(true)} style={[styles.pillBtn, styles.pillBtnOutline, { borderColor: c.border }]}>
+                <Plus color={c.textSecondary} size={14} />
+                <Text style={{ color: c.textSecondary, fontWeight: '700', fontSize: 12 }}>{t('manualAddBtn')}</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      )}
+        )}
 
-      {DISPLAY_ORDER.map((dayIdx) => {
-        const dayItems = grouped.get(dayIdx);
-        if (!dayItems || dayItems.length === 0) return null;
-        return (
-          <View key={dayIdx} style={{ marginBottom: spacing.lg }}>
-            <Text style={{ color: c.textSecondary, fontWeight: '700', fontSize: 13, marginBottom: spacing.sm }}>
-              {weekdays[dayIdx] ?? dayIdx}
-            </Text>
-            {dayItems.map((item) => (
-              <Card key={item.id} style={[styles.itemCard, { opacity: item.is_active ? 1 : 0.5 }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: c.text, fontWeight: '600', fontSize: 14 }}>{item.activity}</Text>
-                  <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>
-                    {item.time_slot} · {item.duration_min} dk
-                  </Text>
-                </View>
-                <Switch
-                  value={item.is_active}
-                  onValueChange={(v) => toggleMutation.mutate({ id: item.id, is_active: v })}
-                  trackColor={{ true: c.primary }}
-                />
-                <Pressable
-                  onPress={() =>
-                    Alert.alert(t('deleteScheduleConfirm'), '', [
-                      { text: t('cancelBtn'), style: 'cancel' },
-                      { text: t('saveBtn'), style: 'destructive', onPress: () => deleteMutation.mutate(item.id) },
-                    ])
-                  }
-                  hitSlop={10}
-                  style={{ marginLeft: spacing.sm }}
-                >
-                  <Text style={{ color: c.danger, fontSize: 15 }}>✕</Text>
-                </Pressable>
-              </Card>
-            ))}
-          </View>
-        );
-      })}
+        {DISPLAY_ORDER.map((dayIdx) => {
+          const dayItems = grouped.get(dayIdx);
+          if (!dayItems || dayItems.length === 0) return null;
+          return (
+            <View key={dayIdx} style={{ marginBottom: spacing.lg }}>
+              <View style={[styles.dayPill, { backgroundColor: c.primarySoft }]}>
+                <Text style={{ color: c.primary, fontWeight: '800', fontSize: 12 }}>
+                  {weekdays[dayIdx] ?? dayIdx}
+                </Text>
+              </View>
+              {dayItems.map((item) => {
+                const IconComp = activityIcon(item.activity);
+                const active = item.is_active;
+                return (
+                  <Card
+                    key={item.id}
+                    style={[styles.itemCard, { shadowColor: '#000000', overflow: 'hidden', opacity: active ? 1 : 0.55 }]}
+                  >
+                    <View style={[styles.itemAccent, { backgroundColor: active ? c.primary : c.textMuted }]} />
+                    <View style={[styles.itemIconWrap, { backgroundColor: active ? c.primarySoft : c.background }]}>
+                      <IconComp color={active ? c.primary : c.textMuted} size={17} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: c.text, fontWeight: '600', fontSize: 14 }}>{item.activity}</Text>
+                      <View style={styles.itemMetaRow}>
+                        <Text style={{ color: c.textSecondary, fontSize: 12, fontWeight: '600' }}>{item.time_slot}</Text>
+                        <View style={[styles.durationPill, { backgroundColor: c.background }]}>
+                          <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '700' }}>{item.duration_min} dk</Text>
+                        </View>
+                      </View>
+                    </View>
+                    <Switch
+                      value={item.is_active}
+                      onValueChange={(v) => toggleMutation.mutate({ id: item.id, is_active: v })}
+                      trackColor={{ true: c.primary }}
+                    />
+                    <Pressable
+                      onPress={() =>
+                        Alert.alert(t('deleteScheduleConfirm'), '', [
+                          { text: t('cancelBtn'), style: 'cancel' },
+                          { text: t('saveBtn'), style: 'destructive', onPress: () => deleteMutation.mutate(item.id) },
+                        ])
+                      }
+                      hitSlop={10}
+                      style={{ marginLeft: spacing.sm }}
+                    >
+                      <Text style={{ color: c.danger, fontSize: 15 }}>✕</Text>
+                    </Pressable>
+                  </Card>
+                );
+              })}
+            </View>
+          );
+        })}
+      </ScrollView>
 
       <AddActivityModal visible={modalOpen} onClose={() => setModalOpen(false)} onCreated={() => { setModalOpen(false); qc.invalidateQueries({ queryKey: ['schedule'] }); }} weekdays={weekdays} />
 
@@ -830,9 +880,73 @@ function SaveTemplateModal({
 const DISPLAY_ORDER_FOR_FORM = [1, 2, 3, 4, 5, 6, 0];
 
 const styles = StyleSheet.create({
+  hero: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    borderBottomLeftRadius: radius.xl + 4,
+    borderBottomRightRadius: radius.xl + 4,
+  },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  heroIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTitle: { fontSize: 20, fontWeight: '800', color: '#FFFFFF' },
+  heroSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontWeight: '600' },
+  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  dayPill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    marginBottom: spacing.sm,
+  },
+  itemAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
+  itemIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  itemMetaRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: 3 },
+  durationPill: { paddingHorizontal: 6, paddingVertical: 1, borderRadius: radius.full },
   actionsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  actionsRowCentered: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', marginTop: spacing.sm },
   pillBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.full },
   pillBtnOutline: { borderWidth: 1.5, backgroundColor: 'transparent' },
+  pillBtnGhost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  pillBtnGhostText: { color: '#FFFFFF', fontWeight: '700', fontSize: 12 },
+  pillBtnSolid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+  },
+  pillBtnSolidText: { fontWeight: '700', fontSize: 12 },
   itemCard: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, paddingVertical: spacing.md },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, maxHeight: '85%' },
