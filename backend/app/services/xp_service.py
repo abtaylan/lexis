@@ -33,6 +33,12 @@ XPSourceType = Literal[
     # dinamik f"game_{session['mode']}" deseniyle (submit_attempt) otomatik
     # üretilir, diğer oyun modlarıyla AYNI şekilde.
     "game_sentence_building",
+    # Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (28 Eylül 2026) --
+    # games.py'nin dinamik f"game_{session['mode']}" deseniyle (submit_attempt)
+    # otomatik üretilir, diğer oyun modlarıyla AYNI şekilde.
+    "game_fill_blank",
+    "game_true_false",
+    "game_word_chain",
     # Ödül sistemi (bkz. badge_service.py / distribute_leaderboard_rewards.py) —
     # streak.py içinde seri kilometre taşına (7/30/100/365 gün) ulaşınca,
     # ya da haftalık/aylık liderlik tablosu ödülleri dağıtılırken kullanılır.
@@ -111,6 +117,18 @@ XP_AMOUNTS: dict[str, int] = {
     # modlardan (multiple_choice/matching/sprint) daha fazla dil üretimi/
     # cümle yapısı kavrayışı gerektiriyor.
     "game_sentence_building": 8,
+    # Boşluk Doldurma -- game_typing (8) ile aynı serbest-metin/yazma mekaniği,
+    # üstüne cümle içi bağlam okuma/anlama gerektirdiği için bir tık üstünde.
+    "game_fill_blank": 9,
+    # Doğru mu Yanlış mı -- game_multiple_choice (3) ile aynı mekanik
+    # (kelime + anlam eşleşmesi), ama sadece iki seçenek arasından seçim
+    # yapıldığı için (şansla doğru bilme ihtimali daha yüksek) biraz daha az.
+    "game_true_false": 2,
+    # Kelime Zinciri -- game_matching (6) ile aynı büyüklükte: hem kelime
+    # hatırlama hem de zincir kısıtına (önceki kelimenin son harfi) uyma
+    # gerektiriyor, tek kelimelik modlardan (multiple_choice/true_false) daha
+    # zor kabul ediliyor.
+    "game_word_chain": 6,
     # Bu ikisi için çağıran kod (streak.py / distribute_leaderboard_rewards.py)
     # her zaman kendi `amount`ını açıkça geçer (kilometre taşı / sıralamaya göre
     # değişken miktar) — buradaki değerler sadece olası bir eksik-amount çağrısına

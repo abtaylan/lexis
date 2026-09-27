@@ -533,7 +533,12 @@ export type GameMode =
   | 'matching'
   | 'listening'
   | 'sprint'
-  | 'sentence_building';
+  | 'sentence_building'
+  // Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (28 Eylül 2026,
+  // kullanıcı isteği: "yeni oyun önerisi bekliyorum senden" -- üç yeni mod).
+  | 'fill_blank'
+  | 'true_false'
+  | 'word_chain';
 export type PoolSource = 'own' | 'general';
 export type Direction = 'word_to_meaning' | 'meaning_to_word' | 'definition_to_word';
 

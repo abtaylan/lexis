@@ -46,6 +46,30 @@ Altı oyun modu desteklenir:
   sınırlı (60 sn) kullanır. XP değerleri xp_service.XP_AMOUNTS içinde ayrıca
   tanımlıdır (game_typing, game_matching, game_listening, game_sprint).
 
+Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (28 Eylül 2026, kullanıcı
+isteği: "yeni oyun önerisi bekliyorum senden" — üç yeni mod):
+- "fill_blank" (Boşluk Doldurma) -> next-word/attempt akışını kullanır (typing
+  ile AYNI mantık: doğruluk kontrolü current.word ile karşılaştırma), tek
+  farkı istemcinin `meaning` yerine `example` alanındaki cümlede kelimeyi
+  boşluğa çevirip göstermesi. Örnek cümlesi olmayan kelimeler için (own
+  havuzda) tercihen elenir; general havuzda örnek garantisi yok, istemci
+  o durumda typing moduna düşer (meaning gösterir).
+- "true_false" (Doğru mu Yanlış mı) -> multiple_choice'la BİREBİR aynı
+  options/distractor mantığını paylaşır (next_word'de "multiple_choice" ile
+  aynı dal); istemci, dönen options listesinden rastgele BİR seçeneği
+  "iddia" olarak seçip (bazen doğru anlamı, bazen bir uzaklaştırıcıyı) kelime
+  ile birlikte gösterir, kullanıcı Doğru/Yanlış der — doğruluk istemci
+  tarafında (iddianın gerçek anlamla eşleşip eşleşmediğine bakılarak)
+  hesaplanır.
+- "word_chain" (Kelime Zinciri) -> SADECE pool_source="own" ile çalışır (bkz.
+  create_session doğrulaması). Her next-word çağrısı, game_sessions.state
+  içindeki required_letter alanına göre adayları o harfle başlayanlara
+  daraltır (yoksa/aday kalmazsa filtresiz devam eder), seçilen kelimenin SON
+  harfini bir SONRAKİ turun required_letter'ı olarak state'e yazar. Turun
+  kendisi typing moduyla AYNI (current.meaning gösterilir, kelime yazılır,
+  is_correct istemci tarafında hesaplanır) — zincir kısıtı sadece HANGİ
+  kelimenin sorulacağını etkiler, doğruluk kontrolünü değil.
+
 XP KURALI ("İlk Doğru Deneme", 4 Eylül 2026): /attempt endpoint'i, bir kelime
 için XP vermeden önce bu session'da o kelime için DAHA ÖNCE kaydedilmiş bir
 deneme olup olmadığını kontrol eder (bkz. _prior_attempt_count). Varsa —
@@ -576,6 +600,20 @@ async def create_session(
             detail="Cümle kurma modu sadece genel kelime havuzuyla kullanılabilir.",
         )
 
+    # Kelime Zinciri (28 Eylül 2026, üç yeni mod eklendi) — sadece kullanıcının
+    # kendi kelime havuzuyla çalışır: zincir kısıtı (bir sonraki kelimenin bir
+    # önceki kelimenin SON harfiyle başlaması) havuz genelinde harfe göre
+    # filtreleme gerektiriyor; bu filtreleme "own" tablosunda ucuz (kullanıcı
+    # başına kelime sayısı küçük), ama "general" havuzda (_choose_general_word
+    # paylaşılan yardımcı fonksiyonu, SM-2 ağırlıklı seçim mantığına
+    # dokunmadan harf filtresi eklemek invaziv/riskli olurdu) uygulamak çok
+    # daha karmaşık olurdu.
+    if session_in.mode == GameMode.word_chain and session_in.pool_source == PoolSource.general:
+        raise HTTPException(
+            status_code=422,
+            detail="Kelime zinciri modu sadece kendi kelime havuzunuzla kullanılabilir.",
+        )
+
     # 24 Eylul 2026 HATA DUZELTMESI: game_sessions.learning_lang hic
     # yazilmiyordu (uretimde son 30 gunun 202 oturumunun 0'inda dolu).
     # level_assessment_service.py oyun dogrulugunu TAM bu kolona gore
@@ -623,6 +661,32 @@ async def next_word(
         if not candidates:
             return NextWordResponse(finished=True)
 
+        # Kelime Zinciri (28 Eylül 2026) -- bir önceki turda seçilen kelimenin
+        # SON harfiyle başlayan adaylara daraltılır (game_sessions.state.
+        # required_letter, bkz. aşağıdaki state güncellemesi). İlk tur ya da
+        # bu harfle başlayan HİÇ aday kalmamışsa (küçük kelime havuzlarında
+        # olası), filtre uygulanmaz -- zincir o turda "sıfırlanmış" sayılır,
+        # oyun asla tıkanmaz.
+        if mode == "word_chain":
+            chain_state = session.get("state") or {}
+            required_letter = chain_state.get("required_letter")
+            if required_letter:
+                filtered = [
+                    c for c in candidates
+                    if (c.get("word") or "").lower().startswith(required_letter)
+                ]
+                if filtered:
+                    candidates = filtered
+
+        # Boşluk Doldurma (28 Eylül 2026) -- cümle içi boşluk doldurma için
+        # örnek cümlesi (example) olan kelimeler tercih edilir; hiç örnek
+        # cümleli aday kalmazsa filtre uygulanmaz (istemci tarafında typing
+        # moduyla aynı akışa (anlamdan kelime bulma) düşülür, bkz. mobile).
+        if mode == "fill_blank":
+            with_example = [c for c in candidates if c.get("example")]
+            if with_example:
+                candidates = with_example
+
         # 24 Eylul 2026 -- kendi kelimelerinde de vadesi gelen SM-2
         # tekrarlari %70 olasilikla once sorulur.
         now_iso = datetime.now(UTC).isoformat()
@@ -634,6 +698,14 @@ async def next_word(
         meaning_text = chosen.get("meaning_native") or chosen.get("meaning")
         chosen_word_id = chosen["id"]
         chosen_general_word_id = None
+
+        # Kelime Zinciri -- bu turda seçilen kelimenin SON harfi, bir SONRAKİ
+        # next-word çağrısının gerektireceği ilk harf olarak state'e yazılır.
+        if mode == "word_chain":
+            next_required_letter = (chosen.get("word") or "")[-1:].lower()
+            supabase_admin.table("game_sessions").update(
+                {"state": {"required_letter": next_required_letter}}
+            ).eq("id", session_id).execute()
     else:
         # pool_source == "general"
         learning_lang, native_lang = _get_profile_langs(current_user.id)
@@ -700,7 +772,7 @@ async def next_word(
 
     # ── multiple_choice modu (direction'a göre iki farklı yön) ──
     options = None
-    if mode == "multiple_choice":
+    if mode in ("multiple_choice", "true_false"):
         if direction in (Direction.meaning_to_word.value, Direction.definition_to_word.value):
             # Anlam VEYA tanım gösterilir, doğru KELİME 4 seçenekten bulunur.
             # (definition_to_word'de pool_source her zaman "general" — create_session'da
@@ -765,7 +837,7 @@ async def next_word(
         meaning=meaning_text,
         example=chosen.get("example"),
         options=options,
-        direction=direction if mode == "multiple_choice" else None,
+        direction=direction if mode in ("multiple_choice", "true_false") else None,
     )
 
 

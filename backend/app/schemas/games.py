@@ -14,6 +14,12 @@ class GameMode(str, Enum):
     # "Cümle Kurma" (24 Eylül 2026, Madde 2 — üçüncü seçim) — bkz.
     # 084_sentence_building_mode.sql modül notu.
     sentence_building = "sentence_building"
+    # Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (28 Eylül 2026,
+    # kullanıcı isteği: "yeni oyun önerisi bekliyorum senden" -- üç yeni mod,
+    # bkz. games.py modül docstring'indeki güncellenmiş liste).
+    fill_blank = "fill_blank"
+    true_false = "true_false"
+    word_chain = "word_chain"
 
 
 class PoolSource(str, Enum):

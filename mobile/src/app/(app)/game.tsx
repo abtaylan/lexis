@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft } from 'lucide-react-native';
+import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2 } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
 import { useAuth } from '@/store/auth';
@@ -51,6 +51,16 @@ type MatchingItem = {
 const ARABIC_DIACRITICS_RE = /[\u064B-\u065F\u0670\u06D6-\u06ED\u08D4-\u08E1\u08E3-\u08FF]/g;
 function normalizeTypedAnswer(s: string): string {
   return s.trim().toLocaleLowerCase().replace(ARABIC_DIACRITICS_RE, '');
+}
+
+// Boşluk Doldurma (28 Eylül 2026) -- örnek cümledeki hedef kelimeyi boşluğa
+// çevirir (büyük/küçük harf duyarsız, tam kelime sınırıyla). Eşleşme
+// bulunamazsa (ör. çekimli/farklı biçim) cümle olduğu gibi döner.
+function buildClozeText(example: string, word: string): string {
+  if (!example || !word) return example;
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`\\b${escaped}\\b`, 'i');
+  return re.test(example) ? example.replace(re, '_____') : example;
 }
 
 // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor ki bu" —
@@ -148,6 +158,18 @@ export default function GameScreen() {
   const [sentencePicked, setSentencePicked] = useState<string[]>([]);
   const [sentenceResult, setSentenceResult] = useState<'correct' | 'wrong' | null>(null);
 
+  // ── Doğru mu Yanlış mı (true_false) state -- loadNext her yeni kelimede
+  // current.options'tan rastgele BİR seçeneği "iddia" olarak seçer (bazen
+  // doğru anlamı, bazen bir uzaklaştırıcıyı); kullanıcı Doğru/Yanlış der. ──
+  const [tfClaimText, setTfClaimText] = useState('');
+  const [tfClaimIsTrue, setTfClaimIsTrue] = useState(true);
+
+  // ── Kelime Zinciri (word_chain) state -- bir önceki turda gösterilen
+  // kelimeyi SADECE görsel bağlam için ("önceki kelime: ...") hatırlar;
+  // zincir kısıtının kendisi backend'de (game_sessions.state.required_letter)
+  // uygulanıyor, bkz. games.py next_word. ──
+  const [chainPrevWord, setChainPrevWord] = useState<string | null>(null);
+
   const [score, setScore] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
   const [questionNum, setQuestionNum] = useState(0);
@@ -170,7 +192,15 @@ export default function GameScreen() {
       setDirection('meaning_to_word');
       setSprintSecondsLeft(SPRINT_DURATION_SECS);
       setStage('setup');
-    } else if (['wordle', 'typing', 'listening', 'matching', 'sentence_building'].includes(mode)) {
+    } else if (mode === 'true_false') {
+      // Doğru mu Yanlış mı -- multiple_choice'la AYNI options/distractor
+      // mantığını paylaştığı için (bkz. backend games.py), direction her
+      // zaman 'word_to_meaning' olmalı (kelime gösterilir, iddia edilen
+      // anlam doğru/yanlış olarak sorulur).
+      setGameMode('true_false');
+      setDirection('word_to_meaning');
+      setStage('setup');
+    } else if (['wordle', 'typing', 'listening', 'matching', 'sentence_building', 'fill_blank', 'word_chain'].includes(mode)) {
       setGameMode(mode);
       setDirection('meaning_to_word');
       setStage('setup');
@@ -180,6 +210,12 @@ export default function GameScreen() {
 
   const loadNext = async (sid: string, hadAnswered: boolean, pool: PoolSource) => {
     try {
+      // Kelime Zinciri -- bir SONRAKİ kelime çekilmeden ÖNCE, ekranda o ana
+      // kadar gösterilmiş olan kelimeyi "önceki kelime" bağlamı için sakla
+      // (zincir kısıtının kendisi backend'de uygulanıyor, bu sadece görsel).
+      if (gameMode === 'word_chain') {
+        setChainPrevWord(current?.word ?? null);
+      }
       const nw = await gamesApi.nextWord(sid);
       if (nw.finished) {
         if (!hadAnswered) {
@@ -199,6 +235,16 @@ export default function GameScreen() {
       setCurrent(nw);
       setSelectedId(null);
       setFeedback(null);
+      // Doğru mu Yanlış mı -- her yeni kelimede %50 ihtimalle GERÇEK anlam,
+      // %50 ihtimalle bir uzaklaştırıcı "iddia" olarak gösterilir (options
+      // boşsa ya da uzaklaştırıcı yoksa her zaman gerçek anlam gösterilir).
+      if (gameMode === 'true_false') {
+        const correctMeaning = nw.meaning ?? '';
+        const distractors = (nw.options || []).map((o) => o.text).filter((t) => t !== correctMeaning);
+        const showTrue = distractors.length === 0 || Math.random() < 0.5;
+        setTfClaimIsTrue(showTrue);
+        setTfClaimText(showTrue ? correctMeaning : distractors[Math.floor(Math.random() * distractors.length)]);
+      }
       setRevealed(nw.revealed ?? '');
       setGuessedLetters([]);
       setWrongGuesses(0);
@@ -375,6 +421,7 @@ export default function GameScreen() {
     setLevelUp(null);
     setFinishResult(null);
     if (mode === 'sprint') setSprintSecondsLeft(SPRINT_DURATION_SECS);
+    if (mode === 'word_chain') setChainPrevWord(null);
     if (mode === 'matching') {
       setMatchingItems([]);
       setMatchedUids([]);
@@ -421,6 +468,30 @@ export default function GameScreen() {
       // odağı değiştiriyor), Dashboard sekmesi arkada halâ "mounted"
       // durumdaysa bu invalidate onu ANINDA, sekme değiştirmeden tazeler;
       // değilse zaten DashboardHeader'daki useFocusEffect devreye girer.
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
+      if (res.leveled_up) setLevelUp(res.new_level);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(() => loadNext(sessionId, true, poolSource), 900);
+  };
+
+  // ── Doğru mu Yanlış mı (true_false) cevap gönderimi -- ground truth
+  // tfClaimIsTrue'da: kullanıcının seçimi bununla eşleşiyorsa doğru. ──
+  const handleTrueFalseAnswer = async (userSaysTrue: boolean) => {
+    if (selectedId || !current || !sessionId) return;
+    setSelectedId(userSaysTrue ? 'true' : 'false');
+    const isCorrect = userSaysTrue === tfClaimIsTrue;
+    setFeedback(isCorrect);
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        word_id: current.word_id ?? undefined,
+        general_word_id: current.general_word_id ?? undefined,
+        is_correct: isCorrect,
+      });
+      setScore(res.session_score);
+      setXpEarned((x) => x + res.xp_awarded);
       queryClient.invalidateQueries({ queryKey: ['xp'] });
       queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
       if (res.leveled_up) setLevelUp(res.new_level);
@@ -742,6 +813,44 @@ export default function GameScreen() {
             setStage('setup');
           }}
         />
+        {/* Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (28 Eylül
+            2026, kullanıcı isteği: "yeni oyun önerisi bekliyorum senden"). */}
+        <OptionButton
+          title={gt.modeFillBlankLabel}
+          desc={gt.modeFillBlankDesc}
+          icon={PencilLine}
+          bg={c.successSoft}
+          fg={c.success}
+          onPress={() => {
+            setGameMode('fill_blank');
+            setDirection('meaning_to_word');
+            setStage('setup');
+          }}
+        />
+        <OptionButton
+          title={gt.modeTrueFalseLabel}
+          desc={gt.modeTrueFalseDesc}
+          icon={Scale}
+          bg={c.dangerSoft}
+          fg={c.danger}
+          onPress={() => {
+            setGameMode('true_false');
+            setDirection('word_to_meaning');
+            setStage('setup');
+          }}
+        />
+        <OptionButton
+          title={gt.modeChainLabel}
+          desc={gt.modeChainDesc}
+          icon={Link2}
+          bg={c.primarySoft}
+          fg={c.primary}
+          onPress={() => {
+            setGameMode('word_chain');
+            setDirection('word_to_meaning');
+            setStage('setup');
+          }}
+        />
       </CenterScreen>
     );
   }
@@ -773,7 +882,9 @@ export default function GameScreen() {
           </View>
         ) : (
           <>
-            <OptionButton title={gt.poolGeneralLabel} desc={gt.poolGeneralDesc} onPress={() => start(gameMode, 'general', direction)} />
+            {gameMode !== 'word_chain' && (
+              <OptionButton title={gt.poolGeneralLabel} desc={gt.poolGeneralDesc} onPress={() => start(gameMode, 'general', direction)} />
+            )}
             {direction !== 'definition_to_word' && gameMode !== 'sentence_building' && (
               <OptionButton title={gt.poolOwnLabel} desc={gt.poolOwnDesc} onPress={() => start(gameMode, 'own', direction)} />
             )}
@@ -910,6 +1021,9 @@ export default function GameScreen() {
   const isSprint = gameMode === 'sprint';
   const isSentence = gameMode === 'sentence_building';
   const isMultipleChoice = gameMode === 'multiple_choice';
+  const isFillBlank = gameMode === 'fill_blank';
+  const isTrueFalse = gameMode === 'true_false';
+  const isChain = gameMode === 'word_chain';
   const keyboardRows = getKeyboardRowsForLanguage(user?.learning_lang);
   const letterGuessSupported = isLetterGuessSupported(user?.learning_lang);
   const activeDirection = current.direction ?? direction;
@@ -993,6 +1107,62 @@ export default function GameScreen() {
           {feedback !== null && (
             <Text style={{ color: feedback ? c.success : c.danger, fontWeight: '700', textAlign: 'center', marginTop: spacing.md }}>
               {feedback ? gt.correctLabel : gt.wrongLabel}
+            </Text>
+          )}
+        </>
+      )}
+
+      {/* Doğru mu Yanlış mı (true_false, 28 Eylül 2026) -- multiple_choice'la
+          AYNI options/distractor verisini paylaşır (bkz. backend games.py),
+          ama istemci burada current.options'tan seçtiği TEK bir "iddia"yı
+          (bkz. loadNext'teki tfClaim hesaplaması) kelimeyle birlikte gösterip
+          Doğru/Yanlış sorar -- ground truth tfClaimIsTrue'da tutulur. */}
+      {isTrueFalse && (
+        <>
+          <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.sm, textTransform: 'uppercase' }}>
+              {gt.trueFalsePromptLabel}
+            </Text>
+            <Text style={{ color: c.text, fontSize: 26, fontWeight: '700', textAlign: 'center' }}>{current.word}</Text>
+            <Text style={{ color: c.textMuted, fontSize: 16, marginTop: spacing.sm, textAlign: 'center' }}>= {tfClaimText}</Text>
+          </Card>
+
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <Pressable
+              disabled={selectedId !== null}
+              onPress={() => handleTrueFalseAnswer(true)}
+              style={[
+                styles.optionRow,
+                {
+                  flex: 1,
+                  justifyContent: 'center',
+                  borderColor: selectedId === 'true' ? (feedback ? c.success : c.danger) : c.border,
+                  backgroundColor: selectedId === 'true' ? (feedback ? c.successSoft : c.dangerSoft) : c.surface,
+                },
+              ]}
+            >
+              <Text style={{ color: c.text, fontWeight: '700' }}>{gt.trueLabel}</Text>
+            </Pressable>
+            <Pressable
+              disabled={selectedId !== null}
+              onPress={() => handleTrueFalseAnswer(false)}
+              style={[
+                styles.optionRow,
+                {
+                  flex: 1,
+                  justifyContent: 'center',
+                  borderColor: selectedId === 'false' ? (feedback ? c.success : c.danger) : c.border,
+                  backgroundColor: selectedId === 'false' ? (feedback ? c.successSoft : c.dangerSoft) : c.surface,
+                },
+              ]}
+            >
+              <Text style={{ color: c.text, fontWeight: '700' }}>{gt.falseLabel}</Text>
+            </Pressable>
+          </View>
+
+          {feedback !== null && (
+            <Text style={{ color: feedback ? c.success : c.danger, fontWeight: '700', textAlign: 'center', marginTop: spacing.md }}>
+              {feedback ? gt.correctLabel : `${gt.wrongLabel} — ${gt.correctMeaningTpl.replace('{meaning}', current.meaning ?? '')}`}
             </Text>
           )}
         </>
@@ -1085,13 +1255,22 @@ export default function GameScreen() {
         </>
       )}
 
-      {(isTyping || isSprint) && (
+      {(isTyping || isSprint || isFillBlank || isChain) && (
         <>
           <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
             <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.sm, textTransform: 'uppercase' }}>
-              {gt.typingPromptLabel}
+              {isFillBlank ? gt.fillBlankPromptLabel : isChain ? gt.chainPromptLabel : gt.typingPromptLabel}
             </Text>
-            <Text style={{ color: c.text, fontSize: 24, fontWeight: '700', textAlign: 'center' }}>{current.meaning}</Text>
+            <Text style={{ color: c.text, fontSize: 24, fontWeight: '700', textAlign: 'center' }}>
+              {isFillBlank && current.example ? buildClozeText(current.example, current.word ?? '') : current.meaning}
+            </Text>
+            {isChain && chainPrevWord && (
+              <Text style={{ color: c.accent, fontSize: 13, fontWeight: '600', marginTop: spacing.sm, textAlign: 'center' }}>
+                {gt.chainPrevWordTpl
+                  .replace('{word}', chainPrevWord.toUpperCase())
+                  .replace('{letter}', chainPrevWord.slice(-1).toUpperCase())}
+              </Text>
+            )}
           </Card>
 
           <TextInput
