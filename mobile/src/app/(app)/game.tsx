@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Volume2, Lightbulb } from 'lucide-react-native';
+import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft } from 'lucide-react-native';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
 import { useAuth } from '@/store/auth';
@@ -14,17 +14,19 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ARABIC_KEYBOARD_ROWS, getKeyboardRowsForLanguage, isLetterGuessSupported } from '@/constants/keyboards';
 
 type Stage = 'mode' | 'direction' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
 
-const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026 — eşin ekran görüntüsü): "burada
 // arapça harfler olması gerekiyor klavye seçeneği eksik" — kelime tahmin
 // (wordle) modundaki ekran-üstü klavye öğrenilen dil ne olursa olsun sabit
 // Latin QWERTY gösteriyordu; Arapça öğrenirken bu klavyeyle Arapça harf
 // tahmin etmek mümkün değildi. Öğrenilen dil Arapça ise bu satırlar
-// kullanılır (bkz. aşağıdaki keyboardRows).
-const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'فقكلمنهوي'];
+// kullanılır (bkz. aşağıdaki keyboardRows). Klavye satırları ve dil->alfabe
+// eşlemesi artık `@/constants/keyboards`'ta TEK bir yerden tanımlanıyor
+// (26 Eylül 2026 — Rusça/Kiril desteği ve "Günlük Kelime Avı" ekranıyla
+// paylaşım için, bkz. o dosyadaki kök neden notu).
 
 // ── Eşleştirme (matching) — web'deki app/(app)/game/page.tsx'teki aynı mantık
 // mobile'a taşındı: tek seferde MATCHING_BATCH_SIZE kadar kelime çekilip iki
@@ -659,6 +661,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeMultipleLabel}
           desc={gt.modeMultipleDesc}
+          icon={CheckSquare}
+          bg={c.primarySoft}
+          fg={c.primary}
           onPress={() => {
             setGameMode('multiple_choice');
             setStage('direction');
@@ -667,6 +672,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeWordleLabel}
           desc={gt.modeWordleDesc}
+          icon={Puzzle}
+          bg={c.accentSoft}
+          fg={c.accent}
           onPress={() => {
             setGameMode('wordle');
             setDirection('meaning_to_word');
@@ -676,6 +684,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeTypingLabel}
           desc={gt.modeTypingDesc}
+          icon={Type}
+          bg={c.successSoft}
+          fg={c.success}
           onPress={() => {
             setGameMode('typing');
             setDirection('meaning_to_word');
@@ -685,6 +696,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeListeningLabel}
           desc={gt.modeListeningDesc}
+          icon={Volume2}
+          bg={c.warningSoft}
+          fg={c.warning}
           onPress={() => {
             setGameMode('listening');
             setDirection('meaning_to_word');
@@ -694,6 +708,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeSprintLabel}
           desc={gt.modeSprintDesc}
+          icon={Timer}
+          bg={c.dangerSoft}
+          fg={c.danger}
           onPress={() => {
             setGameMode('sprint');
             setDirection('meaning_to_word');
@@ -704,6 +721,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeMatchingLabel}
           desc={gt.modeMatchingDesc}
+          icon={Shuffle}
+          bg={c.primarySoft}
+          fg={c.primary}
           onPress={() => {
             setGameMode('matching');
             setDirection('meaning_to_word');
@@ -713,6 +733,9 @@ export default function GameScreen() {
         <OptionButton
           title={gt.modeSentenceLabel}
           desc={gt.modeSentenceDesc}
+          icon={AlignLeft}
+          bg={c.accentSoft}
+          fg={c.accent}
           onPress={() => {
             setGameMode('sentence_building');
             setDirection('meaning_to_word');
@@ -887,7 +910,8 @@ export default function GameScreen() {
   const isSprint = gameMode === 'sprint';
   const isSentence = gameMode === 'sentence_building';
   const isMultipleChoice = gameMode === 'multiple_choice';
-  const keyboardRows = user?.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
+  const keyboardRows = getKeyboardRowsForLanguage(user?.learning_lang);
+  const letterGuessSupported = isLetterGuessSupported(user?.learning_lang);
   const activeDirection = current.direction ?? direction;
   const isDefinition = activeDirection === 'definition_to_word';
   const isReverse = !isWordle && (activeDirection === 'meaning_to_word' || isDefinition);
@@ -971,23 +995,20 @@ export default function GameScreen() {
               {feedback ? gt.correctLabel : gt.wrongLabel}
             </Text>
           )}
-
-          {/* Yanlış cevap sonrası mikro-açıklama (24 Eylül 2026, Madde 4) —
-              web/game/page.tsx ile AYNI mantık: isReverse yönünde örnek
-              cümle hiçbir yerde gösterilmiyordu, client-trust modelinde
-              zaten elde olan current.example kullanılıyor. */}
-          {feedback === false && isReverse && current.example && (
-            <View style={styles.hintBox}>
-              <Lightbulb color="#B8860B" size={16} />
-              <Text style={styles.hintText}>
-                <Text style={{ fontWeight: '700' }}>{gt.exampleHintLabel}</Text> “{current.example}”
-              </Text>
-            </View>
-          )}
         </>
       )}
 
-      {isWordle && (
+      {isWordle && !letterGuessSupported && (
+        <>
+          <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
+            <Text style={{ color: c.text, fontWeight: '700', fontSize: 14, textAlign: 'center' }}>{gt.wordleUnsupportedTitle}</Text>
+            <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center' }}>{gt.wordleUnsupportedBody}</Text>
+          </Card>
+          <Button title={gt.playAgainBtn} onPress={() => setStage('mode')} />
+        </>
+      )}
+
+      {isWordle && letterGuessSupported && (
         <>
           <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
             <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>
@@ -1139,15 +1160,6 @@ export default function GameScreen() {
                 : `${gt.wrongLabel} — ${gt.correctWordTpl.replace('{word}', current.word ?? '')}`}
             </Text>
           )}
-
-          {typingResult === 'wrong' && current.example && (
-            <View style={styles.hintBox}>
-              <Lightbulb color="#B8860B" size={16} />
-              <Text style={styles.hintText}>
-                <Text style={{ fontWeight: '700' }}>{gt.exampleHintLabel}</Text> “{current.example}”
-              </Text>
-            </View>
-          )}
         </>
       )}
 
@@ -1242,15 +1254,6 @@ export default function GameScreen() {
                 ? gt.correctLabel
                 : `${gt.wrongLabel} — ${gt.correctWordTpl.replace('{word}', current.word ?? '')}`}
             </Text>
-          )}
-
-          {typingResult === 'wrong' && current.example && (
-            <View style={styles.hintBox}>
-              <Lightbulb color="#B8860B" size={16} />
-              <Text style={styles.hintText}>
-                <Text style={{ fontWeight: '700' }}>{gt.exampleHintLabel}</Text> “{current.example}”
-              </Text>
-            </View>
           )}
         </>
       )}
@@ -1357,12 +1360,41 @@ function SectionLabel({ children, c }: { children: React.ReactNode; c: ReturnTyp
   return <Text style={{ fontSize: 11, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase', alignSelf: 'flex-start', marginBottom: spacing.sm }}>{children}</Text>;
 }
 
-function OptionButton({ title, desc, onPress }: { title: string; desc: string; onPress: () => void }) {
+// 25 Eylül 2026 -- Bento Modern/Gamified canvas'ı (GameModes.dc.html)
+// canlıya alınırken: mod seçim kartlarına opsiyonel bir ikon-rozet
+// eklendi (icon/bg/fg verilmezse eskisi gibi düz metin satırı olarak
+// kalıyor -- bu bileşen mod seçimi DIŞINDA yön/havuz seçiminde de
+// kullanılıyor, oralarda hiçbir şey değişmedi).
+function OptionButton({
+  title,
+  desc,
+  onPress,
+  icon: Icon,
+  bg,
+  fg,
+}: {
+  title: string;
+  desc: string;
+  onPress: () => void;
+  icon?: React.ComponentType<{ color?: string; size?: number }>;
+  bg?: string;
+  fg?: string;
+}) {
   const c = useThemeColors();
   return (
-    <Pressable onPress={onPress} style={[styles.optionCard, { borderColor: c.border, backgroundColor: c.surface }]}>
-      <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{title}</Text>
-      <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>{desc}</Text>
+    <Pressable
+      onPress={onPress}
+      style={[styles.optionCard, { borderColor: c.border, backgroundColor: c.surface }, Icon ? styles.optionCardWithIcon : null]}
+    >
+      {Icon && (
+        <View style={[styles.optionIconBadge, { backgroundColor: bg }]}>
+          <Icon color={fg} size={19} />
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{title}</Text>
+        <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>{desc}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -1378,24 +1410,10 @@ function BackLink({ label, onPress }: { label: string; onPress: () => void }) {
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', paddingTop: spacing.xl },
-  // Yanlış cevap sonrası mikro-açıklama kutusu (24 Eylül 2026, Madde 4) —
-  // web'deki amber ton (#FFF8E8/#FDE9B8/#8A6416) ile aynı renk paleti.
-  hintBox: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: '#FDE9B8',
-    backgroundColor: '#FFF8E8',
-    paddingVertical: spacing.sm + 2,
-    paddingHorizontal: spacing.md,
-    marginTop: spacing.sm,
-  },
-  hintText: { flex: 1, color: '#8A6416', fontSize: 12, lineHeight: 17 },
   emoji: { fontSize: 44, marginBottom: spacing.sm },
   optionCard: { width: '100%', borderWidth: 1.5, borderRadius: radius.lg, padding: spacing.md, marginBottom: spacing.sm },
+  optionCardWithIcon: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  optionIconBadge: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   playHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
   optionRow: { borderWidth: 1.5, borderRadius: radius.md, padding: spacing.md, flexDirection: 'row', alignItems: 'center' },
   livesRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, marginBottom: spacing.md },
