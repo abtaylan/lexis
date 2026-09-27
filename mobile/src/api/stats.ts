@@ -33,7 +33,15 @@ export const statsApi = {
     return res.data;
   },
   getUserReport: async (period: 'week' | 'month' = 'week'): Promise<UserReport> => {
-    const res = await api.get<UserReport>('/stats/report', { params: { period } });
+    // BUG FIX (27 Eylul 2026, kullanici bildirimi -- "Raporum sayfasinda
+    // 'Rapor yuklenemedi' hatasi"): /stats/report backend'de TEK istekte
+    // ~15-20 ayri sirali Supabase sorgusu calistiriyor (bkz.
+    // user_report_service.py::get_user_report) -- normalde hizli ama
+    // Supabase/Railway tarafinda kucuk bir gecikme yasandiginda toplam
+    // sure varsayilan 20sn'lik istemci timeout'unu asabiliyor, bu da
+    // istemcide jenerik bir hataya (isError) donuyor. Diger uc noktalara
+    // dokunmadan SADECE bu agir uc nokta icin timeout'u yukselttik.
+    const res = await api.get<UserReport>('/stats/report', { params: { period }, timeout: 30000 });
     return res.data;
   },
   // İstatistik & Raporlama V2 öncelik #3, Faz 3 madde F — rapor e-postayla

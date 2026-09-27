@@ -71,14 +71,25 @@ def _period_bounds(period: Period) -> tuple[datetime, datetime, datetime]:
 
 
 def _get_profile(uid: str) -> dict[str, Any]:
-    profile = (
-        supabase_admin.table("profiles")
-        .select("learning_lang, is_premium, premium_until, current_league_tier, total_xp")
-        .eq("id", uid)
-        .single()
-        .execute()
-    )
-    return profile.data or {}
+    # BUG FIX (27 Eylul 2026, kullanici bildirimi -- "Raporum sayfasinda
+    # 'Rapor yuklenemedi' hatasi"): .single() 0 (veya 1'den fazla) satir
+    # donerse supabase-py bir istisna firlatir -- bu, `if not row.data`
+    # kontrolune HIC ULASILMADAN raporun tamamini 500'e cevirir (bkz.
+    # games.py::_fetch_word_text'te ayni gun duzeltilen ayni desen). Profil
+    # normalde her zaman var olsa da (bkz. dogrulama: auth.users'ta profili
+    # olmayan kullanici yok), bu fonksiyonu tek bir eksik/gecikmis satirin
+    # butun raporu cokertmesini onlemek icin sağlamlastiriyoruz.
+    try:
+        profile = (
+            supabase_admin.table("profiles")
+            .select("learning_lang, is_premium, premium_until, current_league_tier, total_xp")
+            .eq("id", uid)
+            .single()
+            .execute()
+        )
+        return profile.data or {}
+    except Exception:
+        return {}
 
 
 def _get_cefr_level(user_id: str, learning_lang: str) -> dict[str, Any] | None:
@@ -282,9 +293,17 @@ async def get_user_report(user_id: str, period: Period = "week") -> dict[str, An
     total_words = len(words)
     learned_words = sum(1 for w in words if w["status"] == "learned")
     learned_pct = round((learned_words / total_words) * 100) if total_words else 0
-    new_words_current = sum(1 for w in words if w["created_at"] >= current_start.isoformat())
+    # BUG FIX (27 Eylul 2026): words.created_at DB'de NULL OLABILIR (bkz.
+    # information_schema.columns) -- su an canli veride NULL yok ama varsa
+    # `str >= None` karsilastirmasi TypeError firlatir ve rapor tamamen
+    # cokerdi. `w.get("created_at") or ""` ile NULL/eksik satirlar sessizce
+    # "yeni degil" sayilir (bos string her tarihten kucuk oldugu icin hicbir
+    # araliga girmez), tek bir bozuk satir yuzunden tum sayfanin patlamasindan
+    # her zaman daha iyi bir basarisizlik modu.
+    new_words_current = sum(1 for w in words if (w.get("created_at") or "") >= current_start.isoformat())
     new_words_previous = sum(
-        1 for w in words if previous_start.isoformat() <= w["created_at"] < current_start.isoformat()
+        1 for w in words
+        if previous_start.isoformat() <= (w.get("created_at") or "") < current_start.isoformat()
     )
 
     # ── Oyun performans trendi (game_sessions) ──
