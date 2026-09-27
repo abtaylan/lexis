@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
+import { ActivityIndicator, FlatList, Keyboard, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle } from 'react-native-svg';
@@ -229,6 +229,8 @@ export default function WordsScreen() {
               onChangeText={setSearch}
               autoCorrect={false}
               autoCapitalize="none"
+              returnKeyType="search"
+              onSubmitEditing={() => Keyboard.dismiss()}
               // ★ ASIL HATA BURADAYDI (3 Eylül 2026'da bulundu, bkz. eski kod) —
               // 27 Eylül 2026'daki yeniden tasarımda (bec5fa1) bu stil objesi
               // sıfırdan yazılırken `flex: 1` FARKINDA OLMADAN GERİ EKLENMİŞ,
@@ -283,6 +285,8 @@ export default function WordsScreen() {
         onRefresh={refetch}
         ListEmptyComponent={!isLoading ? <EmptyState title={t('noWordsFound')} subtitle={t('noWordsFoundSub')} /> : null}
         renderItem={renderItem}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       />
 
       <PaginationBar page={page} totalPages={totalPages} onChange={setPage} c={c} />
