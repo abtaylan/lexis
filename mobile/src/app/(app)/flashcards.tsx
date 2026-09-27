@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Animated, Easing, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CircleCheckBig, CircleX, RotateCcw, Layers, ChevronRight, BookPlus, Volume2 } from 'lucide-react-native';
 import * as Speech from 'expo-speech';
 import { router, useFocusEffect } from 'expo-router';
@@ -70,6 +70,13 @@ export default function FlashcardsScreen() {
   const [correct, setCorrect] = useState(0);
   const [error, setError] = useState('');
   const [isOfflineFallback, setIsOfflineFallback] = useState(false);
+  // KULLANICI İSTEĞİ (27 Eylül 2026): "100 adet kelime var, sıkılabilirsin,
+  // canın çıkmak isteyebilir. Bu yüzden istediğim zaman bitirmen için bitir
+  // butonu olmalı" — oturum artık sabit queue.length yerine, erken bitirme
+  // durumunda GERÇEKTEN ÇALIŞILAN kart sayısını (studiedCount) DoneScreen'e
+  // ve study-session log'una taşıyor (aksi halde "15/100 çalıştın" yerine
+  // yanlış şekilde "100/100 çalıştın" gösterilir/loglanırdı).
+  const [studiedCount, setStudiedCount] = useState(0);
   const sessionStartRef = useRef<number>(Date.now());
   const isOnline = useIsOnline();
 
@@ -233,6 +240,7 @@ export default function FlashcardsScreen() {
       wordsApi.logStudySession(sessionPayload).catch(() => {
         enqueueLogStudySession(sessionPayload).catch(() => {});
       });
+      setStudiedCount(queue.length);
       setDone(true);
     } else {
       setIndex((i) => i + 1);
@@ -251,6 +259,38 @@ export default function FlashcardsScreen() {
   }, [isOnline]);
 
   const restart = () => loadCards();
+
+  // KULLANICI İSTEĞİ (27 Eylül 2026): 100 kartlık sabit oturumu istediği
+  // zaman bitirebilmesi için "Bitir" butonu. Şu ana kadar değerlendirilmiş
+  // (rated) kart sayısı tam olarak `index`'e eşit — mevcut kart (current)
+  // henüz değerlendirilmediği için sayılmıyor. Onay istemeden direkt
+  // bitirmiyoruz (yanlışlıkla tüm oturumu kaybetme riskine karşı).
+  const finishSession = () => {
+    if (reviewing) return;
+    Alert.alert(t('finishSessionConfirmTitle'), t('finishSessionConfirmMsg'), [
+      { text: t('cancelBtn'), style: 'cancel' },
+      {
+        text: t('finishSessionBtn'),
+        style: 'destructive',
+        onPress: () => {
+          if (index > 0) {
+            const sessionPayload = {
+              words_studied: index,
+              correct_count: correct,
+              wrong_count: index - correct,
+              duration_secs: Math.round((Date.now() - sessionStartRef.current) / 1000),
+              study_type: 'flashcard',
+            };
+            wordsApi.logStudySession(sessionPayload).catch(() => {
+              enqueueLogStudySession(sessionPayload).catch(() => {});
+            });
+          }
+          setStudiedCount(index);
+          setDone(true);
+        },
+      },
+    ]);
+  };
 
   if (loading) {
     return (
@@ -303,7 +343,7 @@ export default function FlashcardsScreen() {
   }
 
   if (done) {
-    return <DoneScreen total={queue.length} correct={correct} onRestart={restart} c={c} />;
+    return <DoneScreen total={studiedCount} correct={correct} onRestart={restart} c={c} />;
   }
 
   return (
@@ -321,9 +361,14 @@ export default function FlashcardsScreen() {
           </View>
           <Text style={{ color: c.text, fontWeight: '600', fontSize: 14 }}>{t('flashcards')}</Text>
         </View>
-        <Text style={{ color: c.textMuted, fontSize: 13, fontWeight: '600' }}>
-          {index + 1} / {queue.length}
-        </Text>
+        <View style={styles.topBarRight}>
+          <Text style={{ color: c.textMuted, fontSize: 13, fontWeight: '600' }}>
+            {index + 1} / {queue.length}
+          </Text>
+          <Pressable onPress={finishSession} hitSlop={8} style={[styles.finishBtn, { backgroundColor: c.dangerSoft }]}>
+            <Text style={{ color: c.danger, fontSize: 12, fontWeight: '700' }}>{t('finishSessionBtn')}</Text>
+          </Pressable>
+        </View>
       </View>
 
       <View style={[styles.progressTrack, { backgroundColor: c.border }]}>
@@ -525,6 +570,8 @@ const styles = StyleSheet.create({
   offlineBanner: { paddingVertical: 6, paddingHorizontal: spacing.sm, borderRadius: radius.md, marginBottom: spacing.sm, alignItems: 'center' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   topBarLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  topBarRight: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  finishBtn: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.full },
   iconBadge: { width: 56, height: 56, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   iconBadgeSm: { width: 28, height: 28, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   progressTrack: { height: 6, borderRadius: radius.full, overflow: 'hidden', marginTop: spacing.md },

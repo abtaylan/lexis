@@ -289,7 +289,10 @@
     "todayScheduleEmpty": "Bugün için planlanmış bir etkinlik yok",
     "todayScheduleViewAll": "Tüm Programı Gör",
     "googleSignInFailedMsg": "Google ile giriş başarısız. Lütfen tekrar deneyin.",
-    "continueWithGoogleBtn": "Google ile devam et"
+    "continueWithGoogleBtn": "Google ile devam et",
+    "finishSessionBtn": "Bitir",
+    "finishSessionConfirmTitle": "Oturumu bitir",
+    "finishSessionConfirmMsg": "Kalan kartları çalışmadan bitirebilirsin. Şu ana kadarki ilerlemen kaydedilir."
   },
   "en": {
     "dashboard": "Dashboard",
@@ -581,7 +584,10 @@
     "todayScheduleEmpty": "No activity planned for today",
     "todayScheduleViewAll": "View Full Schedule",
     "googleSignInFailedMsg": "Google sign-in failed. Please try again.",
-    "continueWithGoogleBtn": "Continue with Google"
+    "continueWithGoogleBtn": "Continue with Google",
+    "finishSessionBtn": "Finish",
+    "finishSessionConfirmTitle": "Finish session",
+    "finishSessionConfirmMsg": "You can end without studying the remaining cards. Your progress so far will be saved."
   },
   "ar": {
     "dashboard": "لوحة التحكم",
@@ -873,7 +879,10 @@
     "todayScheduleEmpty": "لا يوجد نشاط مخطط لهذا اليوم",
     "todayScheduleViewAll": "عرض البرنامج الكامل",
     "googleSignInFailedMsg": "فشل تسجيل الدخول عبر Google. حاول مرة أخرى.",
-    "continueWithGoogleBtn": "المتابعة عبر Google"
+    "continueWithGoogleBtn": "المتابعة عبر Google",
+    "finishSessionBtn": "إنهاء",
+    "finishSessionConfirmTitle": "إنهاء الجلسة",
+    "finishSessionConfirmMsg": "يمكنك الإنهاء دون دراسة البطاقات المتبقية. سيتم حفظ تقدمك حتى الآن."
   },
   "ru": {
     "dashboard": "Панель",
@@ -1165,7 +1174,10 @@
     "todayScheduleEmpty": "На сегодня ничего не запланировано",
     "todayScheduleViewAll": "Смотреть всё расписание",
     "googleSignInFailedMsg": "Не удалось войти через Google. Попробуйте снова.",
-    "continueWithGoogleBtn": "Продолжить с Google"
+    "continueWithGoogleBtn": "Продолжить с Google",
+    "finishSessionBtn": "Завершить",
+    "finishSessionConfirmTitle": "Завершить сессию",
+    "finishSessionConfirmMsg": "Вы можете закончить, не изучая оставшиеся карточки. Ваш прогресс на данный момент будет сохранён."
   },
   "de": {
     "dashboard": "Dashboard",
@@ -1457,7 +1469,10 @@
     "todayScheduleEmpty": "Für heute ist keine Aktivität geplant",
     "todayScheduleViewAll": "Gesamten Plan ansehen",
     "googleSignInFailedMsg": "Anmeldung mit Google fehlgeschlagen. Bitte erneut versuchen.",
-    "continueWithGoogleBtn": "Mit Google fortfahren"
+    "continueWithGoogleBtn": "Mit Google fortfahren",
+    "finishSessionBtn": "Beenden",
+    "finishSessionConfirmTitle": "Sitzung beenden",
+    "finishSessionConfirmMsg": "Du kannst beenden, ohne die restlichen Karten zu üben. Dein bisheriger Fortschritt wird gespeichert."
   },
   "fr": {
     "dashboard": "Tableau de bord",
@@ -1749,7 +1764,10 @@
     "todayScheduleEmpty": "Aucune activité prévue aujourd'hui",
     "todayScheduleViewAll": "Voir tout le programme",
     "googleSignInFailedMsg": "Échec de la connexion avec Google. Veuillez réessayer.",
-    "continueWithGoogleBtn": "Continuer avec Google"
+    "continueWithGoogleBtn": "Continuer avec Google",
+    "finishSessionBtn": "Terminer",
+    "finishSessionConfirmTitle": "Terminer la session",
+    "finishSessionConfirmMsg": "Tu peux terminer sans étudier les cartes restantes. Ta progression actuelle sera enregistrée."
   },
   "es": {
     "dashboard": "Panel",
@@ -2041,7 +2059,10 @@
     "todayScheduleEmpty": "No hay actividad planificada para hoy",
     "todayScheduleViewAll": "Ver programa completo",
     "googleSignInFailedMsg": "Error al iniciar sesión con Google. Inténtalo de nuevo.",
-    "continueWithGoogleBtn": "Continuar con Google"
+    "continueWithGoogleBtn": "Continuar con Google",
+    "finishSessionBtn": "Terminar",
+    "finishSessionConfirmTitle": "Terminar sesión",
+    "finishSessionConfirmMsg": "Puedes terminar sin estudiar las tarjetas restantes. Se guardará tu progreso actual."
   },
   "it": {
     "dashboard": "Dashboard",
@@ -2333,7 +2354,10 @@
     "todayScheduleEmpty": "Nessuna attività pianificata per oggi",
     "todayScheduleViewAll": "Vedi programma completo",
     "googleSignInFailedMsg": "Accesso con Google non riuscito. Riprova.",
-    "continueWithGoogleBtn": "Continua con Google"
+    "continueWithGoogleBtn": "Continua con Google",
+    "finishSessionBtn": "Termina",
+    "finishSessionConfirmTitle": "Termina sessione",
+    "finishSessionConfirmMsg": "Puoi terminare senza studiare le carte rimanenti. I tuoi progressi finora verranno salvati."
   },
   "ja": {
     "dashboard": "ダッシュボード",
@@ -2625,7 +2649,10 @@
     "todayScheduleEmpty": "今日の予定はありません",
     "todayScheduleViewAll": "すべての予定を見る",
     "googleSignInFailedMsg": "Googleサインインに失敗しました。もう一度お試しください。",
-    "continueWithGoogleBtn": "Googleで続ける"
+    "continueWithGoogleBtn": "Googleで続ける",
+    "finishSessionBtn": "終了",
+    "finishSessionConfirmTitle": "セッションを終了",
+    "finishSessionConfirmMsg": "残りのカードを学習せずに終了できます。ここまでの進捗は保存されます。"
   },
   "pt": {
     "dashboard": "Painel",
@@ -2917,6 +2944,9 @@
     "todayScheduleEmpty": "Nenhuma atividade planejada para hoje",
     "todayScheduleViewAll": "Ver programa completo",
     "googleSignInFailedMsg": "Falha ao iniciar sessão com a Google. Tenta novamente.",
-    "continueWithGoogleBtn": "Continuar com o Google"
+    "continueWithGoogleBtn": "Continuar com o Google",
+    "finishSessionBtn": "Terminar",
+    "finishSessionConfirmTitle": "Terminar sessão",
+    "finishSessionConfirmMsg": "Podes terminar sem estudar os cartões restantes. O teu progresso até agora será guardado."
   }
 }
