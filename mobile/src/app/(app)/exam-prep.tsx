@@ -6,7 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, router, useLocalSearchParams } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, CheckCircle2, Clock, Plus, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { examsApi } from '@/api/exams';
@@ -37,6 +37,7 @@ function formatTime(totalSeconds: number): string {
 
 export default function ExamPrepScreen() {
   const { et } = useLocale();
+  const qc = useQueryClient();
   const c = useThemeColors();
   // Görev Haritası v2 (10 Eylül 2026) — quests.tsx'ten
   // { pathname: '/(app)/exam-prep', params: { examType, sessionMode } } ile
@@ -169,6 +170,19 @@ export default function ExamPrepScreen() {
       const result = await examsApi.finishSession(sid);
       setFinishResult(result);
       setStage('result');
+      // BUG FIX (28 Eylul 2026 kullanici bildirimi): "sinavi yaptim, panele
+      // don diyorum yine sinav alerti cikiyor, saçma bir dongu" -- dashboard
+      // ['exam-placement-status'] sorgusunu staleTime=30s ile cache'liyor
+      // (bkz. app/_layout.tsx QueryClient defaultOptions); seviye tespit
+      // sinavi TAM OLARAK bu pencere icinde bitirilip "Panele Dön"e
+      // basildiginda dashboard hala ESKI (needs_placement:true) cache'i
+      // gosterip zorunlu Alert'i tekrar tetikliyordu -- backend'de sinav
+      // gercekten bitmis olsa bile. Placement sinavi bitince bu sorguyu
+      // gecersiz kilmak, dashboard'un "Panele Dön" sonrasi TAZE veriyle
+      // (needs_placement:false) yeniden mount olmasini garanti eder.
+      if (result.exam_type === 'placement') {
+        qc.invalidateQueries({ queryKey: ['exam-placement-status'] });
+      }
     } catch {
       setStage('error');
     } finally {
