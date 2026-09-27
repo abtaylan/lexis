@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2 } from 'lucide-react-native';
+import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2, ChevronRight } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
 import { useAuth } from '@/store/auth';
@@ -724,134 +725,152 @@ export default function GameScreen() {
   // ── Mod seçimi ──
   if (stage === 'mode') {
     return (
-      <CenterScreen>
-        <Text style={styles.emoji}>🎮</Text>
-        <Title c={c}>{gt.pageTitle}</Title>
-        <Subtitle c={c}>{gt.pageSubtitle}</Subtitle>
-        <SectionLabel c={c}>{gt.chooseModeTitle}</SectionLabel>
-        <OptionButton
-          title={gt.modeMultipleLabel}
-          desc={gt.modeMultipleDesc}
-          icon={CheckSquare}
-          bg={c.primarySoft}
-          fg={c.primary}
-          onPress={() => {
-            setGameMode('multiple_choice');
-            setStage('direction');
-          }}
-        />
-        <OptionButton
-          title={gt.modeWordleLabel}
-          desc={gt.modeWordleDesc}
-          icon={Puzzle}
-          bg={c.accentSoft}
-          fg={c.accent}
-          onPress={() => {
-            setGameMode('wordle');
-            setDirection('meaning_to_word');
-            setStage('setup');
-          }}
-        />
-        <OptionButton
-          title={gt.modeTypingLabel}
-          desc={gt.modeTypingDesc}
-          icon={Type}
-          bg={c.successSoft}
-          fg={c.success}
-          onPress={() => {
-            setGameMode('typing');
-            setDirection('meaning_to_word');
-            setStage('setup');
-          }}
-        />
-        <OptionButton
-          title={gt.modeListeningLabel}
-          desc={gt.modeListeningDesc}
-          icon={Volume2}
-          bg={c.warningSoft}
-          fg={c.warning}
-          onPress={() => {
-            setGameMode('listening');
-            setDirection('meaning_to_word');
-            setStage('setup');
-          }}
-        />
-        <OptionButton
-          title={gt.modeSprintLabel}
-          desc={gt.modeSprintDesc}
-          icon={Timer}
-          bg={c.dangerSoft}
-          fg={c.danger}
-          onPress={() => {
-            setGameMode('sprint');
-            setDirection('meaning_to_word');
-            setSprintSecondsLeft(SPRINT_DURATION_SECS);
-            setStage('setup');
-          }}
-        />
-        <OptionButton
-          title={gt.modeMatchingLabel}
-          desc={gt.modeMatchingDesc}
-          icon={Shuffle}
-          bg={c.primarySoft}
-          fg={c.primary}
-          onPress={() => {
-            setGameMode('matching');
-            setDirection('meaning_to_word');
-            setStage('setup');
-          }}
-        />
-        <OptionButton
-          title={gt.modeSentenceLabel}
-          desc={gt.modeSentenceDesc}
-          icon={AlignLeft}
-          bg={c.accentSoft}
-          fg={c.accent}
-          onPress={() => {
-            setGameMode('sentence_building');
-            setDirection('meaning_to_word');
-            setStage('setup');
-          }}
-        />
-        {/* Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (28 Eylül
-            2026, kullanıcı isteği: "yeni oyun önerisi bekliyorum senden"). */}
-        <OptionButton
-          title={gt.modeFillBlankLabel}
-          desc={gt.modeFillBlankDesc}
-          icon={PencilLine}
-          bg={c.successSoft}
-          fg={c.success}
-          onPress={() => {
-            setGameMode('fill_blank');
-            setDirection('meaning_to_word');
-            setStage('setup');
-          }}
-        />
-        <OptionButton
-          title={gt.modeTrueFalseLabel}
-          desc={gt.modeTrueFalseDesc}
-          icon={Scale}
-          bg={c.dangerSoft}
-          fg={c.danger}
-          onPress={() => {
-            setGameMode('true_false');
-            setDirection('word_to_meaning');
-            setStage('setup');
-          }}
-        />
-        <OptionButton
-          title={gt.modeChainLabel}
-          desc={gt.modeChainDesc}
-          icon={Link2}
-          bg={c.primarySoft}
-          fg={c.primary}
-          onPress={() => {
-            setGameMode('word_chain');
-            setDirection('word_to_meaning');
-            setStage('setup');
-          }}
-        />
-      </CenterScreen>
+      <ScreenContainer padded={false}>
+        {/* 28 Eylül 2026 -- kullanıcı isteği ("bu sayfanın da tasarımını
+            düzenle"): diğer sekme-kökü ekranlarla (Kelimeler/Sıralama/
+            Çalışma Programı/Profil) AYNI hero deseni -- primary->accent
+            gradyanlı, yarı saydam beyaz ikon rozetli üst panel + altında
+            kart listesi (ModeCard, aşağıda tanımlı). Yön/havuz seçimi
+            ekranlarındaki OptionButton bilinçli olarak DEĞİŞMEDİ. */}
+        <LinearGradient colors={[c.primary, c.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={gmStyles.hero}>
+          <View style={gmStyles.heroTop}>
+            <View style={gmStyles.heroIconWrap}>
+              <Gamepad2 color="#FFFFFF" size={20} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={gmStyles.heroTitle}>{gt.pageTitle}</Text>
+              <Text style={gmStyles.heroSubtitle}>{gt.pageSubtitle}</Text>
+            </View>
+          </View>
+        </LinearGradient>
+
+        <View style={gmStyles.listWrap}>
+          <Text style={[gmStyles.sectionLabel, { color: c.textMuted }]}>{gt.chooseModeTitle}</Text>
+
+          <ModeCard
+            title={gt.modeMultipleLabel}
+            desc={gt.modeMultipleDesc}
+            icon={CheckSquare}
+            bg={c.primarySoft}
+            fg={c.primary}
+            onPress={() => {
+              setGameMode('multiple_choice');
+              setStage('direction');
+            }}
+          />
+          <ModeCard
+            title={gt.modeWordleLabel}
+            desc={gt.modeWordleDesc}
+            icon={Puzzle}
+            bg={c.accentSoft}
+            fg={c.accent}
+            onPress={() => {
+              setGameMode('wordle');
+              setDirection('meaning_to_word');
+              setStage('setup');
+            }}
+          />
+          <ModeCard
+            title={gt.modeTypingLabel}
+            desc={gt.modeTypingDesc}
+            icon={Type}
+            bg={c.successSoft}
+            fg={c.success}
+            onPress={() => {
+              setGameMode('typing');
+              setDirection('meaning_to_word');
+              setStage('setup');
+            }}
+          />
+          <ModeCard
+            title={gt.modeListeningLabel}
+            desc={gt.modeListeningDesc}
+            icon={Volume2}
+            bg={c.warningSoft}
+            fg={c.warning}
+            onPress={() => {
+              setGameMode('listening');
+              setDirection('meaning_to_word');
+              setStage('setup');
+            }}
+          />
+          <ModeCard
+            title={gt.modeSprintLabel}
+            desc={gt.modeSprintDesc}
+            icon={Timer}
+            bg={c.dangerSoft}
+            fg={c.danger}
+            onPress={() => {
+              setGameMode('sprint');
+              setDirection('meaning_to_word');
+              setSprintSecondsLeft(SPRINT_DURATION_SECS);
+              setStage('setup');
+            }}
+          />
+          <ModeCard
+            title={gt.modeMatchingLabel}
+            desc={gt.modeMatchingDesc}
+            icon={Shuffle}
+            bg={c.primarySoft}
+            fg={c.primary}
+            onPress={() => {
+              setGameMode('matching');
+              setDirection('meaning_to_word');
+              setStage('setup');
+            }}
+          />
+          <ModeCard
+            title={gt.modeSentenceLabel}
+            desc={gt.modeSentenceDesc}
+            icon={AlignLeft}
+            bg={c.accentSoft}
+            fg={c.accent}
+            onPress={() => {
+              setGameMode('sentence_building');
+              setDirection('meaning_to_word');
+              setStage('setup');
+            }}
+          />
+          {/* Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (28 Eylül
+              2026, kullanıcı isteği: "yeni oyun önerisi bekliyorum senden"). */}
+          <ModeCard
+            title={gt.modeFillBlankLabel}
+            desc={gt.modeFillBlankDesc}
+            icon={PencilLine}
+            bg={c.successSoft}
+            fg={c.success}
+            onPress={() => {
+              setGameMode('fill_blank');
+              setDirection('meaning_to_word');
+              setStage('setup');
+            }}
+          />
+          <ModeCard
+            title={gt.modeTrueFalseLabel}
+            desc={gt.modeTrueFalseDesc}
+            icon={Scale}
+            bg={c.dangerSoft}
+            fg={c.danger}
+            onPress={() => {
+              setGameMode('true_false');
+              setDirection('word_to_meaning');
+              setStage('setup');
+            }}
+          />
+          <ModeCard
+            title={gt.modeChainLabel}
+            desc={gt.modeChainDesc}
+            icon={Link2}
+            bg={c.primarySoft}
+            fg={c.primary}
+            onPress={() => {
+              setGameMode('word_chain');
+              setDirection('word_to_meaning');
+              setStage('setup');
+            }}
+          />
+        </View>
+      </ScreenContainer>
     );
   }
 
@@ -1544,6 +1563,40 @@ function SectionLabel({ children, c }: { children: React.ReactNode; c: ReturnTyp
 // eklendi (icon/bg/fg verilmezse eskisi gibi düz metin satırı olarak
 // kalıyor -- bu bileşen mod seçimi DIŞINDA yön/havuz seçiminde de
 // kullanılıyor, oralarda hiçbir şey değişmedi).
+// 28 Eylül 2026 -- mod seçim ekranının hero+kart tasarımı için OptionButton'DAN
+// AYRI bir bileşen (OptionButton yön/havuz seçiminde DEĞİŞMEDEN kullanılmaya
+// devam ediyor). Sol kenarda mod rengini tekrar eden ince bir şerit + git oku.
+function ModeCard({
+  title,
+  desc,
+  icon: Icon,
+  bg,
+  fg,
+  onPress,
+}: {
+  title: string;
+  desc: string;
+  icon: React.ComponentType<{ color?: string; size?: number }>;
+  bg: string;
+  fg: string;
+  onPress: () => void;
+}) {
+  const c = useThemeColors();
+  return (
+    <Pressable onPress={onPress} style={[gmStyles.modeCard, { backgroundColor: c.surface, shadowColor: '#000000' }]}>
+      <View style={[gmStyles.modeCardAccent, { backgroundColor: fg }]} />
+      <View style={[gmStyles.modeIconBadge, { backgroundColor: bg }]}>
+        <Icon color={fg} size={20} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: c.text, fontWeight: '700', fontSize: 15 }}>{title}</Text>
+        <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>{desc}</Text>
+      </View>
+      <ChevronRight color={c.textMuted} size={18} />
+    </Pressable>
+  );
+}
+
 function OptionButton({
   title,
   desc,
@@ -1586,6 +1639,46 @@ function BackLink({ label, onPress }: { label: string; onPress: () => void }) {
     </Pressable>
   );
 }
+
+const gmStyles = StyleSheet.create({
+  hero: {
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    borderBottomLeftRadius: radius.xl + 4,
+    borderBottomRightRadius: radius.xl + 4,
+  },
+  heroTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  heroIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroTitle: { fontSize: 20, fontWeight: '800', color: '#FFFFFF' },
+  heroSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontWeight: '600' },
+  listWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
+  sectionLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: spacing.sm },
+  modeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.sm + 2,
+    paddingVertical: spacing.sm + 4,
+    paddingHorizontal: spacing.sm + 4,
+    paddingLeft: spacing.sm + 8,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  modeCardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
+  modeIconBadge: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+});
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', paddingTop: spacing.xl },
