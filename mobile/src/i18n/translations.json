@@ -292,7 +292,8 @@
     "continueWithGoogleBtn": "Google ile devam et",
     "finishSessionBtn": "Bitir",
     "finishSessionConfirmTitle": "Oturumu bitir",
-    "finishSessionConfirmMsg": "Kalan kartları çalışmadan bitirebilirsin. Şu ana kadarki ilerlemen kaydedilir."
+    "finishSessionConfirmMsg": "Kalan kartları çalışmadan bitirebilirsin. Şu ana kadarki ilerlemen kaydedilir.",
+    "allFilterLabel": "Tümü"
   },
   "en": {
     "dashboard": "Dashboard",
@@ -587,7 +588,8 @@
     "continueWithGoogleBtn": "Continue with Google",
     "finishSessionBtn": "Finish",
     "finishSessionConfirmTitle": "Finish session",
-    "finishSessionConfirmMsg": "You can end without studying the remaining cards. Your progress so far will be saved."
+    "finishSessionConfirmMsg": "You can end without studying the remaining cards. Your progress so far will be saved.",
+    "allFilterLabel": "All"
   },
   "ar": {
     "dashboard": "لوحة التحكم",
@@ -882,7 +884,8 @@
     "continueWithGoogleBtn": "المتابعة عبر Google",
     "finishSessionBtn": "إنهاء",
     "finishSessionConfirmTitle": "إنهاء الجلسة",
-    "finishSessionConfirmMsg": "يمكنك الإنهاء دون دراسة البطاقات المتبقية. سيتم حفظ تقدمك حتى الآن."
+    "finishSessionConfirmMsg": "يمكنك الإنهاء دون دراسة البطاقات المتبقية. سيتم حفظ تقدمك حتى الآن.",
+    "allFilterLabel": "الكل"
   },
   "ru": {
     "dashboard": "Панель",
@@ -1177,7 +1180,8 @@
     "continueWithGoogleBtn": "Продолжить с Google",
     "finishSessionBtn": "Завершить",
     "finishSessionConfirmTitle": "Завершить сессию",
-    "finishSessionConfirmMsg": "Вы можете закончить, не изучая оставшиеся карточки. Ваш прогресс на данный момент будет сохранён."
+    "finishSessionConfirmMsg": "Вы можете закончить, не изучая оставшиеся карточки. Ваш прогресс на данный момент будет сохранён.",
+    "allFilterLabel": "Все"
   },
   "de": {
     "dashboard": "Dashboard",
@@ -1472,7 +1476,8 @@
     "continueWithGoogleBtn": "Mit Google fortfahren",
     "finishSessionBtn": "Beenden",
     "finishSessionConfirmTitle": "Sitzung beenden",
-    "finishSessionConfirmMsg": "Du kannst beenden, ohne die restlichen Karten zu üben. Dein bisheriger Fortschritt wird gespeichert."
+    "finishSessionConfirmMsg": "Du kannst beenden, ohne die restlichen Karten zu üben. Dein bisheriger Fortschritt wird gespeichert.",
+    "allFilterLabel": "Alle"
   },
   "fr": {
     "dashboard": "Tableau de bord",
@@ -1767,7 +1772,8 @@
     "continueWithGoogleBtn": "Continuer avec Google",
     "finishSessionBtn": "Terminer",
     "finishSessionConfirmTitle": "Terminer la session",
-    "finishSessionConfirmMsg": "Tu peux terminer sans étudier les cartes restantes. Ta progression actuelle sera enregistrée."
+    "finishSessionConfirmMsg": "Tu peux terminer sans étudier les cartes restantes. Ta progression actuelle sera enregistrée.",
+    "allFilterLabel": "Tous"
   },
   "es": {
     "dashboard": "Panel",
@@ -2062,7 +2068,8 @@
     "continueWithGoogleBtn": "Continuar con Google",
     "finishSessionBtn": "Terminar",
     "finishSessionConfirmTitle": "Terminar sesión",
-    "finishSessionConfirmMsg": "Puedes terminar sin estudiar las tarjetas restantes. Se guardará tu progreso actual."
+    "finishSessionConfirmMsg": "Puedes terminar sin estudiar las tarjetas restantes. Se guardará tu progreso actual.",
+    "allFilterLabel": "Todas"
   },
   "it": {
     "dashboard": "Dashboard",
@@ -2357,7 +2364,8 @@
     "continueWithGoogleBtn": "Continua con Google",
     "finishSessionBtn": "Termina",
     "finishSessionConfirmTitle": "Termina sessione",
-    "finishSessionConfirmMsg": "Puoi terminare senza studiare le carte rimanenti. I tuoi progressi finora verranno salvati."
+    "finishSessionConfirmMsg": "Puoi terminare senza studiare le carte rimanenti. I tuoi progressi finora verranno salvati.",
+    "allFilterLabel": "Tutte"
   },
   "ja": {
     "dashboard": "ダッシュボード",
@@ -2652,7 +2660,8 @@
     "continueWithGoogleBtn": "Googleで続ける",
     "finishSessionBtn": "終了",
     "finishSessionConfirmTitle": "セッションを終了",
-    "finishSessionConfirmMsg": "残りのカードを学習せずに終了できます。ここまでの進捗は保存されます。"
+    "finishSessionConfirmMsg": "残りのカードを学習せずに終了できます。ここまでの進捗は保存されます。",
+    "allFilterLabel": "すべて"
   },
   "pt": {
     "dashboard": "Painel",
@@ -2947,6 +2956,7 @@
     "continueWithGoogleBtn": "Continuar com o Google",
     "finishSessionBtn": "Terminar",
     "finishSessionConfirmTitle": "Terminar sessão",
-    "finishSessionConfirmMsg": "Podes terminar sem estudar os cartões restantes. O teu progresso até agora será guardado."
+    "finishSessionConfirmMsg": "Podes terminar sem estudar os cartões restantes. O teu progresso até agora será guardado.",
+    "allFilterLabel": "Todas"
   }
 }

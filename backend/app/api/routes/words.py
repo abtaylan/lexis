@@ -35,14 +35,26 @@ async def get_words(
 ):
     # Kullanıcının aktif öğrenme diline göre filtrele (Kullanıcı Madde 2 —
     # kelime listesi, dashboard'da o an seçili olan dile ait kelimeleri gösterir)
-    profile = (
-        supabase_admin.table("profiles")
-        .select("learning_lang")
-        .eq("id", current_user.id)
-        .single()
-        .execute()
-    )
-    active_lang = (profile.data or {}).get("learning_lang", "en")
+    #
+    # BUG FIX (27 Eylül 2026) -- supabase-py'nin .single()'ı, sorgu 0 veya
+    # birden fazla satır döndürdüğünde `if not profile.data` kontrolüne HİÇ
+    # varmadan uncaught bir exception fırlatıyor -- bu da FastAPI'de
+    # yakalanmamış bir 500'e dönüşüp mobil tarafta jenerik bir hataya
+    # dönüşüyordu. Bu session içinde AYNI kalıp games.py::_fetch_word_text
+    # ve user_report_service.py::_get_profile'da da bulunup düzeltildi;
+    # Kelimeler sayfası da tam olarak bu uç noktayı kullandığı için (words.tsx
+    # yeniden tasarımıyla aynı commit'e dahil edildi) burada da düzeltiyoruz.
+    try:
+        profile = (
+            supabase_admin.table("profiles")
+            .select("learning_lang")
+            .eq("id", current_user.id)
+            .single()
+            .execute()
+        )
+        active_lang = (profile.data or {}).get("learning_lang", "en")
+    except Exception:
+        active_lang = "en"
 
     query = (
         supabase_admin.table("words")

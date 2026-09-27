@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, View, Platform } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Svg, { Circle } from 'react-native-svg';
+import { Search, Volume2, X, Plus, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import * as Speech from 'expo-speech';
 import { useLocale } from '@/i18n';
 import { wordsApi, dictionaryApi } from '@/api/words';
 import type { Word } from '@/api/types';
@@ -9,11 +12,90 @@ import { getErrorMessage } from '@/utils/errors';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
-import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
+
+// game.tsx / flashcards.tsx::SPEECH_LANG_MAP ile BİREBİR aynı (kasıtlı küçük
+// tekrar — bkz. flashcards.tsx dosya başındaki aynı yorum).
+const SPEECH_LANG_MAP: Record<string, string> = {
+  en: 'en-US',
+  tr: 'tr-TR',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  it: 'it-IT',
+  ja: 'ja-JP',
+  ar: 'ar-SA',
+  ru: 'ru-RU',
+};
+
+// ── Kelimeler sayfası yeniden tasarımı (27 Eylül 2026, kullanıcı isteği:
+// "Kelimeler sayfasının iç dizaynı biraz daha değiştir, yeni tasarımlar
+// bekliyorum senden") ──
+//
+// Tasarım, bu proje için daha önce onaylanmış bir Cowork Design canvas'ındaki
+// WordList.dc.html / WordList_Dark.dc.html taslaklarına dayanıyor (bkz.
+// DashboardHeader.tsx'teki aynı canvas referansı — https://claude.ai/
+// artifact/9WdZvZiwYtdsXLzb9kd2hj), ama birebir kopya değil, iki bilinçli
+// uyarlama yapıldı:
+//   1. Taslakta bir "Geri" oku vardı — ScreenNavBar.tsx'e bakılırsa (24
+//      Eylül 2026 kullanıcı isteği: "mobilde bu ikonlar hiçbir bölümde
+//      olmasın") bu UYGULAMANIN HİÇBİR EKRANINDA görünür bir geri butonu
+//      YOK — Kelimeler zaten bir alt-sekme kökü, geri oku eklemek bu
+//      kararla çelişirdi, o yüzden hiç eklenmedi.
+//   2. Taslaktaki üçüncü filtre "Zor" idi ama backend'de/veri modelinde
+//      böyle bir alan/durum yok (Word.status sadece learning/learned/
+//      archived) — sahte bir sayı uydurmak yerine üçüncü filtreyi gerçekten
+//      var olan "Öğrenildi" (learned) durumuna çevirdik.
+//
+// Kalan tek yeni-veri ihtiyacı: her satırdaki dairesel ilerleme halkası.
+// Backend'de kelime bazlı bir "ustalık %"si hiç tutulmuyor, ama SM-2 tekrar
+// algoritmasının zaten yazdığı `ease_factor` (kelime ne kadar kolaylaştı —
+// bkz. Word tipi, review_word endpoint'i) tam olarak bunun için var: yanlış
+// cevaplandıkça düşer (taban ~1.3), doğru cevaplandıkça yükselir. Bunu
+// 0-1 aralığına normalize edip halkanın doluluğu + rengi (kırmızı/turuncu/
+// yeşil) olarak kullanıyoruz — status 'learned' ise halka her zaman tam ve
+// yeşil + tik işareti (taslaktaki desenle aynı mantık).
+const EASE_FLOOR = 1.3;
+const EASE_CEILING = 2.6;
+
+function easeProgress(ease: number | undefined): number {
+  if (ease == null) return 0;
+  return Math.max(0, Math.min(1, (ease - EASE_FLOOR) / (EASE_CEILING - EASE_FLOOR)));
+}
+
+type StatusFilter = 'all' | 'learning' | 'learned';
+
+// Sayfalama (27 Eylül 2026, kullanıcı isteği: "liste çok uzun olabiliyor, 10
+// kelimeden sonra 2. sayfaya geçsin, 20'den fazlaysa 3 sayfa olsun"): backend
+// zaten `page`/`page_size` destekliyor ve tam `total` sayısı döndürüyor
+// (words.ts::PaginatedWords.pages = ceil(total/page_size)) -- yani standart
+// bir sayfa boyutu (10) seçip mevcut `total`/`pages` alanlarını kullanmak
+// TAM OLARAK istenen davranışı veriyor: 11-20 kelime -> 2 sayfa, 21-30 -> 3
+// sayfa, vs. -- ayrı bir eşik mantığı yazmaya gerek yok.
+const WORDS_PAGE_SIZE = 10;
+
+// Sayfa numarası şeridini kısa tutmak için (çok sayfa olduğunda 1 2 3 4 5 6 7
+// 8 9 10'u art arda dizmek yerine): ilk, son ve aktif sayfanın komşularını
+// gösterip aradakileri "…" ile kısaltıyoruz -- App Store/klasik pagination
+// deseni.
+function buildPageList(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const set = new Set<number>([1, total, current - 1, current, current + 1]);
+  const nums = Array.from(set)
+    .filter((n) => n >= 1 && n <= total)
+    .sort((a, b) => a - b);
+  const result: (number | '…')[] = [];
+  let prev = 0;
+  for (const n of nums) {
+    if (prev && n - prev > 1) result.push('…');
+    result.push(n);
+    prev = n;
+  }
+  return result;
+}
 
 export default function WordsScreen() {
   const { t } = useLocale();
@@ -23,6 +105,8 @@ export default function WordsScreen() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [page, setPage] = useState(1);
 
   // Arama kutusuna her tuş vuruşunda anında sorgu tetiklemek, ağ isteğini
   // ve bununla birlikte FlatList'in "refreshing" durumunu her karakterde
@@ -37,15 +121,64 @@ export default function WordsScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
+  // Arama veya filtre değiştiğinde, önceki sonuç kümesinde geçerli olan bir
+  // sayfa numarasında kalakalmayı önlemek için (ör. "Öğrenildi" filtresinde
+  // 3. sayfadayken "Tümü"ne geçince 3. sayfa boş görünebilirdi) her zaman 1.
+  // sayfaya dönüyoruz.
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, statusFilter]);
+
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['words', debouncedSearch],
-    queryFn: () => wordsApi.getAll({ search: debouncedSearch || undefined, per_page: 50 }),
+    queryKey: ['words', debouncedSearch, statusFilter, page],
+    queryFn: () =>
+      wordsApi.getAll({
+        search: debouncedSearch || undefined,
+        per_page: WORDS_PAGE_SIZE,
+        page,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+      }),
+  });
+  const totalPages = data?.pages ?? 1;
+
+  // Filtre çiplerindeki sayılar (Tümü/Öğreniliyor/Öğrenildi) aktif arama/
+  // filtreden BAĞIMSIZ, her zaman tüm kelime hazinesinin genel dökümü —
+  // taslaktaki "Tümü · 248" gibi sabit bir özet sayı niyetiyle. Üç ayrı
+  // per_page:1 isteği (gövde neredeyse boş, sadece `total` için) — ağır bir
+  // maliyet değil. `['words','counts']` anahtarı bilinçli: mevcut
+  // create/delete akışları zaten `invalidateQueries({queryKey:['words']})`
+  // çağırıyor, React Query'nin ön-ek eşleşmesi sayesinde bu da otomatik
+  // tazeleniyor, ayrı bir invalidate eklemeye gerek kalmadı.
+  const { data: counts } = useQuery({
+    queryKey: ['words', 'counts'],
+    queryFn: async () => {
+      const [all, learning, learned] = await Promise.all([
+        wordsApi.getAll({ per_page: 1 }),
+        wordsApi.getAll({ per_page: 1, status: 'learning' }),
+        wordsApi.getAll({ per_page: 1, status: 'learned' }),
+      ]);
+      return { all: all.total, learning: learning.total, learned: learned.total };
+    },
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => wordsApi.delete(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['words'] }),
   });
+
+  const speakWord = useCallback(
+    (text: string) => {
+      if (!text) return;
+      const langCode = SPEECH_LANG_MAP[user?.learning_lang ?? ''];
+      try {
+        Speech.stop();
+        Speech.speak(text, { language: langCode });
+      } catch {
+        /* sessiz — telaffuz ikincil bir özellik, hata kelime listesini bozmasın */
+      }
+    },
+    [user?.learning_lang]
+  );
 
   // FlatList'e her tuş vuruşunda YENİ bir inline renderItem/onDelete
   // fonksiyonu geçmek, `search` state'i değiştikçe (yani yazarken) listedeki
@@ -57,54 +190,75 @@ export default function WordsScreen() {
   // liste satırlarını tekrar tekrar çizmesini engelliyoruz.
   const renderItem = useCallback(
     ({ item }: { item: Word }) => (
-      <WordRow
-        word={item}
-        onDelete={() => deleteMutation.mutate(item.id)}
-        statusLabel={
-          item.status === 'learned' ? t('statusLearned') : item.status === 'archived' ? t('statusArchived') : t('statusLearning')
-        }
-      />
+      <WordRow word={item} onDelete={() => deleteMutation.mutate(item.id)} onSpeak={() => speakWord(item.word)} />
     ),
-    [deleteMutation, t]
+    [deleteMutation, speakWord]
   );
 
   return (
     <ScreenContainer scroll={false} padded={false}>
-      <View style={{ paddingHorizontal: spacing.lg, paddingTop: spacing.md }}>
-        <ScreenNavBar style={{ marginBottom: 0 }} />
+      <View style={styles.topBar}>
+        <Text style={[styles.title, { color: c.text }]}>{t('words')}</Text>
+        <Pressable
+          onPress={() => setModalOpen(true)}
+          hitSlop={8}
+          style={[
+            styles.addBtn,
+            { backgroundColor: c.primary, shadowColor: c.primary },
+          ]}
+          accessibilityLabel={t('addWordBtn')}
+        >
+          <Plus color="#FFFFFF" size={19} strokeWidth={2.5} />
+        </Pressable>
       </View>
-      <View style={styles.header}>
-        <TextField
-          placeholder={t('searchPlaceholder')}
-          value={search}
-          onChangeText={setSearch}
-          autoCorrect={false}
-          autoCapitalize="none"
-          // Kullanıcı geri bildirimi: kutu çok küçüktü, yazarken yazdığı
-          // metni zor görüyordu. Yüksekliği ve yazı boyutunu büyütüyoruz.
-          // ★ ASIL HATA BURADAYDI (3 Eylül 2026'da bulundu):
-          // Bu stilde `flex: 1` vardı. `flex: 1` = flexBasis 0 demek. Bu
-          // TextInput'un kapsayıcısı (TextField.tsx içindeki `inputWrap`
-          // View'ı) sabit bir yüksekliğe sahip DEĞİL — yüksekliğini
-          // içeriğinden alıyor. Yükseklik "auto" olan bir kapsayıcıda
-          // flexBasis 0 olan çocuğun İÇERİK yüksekliği 0'a çöküyor: kutu
-          // ekranda normal boyutta görünüyor (çünkü padding + border yerinde
-          // duruyor) ama yazının çizileceği alan 0 piksel kalıyor. Sonuç:
-          // kullanıcı yazıyor, `search` state'i güncelleniyor, liste doğru
-          // filtreleniyor, iOS klavyesi bile yazılanı tahmin ediyor — ama
-          // harfler EKRANDA GÖRÜNMÜYOR. Kullanıcının gönderdiği ekran
-          // görüntüsündeki mavi seçim bloğu da bunu doğruluyor: metin var,
-          // sadece çizilecek yeri yok. Genişlik zaten TextField'ın dış
-          // View'ındaki `width: '100%'` ile geliyor, bu yüzden `flex: 1`e
-          // hiç gerek yok — kaldırıyoruz. Rengi de garantiye almak için
-          // açıkça veriyoruz.
-          style={{
-            marginBottom: 0,
-            paddingVertical: spacing.md + 6,
-            fontSize: 17,
-            color: c.text,
-            backgroundColor: c.surface,
-          }}
+
+      <View style={styles.searchWrap}>
+        <View style={[styles.searchBox, { backgroundColor: c.surface, borderColor: c.border, shadowColor: c.text }]}>
+          <Search color={c.textMuted} size={16} />
+          <TextField
+            placeholder={t('searchPlaceholder')}
+            value={search}
+            onChangeText={setSearch}
+            autoCorrect={false}
+            autoCapitalize="none"
+            // ★ ASIL HATA BURADAYDI (3 Eylül 2026'da bulundu, bkz. eski kod):
+            // `flex: 1` = flexBasis 0, yüksekliği "auto" olan bir kapsayıcıda
+            // içerik yüksekliğini 0'a çöktürüyordu (yazı görünmüyordu). Aynı
+            // hataya tekrar düşmemek için burada da flex'siz, tam genişlikte
+            // ve şeffaf arka planlı (dış kutu zaten arka planı veriyor) bir
+            // stil kullanıyoruz.
+            style={{
+              marginBottom: 0,
+              paddingVertical: spacing.sm + 2,
+              paddingHorizontal: 0,
+              fontSize: 14,
+              color: c.text,
+              backgroundColor: 'transparent',
+              borderWidth: 0,
+              flex: 1,
+            }}
+          />
+        </View>
+      </View>
+
+      <View style={styles.filterRow}>
+        <FilterChip
+          label={`${t('allFilterLabel')} · ${counts?.all ?? '—'}`}
+          active={statusFilter === 'all'}
+          onPress={() => setStatusFilter('all')}
+          c={c}
+        />
+        <FilterChip
+          label={`${t('statusLearning')} · ${counts?.learning ?? '—'}`}
+          active={statusFilter === 'learning'}
+          onPress={() => setStatusFilter('learning')}
+          c={c}
+        />
+        <FilterChip
+          label={`${t('statusLearned')} · ${counts?.learned ?? '—'}`}
+          active={statusFilter === 'learned'}
+          onPress={() => setStatusFilter('learned')}
+          c={c}
         />
       </View>
 
@@ -118,9 +272,7 @@ export default function WordsScreen() {
         renderItem={renderItem}
       />
 
-      <Pressable onPress={() => setModalOpen(true)} style={[styles.fab, { backgroundColor: c.primary }]}>
-        <Text style={{ color: '#fff', fontSize: 26, lineHeight: 28 }}>+</Text>
-      </Pressable>
+      <PaginationBar page={page} totalPages={totalPages} onChange={setPage} c={c} />
 
       <AddWordModal
         visible={modalOpen}
@@ -136,22 +288,176 @@ export default function WordsScreen() {
   );
 }
 
-const WordRow = React.memo(function WordRow({ word, onDelete, statusLabel }: { word: Word; onDelete: () => void; statusLabel: string }) {
-  const c = useThemeColors();
-  const statusColor = word.status === 'learned' ? c.success : word.status === 'archived' ? c.textMuted : c.primary;
+function FilterChip({
+  label,
+  active,
+  onPress,
+  c,
+}: {
+  label: string;
+  active: boolean;
+  onPress: () => void;
+  c: ReturnType<typeof useThemeColors>;
+}) {
   return (
-    <Card style={styles.wordCard}>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: c.text, fontWeight: '700', fontSize: 15 }}>{word.word}</Text>
-        <Text style={{ color: c.textSecondary, fontSize: 13, marginTop: 2 }} numberOfLines={1}>
+    <Pressable
+      onPress={onPress}
+      style={[
+        styles.chip,
+        {
+          backgroundColor: active ? c.primary : c.surface,
+          borderColor: active ? c.primary : c.border,
+        },
+        active && { shadowColor: c.primary },
+      ]}
+    >
+      <Text style={{ color: active ? '#FFFFFF' : c.textMuted, fontSize: 11, fontWeight: '700' }} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+// Sayfalama şeridi — sadece FlatList'in altında, birden fazla sayfa varken
+// görünür (tek sayfalık listelerde gereksiz boşluk/karmaşa yaratmasın diye
+// totalPages<=1 iken tamamen render edilmiyor). Çok sayfa olduğunda tüm
+// numaraları art arda dizmek yerine ilk/son + aktif sayfanın komşularını
+// gösterip aradakileri "…" ile kısaltıyoruz (bkz. buildPageList).
+function PaginationBar({
+  page,
+  totalPages,
+  onChange,
+  c,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (p: number) => void;
+  c: ReturnType<typeof useThemeColors>;
+}) {
+  if (totalPages <= 1) return null;
+  const items = buildPageList(page, totalPages);
+
+  return (
+    <View style={[styles.pagerWrap, { borderTopColor: c.border }]}>
+      <Pressable
+        onPress={() => onChange(page - 1)}
+        disabled={page <= 1}
+        hitSlop={6}
+        style={[styles.pagerArrow, { opacity: page <= 1 ? 0.3 : 1 }]}
+      >
+        <ChevronLeft color={c.textSecondary} size={18} />
+      </Pressable>
+
+      <View style={styles.pagerNums}>
+        {items.map((it, i) =>
+          it === '…' ? (
+            <Text key={`e-${i}`} style={{ color: c.textMuted, fontSize: 12, paddingHorizontal: 2 }}>
+              …
+            </Text>
+          ) : (
+            <Pressable
+              key={it}
+              onPress={() => onChange(it)}
+              style={[
+                styles.pagerNum,
+                { backgroundColor: it === page ? c.primary : 'transparent' },
+                it === page && { shadowColor: c.primary },
+              ]}
+            >
+              <Text style={{ color: it === page ? '#FFFFFF' : c.textSecondary, fontSize: 12, fontWeight: '700' }}>{it}</Text>
+            </Pressable>
+          )
+        )}
+      </View>
+
+      <Pressable
+        onPress={() => onChange(page + 1)}
+        disabled={page >= totalPages}
+        hitSlop={6}
+        style={[styles.pagerArrow, { opacity: page >= totalPages ? 0.3 : 1 }]}
+      >
+        <ChevronRight color={c.textSecondary} size={18} />
+      </Pressable>
+    </View>
+  );
+}
+
+const RING_SIZE = 34;
+const RING_R = 14;
+const RING_STROKE = 4;
+const RING_CIRC = 2 * Math.PI * RING_R;
+
+const WordRow = React.memo(function WordRow({
+  word,
+  onDelete,
+  onSpeak,
+}: {
+  word: Word;
+  onDelete: () => void;
+  onSpeak: () => void;
+}) {
+  const c = useThemeColors();
+  const { t } = useLocale();
+  const isLearned = word.status === 'learned';
+  const progress = isLearned ? 1 : easeProgress(word.ease_factor);
+  const ringColor = isLearned || progress >= 0.6 ? c.success : progress >= 0.3 ? c.warning : c.danger;
+  const ringTrack = isLearned || progress >= 0.6 ? c.successSoft : progress >= 0.3 ? c.warningSoft : c.dangerSoft;
+  const dashOffset = RING_CIRC * (1 - progress);
+  const statusLabel =
+    word.status === 'learned' ? t('statusLearned') : word.status === 'archived' ? t('statusArchived') : t('statusLearning');
+  // Rozet artık durum bazlı renkli (önceki tasarımda tek düz gri idi) --
+  // öğrenildi/öğreniliyor/arşiv durumları arasındaki farkı bir bakışta ayırt
+  // etmek için aynı success/primarySoft/border token'larını kullanıyoruz.
+  const badgeBg = word.status === 'learned' ? c.successSoft : word.status === 'archived' ? c.border : c.primarySoft;
+  const badgeFg = word.status === 'learned' ? c.success : word.status === 'archived' ? c.textSecondary : c.primary;
+
+  return (
+    <Card style={[styles.wordCard, { shadowColor: c.text }]}>
+      <View style={styles.ringWrap}>
+        <Svg width={RING_SIZE} height={RING_SIZE}>
+          <Circle cx={RING_SIZE / 2} cy={RING_SIZE / 2} r={RING_R} stroke={ringTrack} strokeWidth={RING_STROKE} fill="none" />
+          <Circle
+            cx={RING_SIZE / 2}
+            cy={RING_SIZE / 2}
+            r={RING_R}
+            stroke={ringColor}
+            strokeWidth={RING_STROKE}
+            fill="none"
+            strokeLinecap="round"
+            strokeDasharray={`${RING_CIRC} ${RING_CIRC}`}
+            strokeDashoffset={dashOffset}
+            rotation={-90}
+            originX={RING_SIZE / 2}
+            originY={RING_SIZE / 2}
+          />
+        </Svg>
+        {isLearned && (
+          <View style={styles.ringCheck}>
+            <Text style={{ color: ringColor, fontSize: 12, fontWeight: '800' }}>✓</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={{ flex: 1, marginLeft: spacing.sm }}>
+        <Text style={{ color: c.text, fontWeight: '800', fontSize: 14 }} numberOfLines={1}>
+          {word.word}
+        </Text>
+        <Text style={{ color: c.textMuted, fontSize: 11.5, fontWeight: '500', marginTop: 1 }} numberOfLines={1}>
           {word.meaning_native || word.meaning}
         </Text>
       </View>
-      <View style={[styles.statusBadge, { backgroundColor: statusColor + '22' }]}>
-        <Text style={{ color: statusColor, fontSize: 11, fontWeight: '600' }}>{statusLabel}</Text>
+
+      <View style={[styles.statusBadge, { backgroundColor: badgeBg }]}>
+        <Text style={{ color: badgeFg, fontSize: 10, fontWeight: '700' }} numberOfLines={1}>
+          {statusLabel}
+        </Text>
       </View>
-      <Pressable onPress={onDelete} hitSlop={10} style={{ marginLeft: spacing.sm }}>
-        <Text style={{ color: c.danger, fontSize: 16 }}>✕</Text>
+
+      <Pressable onPress={onSpeak} hitSlop={8} style={[styles.iconBtn, { backgroundColor: c.background }]}>
+        <Volume2 color={c.textSecondary} size={14} />
+      </Pressable>
+      <Pressable onPress={onDelete} hitSlop={8} style={[styles.iconBtn, { backgroundColor: c.dangerSoft, marginLeft: 6 }]}>
+        <X color={c.danger} size={14} />
       </Pressable>
     </Card>
   );
@@ -367,11 +673,102 @@ function AddWordModal({
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', padding: spacing.lg, paddingBottom: spacing.sm },
-  listContent: { paddingHorizontal: spacing.lg, paddingBottom: 100 },
-  wordCard: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.sm, paddingVertical: spacing.md },
-  statusBadge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.full },
-  fab: { position: 'absolute', right: spacing.lg, bottom: spacing.lg, width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center', elevation: 4 },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  title: { fontSize: 20, fontWeight: '800' },
+  // Ekle butonu, filtre çiplerinin aktifi ve sayfa numarası butonu artık
+  // kendi rengine yakın (shadowColor prop'u yukarıda ayrı ayrı veriliyor)
+  // hafif bir "glow" gölgesi taşıyor -- düz/renksiz tasarımı biraz daha
+  // "premium" ve tıklanabilir hissettirmek için (kullanıcı isteği:
+  // "biraz daha güzelleştir").
+  addBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  searchWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm, paddingBottom: spacing.xs },
+  searchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.sm + 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  filterRow: { flexDirection: 'row', gap: spacing.xs, paddingHorizontal: spacing.lg, paddingBottom: spacing.sm },
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: radius.full,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  listContent: { paddingHorizontal: spacing.lg, paddingBottom: 24 },
+  wordCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.sm + 2,
+    borderWidth: 0,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  ringWrap: { width: RING_SIZE, height: RING_SIZE, alignItems: 'center', justifyContent: 'center' },
+  ringCheck: { position: 'absolute' },
+  statusBadge: {
+    paddingHorizontal: spacing.xs + 2,
+    paddingVertical: 4,
+    borderRadius: radius.full,
+    marginLeft: spacing.xs,
+    maxWidth: 78,
+  },
+  iconBtn: { width: 28, height: 28, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center', marginLeft: spacing.xs },
+  // Sayfalama şeridi
+  pagerWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  pagerArrow: { width: 30, height: 30, alignItems: 'center', justifyContent: 'center' },
+  pagerNums: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  pagerNum: {
+    minWidth: 26,
+    height: 26,
+    borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, paddingBottom: spacing.xxl, maxHeight: '90%' },
   modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.md },
