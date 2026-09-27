@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2, ChevronRight } from 'lucide-react-native';
+import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
@@ -747,9 +747,12 @@ export default function GameScreen() {
         <View style={gmStyles.listWrap}>
           <Text style={[gmStyles.sectionLabel, { color: c.textMuted }]}>{gt.chooseModeTitle}</Text>
 
+          {/* 28 Eylul 2026 -- kullanici istegi: mod sayisi 10'a cikinca tam-genislik
+              satir listesi cok fazla kaydirma gerektiriyordu -- aciklama satirlari
+              kaldirilip kare kutucuklara cevrildi, 2 sutun x 5 satir izgara. */}
+          <View style={gmStyles.modeGrid}>
           <ModeCard
             title={gt.modeMultipleLabel}
-            desc={gt.modeMultipleDesc}
             icon={CheckSquare}
             bg={c.primarySoft}
             fg={c.primary}
@@ -760,7 +763,6 @@ export default function GameScreen() {
           />
           <ModeCard
             title={gt.modeWordleLabel}
-            desc={gt.modeWordleDesc}
             icon={Puzzle}
             bg={c.accentSoft}
             fg={c.accent}
@@ -772,7 +774,6 @@ export default function GameScreen() {
           />
           <ModeCard
             title={gt.modeTypingLabel}
-            desc={gt.modeTypingDesc}
             icon={Type}
             bg={c.successSoft}
             fg={c.success}
@@ -784,7 +785,6 @@ export default function GameScreen() {
           />
           <ModeCard
             title={gt.modeListeningLabel}
-            desc={gt.modeListeningDesc}
             icon={Volume2}
             bg={c.warningSoft}
             fg={c.warning}
@@ -796,7 +796,6 @@ export default function GameScreen() {
           />
           <ModeCard
             title={gt.modeSprintLabel}
-            desc={gt.modeSprintDesc}
             icon={Timer}
             bg={c.dangerSoft}
             fg={c.danger}
@@ -809,7 +808,6 @@ export default function GameScreen() {
           />
           <ModeCard
             title={gt.modeMatchingLabel}
-            desc={gt.modeMatchingDesc}
             icon={Shuffle}
             bg={c.primarySoft}
             fg={c.primary}
@@ -821,7 +819,6 @@ export default function GameScreen() {
           />
           <ModeCard
             title={gt.modeSentenceLabel}
-            desc={gt.modeSentenceDesc}
             icon={AlignLeft}
             bg={c.accentSoft}
             fg={c.accent}
@@ -835,7 +832,6 @@ export default function GameScreen() {
               2026, kullanıcı isteği: "yeni oyun önerisi bekliyorum senden"). */}
           <ModeCard
             title={gt.modeFillBlankLabel}
-            desc={gt.modeFillBlankDesc}
             icon={PencilLine}
             bg={c.successSoft}
             fg={c.success}
@@ -847,7 +843,6 @@ export default function GameScreen() {
           />
           <ModeCard
             title={gt.modeTrueFalseLabel}
-            desc={gt.modeTrueFalseDesc}
             icon={Scale}
             bg={c.dangerSoft}
             fg={c.danger}
@@ -859,7 +854,6 @@ export default function GameScreen() {
           />
           <ModeCard
             title={gt.modeChainLabel}
-            desc={gt.modeChainDesc}
             icon={Link2}
             bg={c.primarySoft}
             fg={c.primary}
@@ -869,6 +863,7 @@ export default function GameScreen() {
               setStage('setup');
             }}
           />
+        </View>
         </View>
       </ScreenContainer>
     );
@@ -1568,14 +1563,12 @@ function SectionLabel({ children, c }: { children: React.ReactNode; c: ReturnTyp
 // devam ediyor). Sol kenarda mod rengini tekrar eden ince bir şerit + git oku.
 function ModeCard({
   title,
-  desc,
   icon: Icon,
   bg,
   fg,
   onPress,
 }: {
   title: string;
-  desc: string;
   icon: React.ComponentType<{ color?: string; size?: number }>;
   bg: string;
   fg: string;
@@ -1583,16 +1576,13 @@ function ModeCard({
 }) {
   const c = useThemeColors();
   return (
-    <Pressable onPress={onPress} style={[gmStyles.modeCard, { backgroundColor: c.surface, shadowColor: '#000000' }]}>
-      <View style={[gmStyles.modeCardAccent, { backgroundColor: fg }]} />
-      <View style={[gmStyles.modeIconBadge, { backgroundColor: bg }]}>
-        <Icon color={fg} size={20} />
+    <Pressable onPress={onPress} style={[gmStyles.modeTile, { backgroundColor: c.surface, shadowColor: '#000000' }]}>
+      <View style={[gmStyles.modeTileIconBadge, { backgroundColor: bg }]}>
+        <Icon color={fg} size={24} />
       </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: c.text, fontWeight: '700', fontSize: 15 }}>{title}</Text>
-        <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>{desc}</Text>
-      </View>
-      <ChevronRight color={c.textMuted} size={18} />
+      <Text style={{ color: c.text, fontWeight: '700', fontSize: 13, textAlign: 'center', marginTop: spacing.sm }} numberOfLines={2}>
+        {title}
+      </Text>
     </Pressable>
   );
 }
@@ -1661,23 +1651,21 @@ const gmStyles = StyleSheet.create({
   heroSubtitle: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2, fontWeight: '600' },
   listWrap: { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.xxl },
   sectionLabel: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: spacing.sm },
-  modeCard: {
-    flexDirection: 'row',
+  modeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  modeTile: {
+    width: '48%',
+    aspectRatio: 1,
     alignItems: 'center',
-    gap: spacing.sm,
+    justifyContent: 'center',
+    paddingHorizontal: spacing.sm,
     marginBottom: spacing.sm + 2,
-    paddingVertical: spacing.sm + 4,
-    paddingHorizontal: spacing.sm + 4,
-    paddingLeft: spacing.sm + 8,
     borderRadius: radius.lg,
-    overflow: 'hidden',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.09,
     shadowRadius: 10,
     elevation: 2,
   },
-  modeCardAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 4 },
-  modeIconBadge: { width: 40, height: 40, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
+  modeTileIconBadge: { width: 52, height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
 });
 
 const styles = StyleSheet.create({
