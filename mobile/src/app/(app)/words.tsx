@@ -229,12 +229,17 @@ export default function WordsScreen() {
               onChangeText={setSearch}
               autoCorrect={false}
               autoCapitalize="none"
-              // ★ ASIL HATA BURADAYDI (3 Eylül 2026'da bulundu, bkz. eski kod):
-              // `flex: 1` = flexBasis 0, yüksekliği "auto" olan bir kapsayıcıda
-              // içerik yüksekliğini 0'a çöktürüyordu (yazı görünmüyordu). Aynı
-              // hataya tekrar düşmemek için burada da flex'siz, tam genişlikte
-              // ve şeffaf arka planlı (dış kutu zaten arka planı veriyor) bir
-              // stil kullanıyoruz.
+              // ★ ASIL HATA BURADAYDI (3 Eylül 2026'da bulundu, bkz. eski kod) —
+              // 27 Eylül 2026'daki yeniden tasarımda (bec5fa1) bu stil objesi
+              // sıfırdan yazılırken `flex: 1` FARKINDA OLMADAN GERİ EKLENMİŞ,
+              // yorum "flex'siz kullanıyoruz" dese de kod flex:1 içeriyordu —
+              // yani yazılan harfler klavye kapanana/relayout tetiklenene kadar
+              // ekranda görünmüyordu (bkz. kullanıcı ekran görüntüsü, 28 Eylül
+              // 2026). `flex: 1` = flexBasis 0, yüksekliği "auto" olan bir
+              // kapsayıcıda (TextField.tsx::inputWrap) içerik yüksekliğini 0'a
+              // çöktürüyor. Genişlik zaten TextField'ın dış View'ındaki
+              // `width: '100%'` ile geliyor, flex'e hiç gerek yok — SİLİNDİ.
+              // BİR DAHA BU STİLİ DEĞİŞTİRİRKEN flex/flexGrow/flexBasis EKLEME.
               style={{
                 marginBottom: 0,
                 paddingVertical: spacing.sm + 2,
@@ -243,7 +248,6 @@ export default function WordsScreen() {
                 color: c.text,
                 backgroundColor: 'transparent',
                 borderWidth: 0,
-                flex: 1,
               }}
             />
           </View>
