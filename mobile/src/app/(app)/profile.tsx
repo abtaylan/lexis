@@ -3,7 +3,8 @@ import { Alert, Modal, Pressable, ScrollView, Share, StyleSheet, Text, View } fr
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Gift } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Gift, Mail, ShieldCheck, Info, Globe, Sun, Moon, Smartphone, LogOut, Trash2, Languages as LanguagesIcon } from 'lucide-react-native';
 import { useLocale, LOCALE_META } from '@/i18n';
 import { authApi } from '@/api/auth';
 import { languagesApi, userLanguagesApi } from '@/api/languages';
@@ -116,12 +117,25 @@ export default function ProfileScreen() {
   };
 
   const langName = (code: string) => allLanguages?.find((l) => l.code === code);
+  const initial = (displayName || user?.email || '?').charAt(0).toUpperCase();
 
   return (
-    <ScreenContainer>
+    <ScreenContainer scroll={false} padded={false}>
       <ScreenNavBar />
-      <Text style={{ color: c.text, fontSize: 20, fontWeight: '700', marginBottom: spacing.lg }}>{t('profile')}</Text>
 
+      {/* 27 Eylül 2026 — Kelimeler/Sıralama/Çalışma Programı ekranlarındaki
+          gradient hero panel deseni buraya da taşındı: baş harfli avatar +
+          ad + e-posta, kart yapısı aynı kalıyor (kullanıcının "mevcut düzeni
+          koru, sadece görseli zenginleştir" isteğiyle tutarlı). */}
+      <LinearGradient colors={[c.primary, c.accent]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+        <View style={styles.heroAvatar}>
+          <Text style={styles.heroAvatarText}>{initial}</Text>
+        </View>
+        <Text style={styles.heroName} numberOfLines={1}>{displayName || t('profile')}</Text>
+        {user?.email ? <Text style={styles.heroEmail} numberOfLines={1}>{user.email}</Text> : null}
+      </LinearGradient>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
       <Card style={{ marginBottom: spacing.md }}>
         <TextField label={t('displayNameLabel')} value={displayName} onChangeText={setDisplayName} />
         <TextField label={t('dailyGoalLabel')} value={dailyGoal} onChangeText={setDailyGoal} keyboardType="number-pad" />
@@ -130,9 +144,9 @@ export default function ProfileScreen() {
       </Card>
 
       <Card style={{ marginBottom: spacing.md }}>
-        <Text style={{ color: c.text, fontWeight: '700', fontSize: 14, marginBottom: spacing.sm }}>{t('accountInfoTitle')}</Text>
-        <InfoRow label="Email" value={user?.email ?? ''} c={c} />
-        <InfoRow label={t('roleLabel')} value={user?.role ?? 'user'} c={c} />
+        <SectionHeader icon={ShieldCheck} label={t('accountInfoTitle')} c={c} />
+        <InfoRow icon={Mail} label="Email" value={user?.email ?? ''} c={c} />
+        <InfoRow icon={ShieldCheck} label={t('roleLabel')} value={user?.role ?? 'user'} c={c} />
         {/* Test/destek sürecinde "telefonda gerçekten hangi build kurulu?"
             sorusunu kesin olarak cevaplamak için gösteriliyor.
             expo-application, EAS'in "remote" versiyonlama ile atadığı gerçek
@@ -144,11 +158,13 @@ export default function ProfileScreen() {
             kullanılmıştı ama bunlar expo-constants'ın bu sürümünde artık
             kaldırılmış; cihazda "? (?)" görünmesinin sebebi buydu. */}
         <InfoRow
+          icon={Info}
           label={t('appVersionLabel') || 'Sürüm'}
           value={`${Application.nativeApplicationVersion ?? Constants.expoConfig?.version ?? '?'} (${
             Application.nativeBuildVersion ?? '?'
           })`}
           c={c}
+          last
         />
       </Card>
 
@@ -156,12 +172,7 @@ export default function ProfileScreen() {
 
       {/* Referans/Davet Programı — V2 öncelik #8, 12 Eylül 2026 */}
       <Card style={{ marginBottom: spacing.md }}>
-        <View style={[styles.rowBetween, { marginBottom: spacing.sm }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Gift size={16} color={c.text} />
-            <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{mt('referralSectionTitle')}</Text>
-          </View>
-        </View>
+        <SectionHeader icon={Gift} label={mt('referralSectionTitle')} c={c} />
         <Text style={{ color: c.textSecondary, fontSize: 12, marginBottom: spacing.md }}>{mt('referralSectionDesc')}</Text>
 
         {referralsLoading ? (
@@ -220,17 +231,20 @@ export default function ProfileScreen() {
 
       <Card style={{ marginBottom: spacing.md }}>
         <View style={styles.rowBetween}>
-          <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{t('myLanguagesTitle')}</Text>
-          <Pressable onPress={() => setAddLangOpen(true)}>
-            <Text style={{ color: c.primary, fontWeight: '600', fontSize: 13 }}>+ {t('addLanguageBtn')}</Text>
+          <SectionHeader icon={LanguagesIcon} label={t('myLanguagesTitle')} c={c} noMargin />
+          <Pressable onPress={() => setAddLangOpen(true)} style={[styles.addLangBtn, { backgroundColor: c.primarySoft }]}>
+            <Text style={{ color: c.primary, fontWeight: '700', fontSize: 12 }}>+ {t('addLanguageBtn')}</Text>
           </Pressable>
         </View>
         {(myLanguages ?? []).map((ul) => {
           const lang = langName(ul.learning_lang);
           return (
             <View key={ul.id} style={styles.langRow}>
-              <Text style={{ flex: 1, color: c.text, fontSize: 14 }}>
-                {lang?.flag_emoji} {lang?.name_native ?? ul.learning_lang}
+              <View style={[styles.langFlagWrap, { backgroundColor: c.background }]}>
+                <Text style={{ fontSize: 16 }}>{lang?.flag_emoji ?? '🌐'}</Text>
+              </View>
+              <Text style={{ flex: 1, color: c.text, fontSize: 14, fontWeight: '600' }}>
+                {lang?.name_native ?? ul.learning_lang}
               </Text>
               {ul.is_active ? (
                 <View style={[styles.badge, { backgroundColor: c.successSoft }]}>
@@ -261,7 +275,7 @@ export default function ProfileScreen() {
       </Card>
 
       <Card style={{ marginBottom: spacing.md }}>
-        <Text style={{ color: c.text, fontWeight: '700', fontSize: 14, marginBottom: spacing.sm }}>{t('interfaceLanguageLabel')}</Text>
+        <SectionHeader icon={Globe} label={t('interfaceLanguageLabel')} c={c} />
         <View style={styles.localeGrid}>
           {LOCALE_META.map((l) => (
             <Pressable
@@ -276,32 +290,45 @@ export default function ProfileScreen() {
       </Card>
 
       <Card style={{ marginBottom: spacing.md }}>
-        <Text style={{ color: c.text, fontWeight: '700', fontSize: 14, marginBottom: spacing.sm }}>{mt('themeSectionTitle')}</Text>
+        <SectionHeader icon={Sun} label={mt('themeSectionTitle')} c={c} />
         <View style={styles.localeGrid}>
-          {(['light', 'dark', 'system'] as const).map((opt) => (
-            <Pressable
-              key={opt}
-              onPress={() => setMode(opt)}
-              style={[styles.localeChip, { borderColor: mode === opt ? c.primary : c.border, backgroundColor: mode === opt ? c.primarySoft : c.surface }]}
-            >
-              <Text style={{ color: mode === opt ? c.primary : c.text, fontWeight: mode === opt ? '600' : '400' }}>
-                {opt === 'light' ? mt('themeLight') : opt === 'dark' ? mt('themeDark') : mt('themeSystem')}
-              </Text>
-            </Pressable>
-          ))}
+          {(['light', 'dark', 'system'] as const).map((opt) => {
+            const active = mode === opt;
+            const OptIcon = opt === 'light' ? Sun : opt === 'dark' ? Moon : Smartphone;
+            return (
+              <Pressable
+                key={opt}
+                onPress={() => setMode(opt)}
+                style={[styles.localeChip, styles.themeChip, { borderColor: active ? c.primary : c.border, backgroundColor: active ? c.primarySoft : c.surface }]}
+              >
+                <OptIcon size={14} color={active ? c.primary : c.textSecondary} />
+                <Text style={{ color: active ? c.primary : c.text, fontWeight: active ? '700' : '400' }}>
+                  {opt === 'light' ? mt('themeLight') : opt === 'dark' ? mt('themeDark') : mt('themeSystem')}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </Card>
 
-      <Button title={t('logout')} variant="danger" onPress={handleLogout} />
-
-      <View style={{ marginTop: spacing.sm }}>
-        <Button
-          title={mt('deleteAccountBtn')}
-          variant="danger"
-          loading={deleteAccountMutation.isPending}
+      {/* "Tehlikeli Bölge" — çıkış/hesap silme aksiyonları görsel olarak
+          ayrıştırılıp ikonlu hale getirildi (27 Eylül 2026); davranış/mutasyon
+          mantığı birebir aynı kaldı. */}
+      <View style={styles.dangerZone}>
+        <Pressable onPress={handleLogout} style={[styles.dangerRow, { borderColor: c.dangerSoft }]}>
+          <LogOut color={c.danger} size={16} />
+          <Text style={{ color: c.danger, fontWeight: '700', fontSize: 14, flex: 1, marginLeft: spacing.sm }}>{t('logout')}</Text>
+        </Pressable>
+        <Pressable
           onPress={handleDeleteAccount}
-        />
+          disabled={deleteAccountMutation.isPending}
+          style={[styles.dangerRow, { borderColor: c.dangerSoft, opacity: deleteAccountMutation.isPending ? 0.6 : 1 }]}
+        >
+          <Trash2 color={c.danger} size={16} />
+          <Text style={{ color: c.danger, fontWeight: '700', fontSize: 14, flex: 1, marginLeft: spacing.sm }}>{mt('deleteAccountBtn')}</Text>
+        </Pressable>
       </View>
+      </ScrollView>
 
       <AddLanguageModal
         visible={addLangOpen}
@@ -317,10 +344,50 @@ export default function ProfileScreen() {
   );
 }
 
-function InfoRow({ label, value, c }: { label: string; value: string; c: ReturnType<typeof useThemeColors> }) {
+// 27 Eylül 2026 — kart başlıklarına renkli ikon rozeti eklemek için ortak
+// bir bileşen (Sıralama/Çalışma Programı ekranlarındaki iconBadgeSm deseniyle
+// tutarlı). `noMargin`, başlık bir `rowBetween` içinde başka bir elemanla
+// (ör. "+ Dil Ekle" linki) aynı satırdaysa alt boşluğu kaldırmak için.
+function SectionHeader({
+  icon: Icon,
+  label,
+  c,
+  noMargin,
+}: {
+  icon: React.ComponentType<{ color?: string; size?: number }>;
+  label: string;
+  c: ReturnType<typeof useThemeColors>;
+  noMargin?: boolean;
+}) {
   return (
-    <View style={styles.rowBetween}>
-      <Text style={{ color: c.textMuted, fontSize: 13 }}>{label}</Text>
+    <View style={[styles.sectionHeader, !noMargin && { marginBottom: spacing.sm }]}>
+      <View style={[styles.sectionIconWrap, { backgroundColor: c.primarySoft }]}>
+        <Icon color={c.primary} size={14} />
+      </View>
+      <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>{label}</Text>
+    </View>
+  );
+}
+
+function InfoRow({
+  icon: Icon,
+  label,
+  value,
+  c,
+  last,
+}: {
+  icon?: React.ComponentType<{ color?: string; size?: number }>;
+  label: string;
+  value: string;
+  c: ReturnType<typeof useThemeColors>;
+  last?: boolean;
+}) {
+  return (
+    <View style={[styles.infoRow, !last && { borderBottomWidth: 1, borderBottomColor: c.border }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+        {Icon ? <Icon color={c.textMuted} size={13} /> : null}
+        <Text style={{ color: c.textMuted, fontSize: 13 }}>{label}</Text>
+      </View>
       <Text style={{ color: c.text, fontSize: 13, fontWeight: '600' }}>{value}</Text>
     </View>
   );
@@ -379,11 +446,49 @@ function AddLanguageModal({
 }
 
 const styles = StyleSheet.create({
+  hero: {
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    borderBottomLeftRadius: radius.xl + 4,
+    borderBottomRightRadius: radius.xl + 4,
+  },
+  heroAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.sm,
+  },
+  heroAvatarText: { fontSize: 26, fontWeight: '800', color: '#FFFFFF' },
+  heroName: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', maxWidth: 280 },
+  heroEmail: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2, maxWidth: 280 },
+  scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  sectionIconWrap: { width: 26, height: 26, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
-  langRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: 'rgba(128,128,128,0.15)' },
+  infoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: spacing.sm },
+  langRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm, borderTopWidth: 1, borderTopColor: 'rgba(128,128,128,0.15)' },
+  langFlagWrap: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  addLangBtn: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.full },
   badge: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radius.full },
   localeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   localeChip: { borderWidth: 1.5, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  themeChip: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dangerZone: { gap: spacing.sm, marginTop: spacing.xs },
+  dangerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+  },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   modalCard: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, padding: spacing.lg, maxHeight: '80%' },
   modalTitle: { fontSize: 18, fontWeight: '700', marginBottom: spacing.md },
