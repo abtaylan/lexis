@@ -274,6 +274,12 @@ async def run_monthly_user_report(
 # Yukaridaki job'larla ayni sebep/desen: Resend (e-posta) gercek dis ag
 # erisimi gerektiriyor, bu yuzden burada, disaridan (GitHub Actions)
 # tetikleniyor. Script: backend/weekly_weak_categories_email.py.
+# 27 Eylul 2026 -- Resend Free plan gunluk 100 e-posta siniri yuzunden bu
+# job artik TEK GUNDE degil, gunluk cagrilarla (Pazar-Persembe, bkz.
+# .github/workflows/weekly-weak-categories-email.yml) listenin bir sonraki
+# dilimini isliyor; already_ran_today burada da gunde-tek-calisma
+# garantisini (yanlislikla ayni gun iki kez tetiklenmeyi) korumaya devam
+# ediyor.
 @router.post("/weekly-weak-categories-email")
 async def run_weekly_weak_categories_email(
     x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),

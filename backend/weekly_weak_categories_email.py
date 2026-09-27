@@ -31,10 +31,7 @@ from app.core.database import supabase_admin
 from app.services.auth_users import list_all_auth_users
 from app.services.email_service import send_weekly_weak_categories_email
 from app.services.job_log import job_run
-from app.services.weak_categories_service import (
-    get_weak_difficulty_levels,
-    get_weak_word_types,
-)
+from app.services.weak_categories_service import get_weak_difficulty_levels, get_weak_word_types
 
 _LOOKBACK_DAYS = 30
 

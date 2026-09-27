@@ -2,14 +2,23 @@ name: Lexis - weekly weak categories email
 
 on:
   schedule:
-    # Pazar 19:00 Turkiye saati (UTC+3, DST yok) civari, 10 dakikada bir
-    # 6 deneme (16:00-16:50 UTC Pazar) -- weekly-admin-report.yml (Pazartesi
-    # sabahi) ile CAKISMASIN diye farkli gun/saat secildi; "haftani
-    # degerlendir" e-postasi icin hafta sonu aksami mantikli. Ayni gerekce:
-    # GitHub Actions'in haftada tek bir sabit dakikadaki cron tick'i bazen
-    # sessizce hic calismayabiliyor, backend tarafinda already_ran_today
-    # (gunluk takvim gunu bazinda) ile haftada tek gonderim garantisi var.
-    - cron: '5,15,25,35,45,55 16 * * 0'
+    # Pazar-Persembe (0-4), 19:00 Turkiye saati (UTC+3, DST yok) civari,
+    # 10 dakikada bir 6 deneme (16:00-16:50 UTC) -- weekly-admin-report.yml
+    # (Pazartesi sabahi) ile CAKISMASIN diye farkli gun/saat secildi.
+    #
+    # 27 Eylul 2026 -- Resend Free plan gunluk 100 e-posta siniri yuzunden
+    # (bkz. weekly_weak_categories_email.py basindaki not) is artik TEK
+    # GUNE (Pazar) degil, gunde en fazla _DAILY_SEND_CAP kisiye bolunerek
+    # Pazar'dan baslayip gerekirse Persembe'ye kadar surdurulen 5 gunluk
+    # bir pencereye yayiliyor; script her gun listenin bir sonraki dilimini
+    # isliyor (bkz. _week_start_and_offset). Ayni gerekce: GitHub Actions'in
+    # haftada tek bir sabit dakikadaki cron tick'i bazen sessizce hic
+    # calismayabiliyor, backend tarafinda already_ran_today (gunluk takvim
+    # gunu bazinda) ile gunde tek gonderim garantisi var.
+    #
+    # Ucretli plana (gunluk limit kalkiyor) gecildiginde bu satir tekrar
+    # '5,15,25,35,45,55 16 * * 0' olarak Pazar'a daraltilabilir.
+    - cron: '5,15,25,35,45,55 16 * * 0,1,2,3,4'
   workflow_dispatch: {}
 
 jobs:
