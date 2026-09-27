@@ -158,11 +158,30 @@ def _get_session(session_id: str, user_id: str) -> dict:
     return result.data[0]
 
 
+# BUG FIX (27 Eylul 2026, kullanici bildirimi -- "Adam Asmaca oynarken
+# bazen bir seyler ters gitti hatasi veriyor"): _attempted_ids() bu oturumda
+# denenmis TUM kelime id'lerini SINIRSIZ donduruyordu, next_word()/
+# _choose_general_word() bunlari `.not_.in_("id", attempted)` ile her
+# next-word cagrisinda SORGUYA GERI GONDERIYORDU. Uzun bir oyun oturumunda
+# (tek oturumda onlarca/yuzlerce tur) bu liste surekli buyudugu icin GET
+# istegi olarak gonderilen sorgu URL'i (her UUID ~36 karakter) bir sure
+# sonra PostgREST/Kong proxy'sinin varsayilan URL/header uzunlugu sinirini
+# asip 414/sunucu hatasi olarak geri donuyordu -- istemci bunu jenerik
+# "Bir seyler ters gitti" hatasiyla yakaliyordu (bkz. game.tsx loadNext()
+# catch bloğu). Cozum: sadece SON ATTEMPTED_IDS_LIMIT denemeyi (en yeni
+# `created_at` sirasiyla) tekrar-onleme filtresine sokuyoruz -- cok uzun
+# bir oturumda cok eski bir kelimenin bir kez daha gelmesi (nadir, zararsiz)
+# oyunun tamamen cokmesinden acikca daha iyi bir basarisizlik modu.
+ATTEMPTED_IDS_LIMIT = 200
+
+
 def _attempted_ids(session_id: str, field: str) -> list[str]:
     result = (
         supabase_admin.table("game_attempts")
-        .select(field)
+        .select(f"{field}, created_at")
         .eq("session_id", session_id)
+        .order("created_at", desc=True)
+        .limit(ATTEMPTED_IDS_LIMIT)
         .execute()
     )
     return [row[field] for row in (result.data or []) if row.get(field)]
@@ -429,17 +448,28 @@ def _reveal_pattern(word: str, guessed_letters: list[str]) -> str:
 
 
 def _fetch_word_text(word_id: str | None, general_word_id: str | None) -> str:
-    if word_id:
-        row = supabase_admin.table("words").select("word").eq("id", word_id).single().execute()
-    else:
-        row = (
-            supabase_admin.table("general_word_pool")
-            .select("word")
-            .eq("id", general_word_id)
-            .single()
-            .execute()
-        )
-    if not row.data:
+    # BUG FIX (27 Eylul 2026): `.single()` PostgREST'te 0 (veya 1'den fazla)
+    # satir donerse `if not row.data` kontrolune HIC ULASMADAN supabase-py
+    # tarafinda bir istisna (APIError) firlatir -- yani kelime silinmis/
+    # gecersiz bir id'ye referans varsa (ornegin ayni anda calisan baska bir
+    # temizlik islemi, ya da tutarsiz bir eski oturum state'i) bu fonksiyon
+    # yakalanmayan bir 500 firlatiyordu (istemci bunu jenerik "Bir seyler
+    # ters gitti" hatasi olarak gosteriyordu). Artik bu durum da temiz bir
+    # 404'e ceviriliyor.
+    try:
+        if word_id:
+            row = supabase_admin.table("words").select("word").eq("id", word_id).single().execute()
+        else:
+            row = (
+                supabase_admin.table("general_word_pool")
+                .select("word")
+                .eq("id", general_word_id)
+                .single()
+                .execute()
+            )
+    except Exception:
+        row = None
+    if not row or not row.data:
         raise HTTPException(status_code=404, detail="Kelime bulunamadı.")
     return row.data["word"]
 
