@@ -72,6 +72,7 @@ from app.services.exam_question_generator import (
     verify_question,
 )
 from app.services.spaced_repetition import calculate_next_review
+from app.services.study_program_service import invalidate_current_week
 from app.services.xp_service import award_xp
 
 router = APIRouter()
@@ -821,6 +822,10 @@ def _store_placement_level(user_id: str, learning_lang: str, level: str, complet
         }
     ).execute()
 
+    # Bkz. study_program_service.invalidate_current_week docstring'i --
+    # bu haftanin programi ESKI seviyeyle uretilmis olabilir, silinip bir
+    # sonraki istekte GUNCEL current_level ile yeniden uretilmesi saglanir.
+    invalidate_current_week(user_id, learning_lang)
 
 
 # ── Seviye Tespit Sınavı — devam (resume) ve yarım kalan oturumları kapatma ──

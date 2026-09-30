@@ -330,6 +330,25 @@ def get_or_create_program(user_id: str, learning_lang: str) -> dict[str, Any]:
     return _load(user_id, learning_lang, ws) or _generate(user_id, learning_lang, ws)
 
 
+# 30 Eylul 2026 -- kullanici bildirimi: "Bu haftanin programinda Seviye A1
+# yaziyor ama benim seviyem B2, celiski var". Kok neden: bu haftanin
+# study_programs satiri seviye DEGISMEDEN ONCE (ornegin placement sinavi
+# HENUZ cozulmemisken varsayilan/eski seviyeyle) uretilip DB'ye yazilmisti;
+# _generate() sadece satir hic yoksa calisiyor, bir sonraki hafta
+# basina kadar yeniden uretmiyor (haftalik "rolling program" tasarimi
+# boyle -- bkz. dosya basindaki docstring). Seviye degisikligi (placement
+# tamamlandi / periyodik yeniden degerlendirme) bu satiyi ESKI seviyeyle
+# kilitli birakiyordu. Cagiran taraf (exams.py::_store_placement_level,
+# level_assessment_service.py) current_level guncellendigi ANDA bunu
+# cagirarak bu haftanin satirini siler -- bir sonraki get_or_create_program
+# cagrisi GUNCEL seviyeyle (yeni odak konularla birlikte) yeniden uretir.
+def invalidate_current_week(user_id: str, learning_lang: str) -> None:
+    ws = week_start_tr()
+    supabase_admin.table("study_programs").delete().eq("user_id", user_id).eq(
+        "learning_lang", learning_lang
+    ).eq("week_start", ws.isoformat()).execute()
+
+
 # ── canli ilerleme ──────────────────────────────────────────────────────
 def _count(table: str, filters: list[tuple[str, str, Any]]) -> int:
     q = supabase_admin.table(table).select("id", count="exact")

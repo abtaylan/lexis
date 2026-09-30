@@ -54,6 +54,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from app.core.database import supabase_admin
+from app.services.study_program_service import invalidate_current_week
 
 # CEFR 6 kademe, sirali -- current_level/placement_level bu kumeden gelir
 # (bkz. 078_placement_level.sql / 079_user_level_tracking.sql CHECK'leri).
@@ -257,6 +258,10 @@ def reassess_user_level(user_id: str, learning_lang: str) -> dict[str, Any] | No
                 "assessed_at": now_iso,
             }
         ).execute()
+        # Bkz. study_program_service.invalidate_current_week docstring'i --
+        # seviye degistiginde bu haftanin programi eski seviyeyle kilitli
+        # kalmasin diye silinip bir sonraki istekte yeniden uretiliyor.
+        invalidate_current_week(user_id, learning_lang)
 
     return {
         "user_id": user_id,
