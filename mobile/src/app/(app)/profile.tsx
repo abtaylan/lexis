@@ -4,7 +4,8 @@ import Constants from 'expo-constants';
 import * as Application from 'expo-application';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Gift, Mail, ShieldCheck, Info, Globe, Sun, Moon, Smartphone, LogOut, Trash2, Languages as LanguagesIcon } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { Gift, Mail, ShieldCheck, Info, Globe, Sun, Moon, Smartphone, LogOut, Trash2, Languages as LanguagesIcon, Crown, ChevronRight } from 'lucide-react-native';
 import { useLocale, LOCALE_META } from '@/i18n';
 import { authApi } from '@/api/auth';
 import { languagesApi, userLanguagesApi } from '@/api/languages';
@@ -136,6 +137,49 @@ export default function ProfileScreen() {
       </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      {/* Premium giriş kartı — 3 Ekim 2026: mobil uygulamada aboneliğe
+          geçilecek bir giriş noktası yoktu (premium.tsx ekranı app/(app)
+          altında vardı ama hiçbir yerden link verilmiyordu, tab bar'da da
+          href:null ile gizliydi). Profile sayfasının en üstüne, hero'nun
+          hemen altına eklendi — kullanıcı premiumsa durumu+dönem sonu
+          gösterir, değilse premium.tsx'e (expo-iap native satın alma akışı)
+          yönlendiren bir CTA gösterir. Metinler merkezi i18n sözlüğünden
+          (premiumGet/premiumActive/premiumPageSubtitle/premiumPeriodEndTpl) —
+          bunlar zaten vardı, hiç kullanılmıyordu. */}
+      <Pressable onPress={() => router.push('/(app)/premium')}>
+        <Card
+          style={[
+            { marginBottom: spacing.md },
+            user?.is_premium ? { borderWidth: 1, borderColor: c.warningSoft } : null,
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <View style={[styles.premiumIconWrap, { backgroundColor: c.warningSoft }]}>
+              <Crown color={c.warning} size={20} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: c.text, fontSize: 15, fontWeight: '700' }}>
+                {user?.is_premium ? t('premiumActive') : 'Lexis Premium'}
+              </Text>
+              <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                {user?.is_premium && user?.premium_until
+                  ? t('premiumPeriodEndTpl').replace(
+                      '{date}',
+                      new Date(user.premium_until).toLocaleDateString(locale),
+                    )
+                  : t('premiumPageSubtitle')}
+              </Text>
+            </View>
+            {!user?.is_premium && (
+              <View style={[styles.premiumCta, { backgroundColor: c.warning }]}>
+                <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '700' }}>{t('premiumGet')}</Text>
+              </View>
+            )}
+            <ChevronRight color={c.textMuted} size={18} />
+          </View>
+        </Card>
+      </Pressable>
+
       <Card style={{ marginBottom: spacing.md }}>
         <TextField label={t('displayNameLabel')} value={displayName} onChangeText={setDisplayName} />
         <TextField label={t('dailyGoalLabel')} value={dailyGoal} onChangeText={setDailyGoal} keyboardType="number-pad" />
@@ -469,6 +513,8 @@ const styles = StyleSheet.create({
   heroName: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', maxWidth: 280 },
   heroEmail: { fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 2, maxWidth: 280 },
   scrollContent: { padding: spacing.lg, paddingBottom: spacing.xxl },
+  premiumIconWrap: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  premiumCta: { paddingHorizontal: spacing.sm, paddingVertical: 6, borderRadius: radius.full },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   sectionIconWrap: { width: 26, height: 26, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm },
