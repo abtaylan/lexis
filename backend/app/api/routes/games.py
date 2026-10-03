@@ -79,6 +79,7 @@ sayı sunucudaki game_attempts kayıtlarından türetilir. Detay:
 LEXIS_XP_YENI_KURALLAR.md
 """
 
+import logging
 import random
 from datetime import UTC, datetime
 
@@ -106,6 +107,8 @@ from app.services.spaced_repetition import calculate_next_review
 from app.services.streak import update_streak
 from app.services.weak_categories_service import get_weak_difficulty_levels
 from app.services.xp_service import award_xp
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -643,202 +646,221 @@ async def next_word(
     if session.get("ended_at"):
         raise HTTPException(status_code=400, detail="Oturum zaten bitmiş.")
 
-    pool_source = session["pool_source"]
-    mode = session["mode"]
-    direction = session.get("direction", Direction.word_to_meaning.value)
+    try:
+        pool_source = session["pool_source"]
+        mode = session["mode"]
+        direction = session.get("direction", Direction.word_to_meaning.value)
 
-    if pool_source == "own":
-        attempted = _attempted_ids(session_id, "word_id")
-        query = (
-            supabase_admin.table("words")
-            .select("id, word, meaning, meaning_native, example, next_review_at")
-            .eq("user_id", current_user.id)
-        )
-        if attempted:
-            query = query.not_.in_("id", attempted)
-        candidates = (query.limit(CANDIDATE_FETCH_LIMIT).execute().data) or []
+        if pool_source == "own":
+            attempted = _attempted_ids(session_id, "word_id")
+            query = (
+                supabase_admin.table("words")
+                .select("id, word, meaning, meaning_native, example, next_review_at")
+                .eq("user_id", current_user.id)
+            )
+            if attempted:
+                query = query.not_.in_("id", attempted)
+            candidates = (query.limit(CANDIDATE_FETCH_LIMIT).execute().data) or []
 
-        if not candidates:
-            return NextWordResponse(finished=True)
+            if not candidates:
+                return NextWordResponse(finished=True)
 
-        # Kelime Zinciri (28 Eylül 2026) -- bir önceki turda seçilen kelimenin
-        # SON harfiyle başlayan adaylara daraltılır (game_sessions.state.
-        # required_letter, bkz. aşağıdaki state güncellemesi). İlk tur ya da
-        # bu harfle başlayan HİÇ aday kalmamışsa (küçük kelime havuzlarında
-        # olası), filtre uygulanmaz -- zincir o turda "sıfırlanmış" sayılır,
-        # oyun asla tıkanmaz.
-        if mode == "word_chain":
-            chain_state = session.get("state") or {}
-            required_letter = chain_state.get("required_letter")
-            if required_letter:
-                filtered = [
-                    c for c in candidates
-                    if (c.get("word") or "").lower().startswith(required_letter)
-                ]
-                if filtered:
-                    candidates = filtered
+            # Kelime Zinciri (28 Eylül 2026) -- bir önceki turda seçilen kelimenin
+            # SON harfiyle başlayan adaylara daraltılır (game_sessions.state.
+            # required_letter, bkz. aşağıdaki state güncellemesi). İlk tur ya da
+            # bu harfle başlayan HİÇ aday kalmamışsa (küçük kelime havuzlarında
+            # olası), filtre uygulanmaz -- zincir o turda "sıfırlanmış" sayılır,
+            # oyun asla tıkanmaz.
+            if mode == "word_chain":
+                chain_state = session.get("state") or {}
+                required_letter = chain_state.get("required_letter")
+                if required_letter:
+                    filtered = [
+                        c for c in candidates
+                        if (c.get("word") or "").lower().startswith(required_letter)
+                    ]
+                    if filtered:
+                        candidates = filtered
 
-        # Boşluk Doldurma (28 Eylül 2026) -- cümle içi boşluk doldurma için
-        # örnek cümlesi (example) olan kelimeler tercih edilir; hiç örnek
-        # cümleli aday kalmazsa filtre uygulanmaz (istemci tarafında typing
-        # moduyla aynı akışa (anlamdan kelime bulma) düşülür, bkz. mobile).
-        if mode == "fill_blank":
-            with_example = [c for c in candidates if c.get("example")]
-            if with_example:
-                candidates = with_example
+            # Boşluk Doldurma (28 Eylül 2026) -- cümle içi boşluk doldurma için
+            # örnek cümlesi (example) olan kelimeler tercih edilir; hiç örnek
+            # cümleli aday kalmazsa filtre uygulanmaz (istemci tarafında typing
+            # moduyla aynı akışa (anlamdan kelime bulma) düşülür, bkz. mobile).
+            if mode == "fill_blank":
+                with_example = [c for c in candidates if c.get("example")]
+                if with_example:
+                    candidates = with_example
 
-        # 24 Eylul 2026 -- kendi kelimelerinde de vadesi gelen SM-2
-        # tekrarlari %70 olasilikla once sorulur.
-        now_iso = datetime.now(UTC).isoformat()
-        due = [c for c in candidates if c.get("next_review_at") and c["next_review_at"] <= now_iso]
-        if due and random.random() < REVIEW_SHARE:
-            chosen = random.choice(due)
+            # 24 Eylul 2026 -- kendi kelimelerinde de vadesi gelen SM-2
+            # tekrarlari %70 olasilikla once sorulur.
+            now_iso = datetime.now(UTC).isoformat()
+            due = [c for c in candidates if c.get("next_review_at") and c["next_review_at"] <= now_iso]
+            if due and random.random() < REVIEW_SHARE:
+                chosen = random.choice(due)
+            else:
+                chosen = random.choice(candidates)
+            meaning_text = chosen.get("meaning_native") or chosen.get("meaning")
+            chosen_word_id = chosen["id"]
+            chosen_general_word_id = None
+
+            # Kelime Zinciri -- bu turda seçilen kelimenin SON harfi, bir SONRAKİ
+            # next-word çağrısının gerektireceği ilk harf olarak state'e yazılır.
+            if mode == "word_chain":
+                next_required_letter = (chosen.get("word") or "")[-1:].lower()
+                supabase_admin.table("game_sessions").update(
+                    {"state": {"required_letter": next_required_letter}}
+                ).eq("id", session_id).execute()
         else:
-            chosen = random.choice(candidates)
-        meaning_text = chosen.get("meaning_native") or chosen.get("meaning")
-        chosen_word_id = chosen["id"]
-        chosen_general_word_id = None
+            # pool_source == "general"
+            learning_lang, native_lang = _get_profile_langs(current_user.id)
+            attempted = _attempted_ids(session_id, "general_word_id")
+            if mode == "sentence_building":
+                # 24 Eylul 2026, Madde 2 -- ucuncu secim: temiz (kisa, tam) bir
+                # ornek cumleye sahip kelime secilir -- bkz. _choose_sentence_word().
+                chosen = _choose_sentence_word(learning_lang, native_lang, attempted)
+                if chosen is None:
+                    return NextWordResponse(finished=True)
+                meaning_text = chosen["meaning"]
+            else:
+                # 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 1: vadesi gelen
+                # tekrarlar (%70) + seviyeye gore agirlikli, rastgele pencereden
+                # yeni kelimeler (%30). Ayrinti: _choose_general_word().
+                chosen = _choose_general_word(
+                    current_user.id, learning_lang, native_lang, attempted, direction
+                )
+                if chosen is None:
+                    return NextWordResponse(finished=True)
+                meaning_text = (
+                    chosen.get("definition") if direction == Direction.definition_to_word.value
+                    else chosen["meaning"]
+                )
+            chosen_word_id = None
+            chosen_general_word_id = chosen["id"]
 
-        # Kelime Zinciri -- bu turda seçilen kelimenin SON harfi, bir SONRAKİ
-        # next-word çağrısının gerektireceği ilk harf olarak state'e yazılır.
-        if mode == "word_chain":
-            next_required_letter = (chosen.get("word") or "")[-1:].lower()
-            supabase_admin.table("game_sessions").update(
-                {"state": {"required_letter": next_required_letter}}
-            ).eq("id", session_id).execute()
-    else:
-        # pool_source == "general"
-        learning_lang, native_lang = _get_profile_langs(current_user.id)
-        attempted = _attempted_ids(session_id, "general_word_id")
+        # ── wordle (adam asmaca) modu: kelime metni İSTEMCİYE GÖNDERİLMEZ ──
+        # (her zaman meaning->word yönünde çalışır, direction alanı burada kullanılmaz)
+        if mode == "wordle":
+            new_state = {
+                "current_word_id": chosen_word_id,
+                "current_general_word_id": chosen_general_word_id,
+                "guessed_letters": [],
+                "wrong_guesses": 0,
+            }
+            supabase_admin.table("game_sessions").update({"state": new_state}).eq(
+                "id", session_id
+            ).execute()
+
+            word_text = chosen["word"]
+            return NextWordResponse(
+                finished=False,
+                word_id=chosen_word_id,
+                general_word_id=chosen_general_word_id,
+                meaning=meaning_text,
+                word_length=len(word_text),
+                revealed=_reveal_pattern(word_text, []),
+                max_wrong_guesses=MAX_WRONG_GUESSES,
+            )
+
+        # ── sentence_building (cümle kurma) modu: DOĞRU sırada tokenlar
+        # gönderilir (word_to_meaning'de kelimenin kendisinin gönderilmesiyle
+        # AYNI güven modeli) -- istemci kendi karıştırır, kendi kontrol eder,
+        # submit_attempt'e is_correct olarak kendi bildirir. ──
         if mode == "sentence_building":
-            # 24 Eylul 2026, Madde 2 -- ucuncu secim: temiz (kisa, tam) bir
-            # ornek cumleye sahip kelime secilir -- bkz. _choose_sentence_word().
-            chosen = _choose_sentence_word(learning_lang, native_lang, attempted)
-            if chosen is None:
-                return NextWordResponse(finished=True)
-            meaning_text = chosen["meaning"]
-        else:
-            # 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 1: vadesi gelen
-            # tekrarlar (%70) + seviyeye gore agirlikli, rastgele pencereden
-            # yeni kelimeler (%30). Ayrinti: _choose_general_word().
-            chosen = _choose_general_word(
-                current_user.id, learning_lang, native_lang, attempted, direction
+            return NextWordResponse(
+                finished=False,
+                general_word_id=chosen_general_word_id,
+                meaning=meaning_text,
+                example=chosen.get("example"),
+                sentence_tokens=(chosen.get("example") or "").split(),
             )
-            if chosen is None:
-                return NextWordResponse(finished=True)
-            meaning_text = (
-                chosen.get("definition") if direction == Direction.definition_to_word.value
-                else chosen["meaning"]
-            )
-        chosen_word_id = None
-        chosen_general_word_id = chosen["id"]
 
-    # ── wordle (adam asmaca) modu: kelime metni İSTEMCİYE GÖNDERİLMEZ ──
-    # (her zaman meaning->word yönünde çalışır, direction alanı burada kullanılmaz)
-    if mode == "wordle":
-        new_state = {
-            "current_word_id": chosen_word_id,
-            "current_general_word_id": chosen_general_word_id,
-            "guessed_letters": [],
-            "wrong_guesses": 0,
-        }
-        supabase_admin.table("game_sessions").update({"state": new_state}).eq(
-            "id", session_id
-        ).execute()
+        # ── multiple_choice modu (direction'a göre iki farklı yön) ──
+        options = None
+        if mode in ("multiple_choice", "true_false"):
+            if direction in (Direction.meaning_to_word.value, Direction.definition_to_word.value):
+                # Anlam VEYA tanım gösterilir, doğru KELİME 4 seçenekten bulunur.
+                # (definition_to_word'de pool_source her zaman "general" — create_session'da
+                # doğrulanıyor — bu yüzden "own" dalı burada pratikte hiç tetiklenmez.)
+                correct_text = chosen["word"]
+                if pool_source == "own":
+                    distractor_query = (
+                        supabase_admin.table("words")
+                        .select("id, word")
+                        .eq("user_id", current_user.id)
+                        .neq("id", chosen["id"])
+                        .limit(DISTRACTOR_FETCH_LIMIT)
+                    )
+                    distractor_rows = distractor_query.execute().data or []
+                    distractor_texts = [d["word"] for d in distractor_rows]
+                else:
+                    learning_lang, native_lang = _get_profile_langs(current_user.id)
+                    distractor_query = (
+                        supabase_admin.table("general_word_pool")
+                        .select("id, word")
+                        .eq("source_lang", learning_lang)
+                        .eq("target_lang", native_lang)
+                        .neq("id", chosen["id"])
+                        .limit(DISTRACTOR_FETCH_LIMIT)
+                    )
+                    distractor_rows = distractor_query.execute().data or []
+                    distractor_texts = [d["word"] for d in distractor_rows]
+                options = _build_options(correct_text, distractor_texts)
+            else:
+                # word_to_meaning (varsayılan): kelime gösterilir, doğru ANLAM 4 seçenekten bulunur.
+                if pool_source == "own":
+                    distractor_query = (
+                        supabase_admin.table("words")
+                        .select("id, meaning, meaning_native")
+                        .eq("user_id", current_user.id)
+                        .neq("id", chosen["id"])
+                        .limit(DISTRACTOR_FETCH_LIMIT)
+                    )
+                    distractor_rows = distractor_query.execute().data or []
+                    distractor_texts = [
+                        (d.get("meaning_native") or d.get("meaning")) for d in distractor_rows
+                    ]
+                else:
+                    learning_lang, native_lang = _get_profile_langs(current_user.id)
+                    distractor_query = (
+                        supabase_admin.table("general_word_pool")
+                        .select("id, meaning")
+                        .eq("source_lang", learning_lang)
+                        .eq("target_lang", native_lang)
+                        .neq("id", chosen["id"])
+                        .limit(DISTRACTOR_FETCH_LIMIT)
+                    )
+                    distractor_rows = distractor_query.execute().data or []
+                    distractor_texts = [d["meaning"] for d in distractor_rows]
+                options = _build_options(meaning_text, distractor_texts)
 
-        word_text = chosen["word"]
         return NextWordResponse(
             finished=False,
             word_id=chosen_word_id,
             general_word_id=chosen_general_word_id,
-            meaning=meaning_text,
-            word_length=len(word_text),
-            revealed=_reveal_pattern(word_text, []),
-            max_wrong_guesses=MAX_WRONG_GUESSES,
-        )
-
-    # ── sentence_building (cümle kurma) modu: DOĞRU sırada tokenlar
-    # gönderilir (word_to_meaning'de kelimenin kendisinin gönderilmesiyle
-    # AYNI güven modeli) -- istemci kendi karıştırır, kendi kontrol eder,
-    # submit_attempt'e is_correct olarak kendi bildirir. ──
-    if mode == "sentence_building":
-        return NextWordResponse(
-            finished=False,
-            general_word_id=chosen_general_word_id,
+            word=chosen["word"],
             meaning=meaning_text,
             example=chosen.get("example"),
-            sentence_tokens=(chosen.get("example") or "").split(),
+            options=options,
+            direction=direction if mode in ("multiple_choice", "true_false") else None,
         )
-
-    # ── multiple_choice modu (direction'a göre iki farklı yön) ──
-    options = None
-    if mode in ("multiple_choice", "true_false"):
-        if direction in (Direction.meaning_to_word.value, Direction.definition_to_word.value):
-            # Anlam VEYA tanım gösterilir, doğru KELİME 4 seçenekten bulunur.
-            # (definition_to_word'de pool_source her zaman "general" — create_session'da
-            # doğrulanıyor — bu yüzden "own" dalı burada pratikte hiç tetiklenmez.)
-            correct_text = chosen["word"]
-            if pool_source == "own":
-                distractor_query = (
-                    supabase_admin.table("words")
-                    .select("id, word")
-                    .eq("user_id", current_user.id)
-                    .neq("id", chosen["id"])
-                    .limit(DISTRACTOR_FETCH_LIMIT)
-                )
-                distractor_rows = distractor_query.execute().data or []
-                distractor_texts = [d["word"] for d in distractor_rows]
-            else:
-                learning_lang, native_lang = _get_profile_langs(current_user.id)
-                distractor_query = (
-                    supabase_admin.table("general_word_pool")
-                    .select("id, word")
-                    .eq("source_lang", learning_lang)
-                    .eq("target_lang", native_lang)
-                    .neq("id", chosen["id"])
-                    .limit(DISTRACTOR_FETCH_LIMIT)
-                )
-                distractor_rows = distractor_query.execute().data or []
-                distractor_texts = [d["word"] for d in distractor_rows]
-            options = _build_options(correct_text, distractor_texts)
-        else:
-            # word_to_meaning (varsayılan): kelime gösterilir, doğru ANLAM 4 seçenekten bulunur.
-            if pool_source == "own":
-                distractor_query = (
-                    supabase_admin.table("words")
-                    .select("id, meaning, meaning_native")
-                    .eq("user_id", current_user.id)
-                    .neq("id", chosen["id"])
-                    .limit(DISTRACTOR_FETCH_LIMIT)
-                )
-                distractor_rows = distractor_query.execute().data or []
-                distractor_texts = [
-                    (d.get("meaning_native") or d.get("meaning")) for d in distractor_rows
-                ]
-            else:
-                learning_lang, native_lang = _get_profile_langs(current_user.id)
-                distractor_query = (
-                    supabase_admin.table("general_word_pool")
-                    .select("id, meaning")
-                    .eq("source_lang", learning_lang)
-                    .eq("target_lang", native_lang)
-                    .neq("id", chosen["id"])
-                    .limit(DISTRACTOR_FETCH_LIMIT)
-                )
-                distractor_rows = distractor_query.execute().data or []
-                distractor_texts = [d["meaning"] for d in distractor_rows]
-            options = _build_options(meaning_text, distractor_texts)
-
-    return NextWordResponse(
-        finished=False,
-        word_id=chosen_word_id,
-        general_word_id=chosen_general_word_id,
-        word=chosen["word"],
-        meaning=meaning_text,
-        example=chosen.get("example"),
-        options=options,
-        direction=direction if mode in ("multiple_choice", "true_false") else None,
-    )
+    except HTTPException:
+        raise
+    except Exception:
+        # BUG (3 Ekim 2026, kullanici bildirimi -- "art arda birkac soru
+        # sonra 'bir seyler ters gitti' hatasi aliyorum"): next_word() bu
+        # satira kadar beklenmeyen bir istisna firlatirsa (ornegin
+        # _choose_general_word/_random_window zincirindeki bir sorgu
+        # hatasi) FastAPI bunu yakalanmamis 500 olarak donduruyordu ve
+        # Railway loglari disinda hicbir iz birakmiyordu -- istemci
+        # tarafinda jenerik "Bir seyler ters gitti" hatasindan OTESINE
+        # gidip KOK NEDENI teshis etmek mumkun degildi. Artik tam
+        # traceback + oturum baglami loglaniyor (bkz. Railway loglari),
+        # boylece bir sonraki olusta kok neden buradan okunabilir.
+        logger.exception(
+            "next_word basarisiz oldu (session_id=%s, pool_source=%s, mode=%s, direction=%s)",
+            session_id, session.get("pool_source"), session.get("mode"), session.get("direction"),
+        )
+        raise HTTPException(status_code=500, detail="Sonraki kelime getirilemedi, tekrar deneyin.")
 
 
 @router.post("/sessions/{session_id}/attempt", response_model=AttemptResponse, status_code=201)
