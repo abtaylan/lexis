@@ -260,7 +260,7 @@ def _known_word_texts(user_id: str, learning_lang: str) -> set[str]:
 def _general_pool_query(learning_lang: str, native_lang: str, attempted: list[str], direction: str):
     query = (
         supabase_admin.table("general_word_pool")
-        .select("id, word, meaning, example, definition, difficulty_level")
+        .select("id, word, meaning, example, definition, difficulty_level, part_of_speech")
         .eq("source_lang", learning_lang)
         .eq("target_lang", native_lang)
         .eq("is_active", True)
@@ -794,16 +794,37 @@ async def next_word(
                     distractor_texts = [d["word"] for d in distractor_rows]
                 else:
                     learning_lang, native_lang = _get_profile_langs(current_user.id)
-                    distractor_query = (
-                        supabase_admin.table("general_word_pool")
-                        .select("id, word")
-                        .eq("source_lang", learning_lang)
-                        .eq("target_lang", native_lang)
-                        .neq("id", chosen["id"])
-                        .limit(DISTRACTOR_FETCH_LIMIT)
-                    )
-                    distractor_rows = distractor_query.execute().data or []
-                    distractor_texts = [d["word"] for d in distractor_rows]
+                    # YDS/YOKDIL onerisi (3 Ekim 2026, kullanicinin esi -- MSU
+                    # hazirlik okulu Ingilizce ogretmeni): gercek sinavlarda
+                    # yanlis siklar dogru cevapla AYNI part_of_speech'te olur
+                    # (fiil sorulursa diger siklar da fiil vb.). Once ayni
+                    # part_of_speech'ten secmeye calisilir; yetersiz kalirsa
+                    # (yeterli esit-POS kelime yoksa) eski davranisa dusulur.
+                    distractor_texts: list[str] = []
+                    chosen_pos = chosen.get("part_of_speech")
+                    if chosen_pos:
+                        pos_query = (
+                            supabase_admin.table("general_word_pool")
+                            .select("id, word")
+                            .eq("source_lang", learning_lang)
+                            .eq("target_lang", native_lang)
+                            .eq("part_of_speech", chosen_pos)
+                            .neq("id", chosen["id"])
+                            .limit(DISTRACTOR_FETCH_LIMIT)
+                        )
+                        pos_rows = pos_query.execute().data or []
+                        distractor_texts = [d["word"] for d in pos_rows]
+                    if len(distractor_texts) < 3:
+                        distractor_query = (
+                            supabase_admin.table("general_word_pool")
+                            .select("id, word")
+                            .eq("source_lang", learning_lang)
+                            .eq("target_lang", native_lang)
+                            .neq("id", chosen["id"])
+                            .limit(DISTRACTOR_FETCH_LIMIT)
+                        )
+                        distractor_rows = distractor_query.execute().data or []
+                        distractor_texts = [d["word"] for d in distractor_rows]
                 options = _build_options(correct_text, distractor_texts)
             else:
                 # word_to_meaning (varsayılan): kelime gösterilir, doğru ANLAM 4 seçenekten bulunur.
@@ -821,16 +842,34 @@ async def next_word(
                     ]
                 else:
                     learning_lang, native_lang = _get_profile_langs(current_user.id)
-                    distractor_query = (
-                        supabase_admin.table("general_word_pool")
-                        .select("id, meaning")
-                        .eq("source_lang", learning_lang)
-                        .eq("target_lang", native_lang)
-                        .neq("id", chosen["id"])
-                        .limit(DISTRACTOR_FETCH_LIMIT)
-                    )
-                    distractor_rows = distractor_query.execute().data or []
-                    distractor_texts = [d["meaning"] for d in distractor_rows]
+                    # YDS/YOKDIL onerisi (3 Ekim 2026) -- bkz. yukarisi (word
+                    # seceneklerindeki ayni yorum): dogru anlamla ayni
+                    # part_of_speech'teki kelimelerin anlamlari tercih edilir.
+                    distractor_texts: list[str] = []
+                    chosen_pos = chosen.get("part_of_speech")
+                    if chosen_pos:
+                        pos_query = (
+                            supabase_admin.table("general_word_pool")
+                            .select("id, meaning")
+                            .eq("source_lang", learning_lang)
+                            .eq("target_lang", native_lang)
+                            .eq("part_of_speech", chosen_pos)
+                            .neq("id", chosen["id"])
+                            .limit(DISTRACTOR_FETCH_LIMIT)
+                        )
+                        pos_rows = pos_query.execute().data or []
+                        distractor_texts = [d["meaning"] for d in pos_rows]
+                    if len(distractor_texts) < 3:
+                        distractor_query = (
+                            supabase_admin.table("general_word_pool")
+                            .select("id, meaning")
+                            .eq("source_lang", learning_lang)
+                            .eq("target_lang", native_lang)
+                            .neq("id", chosen["id"])
+                            .limit(DISTRACTOR_FETCH_LIMIT)
+                        )
+                        distractor_rows = distractor_query.execute().data or []
+                        distractor_texts = [d["meaning"] for d in distractor_rows]
                 options = _build_options(meaning_text, distractor_texts)
 
         return NextWordResponse(
