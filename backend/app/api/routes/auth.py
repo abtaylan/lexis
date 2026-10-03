@@ -556,11 +556,29 @@ async def reset_password(req: ResetPasswordRequest):
 
     return {"message": "Şifren başarıyla güncellendi. Şimdi giriş yapabilirsin."}
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
 @router.post("/refresh")
-async def refresh_token(refresh_token: str):
+async def refresh_token(req: RefreshTokenRequest):
+    """
+    Access token suresi dolduğunda (Supabase varsayılanı: 1 saat) mobil/web
+    istemcilerin kullanıcıyı tekrar şifre girmeye zorlamadan oturumu
+    yenilemesi icin (bkz. mobile/src/api/client.ts response interceptor).
+    Supabase refresh token rotation'ı acık olduğundan donen yeni
+    refresh_token de MUTLAKA istemci tarafında saklanmalı -- eski
+    refresh_token tek kullanımlık, bir daha kullanılamaz.
+    """
     try:
-        result = supabase_admin.auth.refresh_session(refresh_token)
-        return {"access_token": result.session.access_token}
+        result = supabase_admin.auth.refresh_session(req.refresh_token)
+        if not result.session:
+            raise HTTPException(status_code=401, detail="Token yenilenemedi.")
+        return {
+            "access_token": result.session.access_token,
+            "refresh_token": result.session.refresh_token,
+        }
+    except HTTPException:
+        raise
     except Exception:
         raise HTTPException(status_code=401, detail="Token yenilenemedi.")
 
