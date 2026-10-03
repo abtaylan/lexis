@@ -23,7 +23,18 @@
 // bu ucunu false dondurur, kullanan ekranlar bu durumda klavyeyi hic
 // gostermeyip "bu dil icin bu oyun modu yakinda" mesaji gostermeli.
 export const LATIN_KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
-export const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'فقكلمنهوي'];
+// KULLANICI GERİ BİLDİRİMİ (3 Ekim 2026 — eşin WhatsApp ekran görüntüsü,
+// gerçek telefon Arapça klavyesi): önceki dizilim alfabetik sırayla
+// (elif-be-te...) 28 temel harfi listeliyordu ama ة (te merbuta), ء
+// (hemze), ئ, ؤ gibi gerçek klavyede ayrı tuş olan varyant harfleri hiç
+// İÇERMİYORDU — "devlet" (دولة) kelimesini ة ile yazmak isteyen kullanıcı
+// oyun klavyesinde bu tuşu bulamıyordu (bkz. game.tsx'teki
+// ARABIC_TEH_VARIANTS_RE normalizasyonu — o sadece karşılaştırmayı
+// yumuşatıyordu, kök nedeni -klavyede tuşun hiç olmamasını- çözmüyordu).
+// Artık gerçek telefon Arapça klavyesiyle BİREBİR aynı 3 satır/32 tuş
+// dizilimi kullanılıyor (ekran görüntüsünden harf harf kopyalandı), hem
+// standart 28 harfi hem de ة/ء/ئ/ؤ varyantlarını içeriyor.
+export const ARABIC_KEYBOARD_ROWS = ['ضصثقفغعهخحج', 'شسيبلاتنمكط', 'ذءؤرئةوزظد'];
 export const CYRILLIC_KEYBOARD_ROWS = ['ЙЦУКЕНГШЩЗХЪ', 'ФЫВАПРОЛДЖЭ', 'ЯЧСМИТЬБЮ'];
 
 const KEYBOARD_ROWS_BY_LANG: Record<string, string[]> = {

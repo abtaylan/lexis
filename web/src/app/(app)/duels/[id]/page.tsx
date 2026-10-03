@@ -180,7 +180,9 @@ const POLL_MS = 8000;
 // 18 Eylul 2026 -- mode='wordle' duellolari icin harf klavyesi. game/page.tsx'teki
 // (tek oyunculu hangman) AYNI klavye setleri -- bilincli kod tekrari.
 const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
-const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'فقكلمنهوي'];
+// Gerçek telefon Arapça klavyesiyle birebir aynı dizilim — bkz.
+// mobile/src/constants/keyboards.ts'teki kök neden notu (3 Ekim 2026).
+const ARABIC_KEYBOARD_ROWS = ['ضصثقفغعهخحج', 'شسيبلاتنمكط', 'ذءؤرئةوزظد'];
 
 export default function DuelRoomPage() {
   const params = useParams<{ id: string }>();

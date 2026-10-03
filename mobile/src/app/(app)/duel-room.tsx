@@ -41,7 +41,9 @@ const POLL_MS = 2000;
 // dosyanin geri kalaninda da gecerli olan "route/ekran modulleri arasinda
 // capraz bagimlilik kurma" ilkesiyle tutarli.
 const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
-const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'فقكلمنهوي'];
+// Gerçek telefon Arapça klavyesiyle birebir aynı dizilim — bkz.
+// mobile/src/constants/keyboards.ts'teki kök neden notu (3 Ekim 2026).
+const ARABIC_KEYBOARD_ROWS = ['ضصثقفغعهخحج', 'شسيبلاتنمكط', 'ذءؤرئةوزظد'];
 
 export default function DuelRoomScreen() {
   const { id: duelId } = useLocalSearchParams<{ id: string }>();

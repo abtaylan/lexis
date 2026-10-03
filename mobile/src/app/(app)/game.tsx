@@ -50,8 +50,23 @@ type MatchingItem = {
 // (diğer dillerdeki aksan farkları — örn. Fransızca "café" vs "cafe" — hâlâ
 // yanlış sayılmaya devam ediyor, kapsam bilerek dar tutuldu).
 const ARABIC_DIACRITICS_RE = /[\u064B-\u065F\u0670\u06D6-\u06ED\u08D4-\u08E1\u08E3-\u08FF]/g;
+// KULLANICI GERİ BİLDİRİMİ (3 Ekim 2026 — eşin ekran görüntüsü, "devlet"
+// kelimesi): "arapça klavyede yuvarlak t (ة, taa marbuta) yok, onu
+// kullanamadığım için normal t (ت) yazdım ama doğru kabul etmedi" — bazı
+// mobil Arapça klavye düzenlerinde ة tuşu gizli/erişimi zor olduğundan (uzun
+// basma gerektirebiliyor) veya kullanıcı alışkanlıkla ت yazdığından, DB'deki
+// doğru cevap ة ile bitiyorsa kullanıcının ت ile yazdığı doğru cevap yanlış
+// sayılıyordu. Bu çok yaygın bir klavye/yazım karışıklığı olduğundan
+// karşılaştırma öncesi ikisi TEK bir harfe indirgeniyor (sadece
+// typed/correct karşılaştırmasında — DB'deki/ekrandaki asıl yazım
+// değişmiyor, kullanıcı hâlâ doğru haliyle ة görür).
+const ARABIC_TEH_VARIANTS_RE = /[ةت]/g;
 function normalizeTypedAnswer(s: string): string {
-  return s.trim().toLocaleLowerCase().replace(ARABIC_DIACRITICS_RE, '');
+  return s
+    .trim()
+    .toLocaleLowerCase()
+    .replace(ARABIC_DIACRITICS_RE, '')
+    .replace(ARABIC_TEH_VARIANTS_RE, 'ت');
 }
 
 // Boşluk Doldurma (28 Eylül 2026) -- örnek cümledeki hedef kelimeyi boşluğa
@@ -671,6 +686,24 @@ export default function GameScreen() {
     }
   };
 
+  // KULLANICI GERİ BİLDİRİMİ (3 Ekim 2026): "adam asmaca oyununda pas hakkı
+  // olsun, tüm diller için" — yazma (typing) modunda zaten bir "Pas Geç"
+  // seçeneği vardı (bkz. handleSkip, 7 Eylül 2026 notu) ama harf tahmin
+  // (adam asmaca/wordle) modunda YOKTU; bilmeyen kullanıcının tek seçeneği
+  // can'ları tüketip kaybetmekti. Bunun için backend'de ayrı bir "pes et"
+  // endpoint'i yok (wordle ilerlemesi guess-letter çağrılarıyla sunucuda
+  // tutuluyor) — bu yüzden istemci tarafında doğrudan oturumu "kaybedildi"
+  // olarak işaretleyip doğru kelimeyi gösteriyor ve bir sonraki kelimeye
+  // geçiyoruz; handleGuessLetter'daki is_game_over dalıyla birebir aynı akış,
+  // sadece sunucuya harf göndermeden. Dil fark etmeksizin (keyboardRows zaten
+  // öğrenilen dile göre belirleniyor) her dilde çalışır.
+  const handleWordleSkip = () => {
+    if (letterBusy || roundResult || !sessionId) return;
+    setRoundResult('lost');
+    setRevealedWord(current?.word ?? null);
+    setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 1800);
+  };
+
   const handleFinish = async () => {
     if (!sessionId) return;
     if (sprintTimerRef.current) {
@@ -1258,6 +1291,7 @@ export default function GameScreen() {
                   })}
                 </View>
               ))}
+              <Button title={gt.typingSkipBtn} onPress={handleWordleSkip} variant="ghost" />
             </View>
           )}
 

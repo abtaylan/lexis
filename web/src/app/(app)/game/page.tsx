@@ -881,7 +881,9 @@ const STRINGS: Record<Locale, Strings> = {
 const KEYBOARD_ROWS = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
 // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "burada arapça harfler olması
 // gerekiyor klavye seçeneği eksik" — bkz. mobile/game.tsx'teki aynı not.
-const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'فقكلمنهوي'];
+// Gerçek telefon Arapça klavyesiyle birebir aynı dizilim — bkz.
+// mobile/src/constants/keyboards.ts'teki kök neden notu (3 Ekim 2026).
+const ARABIC_KEYBOARD_ROWS = ['ضصثقفغعهخحج', 'شسيبلاتنمكط', 'ذءؤرئةوزظد'];
 
 // Eşleştirme (matching) modunda kart sırasını karıştırmak için basit
 // Fisher-Yates — orijinal diziyi bozmadan yeni bir dizi döndürür.
@@ -893,8 +895,23 @@ const ARABIC_KEYBOARD_ROWS = ['ابتثجحخدذر', 'زسشصضطظعغ', 'ف�
 // (diğer dillerdeki aksan farkları — örn. Fransızca "café" vs "cafe" — hâlâ
 // yanlış sayılmaya devam ediyor, kapsam bilerek dar tutuldu).
 const ARABIC_DIACRITICS_RE = /[\u064B-\u065F\u0670\u06D6-\u06ED\u08D4-\u08E1\u08E3-\u08FF]/g;
+// KULLANICI GERİ BİLDİRİMİ (3 Ekim 2026 — eşin ekran görüntüsü, "devlet"
+// kelimesi): "arapça klavyede yuvarlak t (ة, taa marbuta) yok, onu
+// kullanamadığım için normal t (ت) yazdım ama doğru kabul etmedi" — bazı
+// mobil Arapça klavye düzenlerinde ة tuşu gizli/erişimi zor olduğundan (uzun
+// basma gerektirebiliyor) veya kullanıcı alışkanlıkla ت yazdığından, DB'deki
+// doğru cevap ة ile bitiyorsa kullanıcının ت ile yazdığı doğru cevap yanlış
+// sayılıyordu. Bu çok yaygın bir klavye/yazım karışıklığı olduğundan
+// karşılaştırma öncesi ikisi TEK bir harfe indirgeniyor (sadece
+// typed/correct karşılaştırmasında — DB'deki/ekrandaki asıl yazım
+// değişmiyor, kullanıcı hâlâ doğru haliyle ة görür).
+const ARABIC_TEH_VARIANTS_RE = /[ةت]/g;
 function normalizeTypedAnswer(s: string): string {
-  return s.trim().toLocaleLowerCase().replace(ARABIC_DIACRITICS_RE, '');
+  return s
+    .trim()
+    .toLocaleLowerCase()
+    .replace(ARABIC_DIACRITICS_RE, '')
+    .replace(ARABIC_TEH_VARIANTS_RE, 'ت');
 }
 
 // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor ki bu" —
@@ -1460,6 +1477,20 @@ export default function GamePage() {
     } finally {
       setLetterBusy(false);
     }
+  };
+
+  // KULLANICI GERİ BİLDİRİMİ (3 Ekim 2026): "adam asmaca oyununda pas hakkı
+  // olsun, tüm diller için" — bkz. mobile/src/app/(app)/game.tsx'teki aynı
+  // isimli fonksiyonun yorumu (handleWordleSkip) için kök neden. Backend'de
+  // wordle için ayrı bir "pes et" endpoint'i olmadığından istemci tarafında
+  // oturumu kaybedildi işaretleyip doğru kelimeyi gösteriyoruz.
+  const handleWordleSkip = () => {
+    if (letterBusy || roundResult || !sessionId) return;
+    setRoundResult('lost');
+    setRevealedWord(current?.word ?? null);
+    setTimeout(() => {
+      if (sessionId) loadNext(sessionId, true, poolSource);
+    }, 1800);
   };
 
   const handleFinish = async () => {
@@ -2147,6 +2178,12 @@ export default function GamePage() {
                   })}
                 </div>
               ))}
+              <button
+                onClick={handleWordleSkip}
+                className="text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400 underline mt-1"
+              >
+                {t.typingSkipBtn}
+              </button>
             </div>
           )}
 
