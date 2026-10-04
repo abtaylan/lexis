@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient } from '@tanstack/react-query';
@@ -7,11 +7,14 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar } from 'expo-status-bar';
+import Animated, { FadeOut } from 'react-native-reanimated';
+import { StyleSheet } from 'react-native';
 import { initAds } from '@/lib/adsInit';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LocaleProvider } from '@/i18n';
 import { ThemeProvider, useThemeMode } from '@/store/theme';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
+import { AnimatedSplash } from '@/components/AnimatedSplash';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -40,6 +43,15 @@ const asyncStoragePersister = createAsyncStoragePersister({
   storage: AsyncStorage,
   key: 'lexis_query_cache_v1',
 });
+
+// Özel açılış animasyonu (4 Ekim 2026): native expo-splash-screen statik
+// logoyu gösterdikten sonra, uygulama içi ekranlar render olmadan önce
+// bu süre boyunca AnimatedSplash (Yıldız Tozu + Shimmer Sweep) gösteriliyor
+// -- hem "profesyonel" bir açılış hissi veriyor, hem de auth/tema gibi
+// başlangıç verisi henüz yüklenmemişken boş/beyaz bir ekran yerine marka
+// animasyonu oynatıyor. isLoading daha uzun sürerse animasyon o bitene
+// kadar devam eder; daha kısa sürerse bile en az bu süre gösterilir.
+const MIN_SPLASH_MS = 3800;
 
 export default function RootLayout() {
   return (
@@ -73,26 +85,37 @@ export default function RootLayout() {
 function RootNavigator() {
   const { isLoading, isAuthenticated } = useAuth();
   const { scheme } = useThemeMode();
+  const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
   useEffect(() => {
-    if (!isLoading) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [isLoading]);
+    // Native splash'i hemen kapatıp yerine JS seviyesindeki AnimatedSplash'i
+    // geçiriyoruz -- böylece "statik logo -> boş ekran -> uygulama" yerine
+    // "statik logo -> animasyonlu açılış -> uygulama" akışı oluyor.
+    SplashScreen.hideAsync().catch(() => {});
+    const timer = setTimeout(() => setMinTimeElapsed(true), MIN_SPLASH_MS);
+    return () => clearTimeout(timer);
+  }, []);
 
-  if (isLoading) return null;
+  const showIntro = isLoading || !minTimeElapsed;
 
   return (
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={!isAuthenticated}>
-          <Stack.Screen name="(auth)" />
-        </Stack.Protected>
-        <Stack.Protected guard={isAuthenticated}>
-          <Stack.Screen name="(app)" />
-        </Stack.Protected>
-      </Stack>
+      {!isLoading && (
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Protected guard={!isAuthenticated}>
+            <Stack.Screen name="(auth)" />
+          </Stack.Protected>
+          <Stack.Protected guard={isAuthenticated}>
+            <Stack.Screen name="(app)" />
+          </Stack.Protected>
+        </Stack>
+      )}
+      {showIntro && (
+        <Animated.View style={StyleSheet.absoluteFill} exiting={FadeOut.duration(450)}>
+          <AnimatedSplash />
+        </Animated.View>
+      )}
     </>
   );
 }

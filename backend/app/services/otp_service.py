@@ -1,5 +1,6 @@
 import random
 import string
+import time
 from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException
@@ -7,6 +8,7 @@ from fastapi import HTTPException
 from app.core.config import settings
 from app.core.database import supabase_admin
 from app.services.email_service import send_otp_email
+from app.services.notification_log import log_notification
 
 
 def _generate_code(email: str) -> str:
@@ -60,17 +62,52 @@ def create_otp(
 
     code = _generate_code(email)
     expires_at = now + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
+    insert_payload = {
+        "email": email,
+        "code": code,
+        "purpose": purpose,
+        "session_access_token": access_token,
+        "session_refresh_token": refresh_token,
+        "expires_at": expires_at.isoformat(),
+    }
 
-    supabase_admin.table("otp_codes").insert(
-        {
-            "email": email,
-            "code": code,
-            "purpose": purpose,
-            "session_access_token": access_token,
-            "session_refresh_token": refresh_token,
-            "expires_at": expires_at.isoformat(),
-        }
-    ).execute()
+    # KOK NEDEN (4 Ekim 2026 -- Behcet'in kendi giris raporu + Rukiye'nin sifre
+    # sifirlama kodunun hic gelmemesi raporu): Railway<->Supabase arasinda ara
+    # sira gorulen PostgREST "Thread killed by timeout manager" / gecici
+    # baglanti hatalarinda bu insert ESKIDEN try/except'SIZ'di -- tek seferlik
+    # bir hata direkt yukari (login()'deki genis except'e, ya da forgot_password
+    # icindeki sessizce yutan except'e) firliyor, kullaniciya ya YANLIS "Email
+    # veya sifre hatali" mesaji gosteriliyor ya da sifre sifirlama kodu hic
+    # gonderilmeden endpoint yine de "kod gonderildi" diye basariyla donuyordu.
+    # Simdi: kisa bir gecikmeyle BIR kez daha deniyoruz (gecici hatalarin cogu
+    # boylece kendiliginden duzeliyor); yine de basarisiz olursa notification_log'a
+    # 'failed' kaydi düşüyoruz (boylece Supabase SQL ile sonradan denetlenebilir,
+    # sadece Railway'in gecici print log'larina bagli kalinmiyor) ve cagirana
+    # (login/forgot_password) anlasilir, DURUMU GIZLEMEYEN bir hata firlatiyoruz.
+    last_error: Exception | None = None
+    for attempt in range(2):
+        try:
+            supabase_admin.table("otp_codes").insert(insert_payload).execute()
+            last_error = None
+            break
+        except Exception as e:
+            last_error = e
+            print(f"OTP insert error (attempt {attempt + 1}/2) for {email}/{purpose}: {e}")
+            if attempt == 0:
+                time.sleep(0.6)
+
+    if last_error is not None:
+        log_notification(
+            "email",
+            "otp",
+            email,
+            "failed",
+            {"purpose": purpose, "stage": "db_insert", "error": str(last_error)},
+        )
+        raise HTTPException(
+            status_code=503,
+            detail="Kod oluşturulamadı, sunucuda geçici bir sorun oluştu. Lütfen birkaç saniye sonra tekrar deneyin.",
+        )
 
     send_otp_email(email, code, purpose)
     return code

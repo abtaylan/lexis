@@ -265,11 +265,26 @@ async def register(req: RegisterRequest, request: Request):
 
 @router.post("/login")
 async def login(req: LoginRequest, request: Request):
+    # ADIM 1 -- parola dogrulama. Burada atilan HER hata gercekten "email/sifre
+    # hatali" anlamina gelir, 401 dogru.
     try:
         access_token, refresh_token = _bootstrap_session(req.email, req.password)
-        if not access_token:
-            raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
+    except Exception as e:
+        print(f"LOGIN bootstrap_session ERROR: {e}")
+        raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
 
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
+
+    # ADIM 2 -- parola ZATEN dogrulandi. KOK NEDEN (4 Ekim 2026, Behcet'in kendi
+    # giris raporu): bu asamadan sonraki kod (has_ever_verified/create_otp,
+    # otp_codes tablosuna yazan .table() cagrilari) ESKIDEN AYNI genis
+    # except'in icindeydi -- Railway<->Supabase arasinda gecici bir baglanti/
+    # RLS hatasi olustugunda (bkz. otp_service.create_otp'daki ayrintili not)
+    # bu YUKARI firliyor ve kullaniciya YANLIS bicimde "Email veya sifre
+    # hatali" gosteriliyordu, oysa sifre dogruydu ve sorun sunucu tarafindaydi.
+    # Artik bu adimdaki hatalar AYRI, dogru bir mesajla raporlaniyor.
+    try:
         # KULLANICI İSTEĞİ (7 Eylül 2026): "otp sadece üye olurken gelsin,
         # üye olduktan sonra uygulamaya ilk kez girerken otp gelsin, bundan
         # sonra ... her seferinde olması user'ları soğutuyor" — Instagram/X/
@@ -308,8 +323,11 @@ async def login(req: LoginRequest, request: Request):
     except HTTPException:
         raise
     except Exception as e:
-        print(f"LOGIN ERROR: {e}")
-        raise HTTPException(status_code=401, detail="Email veya şifre hatalı.")
+        print(f"LOGIN post-auth ERROR: {e}")
+        raise HTTPException(
+            status_code=503,
+            detail="Giriş doğrulandı ama sunucuda geçici bir sorun oluştu. Lütfen birkaç saniye sonra tekrar deneyin.",
+        )
 
 @router.post("/apple")
 async def apple_sign_in(req: AppleSignInRequest, request: Request):
@@ -513,15 +531,34 @@ async def forgot_password(req: ForgotPasswordRequest):
     """
     email = req.email.strip().lower()
 
-    try:
-        user = _find_auth_user_by_email(email)
-    except Exception as e:
-        print(f"FORGOT_PASSWORD lookup error: {e}")
-        user = None
+    # KOK NEDEN (4 Ekim 2026 -- Rukiye'nin sifre sifirlama kodunun hic
+    # gelmemesi raporu): _find_auth_user_by_email TUM kullanicilari sayfalayarak
+    # ceken pahali bir GoTrue admin cagrisi (list_all_auth_users); Railway<->
+    # Supabase arasinda gecici bir "Thread killed by timeout manager" turu
+    # hatada BIR SEFERLIK basarisiz olabiliyor. Eskiden bu durumda user=None'a
+    # dusup OTP HIC URETILMIYORDU ama endpoint yine de ayni basarili mesaji
+    # donuyordu -- kullaniciya gore kod "gonderilmis" ama aslinda hic
+    # olusturulmamisti. Simdi bir kez kisa gecikmeyle tekrar deniyoruz.
+    user = None
+    for attempt in range(2):
+        try:
+            user = _find_auth_user_by_email(email)
+            break
+        except Exception as e:
+            print(f"FORGOT_PASSWORD lookup error (attempt {attempt + 1}/2): {e}")
+            if attempt == 0:
+                import time as _time
+                _time.sleep(0.6)
 
     if user is not None:
         try:
             otp_service.create_otp(email=email, purpose="reset_password")
+        except HTTPException as e:
+            # otp_service.create_otp artik kendi ici 1 kez retry ediyor ve
+            # basarisizlikta notification_log'a 'failed' yaziyor (bkz. o
+            # dosyadaki not) -- burada ekstra olarak sadece Railway log'una
+            # dusuyoruz, kullaniciya yine guvenlik geregi genel mesaj donuyor.
+            print(f"FORGOT_PASSWORD create_otp error: {e.detail}")
         except Exception as e:
             print(f"FORGOT_PASSWORD create_otp error: {e}")
 
