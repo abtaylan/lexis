@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { LocaleProvider } from '@/lib/i18n';
 import { SITE_URL, SOCIAL_LINKS, CONTACT_EMAIL } from '@/lib/config';
+import { AnimatedSplash } from '@/components/AnimatedSplash';
 
 const TITLE = 'Lexis — Kelime, program ve oyunla dil öğren';
 const DESCRIPTION =
@@ -212,6 +213,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {/* 4 Ekim 2026: siteye her girişte (hangi sayfadan olursa olsun,
+            kök layout tüm sayfaları sarıyor) kısa süreli markalı açılış
+            animasyonu -- mobil/web app'teki "Yıldız Tozu + Shimmer Sweep"
+            konseptinin statik pazarlama sitesi için zamanlayıcıya bağlı
+            hali (bkz. AnimatedSplash.tsx). İçerik DOM'da zaten mevcut
+            olduğundan (SSR) SEO/crawler'ı etkilemiyor, sadece görsel
+            olarak kısa bir an örtüyor. */}
+        <AnimatedSplash />
         <LocaleProvider>{children}</LocaleProvider>
       </body>
     </html>
