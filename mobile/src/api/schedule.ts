@@ -31,4 +31,11 @@ export const scheduleApi = {
   deleteTemplate: async (id: string): Promise<void> => {
     await api.delete(`/schedule/templates/${id}`);
   },
+  // 9 Ekim 2026 -- "calisma programi telefon takvimine entegre olsun"
+  // istegi: webcal/https ICS feed linkini doner (backend token yoksa
+  // olusturur, bkz. backend/app/api/routes/schedule.py::get_calendar_feed).
+  getCalendarFeed: async (): Promise<{ feed_url: string; webcal_url: string }> => {
+    const res = await api.get('/schedule/calendar-feed');
+    return res.data;
+  },
 };

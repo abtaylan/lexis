@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Alert, Linking, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Linking, Modal, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Switch, Text, View } from 'react-native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Sparkles, Star, Save, X, Trash2, Plus, Check, CalendarClock,
   Flame, Zap, Coffee, Headphones, BookOpen, GraduationCap, User as UserIcon,
-  Tv, RotateCcw, Search as SearchIcon, CalendarDays,
+  Tv, RotateCcw, Search as SearchIcon, CalendarDays, Bell, CalendarPlus,
 } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { scheduleApi } from '@/api/schedule';
@@ -358,6 +358,50 @@ export default function ScheduleScreen() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule'] }),
   });
 
+  // 9 Ekim 2026 -- "calisma programi telefon takvimine entegre olsun" istegi,
+  // inline hatirlatma (push/e-posta -- bkz. backend send_schedule_reminders.py,
+  // uzun suredir var ama mobilde secici hic gosterilmiyordu) ile ayni PATCH'i
+  // kullaniyor; web'deki handleReminderChange ile birebir ayni mantik.
+  const reminderMutation = useMutation({
+    mutationFn: ({ id, value }: { id: string; value: string }) =>
+      value ? scheduleApi.update(id, { reminder_lead: value as ScheduleItem['reminder_lead'] }) : scheduleApi.update(id, { clear_reminder: true }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule'] }),
+  });
+
+  const openReminderPicker = (item: ScheduleItem) => {
+    Alert.alert(t('reminderLabel'), item.activity, [
+      { text: t('reminderNone'), onPress: () => reminderMutation.mutate({ id: item.id, value: '' }) },
+      { text: t('reminder15Min'), onPress: () => reminderMutation.mutate({ id: item.id, value: '15min' }) },
+      { text: t('reminder1Hour'), onPress: () => reminderMutation.mutate({ id: item.id, value: '1hour' }) },
+      { text: t('reminderDayStart'), onPress: () => reminderMutation.mutate({ id: item.id, value: 'day_start' }) },
+      { text: t('cancelBtn'), style: 'cancel' },
+    ]);
+  };
+
+  // Gercek Google/Apple Calendar OAuth yerine webcal/ics "URL ile abone ol"
+  // yöntemi (bkz. backend/app/api/routes/schedule.py basindaki yorum) --
+  // hicbir native izin/EAS rebuild gerektirmiyor. iOS genelde webcal:// linkini
+  // doğrudan Takvim uygulamasina acar; bu basarisiz olursa (ör. Android'de çoğu
+  // zaman webcal: semasi kayitli degil) https linki paylasim menüsüne düşürülüyor
+  // ki kullanici masaüstü Google Calendar'da "URL ile ekle"ye yapıştırabilsin.
+  const calendarMutation = useMutation({
+    mutationFn: () => scheduleApi.getCalendarFeed(),
+    onSuccess: async ({ feed_url, webcal_url }) => {
+      try {
+        const canOpen = await Linking.canOpenURL(webcal_url);
+        if (canOpen) {
+          await Linking.openURL(webcal_url);
+          return;
+        }
+      } catch {
+        // devam, asagidaki paylasim yedegine dus
+      }
+      Alert.alert(t('calendarSyncBtn'), t('calendarSyncHelp'));
+      Share.share({ message: feed_url }).catch(() => {});
+    },
+    onError: () => Alert.alert(t('calendarSyncBtn'), t('calendarSyncError')),
+  });
+
   const applyTemplateMutation = useMutation({
     mutationFn: async ({ templateItems, replace }: { templateItems: ScheduleCreate[]; replace: boolean }) => {
       if (replace && items && items.length > 0) {
@@ -420,6 +464,12 @@ export default function ScheduleScreen() {
             <Sparkles color="#FFFFFF" size={13} />
             <Text style={styles.pillBtnGhostText}>{t('templatesBtn')}</Text>
           </Pressable>
+          {hasItems && (
+            <Pressable onPress={() => calendarMutation.mutate()} style={styles.pillBtnGhost} disabled={calendarMutation.isPending}>
+              <CalendarPlus color="#FFFFFF" size={13} />
+              <Text style={styles.pillBtnGhostText}>{t('calendarSyncBtn')}</Text>
+            </Pressable>
+          )}
           <Pressable onPress={() => setModalOpen(true)} style={styles.pillBtnSolid}>
             <Plus color={c.primary} size={13} />
             <Text style={[styles.pillBtnSolidText, { color: c.primary }]}>{t('addActivityBtn')}</Text>
@@ -480,6 +530,12 @@ export default function ScheduleScreen() {
                           <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '700' }}>{item.duration_min} dk</Text>
                         </View>
                       </View>
+                      <Pressable onPress={() => openReminderPicker(item)} hitSlop={6} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 }}>
+                        <Bell color={c.textMuted} size={11} />
+                        <Text style={{ color: c.textMuted, fontSize: 11 }}>
+                          {item.reminder_lead === '15min' ? t('reminder15Min') : item.reminder_lead === '1hour' ? t('reminder1Hour') : item.reminder_lead === 'day_start' ? t('reminderDayStart') : t('reminderNone')}
+                        </Text>
+                      </Pressable>
                     </View>
                     <Switch
                       value={item.is_active}
@@ -548,6 +604,7 @@ function AddActivityModal({
   const [timeSlot, setTimeSlot] = useState('09:00');
   const [activity, setActivity] = useState('');
   const [duration, setDuration] = useState('30');
+  const [reminderLead, setReminderLead] = useState('');
   const [error, setError] = useState('');
 
   const createMutation = useMutation({
@@ -557,15 +614,23 @@ function AddActivityModal({
         time_slot: timeSlot,
         activity: activity.trim(),
         duration_min: Number(duration) || 30,
+        reminder_lead: (reminderLead || undefined) as ScheduleCreate['reminder_lead'],
       }),
     onSuccess: () => {
       setActivity('');
+      setReminderLead('');
       onCreated();
     },
     onError: () => setError(t('saveScheduleFailed')),
   });
 
   const dayOptions = DISPLAY_ORDER_FOR_FORM.map((d) => ({ value: String(d), label: weekdays[d] ?? String(d) }));
+  const reminderOptions = [
+    { value: '', label: t('reminderNone') },
+    { value: '15min', label: t('reminder15Min') },
+    { value: '1hour', label: t('reminder1Hour') },
+    { value: 'day_start', label: t('reminderDayStart') },
+  ];
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -580,6 +645,13 @@ function AddActivityModal({
           <TextField label={t('timeLabel')} value={timeSlot} onChangeText={setTimeSlot} placeholder="09:00" />
           <TextField label={t('activityLabel')} value={activity} onChangeText={setActivity} />
           <TextField label={t('durationLabel')} value={duration} onChangeText={setDuration} keyboardType="number-pad" />
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing.sm }}>
+            <Bell color={c.textSecondary} size={13} />
+            <Text style={{ color: c.textSecondary, fontSize: 13, fontWeight: '600' }}>{t('reminderLabel')}</Text>
+          </View>
+          <ChipSelect options={reminderOptions} value={reminderLead} onChange={setReminderLead} />
+          <View style={{ height: spacing.md }} />
 
           {error ? <Text style={{ color: c.danger, fontSize: 12, marginBottom: spacing.sm }}>{error}</Text> : null}
 

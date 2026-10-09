@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import {
   Plus, Trash2, X, Clock, CalendarDays, ExternalLink, Loader2,
   Sparkles, Flame, Zap, Coffee, Check, Headphones, BookOpen,
-  GraduationCap, Save, Star, User as UserIcon, Bell, CalendarClock, FileText,
+  GraduationCap, Save, Star, User as UserIcon, Bell, CalendarClock, FileText, CalendarPlus,
 } from 'lucide-react';
 import { scheduleApi, examReminderApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
@@ -641,6 +641,24 @@ export default function SchedulePage() {
     } catch { /* sessiz */ }
   };
 
+  // 9 Ekim 2026 -- "calisma programi telefon takvimine entegre olsun" istegi:
+  // webcal/https ICS feed linki (bkz. backend get_calendar_feed) -- gercek
+  // Google/Apple Calendar OAuth yerine evrensel "URL ile abone ol" yontemi,
+  // native mobil rebuild gerektirmiyor. Masaustude dosyayi indirip/acip OS'in
+  // varsayilan takvim uygulamasina birakiyoruz, ayni zamanda linki panoya
+  // kopyalayip Google Calendar masaustu "Diger takvimler > URL ile ekle"
+  // akisina yapistirilabilmesini sagliyoruz.
+  const handleCalendarSync = async () => {
+    try {
+      const { feed_url } = await scheduleApi.getCalendarFeed();
+      try { await navigator.clipboard.writeText(feed_url); } catch { /* clipboard izni yoksa sessiz gec */ }
+      window.open(feed_url, '_blank');
+      alert(t('calendarSyncHelp'));
+    } catch {
+      alert(t('calendarSyncError'));
+    }
+  };
+
   const applyTemplate = async (templateItems: ScheduleCreate[], replace: boolean) => {
     if (replace) {
       await Promise.all(items.map((it) => scheduleApi.delete(it.id).catch(() => {})));
@@ -679,6 +697,11 @@ export default function SchedulePage() {
           {items.length > 0 && (
             <button onClick={() => setShowExport(true)} className="flex items-center gap-2 bg-[#FDEEEA] hover:bg-[#fbe0d6] text-[#9A3412] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
               <FileText className="w-4 h-4" />{t('exportPdfBtn')}
+            </button>
+          )}
+          {items.length > 0 && (
+            <button onClick={handleCalendarSync} className="flex items-center gap-2 bg-[#E1F5EE] hover:bg-[#cdeee2] text-[#0F6E56] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+              <CalendarPlus className="w-4 h-4" />{t('calendarSyncBtn')}
             </button>
           )}
           <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl px-4 py-2.5 text-sm font-medium shadow-sm transition-colors">

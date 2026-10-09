@@ -1,9 +1,13 @@
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
 from app.core.auth import get_current_user
+from app.core.config import settings
 from app.core.database import supabase_admin
 
 router = APIRouter()
@@ -224,3 +228,149 @@ async def update_schedule_item(
 @router.delete("/{item_id}", status_code=204)
 async def delete_schedule_item(item_id: str, current_user=Depends(get_current_user)):
     supabase_admin.table("study_schedule").update({"is_active": False}).eq("id", item_id).eq("user_id", current_user.id).execute()
+
+
+# ── Takvime Abonelik (ICS feed) — 9 Ekim 2026 kullanıcı isteği: "çalışma
+# programı telefonda kullanılan takvim uygulamasına entegre olsun" ────────
+# Gerçek bir Google/Apple Calendar OAuth entegrasyonu yerine, hiçbir native
+# mobil izin/rebuild gerektirmeyen "URL ile abone ol" (webcal/ics feed)
+# yöntemi seçildi — Google Calendar, Apple Calendar ve Outlook'un üçü de
+# bunu destekliyor, EAS native build kotası/izin akışı hiç devreye girmiyor.
+# /ics/{token} endpoint'i KASITLI OLARAK auth gerektirmiyor (takvim
+# uygulamaları arka planda periyodik çekerken Bearer token gönderemiyor) —
+# koruma, profiles.calendar_feed_token'daki uzun rastgele token'ın kendisi
+# (bkz. migration 085_calendar_feed_token.sql).
+_DOW_TO_ICS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"]  # app day_of_week 0=Pazar..6=Cumartesi
+_CAL_DEFAULT_TIMEZONE = "Europe/Istanbul"
+
+
+def _cal_safe_zone(tz_name: str | None) -> ZoneInfo:
+    try:
+        return ZoneInfo(tz_name or _CAL_DEFAULT_TIMEZONE)
+    except ZoneInfoNotFoundError:
+        return ZoneInfo(_CAL_DEFAULT_TIMEZONE)
+
+
+def _ics_escape(text: str) -> str:
+    return (text or "").replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")
+
+
+def _get_or_create_calendar_token(user_id: str) -> str:
+    row = (
+        supabase_admin.table("profiles")
+        .select("calendar_feed_token")
+        .eq("id", user_id)
+        .single()
+        .execute()
+        .data
+    ) or {}
+    token = row.get("calendar_feed_token")
+    if token:
+        return token
+    token = secrets.token_urlsafe(24)
+    supabase_admin.table("profiles").update({"calendar_feed_token": token}).eq("id", user_id).execute()
+    return token
+
+
+def _build_ics(items: list[dict], tz_name: str | None) -> str:
+    tz = _cal_safe_zone(tz_name)
+    today_local = datetime.now(tz).date()
+    now_utc = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    tzid = tz_name or _CAL_DEFAULT_TIMEZONE
+
+    lines = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Lexis//Calisma Programi//TR",
+        "CALSCALE:GREGORIAN",
+        "METHOD:PUBLISH",
+        "X-WR-CALNAME:Lexis Calisma Programim",
+        f"X-WR-TIMEZONE:{tzid}",
+    ]
+
+    for item in items:
+        try:
+            hh, mm = item["time_slot"].strip().split(":")
+            hh, mm = int(hh), int(mm)
+        except (ValueError, AttributeError, KeyError):
+            continue
+
+        py_weekday = (item["day_of_week"] - 1) % 7  # app 0=Pazar -> python weekday() 6 (Pazar)
+        days_ahead = (py_weekday - today_local.weekday()) % 7
+        first_date = today_local + timedelta(days=days_ahead)
+        dtstart = f"{first_date.strftime('%Y%m%d')}T{hh:02d}{mm:02d}00"
+        duration_min = item.get("duration_min") or 30
+        by_day = _DOW_TO_ICS[item["day_of_week"]]
+
+        lines += [
+            "BEGIN:VEVENT",
+            f"UID:{item['id']}@lexiswords.com",
+            f"DTSTAMP:{now_utc}",
+            f"DTSTART;TZID={tzid}:{dtstart}",
+            f"DURATION:PT{duration_min}M",
+            f"RRULE:FREQ=WEEKLY;BYDAY={by_day}",
+            f"SUMMARY:{_ics_escape(item['activity'])} (Lexis)",
+            "DESCRIPTION:Lexis calisma programi",
+        ]
+        lead = item.get("reminder_lead")
+        if lead in ("15min", "1hour"):
+            trigger = "-PT15M" if lead == "15min" else "-PT1H"
+            lines += [
+                "BEGIN:VALARM",
+                "ACTION:DISPLAY",
+                "DESCRIPTION:Hatirlatma",
+                f"TRIGGER:{trigger}",
+                "END:VALARM",
+            ]
+        lines.append("END:VEVENT")
+
+    lines.append("END:VCALENDAR")
+    return "\r\n".join(lines) + "\r\n"
+
+
+@router.get("/calendar-feed")
+async def get_calendar_feed(current_user=Depends(get_current_user)):
+    """
+    Kullanicinin calisma programini telefon/masaustu takvim uygulamasina
+    "URL ile abone ol" seklinde baglamasi icin webcal/https linklerini
+    doner (token yoksa olusturur).
+    """
+    token = _get_or_create_calendar_token(current_user.id)
+    base = settings.BACKEND_PUBLIC_URL.rstrip("/")
+    https_url = f"{base}/api/v1/schedule/ics/{token}"
+    webcal_url = https_url.replace("https://", "webcal://").replace("http://", "webcal://")
+    return {"feed_url": https_url, "webcal_url": webcal_url}
+
+
+@router.get("/ics/{token}")
+async def get_ics_feed(token: str):
+    """
+    KASITLI OLARAK auth gerektirmiyor -- takvim uygulamalari bu URL'yi
+    periyodik olarak arka planda, Bearer token gonderemeden cekiyor.
+    Koruma, tahmin edilemez rastgele token'in kendisi.
+    """
+    profile = (
+        supabase_admin.table("profiles")
+        .select("id, timezone")
+        .eq("calendar_feed_token", token)
+        .limit(1)
+        .execute()
+        .data
+    ) or []
+    if not profile:
+        raise HTTPException(status_code=404, detail="Takvim bulunamadi.")
+    user_id = profile[0]["id"]
+    items = (
+        supabase_admin.table("study_schedule")
+        .select("id, day_of_week, time_slot, activity, duration_min, reminder_lead")
+        .eq("user_id", user_id)
+        .eq("is_active", True)
+        .execute()
+        .data
+    ) or []
+    ics_text = _build_ics(items, profile[0].get("timezone"))
+    return Response(
+        content=ics_text,
+        media_type="text/calendar; charset=utf-8",
+        headers={"Content-Disposition": "inline; filename=lexis-calisma-programi.ics"},
+    )

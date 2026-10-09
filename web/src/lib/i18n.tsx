@@ -68,7 +68,7 @@ type TranslationKey =
 | 'activeBadgeLabel' | 'removeLanguageBtn' | 'removeLanguageConfirm' | 'cannotRemoveActiveLanguageError'
 | 'languageAlreadyAddedError' | 'addLanguageFailed' | 'removeLanguageFailed' | 'setActiveFailed'
 | 'learningLangsSelectLabel' | 'selectAtLeastOneLanguageError' | 'activeLanguageSwitcherLabel'
-| 'reminderLabel' | 'reminderNone' | 'reminder15Min' | 'reminder1Hour' | 'reminderDayStart'
+| 'reminderLabel' | 'reminderNone' | 'reminder15Min' | 'reminder1Hour' | 'reminderDayStart' | 'calendarSyncBtn' | 'calendarSyncHelp' | 'calendarSyncError'
 | 'notificationsTitle' | 'noNotifications' | 'noNotificationsSub' | 'markAllReadBtn' | 'unreadCountTpl'
 | 'premiumPageSubtitle' | 'premiumPlansLoadError' | 'premiumCheckoutFormError' | 'premiumCheckoutStartError'
 | 'premiumCancelConfirm' | 'premiumCancelError' | 'premiumSuccessMsg' | 'premiumFailedMsg' | 'premiumPeriodEndTpl'
@@ -159,7 +159,7 @@ cannotRemoveActiveLanguageError: 'Aktif dili kaldıramazsın. Önce başka bir d
 addLanguageFailed: 'Dil eklenemedi.', removeLanguageFailed: 'Dil kaldırılamadı.', setActiveFailed: 'Aktif dil değiştirilemedi.',
 learningLangsSelectLabel: 'Öğrenmek istediğin diller (birden fazla seçebilirsin)', selectAtLeastOneLanguageError: 'En az bir dil seçmelisin.',
 activeLanguageSwitcherLabel: 'Çalışılan dil',
-reminderLabel: 'Hatırlatma', reminderNone: 'Yok', reminder15Min: '15 dk önce', reminder1Hour: '1 saat önce', reminderDayStart: 'Günün başında',
+reminderLabel: 'Hatırlatma', reminderNone: 'Yok', reminder15Min: '15 dk önce', reminder1Hour: '1 saat önce', reminderDayStart: 'Günün başında', calendarSyncBtn: 'Takvime Ekle', calendarSyncHelp: 'Bu bağlantıyı takvim uygulamanda URL ile abone ol seçeneğine ekleyerek programını senkronize edebilirsin.', calendarSyncError: 'Takvim bağlantısı alınamadı, lütfen tekrar dene.',
 notificationsTitle: 'Hatırlatmalar', noNotifications: 'Henüz bildirim yok',
 noNotificationsSub: 'Program sayfasından bir göreve hatırlatma ekleyince burada görünecek.',
 markAllReadBtn: 'Tümünü okundu işaretle', unreadCountTpl: '{n} okunmamış',
@@ -253,7 +253,7 @@ cannotRemoveActiveLanguageError: 'You cannot remove the active language. Set ano
 addLanguageFailed: 'Could not add language.', removeLanguageFailed: 'Could not remove language.', setActiveFailed: 'Could not switch active language.',
 learningLangsSelectLabel: 'Languages you want to learn (you can select more than one)', selectAtLeastOneLanguageError: 'You must select at least one language.',
 activeLanguageSwitcherLabel: 'Studying',
-reminderLabel: 'Reminder', reminderNone: 'None', reminder15Min: '15 min before', reminder1Hour: '1 hour before', reminderDayStart: 'At start of day',
+reminderLabel: 'Reminder', reminderNone: 'None', reminder15Min: '15 min before', reminder1Hour: '1 hour before', reminderDayStart: 'At start of day', calendarSyncBtn: 'Add to Calendar', calendarSyncHelp: 'Add this link in your calendar app using the Subscribe by URL option to sync your schedule.', calendarSyncError: "Couldn't get the calendar link, please try again.",
 notificationsTitle: 'Reminders', noNotifications: 'No notifications yet',
 noNotificationsSub: 'Add a reminder to a task on the Schedule page and it will show up here.',
 markAllReadBtn: 'Mark all as read', unreadCountTpl: '{n} unread',
@@ -347,7 +347,7 @@ cannotRemoveActiveLanguageError: 'لا يمكنك إزالة اللغة النش
 addLanguageFailed: 'تعذرت إضافة اللغة.', removeLanguageFailed: 'تعذرت إزالة اللغة.', setActiveFailed: 'تعذر تغيير اللغة النشطة.',
 learningLangsSelectLabel: 'اللغات التي تريد تعلمها (يمكنك اختيار أكثر من واحدة)', selectAtLeastOneLanguageError: 'يجب اختيار لغة واحدة على الأقل.',
 activeLanguageSwitcherLabel: 'اللغة قيد الدراسة',
-reminderLabel: 'التذكير', reminderNone: 'بلا', reminder15Min: 'قبل 15 دقيقة', reminder1Hour: 'قبل ساعة', reminderDayStart: 'في بداية اليوم',
+reminderLabel: 'التذكير', reminderNone: 'بلا', reminder15Min: 'قبل 15 دقيقة', reminder1Hour: 'قبل ساعة', reminderDayStart: 'في بداية اليوم', calendarSyncBtn: 'إضافة إلى التقويم', calendarSyncHelp: 'أضف هذا الرابط في تطبيق التقويم عبر خيار الاشتراك عبر الرابط لمزامنة برنامجك.', calendarSyncError: 'تعذر الحصول على رابط التقويم، يرجى المحاولة مرة أخرى.',
 notificationsTitle: 'التذكيرات', noNotifications: 'لا توجد إشعارات بعد',
 noNotificationsSub: 'أضف تذكيرًا لمهمة من صفحة البرنامج وستظهر هنا.',
 markAllReadBtn: 'تعليم الكل كمقروء', unreadCountTpl: '{n} غير مقروء',
@@ -441,7 +441,7 @@ cannotRemoveActiveLanguageError: 'Нельзя удалить активный �
 addLanguageFailed: 'Не удалось добавить язык.', removeLanguageFailed: 'Не удалось удалить язык.', setActiveFailed: 'Не удалось переключить активный язык.',
 learningLangsSelectLabel: 'Языки, которые хочешь изучать (можно выбрать несколько)', selectAtLeastOneLanguageError: 'Нужно выбрать хотя бы один язык.',
 activeLanguageSwitcherLabel: 'Изучается',
-reminderLabel: 'Напоминание', reminderNone: 'Нет', reminder15Min: 'За 15 мин', reminder1Hour: 'За 1 час', reminderDayStart: 'В начале дня',
+reminderLabel: 'Напоминание', reminderNone: 'Нет', reminder15Min: 'За 15 мин', reminder1Hour: 'За 1 час', reminderDayStart: 'В начале дня', calendarSyncBtn: 'Добавить в календарь', calendarSyncHelp: 'Добавьте эту ссылку в приложении календаря через опцию Подписаться по URL, чтобы синхронизировать расписание.', calendarSyncError: 'Не удалось получить ссылку календаря, попробуйте снова.',
 notificationsTitle: 'Напоминания', noNotifications: 'Пока нет уведомлений',
 noNotificationsSub: 'Добавьте напоминание к занятию на странице Программа, и оно появится здесь.',
 markAllReadBtn: 'Отметить все как прочитанные', unreadCountTpl: '{n} непрочитанных',
@@ -535,7 +535,7 @@ cannotRemoveActiveLanguageError: 'Du kannst die aktive Sprache nicht entfernen. 
 addLanguageFailed: 'Sprache konnte nicht hinzugefügt werden.', removeLanguageFailed: 'Sprache konnte nicht entfernt werden.', setActiveFailed: 'Aktive Sprache konnte nicht geändert werden.',
 learningLangsSelectLabel: 'Sprachen, die du lernen möchtest (Mehrfachauswahl möglich)', selectAtLeastOneLanguageError: 'Du musst mindestens eine Sprache auswählen.',
 activeLanguageSwitcherLabel: 'Wird gelernt',
-reminderLabel: 'Erinnerung', reminderNone: 'Keine', reminder15Min: '15 Min. vorher', reminder1Hour: '1 Std. vorher', reminderDayStart: 'Zu Tagesbeginn',
+reminderLabel: 'Erinnerung', reminderNone: 'Keine', reminder15Min: '15 Min. vorher', reminder1Hour: '1 Std. vorher', reminderDayStart: 'Zu Tagesbeginn', calendarSyncBtn: 'Zum Kalender hinzufügen', calendarSyncHelp: 'Füge diesen Link in deiner Kalender-App über die Option Per URL abonnieren hinzu, um deinen Plan zu synchronisieren.', calendarSyncError: 'Kalenderlink konnte nicht abgerufen werden, bitte erneut versuchen.',
 notificationsTitle: 'Erinnerungen', noNotifications: 'Noch keine Benachrichtigungen',
 noNotificationsSub: 'Füge auf der Programmseite einer Aufgabe eine Erinnerung hinzu, dann erscheint sie hier.',
 markAllReadBtn: 'Alle als gelesen markieren', unreadCountTpl: '{n} ungelesen',
@@ -629,7 +629,7 @@ cannotRemoveActiveLanguageError: "Tu ne peux pas supprimer la langue active. Act
 addLanguageFailed: "Impossible d'ajouter la langue.", removeLanguageFailed: 'Impossible de supprimer la langue.', setActiveFailed: 'Impossible de changer la langue active.',
 learningLangsSelectLabel: 'Langues que tu veux apprendre (tu peux en choisir plusieurs)', selectAtLeastOneLanguageError: 'Tu dois choisir au moins une langue.',
 activeLanguageSwitcherLabel: 'En cours d’apprentissage',
-reminderLabel: 'Rappel', reminderNone: 'Aucun', reminder15Min: '15 min avant', reminder1Hour: '1 heure avant', reminderDayStart: 'Au début de la journée',
+reminderLabel: 'Rappel', reminderNone: 'Aucun', reminder15Min: '15 min avant', reminder1Hour: '1 heure avant', reminderDayStart: 'Au début de la journée', calendarSyncBtn: 'Ajouter au calendrier', calendarSyncHelp: "Ajoute ce lien dans ton appli calendrier via l'option S'abonner par URL pour synchroniser ton programme.", calendarSyncError: "Impossible d'obtenir le lien du calendrier, réessaie.",
 notificationsTitle: 'Rappels', noNotifications: 'Aucune notification pour le moment',
 noNotificationsSub: 'Ajoute un rappel à une tâche depuis la page Programme, il apparaîtra ici.',
 markAllReadBtn: 'Tout marquer comme lu', unreadCountTpl: '{n} non lu(s)',
@@ -723,7 +723,7 @@ cannotRemoveActiveLanguageError: 'No puedes eliminar el idioma activo. Activa an
 addLanguageFailed: 'No se pudo añadir el idioma.', removeLanguageFailed: 'No se pudo eliminar el idioma.', setActiveFailed: 'No se pudo cambiar el idioma activo.',
 learningLangsSelectLabel: 'Idiomas que quieres aprender (puedes elegir más de uno)', selectAtLeastOneLanguageError: 'Debes seleccionar al menos un idioma.',
 activeLanguageSwitcherLabel: 'Aprendiendo',
-reminderLabel: 'Recordatorio', reminderNone: 'Ninguno', reminder15Min: '15 min antes', reminder1Hour: '1 hora antes', reminderDayStart: 'Al inicio del día',
+reminderLabel: 'Recordatorio', reminderNone: 'Ninguno', reminder15Min: '15 min antes', reminder1Hour: '1 hora antes', reminderDayStart: 'Al inicio del día', calendarSyncBtn: 'Añadir al calendario', calendarSyncHelp: 'Añade este enlace en tu app de calendario con la opción Suscribirse por URL para sincronizar tu programa.', calendarSyncError: 'No se pudo obtener el enlace del calendario, inténtalo de nuevo.',
 notificationsTitle: 'Recordatorios', noNotifications: 'Aún no hay notificaciones',
 noNotificationsSub: 'Agrega un recordatorio a una tarea desde la página Programa y aparecerá aquí.',
 markAllReadBtn: 'Marcar todo como leído', unreadCountTpl: '{n} sin leer',
@@ -817,7 +817,7 @@ cannotRemoveActiveLanguageError: 'Non puoi rimuovere la lingua attiva. Attiva pr
 addLanguageFailed: 'Impossibile aggiungere la lingua.', removeLanguageFailed: 'Impossibile rimuovere la lingua.', setActiveFailed: 'Impossibile cambiare la lingua attiva.',
 learningLangsSelectLabel: 'Lingue che vuoi imparare (puoi selezionarne più di una)', selectAtLeastOneLanguageError: 'Devi selezionare almeno una lingua.',
 activeLanguageSwitcherLabel: 'In apprendimento',
-reminderLabel: 'Promemoria', reminderNone: 'Nessuno', reminder15Min: '15 min prima', reminder1Hour: '1 ora prima', reminderDayStart: "All'inizio della giornata",
+reminderLabel: 'Promemoria', reminderNone: 'Nessuno', reminder15Min: '15 min prima', reminder1Hour: '1 ora prima', reminderDayStart: "All'inizio della giornata", calendarSyncBtn: 'Aggiungi al calendario', calendarSyncHelp: "Aggiungi questo link nella tua app calendario tramite l'opzione Iscriviti tramite URL per sincronizzare il programma.", calendarSyncError: 'Impossibile ottenere il link del calendario, riprova.',
 notificationsTitle: 'Promemoria', noNotifications: 'Nessuna notifica ancora',
 noNotificationsSub: "Aggiungi un promemoria a un'attività dalla pagina Programma e apparirà qui.",
 markAllReadBtn: 'Segna tutto come letto', unreadCountTpl: '{n} non lette',
@@ -911,7 +911,7 @@ cannotRemoveActiveLanguageError: 'アクティブな言語は削除できませ�
 addLanguageFailed: '言語を追加できませんでした。', removeLanguageFailed: '言語を削除できませんでした。', setActiveFailed: 'アクティブな言語を切り替えられませんでした。',
 learningLangsSelectLabel: '学びたい言語（複数選択可）', selectAtLeastOneLanguageError: '少なくとも1つの言語を選択してください。',
 activeLanguageSwitcherLabel: '学習中',
-reminderLabel: 'リマインダー', reminderNone: 'なし', reminder15Min: '15分前', reminder1Hour: '1時間前', reminderDayStart: '一日の始まりに',
+reminderLabel: 'リマインダー', reminderNone: 'なし', reminder15Min: '15分前', reminder1Hour: '1時間前', reminderDayStart: '一日の始まりに', calendarSyncBtn: 'カレンダーに追加', calendarSyncHelp: 'このリンクをカレンダーアプリの「URLで購読」から追加すると予定が同期されます。', calendarSyncError: 'カレンダーリンクを取得できませんでした。もう一度お試しください。',
 notificationsTitle: 'リマインダー', noNotifications: 'まだ通知がありません',
 noNotificationsSub: 'スケジュールページでタスクにリマインダーを追加すると、ここに表示されます。',
 markAllReadBtn: 'すべて既読にする', unreadCountTpl: '未読{n}件',
@@ -1006,7 +1006,7 @@ cannotRemoveActiveLanguageError: 'Não podes remover o idioma ativo. Ativa antes
 addLanguageFailed: 'Não foi possível adicionar o idioma.', removeLanguageFailed: 'Não foi possível remover o idioma.',
 setActiveFailed: 'Não foi possível mudar o idioma ativo.', learningLangsSelectLabel: 'Idiomas que queres aprender (podes selecionar mais do que um)',
 selectAtLeastOneLanguageError: 'Tens de selecionar pelo menos um idioma.', activeLanguageSwitcherLabel: 'A estudar',
-reminderLabel: 'Lembrete', reminderNone: 'Nenhum', reminder15Min: '15 min antes', reminder1Hour: '1 hora antes', reminderDayStart: 'No início do dia',
+reminderLabel: 'Lembrete', reminderNone: 'Nenhum', reminder15Min: '15 min antes', reminder1Hour: '1 hora antes', reminderDayStart: 'No início do dia', calendarSyncBtn: 'Adicionar ao calendário', calendarSyncHelp: 'Adicione este link no seu app de calendário na opção Inscrever-se por URL para sincronizar seu programa.', calendarSyncError: 'Não foi possível obter o link do calendário, tente novamente.',
 notificationsTitle: 'Lembretes', noNotifications: 'Ainda não há notificações', noNotificationsSub: 'Adiciona um lembrete a uma tarefa na página Horário e ele aparecerá aqui.',
 markAllReadBtn: 'Marcar tudo como lido', unreadCountTpl: '{n} por ler', premiumPageSubtitle: 'Uma experiência de aprendizagem de vocabulário sem anúncios e ilimitada',
 premiumPlansLoadError: 'Não foi possível carregar a informação dos planos.', premiumCheckoutFormError: 'Não foi possível criar o formulário de pagamento.',
