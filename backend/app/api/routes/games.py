@@ -81,6 +81,7 @@ LEXIS_XP_YENI_KURALLAR.md
 
 import logging
 import random
+import re
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -341,6 +342,20 @@ def _random_window(
 # (10+) mobilde tek satira/ekrana sigmiyor.
 SENTENCE_MIN_WORDS = 4
 SENTENCE_MAX_WORDS = 9
+
+
+def _example_contains_word(example: str, word: str) -> bool:
+    """Örnek cümlede hedef kelime geçiyor mu (boşluk doldurma için). Latin
+    alfabesinde tam kelime; Arapça/Japonca gibi word-boundary'nin çalışmadığı yazılarda
+    düz (büyük/küçük harf duyarsız) alt dize kontrolü."""
+    if not example or not word:
+        return False
+    ex, w = example.lower(), word.lower().strip()
+    if not w:
+        return False
+    if re.search(r"\b" + re.escape(w) + r"\b", ex):
+        return True
+    return (not w.isascii()) and w in ex
 
 
 def _choose_sentence_word(learning_lang: str, native_lang: str, attempted: list[str]) -> dict | None:
@@ -721,6 +736,22 @@ async def next_word(
                 if chosen is None:
                     return NextWordResponse(finished=True)
                 meaning_text = chosen["meaning"]
+            elif mode == "fill_blank":
+                # 12 Ekim 2026 -- Boşluk Doldurma (seçenekli / harf dizmeli
+                # varyantlar): cümlede boşluk açılabilmesi için hedef kelimeyi
+                # İÇEREN temiz bir örnek cümle şart. Birkaç denemede bulunamazsa
+                # sonuncusu kabul edilir (istemci boşluk açamazsa anlamı gösterir).
+                chosen = None
+                for _ in range(6):
+                    cand = _choose_sentence_word(learning_lang, native_lang, attempted)
+                    if cand is None:
+                        break
+                    chosen = cand
+                    if _example_contains_word(cand.get("example") or "", cand.get("word") or ""):
+                        break
+                if chosen is None:
+                    return NextWordResponse(finished=True)
+                meaning_text = chosen["meaning"]
             else:
                 # 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 1: vadesi gelen
                 # tekrarlar (%70) + seviyeye gore agirlikli, rastgele pencereden
@@ -776,8 +807,8 @@ async def next_word(
 
         # ── multiple_choice modu (direction'a göre iki farklı yön) ──
         options = None
-        if mode in ("multiple_choice", "true_false"):
-            if direction in (Direction.meaning_to_word.value, Direction.definition_to_word.value):
+        if mode in ("multiple_choice", "true_false", "fill_blank"):
+            if mode == "fill_blank" or direction in (Direction.meaning_to_word.value, Direction.definition_to_word.value):
                 # Anlam VEYA tanım gösterilir, doğru KELİME 4 seçenekten bulunur.
                 # (definition_to_word'de pool_source her zaman "general" — create_session'da
                 # doğrulanıyor — bu yüzden "own" dalı burada pratikte hiç tetiklenmez.)

@@ -6,6 +6,7 @@ import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLi
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
+import { getFillBlankStrings } from '@/i18n/fillBlankStrings';
 import { useAuth } from '@/store/auth';
 import { gamesApi } from '@/api/games';
 import type { Direction, GameFinishResult, GameMode, NextWordResult, PoolSource } from '@/api/types';
@@ -17,7 +18,7 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ARABIC_KEYBOARD_ROWS, getKeyboardRowsForLanguage, isLetterGuessSupported } from '@/constants/keyboards';
 
-type Stage = 'mode' | 'direction' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
+type Stage = 'mode' | 'direction' | 'fillvariant' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
 
 // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026 — eşin ekran görüntüsü): "burada
 // arapça harfler olması gerekiyor klavye seçeneği eksik" — kelime tahmin
@@ -76,7 +77,11 @@ function buildClozeText(example: string, word: string): string {
   if (!example || !word) return example;
   const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const re = new RegExp(`\\b${escaped}\\b`, 'i');
-  return re.test(example) ? example.replace(re, '_____') : example;
+  if (re.test(example)) return example.replace(re, '_____');
+  // \b sadece ASCII "kelime" karakterleriyle çalışır; Arapça/Japonca/Kiril
+  // gibi yazılarda düz (büyük/küçük harf duyarsız) alt dize aranır.
+  const plain = new RegExp(escaped, 'i');
+  return plain.test(example) ? example.replace(plain, '_____') : example;
 }
 
 // KULLANICI GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor ki bu" —
@@ -108,7 +113,8 @@ function shuffleArray<T>(arr: T[]): T[] {
 }
 
 export default function GameScreen() {
-  const { gt } = useLocale();
+  const { gt, locale } = useLocale();
+  const fb = getFillBlankStrings(locale);
   const c = useThemeColors();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -173,6 +179,15 @@ export default function GameScreen() {
   const [sentenceTiles, setSentenceTiles] = useState<{ uid: string; text: string; originalIndex: number }[]>([]);
   const [sentencePicked, setSentencePicked] = useState<string[]>([]);
   const [sentenceResult, setSentenceResult] = useState<'correct' | 'wrong' | null>(null);
+
+  // ── Boşluk Doldurma varyantları (12 Ekim 2026, kullanıcı isteği —
+  // Duolingo tarzı): 'choice' = seçeneklerden kelime seç, 'letters' = karışık
+  // harflere sırayla dokunarak kelimeyi kur, 'typing' = klavyeyle yaz (eski
+  // davranış). Backend'de mod hepsi için aynı: 'fill_blank'. ──
+  const [fillVariant, setFillVariant] = useState<'choice' | 'letters' | 'typing'>('choice');
+  const [fillTiles, setFillTiles] = useState<{ uid: string; text: string }[]>([]);
+  const [fillPicked, setFillPicked] = useState<string[]>([]);
+  const [fillResult, setFillResult] = useState<'correct' | 'wrong' | null>(null);
 
   // ── Doğru mu Yanlış mı (true_false) state -- loadNext her yeni kelimede
   // current.options'tan rastgele BİR seçeneği "iddia" olarak seçer (bazen
@@ -282,6 +297,17 @@ export default function GameScreen() {
       );
       setSentencePicked([]);
       setSentenceResult(null);
+      const fillChars =
+        gameMode === 'fill_blank' && fillVariant === 'letters' && nw.word
+          ? Array.from(nw.word.replace(/\s+/g, ''))
+          : [];
+      setFillTiles(
+        shuffleArray(
+          fillChars.map((ch, i) => ({ uid: `${i}-${Math.random().toString(36).slice(2)}`, text: ch }))
+        )
+      );
+      setFillPicked([]);
+      setFillResult(null);
       setQuestionNum((n) => n + 1);
       setStage('playing');
     } catch {
@@ -466,7 +492,11 @@ export default function GameScreen() {
     setSelectedId(optionId);
     const currentDirection = current.direction ?? direction;
     const correctText =
-      currentDirection === 'meaning_to_word' || currentDirection === 'definition_to_word' ? current.word : current.meaning;
+      gameMode === 'fill_blank' ||
+      currentDirection === 'meaning_to_word' ||
+      currentDirection === 'definition_to_word'
+        ? current.word
+        : current.meaning;
     const isCorrect = optionText === correctText;
     setFeedback(isCorrect);
     try {
@@ -601,6 +631,49 @@ export default function GameScreen() {
         });
       setTimeout(() => loadNext(sessionId, true, poolSource), isCorrect ? 900 : 1600);
     }
+  };
+
+  // ── Boşluk Doldurma / harf dizme — fişlere sırayla dokunulur, hepsi seçilince
+  // istemci tarafında kontrol edilip sonuç gönderilir (cümle kurmayla aynı
+  // güven modeli). Boşluklar kelimeden çıkarılır (tek fiş = tek harf). ──
+  const submitFillResult = (isCorrect: boolean) => {
+    if (!sessionId || !current) return;
+    gamesApi
+      .submitAttempt(sessionId, {
+        word_id: current.word_id ?? undefined,
+        general_word_id: current.general_word_id ?? undefined,
+        is_correct: isCorrect,
+      })
+      .then((res) => {
+        setScore(res.session_score);
+        setXpEarned((x) => x + res.xp_awarded);
+        queryClient.invalidateQueries({ queryKey: ['xp'] });
+        queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
+        if (res.leveled_up) setLevelUp(res.new_level);
+      })
+      .catch(() => {
+        /* sessiz */
+      });
+    setTimeout(() => loadNext(sessionId, true, poolSource), isCorrect ? 900 : 1600);
+  };
+
+  const handleFillTileClick = (uid: string) => {
+    if (fillResult || fillPicked.includes(uid) || !sessionId || !current) return;
+    const nextPicked = [...fillPicked, uid];
+    setFillPicked(nextPicked);
+    if (nextPicked.length === fillTiles.length) {
+      const built = nextPicked.map((u) => fillTiles.find((tl) => tl.uid === u)?.text ?? '').join('');
+      const target = (current.word ?? '').replace(/\s+/g, '');
+      const isCorrect = normalizeTypedAnswer(built) === normalizeTypedAnswer(target);
+      setFillResult(isCorrect ? 'correct' : 'wrong');
+      submitFillResult(isCorrect);
+    }
+  };
+
+  const handleFillSkip = () => {
+    if (fillResult || !current || !sessionId) return;
+    setFillResult('wrong');
+    submitFillResult(false);
   };
 
   const handleSentenceSkip = async () => {
@@ -871,7 +944,7 @@ export default function GameScreen() {
             onPress={() => {
               setGameMode('fill_blank');
               setDirection('meaning_to_word');
-              setStage('setup');
+              setStage('fillvariant');
             }}
           />
           <ModeCard
@@ -916,6 +989,20 @@ export default function GameScreen() {
     );
   }
 
+  // ── Boşluk Doldurma: oynanış tarzı seçimi ──
+  if (stage === 'fillvariant') {
+    return (
+      <CenterScreen>
+        <Title c={c}>{gt.modeFillBlankLabel}</Title>
+        <Subtitle c={c}>{fb.variantTitle}</Subtitle>
+        <OptionButton title={fb.choiceLabel} desc={fb.choiceDesc} onPress={() => { setFillVariant('choice'); setStage('setup'); }} />
+        <OptionButton title={fb.lettersLabel} desc={fb.lettersDesc} onPress={() => { setFillVariant('letters'); setStage('setup'); }} />
+        <OptionButton title={fb.typingLabel} desc={fb.typingDesc} onPress={() => { setFillVariant('typing'); setStage('setup'); }} />
+        <BackLink label={gt.backBtn} onPress={() => setStage('mode')} />
+      </CenterScreen>
+    );
+  }
+
   // ── Havuz seçimi / Yükleniyor ──
   if (stage === 'setup' || stage === 'loading') {
     return (
@@ -935,7 +1022,7 @@ export default function GameScreen() {
             {direction !== 'definition_to_word' && gameMode !== 'sentence_building' && (
               <OptionButton title={gt.poolOwnLabel} desc={gt.poolOwnDesc} onPress={() => start(gameMode, 'own', direction)} />
             )}
-            <BackLink label={gt.backBtn} onPress={() => setStage(gameMode === 'multiple_choice' ? 'direction' : 'mode')} />
+            <BackLink label={gt.backBtn} onPress={() => setStage(gameMode === 'multiple_choice' ? 'direction' : gameMode === 'fill_blank' ? 'fillvariant' : 'mode')} />
           </>
         )}
       </CenterScreen>
@@ -1069,6 +1156,15 @@ export default function GameScreen() {
   const isSentence = gameMode === 'sentence_building';
   const isMultipleChoice = gameMode === 'multiple_choice';
   const isFillBlank = gameMode === 'fill_blank';
+  // Seçenekli varyantta backend seçenek göndermediyse (olağan dışı) yazma
+  // varyantına düşülür; oyun asla boş ekranda kalmaz.
+  const fillMode: 'choice' | 'letters' | 'typing' | null = !isFillBlank
+    ? null
+    : fillVariant === 'choice' && !(current.options && current.options.length > 0)
+      ? 'typing'
+      : fillVariant === 'letters' && fillTiles.length === 0
+        ? 'typing'
+        : fillVariant;
   const isTrueFalse = gameMode === 'true_false';
   const isChain = gameMode === 'word_chain';
   const keyboardRows = getKeyboardRowsForLanguage(user?.learning_lang);
@@ -1303,7 +1399,131 @@ export default function GameScreen() {
         </>
       )}
 
-      {(isTyping || isSprint || isFillBlank || isChain) && (
+      {isFillBlank && (fillMode === 'choice' || fillMode === 'letters') && (
+        <>
+          <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.sm, textTransform: 'uppercase' }}>
+              {fillMode === 'letters' ? fb.lettersPrompt : gt.fillBlankPromptLabel}
+            </Text>
+            <Text style={{ color: c.text, fontSize: 22, fontWeight: '700', textAlign: 'center' }}>
+              {current.example ? buildClozeText(current.example, current.word ?? '') : current.meaning}
+            </Text>
+            {current.example && current.meaning ? (
+              <Text style={{ color: c.textMuted, fontSize: 13, marginTop: spacing.sm, textAlign: 'center' }}>
+                {fb.meaningHint.replace('{meaning}', current.meaning)}
+              </Text>
+            ) : null}
+          </Card>
+
+          {fillMode === 'choice' && (
+            <>
+              <View style={{ gap: spacing.sm }}>
+                {(current.options || []).map((opt) => {
+                  const isCorrectOption = opt.text === current.word;
+                  const isSelected = opt.id === selectedId;
+                  const answered = selectedId !== null;
+                  let borderColor = c.border;
+                  let bg = c.surface;
+                  let textColor = c.text;
+                  if (answered) {
+                    if (isCorrectOption) {
+                      borderColor = c.success;
+                      bg = c.successSoft;
+                      textColor = c.success;
+                    } else if (isSelected) {
+                      borderColor = c.danger;
+                      bg = c.dangerSoft;
+                      textColor = c.danger;
+                    } else {
+                      textColor = c.textMuted;
+                    }
+                  }
+                  return (
+                    <Pressable
+                      key={opt.id}
+                      disabled={answered}
+                      onPress={() => handleAnswer(opt.id, opt.text)}
+                      style={[styles.optionRow, { borderColor, backgroundColor: bg }]}
+                    >
+                      <Text style={{ color: textColor, fontSize: 15, fontWeight: '600', flex: 1 }}>{opt.text}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+              {feedback !== null && (
+                <Text style={{ color: feedback ? c.success : c.danger, fontWeight: '700', textAlign: 'center', marginTop: spacing.md }}>
+                  {feedback ? gt.correctLabel : gt.wrongLabel}
+                </Text>
+              )}
+            </>
+          )}
+
+          {fillMode === 'letters' && (
+            <>
+              <View style={[styles.sentenceBox, { borderColor: fillResult === 'correct' ? c.success : fillResult === 'wrong' ? c.danger : c.border }]}>
+                {fillPicked.length === 0 && (
+                  <Text style={{ color: c.textMuted, fontSize: 12 }}>{fb.lettersHint}</Text>
+                )}
+                {fillPicked.map((uid) => {
+                  const tile = fillTiles.find((tl) => tl.uid === uid);
+                  if (!tile) return null;
+                  const bg = fillResult === null ? c.primarySoft : fillResult === 'correct' ? c.successSoft : c.dangerSoft;
+                  const fg = fillResult === null ? c.primary : fillResult === 'correct' ? c.success : c.danger;
+                  return (
+                    <Pressable
+                      key={uid}
+                      disabled={fillResult !== null}
+                      onPress={() => setFillPicked((prev) => prev.filter((u) => u !== uid))}
+                      style={[styles.fillLetterTile, { backgroundColor: bg }]}
+                    >
+                      <Text style={{ color: fg, fontSize: 20, fontWeight: '700' }}>{tile.text}</Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              {fillResult === 'wrong' && (
+                <Text style={{ color: c.danger, fontWeight: '700', textAlign: 'center', marginTop: spacing.sm }}>
+                  {gt.correctMeaningTpl.replace('{meaning}', current.word ?? '')}
+                </Text>
+              )}
+              {fillResult === 'correct' && (
+                <Text style={{ color: c.success, fontWeight: '700', textAlign: 'center', marginTop: spacing.sm }}>{gt.correctLabel}</Text>
+              )}
+
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', marginTop: spacing.md }}>
+                {fillTiles
+                  .filter((tl) => !fillPicked.includes(tl.uid))
+                  .map((tile) => (
+                    <Pressable
+                      key={tile.uid}
+                      disabled={fillResult !== null}
+                      onPress={() => handleFillTileClick(tile.uid)}
+                      style={[styles.fillLetterTile, { borderWidth: 1.5, borderColor: c.border, backgroundColor: c.surface, opacity: fillResult !== null ? 0.4 : 1 }]}
+                    >
+                      <Text style={{ color: c.text, fontSize: 20, fontWeight: '700' }}>{tile.text}</Text>
+                    </Pressable>
+                  ))}
+              </View>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'center', gap: spacing.lg, marginTop: spacing.md }}>
+                {fillResult === null && fillPicked.length > 0 && (
+                  <Pressable onPress={() => setFillPicked([])}>
+                    <Text style={{ color: c.textMuted, fontSize: 12 }}>{fb.resetBtn}</Text>
+                  </Pressable>
+                )}
+                {fillResult === null && (
+                  <Pressable onPress={handleFillSkip}>
+                    <Text style={{ color: c.textMuted, fontSize: 12 }}>{gt.typingSkipBtn}</Text>
+                  </Pressable>
+                )}
+              </View>
+            </>
+          )}
+        </>
+      )}
+
+      {(isTyping || isSprint || (isFillBlank && fillMode === 'typing') || isChain) && (
         <>
           <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
             <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.sm, textTransform: 'uppercase' }}>
@@ -1734,6 +1954,14 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: spacing.sm,
+  },
+  fillLetterTile: {
+    minWidth: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm + 2,
   },
   sentenceTile: {
     borderRadius: radius.md,

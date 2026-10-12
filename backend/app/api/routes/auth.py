@@ -5,6 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr
 from supabase import create_client
+from supabase.lib.client_options import ClientOptions
 
 from app.core.auth import get_current_user
 from app.core.config import settings
@@ -79,6 +80,22 @@ def _friendly_auth_error(msg: str) -> str:
         return "Geçersiz e-posta adresi."
     return "Kayıt başarısız. Lütfen bilgilerinizi kontrol edin."
 
+def _new_stateless_auth_client():
+    """
+    Oturum tutmayan, arka planda token yenilemeyen geçici anon client.
+    KRİTİK: supabase-py varsayılan olarak auto_refresh_token=True ile gelir;
+    sign_in/refresh_session sonrası client arka planda kullanıcının refresh
+    token'ını kendi kendine yenilemeye devam eder. Supabase'de refresh token
+    rotation açık olduğundan bu, telefondaki token'ı "kullanılmış" yapar ve
+    bir sonraki yenilemede refresh_token_already_used ile TÜM oturum iptal
+    edilir (kullanıcı uygulamayı kapatıp açınca giriş ekranına düşer).
+    """
+    return create_client(
+        settings.SUPABASE_URL,
+        settings.SUPABASE_ANON_KEY,
+        options=ClientOptions(auto_refresh_token=False, persist_session=False),
+    )
+
 def _bootstrap_session(email: str, password: str):
     """
     Kullanıcı için bir Supabase session (access/refresh token) bootstraplar.
@@ -91,7 +108,7 @@ def _bootstrap_session(email: str, password: str):
     bunu asla mutasyona uğratmamak gerekiyor — aksi halde otp_codes gibi
     service_role'e özel tablolara yazarken RLS ihlali (42501) alınıyor.
     """
-    temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+    temp_client = _new_stateless_auth_client()
     result = temp_client.auth.sign_in_with_password({"email": email, "password": password})
     if not result.session:
         return None, None
@@ -134,7 +151,7 @@ async def register(req: RegisterRequest, request: Request):
         # paylaşılan oturumu yine kirlenir — bu yüzden sign_up de ayrı bir
         # (anon key'li) temp client ile yapılıyor, supabase_admin sadece
         # .table() işlemleri için service_role olarak temiz kalıyor.
-        temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+        temp_client = _new_stateless_auth_client()
 
         user_id: str
         access_token: str | None = None
@@ -342,7 +359,7 @@ async def apple_sign_in(req: AppleSignInRequest, request: Request):
     kendi Face ID/Touch ID dogrulamasi zaten guclu bir kimlik dogrulama.
     """
     try:
-        temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+        temp_client = _new_stateless_auth_client()
         result = temp_client.auth.sign_in_with_id_token({
             "provider": "apple",
             "token": req.id_token,
@@ -419,7 +436,7 @@ async def google_sign_in(req: GoogleSignInRequest, request: Request):
     bir kimlik dogrulama (Apple sign_in ile ayni gerekce).
     """
     try:
-        temp_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_ANON_KEY)
+        temp_client = _new_stateless_auth_client()
         result = temp_client.auth.sign_in_with_id_token({
             "provider": "google",
             "token": req.id_token,
@@ -607,7 +624,10 @@ async def refresh_token(req: RefreshTokenRequest):
     refresh_token tek kullanımlık, bir daha kullanılamaz.
     """
     try:
-        result = supabase_admin.auth.refresh_session(req.refresh_token)
+        # supabase_admin (paylaşılan global client) KULLANILMAZ: oturumu üstüne
+        # alır ve arka planda yenilemeye devam edip kullanıcının token'ını bozar.
+        temp_client = _new_stateless_auth_client()
+        result = temp_client.auth.refresh_session(req.refresh_token)
         if not result.session:
             raise HTTPException(status_code=401, detail="Token yenilenemedi.")
         return {

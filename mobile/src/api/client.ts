@@ -60,14 +60,22 @@ api.interceptors.request.use(async (config) => {
 // rotation açık, yani aynı refresh_token'ı paralel iki kere kullanmaya
 // çalışmak ikincisinin başarısız olmasına (ve gereksiz bir logout'a) yol açar.
 let refreshPromise: Promise<string | null> | null = null;
+// Son yenileme denemesi başarısızsa nedeni: 'rejected' = sunucu refresh_token'ı
+// geçersiz saydı (gerçekten çıkış gerek), 'network' = ağ/sunucu geçici hatası
+// (oturum KORUNMALI — zayıf internette kullanıcıyı atmamak için).
+let lastRefreshFailure: 'rejected' | 'network' | null = null;
 
 async function tryRefreshToken(): Promise<string | null> {
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = (async () => {
     try {
+      lastRefreshFailure = null;
       const storedRefreshToken = await secureStorage.getItem(REFRESH_TOKEN_KEY);
-      if (!storedRefreshToken) return null;
+      if (!storedRefreshToken) {
+        lastRefreshFailure = 'rejected';
+        return null;
+      }
 
       // Kasıtlı olarak `api` instance'ı değil, çıplak axios kullanılıyor —
       // `api`'nin request interceptor'ı süresi dolmuş eski access_token'ı
@@ -80,14 +88,21 @@ async function tryRefreshToken(): Promise<string | null> {
         access_token?: string;
         refresh_token?: string;
       };
-      if (!access_token) return null;
+      if (!access_token) {
+        lastRefreshFailure = 'rejected';
+        return null;
+      }
 
       await secureStorage.setItem(TOKEN_KEY, access_token);
       if (newRefreshToken) {
         await secureStorage.setItem(REFRESH_TOKEN_KEY, newRefreshToken);
       }
       return access_token;
-    } catch {
+    } catch (e) {
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      // 400/401/403: token gerçekten geçersiz/kullanılmış. Yanıt yoksa
+      // (timeout, offline) veya 5xx ise geçici sorun sayılır.
+      lastRefreshFailure = status === 400 || status === 401 || status === 403 ? 'rejected' : 'network';
       return null;
     } finally {
       refreshPromise = null;
@@ -115,6 +130,11 @@ api.interceptors.response.use(
         originalRequest!.headers = originalRequest!.headers ?? {};
         (originalRequest!.headers as Record<string, string>).Authorization = `Bearer ${newToken}`;
         return api(originalRequest!);
+      }
+
+      // Geçici ağ/sunucu hatası: oturumu silme, sadece bu isteği hata ver.
+      if (lastRefreshFailure === 'network') {
+        return Promise.reject(error);
       }
 
       // refresh_token da geçersiz/süresi dolmuş (ör. uygulama haftalarca
