@@ -692,6 +692,12 @@ export interface MobileReleaseStatus {
   platforms: (MobileReleasePlatformStatus | null)[];
 }
 
+export interface MobilePushStatus {
+  tokens: { total: number; ios: number; android: number; fresh_14d: number };
+  last_7_days: { category: string; status: string; count: number }[];
+  all_time: { category: string; status: string; count: number }[];
+}
+
 export interface DetailedStats {
   language_distribution: {
     learning_lang: Record<string, number>;

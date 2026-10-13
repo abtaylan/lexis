@@ -68,6 +68,7 @@ import type {
   AnalyticsData,
   SystemHealth,
   MobileReleaseStatus,
+  MobilePushStatus,
   DetailedStats,
   Payment,
   PaymentsSummary,
@@ -902,6 +903,13 @@ export const adminApi = {
   // listesiyle güncel tutuyor (bkz. backend admin_platform.py notu).
   getMobileReleaseStatus: async (): Promise<MobileReleaseStatus> => {
     const res = await api.get<MobileReleaseStatus>('/admin/mobile/release-status');
+    return res.data;
+  },
+  // 13 Ekim 2026 — admin/mobile sayfasının "Push bildirim yönetimi" kartı
+  // (önceden "yakında" placeholder'ıydı). push_tokens + notification_log
+  // zaten var olan tablolar, yeni bir entegrasyon gerekmedi.
+  getMobilePushStatus: async (): Promise<MobilePushStatus> => {
+    const res = await api.get<MobilePushStatus>('/admin/mobile/push-status');
     return res.data;
   },
   getDetailedStats: async (days = 30): Promise<DetailedStats> => {

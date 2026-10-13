@@ -206,6 +206,52 @@ async def mobile_release_status(admin=Depends(get_current_admin)):
 
 
 # ================================================================
+# 1c) Push bildirim yönetimi — admin panel /admin/mobile, "Push bildirim
+#     yönetimi" kartı (13 Ekim 2026'da "yakında" placeholder'ından canlı
+#     veriye çevrildi). push_tokens + notification_log zaten var olan
+#     tablolar — burada yeni bir dış entegrasyon/cron GEREKMİYOR, backend
+#     doğrudan okuyor.
+# ================================================================
+@router.get("/mobile/push-status")
+async def mobile_push_status(admin=Depends(get_current_admin)):
+    tokens = (
+        supabase_admin.table("push_tokens").select("platform, last_used_at").execute()
+    ).data or []
+    fourteen_days_ago = (datetime.now(UTC) - timedelta(days=14)).isoformat()
+    token_summary = {
+        "total": len(tokens),
+        "ios": sum(1 for t in tokens if t.get("platform") == "ios"),
+        "android": sum(1 for t in tokens if t.get("platform") == "android"),
+        "fresh_14d": sum(1 for t in tokens if (t.get("last_used_at") or "") >= fourteen_days_ago),
+    }
+
+    def _log_counts(since: str | None) -> list[dict]:
+        q = (
+            supabase_admin.table("notification_log")
+            .select("category, status")
+            .eq("channel", "push")
+        )
+        if since:
+            q = q.gte("created_at", since)
+        rows = (q.execute()).data or []
+        counts: dict[tuple[str, str], int] = {}
+        for row in rows:
+            key = (row.get("category") or "bilinmiyor", row.get("status") or "bilinmiyor")
+            counts[key] = counts.get(key, 0) + 1
+        return [
+            {"category": cat, "status": status, "count": count}
+            for (cat, status), count in sorted(counts.items())
+        ]
+
+    seven_days_ago = (datetime.now(UTC) - timedelta(days=7)).isoformat()
+    return {
+        "tokens": token_summary,
+        "last_7_days": _log_counts(seven_days_ago),
+        "all_time": _log_counts(None),
+    }
+
+
+# ================================================================
 # 2) Detaylı istatistikler — dil dağılımı, büyüme, retention
 # ================================================================
 @router.get("/stats/detailed")

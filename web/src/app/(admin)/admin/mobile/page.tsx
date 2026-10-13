@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Smartphone, Apple, Bell as BellIcon, Bug, GitBranch, CheckCircle2, Clock, AlertTriangle, Loader2 } from 'lucide-react';
 import { adminApi } from '@/lib/api';
-import type { MobileReleasePlatformStatus } from '@/types';
+import type { MobileReleasePlatformStatus, MobilePushStatus } from '@/types';
 
 // Mobil uygulama (React Native / Expo) — durum güncellendi (13 Ekim 2026,
 // App Store Connect + Play Console'dan canlı kontrol edilerek): iOS 1.0.3
@@ -24,6 +24,23 @@ function formatDate(iso?: string | null) {
   if (!iso) return '—';
   return new Date(iso).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
+
+const PUSH_CATEGORY_LABELS: Record<string, string> = {
+  daily_reminder_morning: 'Sabah hatırlatma',
+  daily_reminder_evening: 'Akşam hatırlatma',
+  friend_request: 'Arkadaşlık isteği',
+  new_message: 'Yeni mesaj',
+  reward: 'Ödül bildirimi',
+  ios_reinstall_fix_1_0_1_ota: 'iOS OTA düzeltme bildirimi (tek seferlik)',
+};
+
+const PUSH_STATUS_LABELS: Record<string, string> = {
+  delivered: 'Teslim edildi',
+  sent: 'Gönderildi (teslim bekleniyor)',
+  delivery_failed: 'Teslim başarısız',
+  skipped: 'Atlandı',
+  failed: 'Başarısız',
+};
 
 function ReleaseCard({ platform, data }: { platform: 'iOS' | 'Android'; data: MobileReleasePlatformStatus | null }) {
   const Icon = platform === 'iOS' ? Apple : Smartphone;
@@ -101,11 +118,20 @@ export default function MobileAppPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const [pushData, setPushData] = useState<MobilePushStatus | null>(null);
+  const [pushLoading, setPushLoading] = useState(true);
+  const [pushError, setPushError] = useState('');
+
   useEffect(() => {
     adminApi.getMobileReleaseStatus()
       .then((res) => setReleaseData(res.platforms))
       .catch(() => setError('Sürüm takibi verisi alınamadı.'))
       .finally(() => setLoading(false));
+
+    adminApi.getMobilePushStatus()
+      .then(setPushData)
+      .catch(() => setPushError('Push bildirim verisi alınamadı.'))
+      .finally(() => setPushLoading(false));
   }, []);
 
   const storeStatus = [
@@ -126,8 +152,7 @@ export default function MobileAppPage() {
   ];
 
   const plannedSections = [
-    { icon: Bug, title: 'Crash raporlama', desc: 'Uygulama çökme/hata raporları — bir crash reporting SDK entegre edildiğinde burada listelenecek.' },
-    { icon: BellIcon, title: 'Push bildirim yönetimi', desc: 'Push token kayıtları, günün kelimesi ve sabah/akşam hatırlatma kampanyalarının teslim oranları.' },
+    { icon: Bug, title: 'Crash raporlama', desc: 'Uygulama çökme/hata raporları — bir crash reporting SDK (ör. Sentry) mobil uygulamaya entegre edilip yeni bir build yayınlandığında burada listelenecek.' },
   ];
 
   const ios = releaseData?.[0] ?? null;
@@ -174,6 +199,50 @@ export default function MobileAppPage() {
         )}
         <p className="mt-2 text-[11px] text-gray-400 dark:text-slate-500">
           EAS build kayıtlarından alınıyor, günlük olarak yenilenir (son yenileme: {formatDate(checkedAt)}). Cihazlardaki gerçek güncelleme/adaptasyon oranı için uygulamaya analytics SDK entegrasyonu gerekiyor — henüz yok.
+        </p>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <BellIcon className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Push bildirim yönetimi</h2>
+          {pushLoading && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
+        </div>
+        {pushError ? (
+          <p className="text-xs text-[#9A3B3B]">{pushError}</p>
+        ) : pushData ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
+              <p className="text-xs text-gray-400 dark:text-slate-500 mb-3">Kayıtlı push token</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-slate-100">{pushData.tokens.total}</p>
+              <div className="mt-3 space-y-1 text-xs text-gray-500 dark:text-slate-400">
+                <div className="flex items-center justify-between"><span>iOS</span><span className="font-medium">{pushData.tokens.ios}</span></div>
+                <div className="flex items-center justify-between"><span>Android</span><span className="font-medium">{pushData.tokens.android}</span></div>
+                <div className="flex items-center justify-between"><span>Son 14 günde aktif</span><span className="font-medium">{pushData.tokens.fresh_14d}</span></div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
+              <p className="text-xs text-gray-400 dark:text-slate-500 mb-3">Son 7 günde gönderim (kampanya × durum)</p>
+              {pushData.last_7_days.length === 0 ? (
+                <p className="text-xs text-gray-400 dark:text-slate-500">Son 7 günde push bildirim kaydı yok.</p>
+              ) : (
+                <div className="space-y-1.5 text-xs">
+                  {pushData.last_7_days.map((row) => (
+                    <div key={`${row.category}-${row.status}`} className="flex items-center justify-between">
+                      <span className="text-gray-500 dark:text-slate-400">
+                        {PUSH_CATEGORY_LABELS[row.category] ?? row.category} — {PUSH_STATUS_LABELS[row.status] ?? row.status}
+                      </span>
+                      <span className="font-medium text-gray-700 dark:text-slate-300">{row.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
+        <p className="mt-2 text-[11px] text-gray-400 dark:text-slate-500">
+          push_tokens ve notification_log tablolarından anlık okunuyor — ayrı bir arka plan işine ihtiyaç yok.
         </p>
       </div>
 
