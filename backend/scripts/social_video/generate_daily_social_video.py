@@ -10,11 +10,12 @@ content.json semasi:
 {
   "word": "provided that",
   "level": "YDS / YOKDIL / TOEFL",          # opsiyonel, bos ise kutu gizlenir
-  "meaning_tr": "sartiyla, yeter ki (kosul bildirir, 'if' gibi kullanilir)",
+  "meaning_en": "on condition that; only if",   # DB: daily_word_content.meaning_target
+  "meaning_tr": "sartiyla, yeter ki (kosul bildirir, 'if' gibi kullanilir)",  # DB: meaning_native
   "example_1_en": "You can borrow the book, provided that you return it by Friday.",
-  "example_1_tr": "Cuma gunune kadar iade etmen sartiyla kitabi odunc alabilirsin.",
+  "example_1_tr": "Cuma gunune kadar iade etmen sartiyla kitabi odunc alabilirsin.",  # DB: example_1_native
   "example_2_en": "...",                     # opsiyonel
-  "example_2_tr": "...",                     # opsiyonel
+  "example_2_tr": "...",                     # opsiyonel, DB: example_2_native
   "grammar_note_tr": "...",                  # opsiyonel (yoksa sahne 5 atlanir)
   "exam_label": "YDS SORUSU",                # opsiyonel, soru varsa
   "question_text": "...",                    # opsiyonel (yoksa sahne 6 atlanir)
@@ -148,9 +149,16 @@ def main():
     if c.get("level"):
         chip(d, c["level"], 500, F_SEMI(30), BLUE, BOX_BLUE, pad_x=56, h=60)
     box_y = 640
-    rounded_rect(d, (90, box_y, W - 90, box_y + 420), 36, BOX_BLUE)
-    d.text((130, box_y + 50), "TR  ·  Anlamı", font=F_BOLD(34), fill=BLUE)
-    wrapped_center_text(d, W / 2, box_y + 130, c["meaning_tr"], F_SEMI(40), INK, 24, 56)
+    if c.get("meaning_en"):
+        rounded_rect(d, (90, box_y, W - 90, box_y + 560), 36, BOX_BLUE)
+        d.text((130, box_y + 50), "EN  ·  İngilizce", font=F_BOLD(34), fill=BLUE)
+        wrapped_center_text(d, W / 2, box_y + 110, c["meaning_en"], F_SEMI(40), INK, 22, 54)
+        d.text((130, box_y + 260), "TR  ·  Türkçe", font=F_BOLD(34), fill=BLUE)
+        wrapped_center_text(d, W / 2, box_y + 320, c["meaning_tr"], F_SEMI(36), INK, 26, 50)
+    else:
+        rounded_rect(d, (90, box_y, W - 90, box_y + 420), 36, BOX_BLUE)
+        d.text((130, box_y + 50), "TR  ·  Anlamı", font=F_BOLD(34), fill=BLUE)
+        wrapped_center_text(d, W / 2, box_y + 130, c["meaning_tr"], F_SEMI(40), INK, 24, 56)
     footer_handle(d)
     p = f"{out_dir}/s2.png"; img.save(p); frames.append((p, 3.3))
 
