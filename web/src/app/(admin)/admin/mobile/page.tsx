@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Smartphone, Apple, Bell as BellIcon, Bug, GitBranch, CheckCircle2, AlertTriangle, Loader2, Star, MessageSquare } from 'lucide-react';
+import { Smartphone, Apple, Bell as BellIcon, Bug, GitBranch, CheckCircle2, Clock, Loader2, Star, MessageSquare } from 'lucide-react';
 import { adminApi } from '@/lib/api';
 import type {
   MobileReleasePlatformStatus,
@@ -73,14 +73,14 @@ function ReleaseCard({ platform, data }: { platform: 'iOS' | 'Android'; data: Mo
     );
   }
 
-  const latestIsFinished = data.latest_build_id === data.latest_finished_build_id;
-  const hasFailedNewerBuild = !latestIsFinished && data.latest_build_status && data.latest_build_status !== 'FINISHED';
-  // 13 Ekim 2026 düzeltmesi (kullanıcı uyarısı: "şuan uygulama en son
-  // versionda başarılı şekilde çalışıyor" halde kart sadece alarm veriyordu):
-  // başarısız YENİ bir build denemesi olsa bile, elimizde başarıyla
-  // TAMAMLANMIŞ bir build varsa (latest_finished_*) bunu her zaman yeşil
-  // "Canlıda Aktif" rozetiyle göster — başarısız deneme artık ayrı, daha
-  // küçük bir ikaz rozeti olarak YANINDA gösteriliyor, onun YERİNE değil.
+  // 13 Ekim 2026 düzeltmesi (kullanıcı: "canlıda başarılı çalışıyorsa son
+  // alınan build başarılı olması gerekiyor, burada 'Son deneme başarısız'
+  // yazısı görmek istemiyorum"): bu kart artık SADECE başarıyla TAMAMLANMIŞ
+  // en son build'i (latest_finished_*) referans alıyor ve tek, sade bir
+  // durum rozeti gösteriyor. Ara denemelerde başarısız bir build olsa bile
+  // (ör. build 16) bu kartta hiç yüzeye çıkmıyor -- o bilgi istenirse
+  // doğrudan Expo/EAS panelinden (expo.dev) bakılabilir, bu sayfanın amacı
+  // "şu an canlıda ne var" sorusuna cevap vermek.
   const hasFinishedBuild = !!data.latest_finished_build_id;
 
   return (
@@ -90,23 +90,15 @@ function ReleaseCard({ platform, data }: { platform: 'iOS' | 'Android'; data: Mo
           <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 flex items-center justify-center"><Icon className="w-4 h-4" /></div>
           <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{platform}</p>
         </div>
-        <div className="flex items-center gap-1.5">
-          {hasFinishedBuild && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-[#EAF3DE] text-[#3B6D11]">
-              <CheckCircle2 className="w-3 h-3" />Canlıda Aktif
-            </span>
-          )}
-          {hasFailedNewerBuild && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-[#FBEAEA] text-[#9A3B3B]">
-              <AlertTriangle className="w-3 h-3" />Son deneme başarısız
-            </span>
-          )}
-          {!hasFinishedBuild && !hasFailedNewerBuild && (
-            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-[#EAF3DE] text-[#3B6D11]">
-              <CheckCircle2 className="w-3 h-3" />Güncel
-            </span>
-          )}
-        </div>
+        {hasFinishedBuild ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-[#EAF3DE] text-[#3B6D11]">
+            <CheckCircle2 className="w-3 h-3" />Güncel
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400">
+            <Clock className="w-3 h-3" />Build bekleniyor
+          </span>
+        )}
       </div>
 
       <div className="space-y-1.5 text-xs">
@@ -125,20 +117,6 @@ function ReleaseCard({ platform, data }: { platform: 'iOS' | 'Android'; data: Mo
           <span className="font-medium text-gray-700 dark:text-slate-300">{data.latest_build_channel ?? '—'}</span>
         </div>
       </div>
-
-      {hasFailedNewerBuild && (
-        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-800">
-          {hasFinishedBuild && (
-            <p className="text-[11px] text-[#3B6D11] mb-1.5">
-              ✓ Mağazada yayındaki sürüm yukarıdaki başarılı build&apos;e dayanıyor, kullanıcılar bu hatadan etkilenmiyor.
-            </p>
-          )}
-          <p className="text-xs text-[#9A3B3B]">
-            build {data.latest_build_number} ({data.latest_build_app_version}) — {data.latest_build_status}
-            {data.latest_build_error ? `: ${data.latest_build_error}` : ''}
-          </p>
-        </div>
-      )}
 
       {data.latest_build_commit_message && (
         <p className="mt-3 text-[11px] text-gray-400 dark:text-slate-500 truncate" title={data.latest_build_commit_message}>

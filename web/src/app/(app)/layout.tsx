@@ -4,10 +4,9 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { useAuth } from '@/store/auth';
-import { useLocale } from '@/lib/i18n';
-import { Spinner } from '@/components/ui';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { BackHomeBar } from '@/components/layout/BackHomeBar';
+import { AnimatedSplash } from '@/components/AnimatedSplash';
 
 // Kullanıcı geri bildirimi (24 Eylül 2026): Dashboard zaten ana ekran
 // olduğu için Geri/Ana Menü'ye hiç gerek yok; Görev Haritası da kendi tam
@@ -20,7 +19,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const { t } = useLocale();
   const showBackHomeBar = !BACK_HOME_BAR_EXCLUDED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname?.startsWith(`${prefix}/`)
   );
@@ -31,15 +29,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [isAuthenticated, isLoading, router]);
 
+  // 4 Ekim 2026: auth durumu yüklenirken eski sade spinner yerine, mobil
+  // uygulamadaki açılış animasyonuyla aynı konsepti (Yıldız Tozu + Shimmer
+  // Sweep) gösteriyoruz -- böylece siteye her girişte (kök sayfa /dashboard'a
+  // yönlendiriyor, oradan da giriş yapılmamışsa /login'e) kısa bir an için
+  // de olsa markalı, profesyonel bir açılış görülüyor; boş spinner yerine.
   if (isLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3">
-          <Spinner size="lg" />
-          <p className="text-sm text-slate-400">{t('loading')}</p>
-        </div>
-      </div>
-    );
+    return <AnimatedSplash />;
   }
 
   if (!isAuthenticated) return null;
