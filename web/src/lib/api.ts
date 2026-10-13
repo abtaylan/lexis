@@ -67,6 +67,7 @@ import type {
   DictionaryResult,
   AnalyticsData,
   SystemHealth,
+  MobileReleaseStatus,
   DetailedStats,
   Payment,
   PaymentsSummary,
@@ -893,6 +894,14 @@ export const adminApi = {
   // ── Madde 1d — kapsamlı yönetim platformu ────────────────────
   getSystemHealth: async (): Promise<SystemHealth> => {
     const res = await api.get<SystemHealth>('/admin/system-health');
+    return res.data;
+  },
+  // 13 Ekim 2026 — admin/mobile sayfasının "Sürüm takibi" kartı (önceden
+  // "yakında" placeholder'ıydı). public.mobile_release_status tablosunu
+  // okuyor, bu tabloyu günlük bir Claude scheduled task EAS build
+  // listesiyle güncel tutuyor (bkz. backend admin_platform.py notu).
+  getMobileReleaseStatus: async (): Promise<MobileReleaseStatus> => {
+    const res = await api.get<MobileReleaseStatus>('/admin/mobile/release-status');
     return res.data;
   },
   getDetailedStats: async (days = 30): Promise<DetailedStats> => {

@@ -183,6 +183,29 @@ async def system_health(admin=Depends(get_current_admin)):
 
 
 # ================================================================
+# 1b) Mobil sürüm takibi — EAS build durumu (admin panel /admin/mobile,
+#     "Sürüm takibi" kartı; 13 Ekim 2026'da "yakında" placeholder'ından
+#     canlı veriye çevrildi)
+# ================================================================
+# public.mobile_release_status tablosu her gün bir Claude scheduled task
+# tarafından mcp__Expo__build_list ile dolduruluyor (platform_daily_snapshots
+# ile aynı desen — bkz. system_health üstündeki CRON_JOB_NAMES notu).
+# Backend burada sadece o tabloyu okuyor; Expo'ya/EAS'e doğrudan erişimi
+# ve kimlik bilgisi yok.
+@router.get("/mobile/release-status")
+async def mobile_release_status(admin=Depends(get_current_admin)):
+    rows = (
+        supabase_admin.table("mobile_release_status")
+        .select("*")
+        .execute()
+    ).data or []
+    by_platform = {row["platform"]: row for row in rows}
+    return {
+        "platforms": [by_platform.get("ios"), by_platform.get("android")],
+    }
+
+
+# ================================================================
 # 2) Detaylı istatistikler — dil dağılımı, büyüme, retention
 # ================================================================
 @router.get("/stats/detailed")

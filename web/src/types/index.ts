@@ -669,6 +669,29 @@ export interface SystemHealth {
   mobile_app: { status: string; note: string };
 }
 
+export interface MobileReleasePlatformStatus {
+  platform: 'ios' | 'android';
+  latest_build_id: string | null;
+  latest_build_status: string | null;
+  latest_build_app_version: string | null;
+  latest_build_number: string | null;
+  latest_build_channel: string | null;
+  latest_build_created_at: string | null;
+  latest_build_completed_at: string | null;
+  latest_build_commit_message: string | null;
+  latest_build_error: string | null;
+  latest_finished_build_id: string | null;
+  latest_finished_app_version: string | null;
+  latest_finished_build_number: string | null;
+  latest_finished_completed_at: string | null;
+  checked_at: string | null;
+}
+
+export interface MobileReleaseStatus {
+  // Index 0 = ios, index 1 = android; henüz hiç build kaydı yoksa null.
+  platforms: (MobileReleasePlatformStatus | null)[];
+}
+
 export interface DetailedStats {
   language_distribution: {
     learning_lang: Record<string, number>;

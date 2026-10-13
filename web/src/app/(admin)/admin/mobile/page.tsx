@@ -1,17 +1,113 @@
 'use client';
 
-import { Smartphone, Apple, Bell as BellIcon, Bug, GitBranch, CheckCircle2, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Smartphone, Apple, Bell as BellIcon, Bug, GitBranch, CheckCircle2, Clock, AlertTriangle, Loader2 } from 'lucide-react';
+import { adminApi } from '@/lib/api';
+import type { MobileReleasePlatformStatus } from '@/types';
 
 // Mobil uygulama (React Native / Expo) — durum güncellendi (13 Ekim 2026,
 // App Store Connect + Play Console'dan canlı kontrol edilerek): iOS 1.0.3
 // "Ready for Distribution" ile App Store'da yayında/aktif. Android da
 // artık "Üretim" durumunda yayında/aktif (25 Eylül'de üretime başvuru
 // onaylanmıştı — bu sayfadaki "kapalı test" metni o zamandan beri
-// güncellenmemişti). Bu sayfa henüz canlı store API verisi çekmiyor
+// güncellenmemişti). Bu kısım henüz canlı store API verisi çekmiyor
 // (App Store Connect / Play Console API entegrasyonu ayrı bir iş) —
 // durum metni elle güncellenen bir özet, bu yüzden ileride tekrar
 // eskiyebilir.
+//
+// "Sürüm takibi" kartı ise (aynı gün) "yakında" placeholder'ından canlı
+// veriye çevrildi: backend GET /admin/mobile/release-status,
+// public.mobile_release_status tablosunu okuyor; o tablo her gün bir
+// Claude scheduled task tarafından mcp__Expo__build_list (EAS) ile
+// güncelleniyor — bkz. backend/app/api/routes/admin_platform.py.
+function formatDate(iso?: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function ReleaseCard({ platform, data }: { platform: 'iOS' | 'Android'; data: MobileReleasePlatformStatus | null }) {
+  const Icon = platform === 'iOS' ? Apple : Smartphone;
+
+  if (!data) {
+    return (
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 flex items-center justify-center"><Icon className="w-4 h-4" /></div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{platform}</p>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-slate-500">Henüz build verisi yok.</p>
+      </div>
+    );
+  }
+
+  const latestIsFinished = data.latest_build_id === data.latest_finished_build_id;
+  const hasFailedNewerBuild = !latestIsFinished && data.latest_build_status && data.latest_build_status !== 'FINISHED';
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-9 h-9 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 flex items-center justify-center"><Icon className="w-4 h-4" /></div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{platform}</p>
+        </div>
+        {hasFailedNewerBuild ? (
+          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-[#FBEAEA] text-[#9A3B3B]">
+            <AlertTriangle className="w-3 h-3" />Yeni build başarısız
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-[#EAF3DE] text-[#3B6D11]">
+            <CheckCircle2 className="w-3 h-3" />Güncel
+          </span>
+        )}
+      </div>
+
+      <div className="space-y-1.5 text-xs">
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400 dark:text-slate-500">Son tamamlanan sürüm</span>
+          <span className="font-medium text-gray-700 dark:text-slate-300">
+            {data.latest_finished_app_version ?? '—'} (build {data.latest_finished_build_number ?? '—'})
+          </span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400 dark:text-slate-500">Tamamlanma tarihi</span>
+          <span className="font-medium text-gray-700 dark:text-slate-300">{formatDate(data.latest_finished_completed_at)}</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-gray-400 dark:text-slate-500">Kanal</span>
+          <span className="font-medium text-gray-700 dark:text-slate-300">{data.latest_build_channel ?? '—'}</span>
+        </div>
+      </div>
+
+      {hasFailedNewerBuild && (
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-slate-800">
+          <p className="text-xs text-[#9A3B3B]">
+            build {data.latest_build_number} ({data.latest_build_app_version}) — {data.latest_build_status}
+            {data.latest_build_error ? `: ${data.latest_build_error}` : ''}
+          </p>
+        </div>
+      )}
+
+      {data.latest_build_commit_message && (
+        <p className="mt-3 text-[11px] text-gray-400 dark:text-slate-500 truncate" title={data.latest_build_commit_message}>
+          {data.latest_build_commit_message.split('\n')[0]}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function MobileAppPage() {
+  const [releaseData, setReleaseData] = useState<(MobileReleasePlatformStatus | null)[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    adminApi.getMobileReleaseStatus()
+      .then((res) => setReleaseData(res.platforms))
+      .catch(() => setError('Sürüm takibi verisi alınamadı.'))
+      .finally(() => setLoading(false));
+  }, []);
+
   const storeStatus = [
     {
       icon: Apple,
@@ -30,10 +126,13 @@ export default function MobileAppPage() {
   ];
 
   const plannedSections = [
-    { icon: GitBranch, title: 'Sürüm takibi', desc: 'iOS/Android üzerinde yayındaki sürümler, güncelleme oranı (Expo EAS build kanalları).' },
     { icon: Bug, title: 'Crash raporlama', desc: 'Uygulama çökme/hata raporları — bir crash reporting SDK entegre edildiğinde burada listelenecek.' },
     { icon: BellIcon, title: 'Push bildirim yönetimi', desc: 'Push token kayıtları, günün kelimesi ve sabah/akşam hatırlatma kampanyalarının teslim oranları.' },
   ];
+
+  const ios = releaseData?.[0] ?? null;
+  const android = releaseData?.[1] ?? null;
+  const checkedAt = ios?.checked_at ?? android?.checked_at ?? null;
 
   return (
     <div className="p-8 space-y-6">
@@ -51,7 +150,7 @@ export default function MobileAppPage() {
                 <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{platform}</p>
               </div>
               <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${badgeClass}`}>
-                {badge === 'Aktif' ? <CheckCircle2 className="w-3 h-3" /> : <Clock className="w-3 h-3" />}{badge}
+                <CheckCircle2 className="w-3 h-3" />{badge}
               </span>
             </div>
             <p className="text-xs text-gray-500 dark:text-slate-400">{desc}</p>
@@ -59,7 +158,26 @@ export default function MobileAppPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <GitBranch className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Sürüm takibi</h2>
+          {loading && <Loader2 className="w-3.5 h-3.5 animate-spin text-gray-400" />}
+        </div>
+        {error ? (
+          <p className="text-xs text-[#9A3B3B]">{error}</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <ReleaseCard platform="iOS" data={ios} />
+            <ReleaseCard platform="Android" data={android} />
+          </div>
+        )}
+        <p className="mt-2 text-[11px] text-gray-400 dark:text-slate-500">
+          EAS build kayıtlarından alınıyor, günlük olarak yenilenir (son yenileme: {formatDate(checkedAt)}). Cihazlardaki gerçek güncelleme/adaptasyon oranı için uygulamaya analytics SDK entegrasyonu gerekiyor — henüz yok.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {plannedSections.map(({ icon: Icon, title, desc }) => (
           <div key={title} className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5 opacity-60">
             <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 flex items-center justify-center mb-3">
@@ -73,7 +191,7 @@ export default function MobileAppPage() {
       </div>
 
       <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-slate-500">
-        <Smartphone className="w-3.5 h-3.5" />Bu sayfa henüz App Store Connect / Play Console API&apos;lerinden canlı veri çekmiyor — yukarıdaki durum elle güncellenen bir özet (son kontrol: 13 Ekim 2026).
+        <Clock className="w-3.5 h-3.5" />Store durumu (yukarıdaki iOS/Android kartları) hâlâ elle güncellenen bir özet — canlı store API entegrasyonu ayrı bir iş (son kontrol: 13 Ekim 2026).
       </div>
     </div>
   );
