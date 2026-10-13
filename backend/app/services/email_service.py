@@ -248,34 +248,34 @@ def send_schedule_reminder_email(to_email: str, activity: str, time_slot: str, l
 _DAILY_WORD_UI_STRINGS: dict[str, dict[str, str]] = {
     "tr": {"subject": "Lexis — Günün Kelimesi: {word}", "meaning": "Anlamı", "examples": "Örnek Cümleler",
                "grammar": "📘 Dilbilgisi Notu", "tip": "💡 İpucu", "open_app": "Lexis'i Aç", "follow_us": "Bizi takip et",
-               "unsub": "Bu e-postayı her gün almak istemiyorsan {link} kapatabilirsin.", "unsub_link": "buradan"},
+               "unsub": "Bu e-postayı her gün almak istemiyorsan {link} kapatabilirsin.", "unsub_link": "buradan", "exam_title": "🎯 YDS/YÖKDİL Tarzı Soru", "exam_cta": "Cevabı Telegram'da Öğren"},
     "en": {"subject": "Lexis — Word of the Day: {word}", "meaning": "Meaning", "examples": "Example Sentences",
                "grammar": "📘 Grammar Note", "tip": "💡 Tip", "open_app": "Open Lexis", "follow_us": "Follow us",
-               "unsub": "If you don't want to receive this email every day, you can turn it off {link}.", "unsub_link": "here"},
+               "unsub": "If you don't want to receive this email every day, you can turn it off {link}.", "unsub_link": "here", "exam_title": "🎯 YDS/YÖKDİL-Style Question", "exam_cta": "See the Answer on Telegram"},
     "es": {"subject": "Lexis — Palabra del Día: {word}", "meaning": "Significado", "examples": "Frases de Ejemplo",
                "grammar": "📘 Nota Gramatical", "tip": "💡 Consejo", "open_app": "Abrir Lexis", "follow_us": "Síguenos",
-               "unsub": "Si no quieres recibir este correo todos los días, puedes desactivarlo {link}.", "unsub_link": "aquí"},
+               "unsub": "Si no quieres recibir este correo todos los días, puedes desactivarlo {link}.", "unsub_link": "aquí", "exam_title": "🎯 Pregunta Estilo Examen", "exam_cta": "Ver la Respuesta en Telegram"},
     "ar": {"subject": "Lexis — كلمة اليوم: {word}", "meaning": "المعنى", "examples": "جمل توضيحية",
                "grammar": "📘 ملاحظة نحوية", "tip": "💡 نصيحة", "open_app": "افتح Lexis", "follow_us": "تابعنا",
-               "unsub": "إذا كنت لا تريد استلام هذا البريد الإلكتروني كل يوم، يمكنك إيقافه {link}.", "unsub_link": "من هنا"},
+               "unsub": "إذا كنت لا تريد استلام هذا البريد الإلكتروني كل يوم، يمكنك إيقافه {link}.", "unsub_link": "من هنا", "exam_title": "🎯 سؤال بأسلوب الاختبار", "exam_cta": "شاهد الإجابة على تيليجرام"},
     "ja": {"subject": "Lexis — 今日の単語: {word}", "meaning": "意味", "examples": "例文",
                "grammar": "📘 文法メモ", "tip": "💡 ヒント", "open_app": "Lexisを開く", "follow_us": "フォローする",
-               "unsub": "このメールを毎日受け取りたくない場合は、{link}で解除できます。", "unsub_link": "こちら"},
+               "unsub": "このメールを毎日受け取りたくない場合は、{link}で解除できます。", "unsub_link": "こちら", "exam_title": "🎯 試験形式の問題", "exam_cta": "Telegramで答えを見る"},
     "ru": {"subject": "Lexis — Слово дня: {word}", "meaning": "Значение", "examples": "Примеры предложений",
                "grammar": "📘 Грамматическая заметка", "tip": "💡 Совет", "open_app": "Открыть Lexis", "follow_us": "Подписывайтесь на нас",
-               "unsub": "Если вы не хотите получать это письмо каждый день, вы можете отключить его {link}.", "unsub_link": "здесь"},
+               "unsub": "Если вы не хотите получать это письмо каждый день, вы можете отключить его {link}.", "unsub_link": "здесь", "exam_title": "🎯 Вопрос в экзаменационном стиле", "exam_cta": "Смотреть ответ в Telegram"},
     "fr": {"subject": "Lexis — Mot du Jour : {word}", "meaning": "Signification", "examples": "Phrases d'Exemple",
                "grammar": "📘 Note de Grammaire", "tip": "💡 Astuce", "open_app": "Ouvrir Lexis", "follow_us": "Suivez-nous",
-               "unsub": "Si tu ne veux pas recevoir cet e-mail tous les jours, tu peux le désactiver {link}.", "unsub_link": "ici"},
+               "unsub": "Si tu ne veux pas recevoir cet e-mail tous les jours, tu peux le désactiver {link}.", "unsub_link": "ici", "exam_title": "🎯 Question Type Examen", "exam_cta": "Voir la Réponse sur Telegram"},
     "it": {"subject": "Lexis — Parola del Giorno: {word}", "meaning": "Significato", "examples": "Frasi di Esempio",
                "grammar": "📘 Nota Grammaticale", "tip": "💡 Consiglio", "open_app": "Apri Lexis", "follow_us": "Seguici",
-               "unsub": "Se non vuoi ricevere questa email ogni giorno, puoi disattivarla {link}.", "unsub_link": "qui"},
+               "unsub": "Se non vuoi ricevere questa email ogni giorno, puoi disattivarla {link}.", "unsub_link": "qui", "exam_title": "🎯 Domanda in Stile Esame", "exam_cta": "Vedi la Risposta su Telegram"},
     "de": {"subject": "Lexis — Wort des Tages: {word}", "meaning": "Bedeutung", "examples": "Beispielsätze",
                "grammar": "📘 Grammatikhinweis", "tip": "💡 Tipp", "open_app": "Lexis öffnen", "follow_us": "Folge uns",
-               "unsub": "Wenn du diese E-Mail nicht jeden Tag erhalten möchtest, kannst du sie {link} abschalten.", "unsub_link": "hier"},
+               "unsub": "Wenn du diese E-Mail nicht jeden Tag erhalten möchtest, kannst du sie {link} abschalten.", "unsub_link": "hier", "exam_title": "🎯 Prüfungsstil-Frage", "exam_cta": "Antwort auf Telegram ansehen"},
     "pt": {"subject": "Lexis — Palavra do Dia: {word}", "meaning": "Significado", "examples": "Frases de Exemplo",
                "grammar": "📘 Nota Gramatical", "tip": "💡 Dica", "open_app": "Abrir Lexis", "follow_us": "Segue-nos",
-               "unsub": "Se não quiseres receber este e-mail todos os dias, podes desativá-lo {link}.", "unsub_link": "aqui"},
+               "unsub": "Se não quiseres receber este e-mail todos os dias, podes desativá-lo {link}.", "unsub_link": "aqui", "exam_title": "🎯 Pergunta Estilo Exame", "exam_cta": "Ver a Resposta no Telegram"},
 }
 
 # code -> (kendi dilindeki adı, bayrak emoji) — languages tablosuyla aynı veriler.
@@ -311,8 +311,13 @@ _SOCIAL_LINKS: list[tuple[str, str, str]] = [
     ("pinterest", "Pinterest", "https://www.pinterest.com/lexisappinfo/"),
 ]
 
+# Günün kelimesi mailindeki YDS/YÖKDİL soru CTA'sı için -- _SOCIAL_LINKS'teki
+# telegram girişiyle AYNI adres (13 Ekim 2026, kullanıcı isteği: soru CTA'sı
+# telegram kanalına yönlensin).
+_TELEGRAM_CHANNEL_URL = next(href for icon, _label, href in _SOCIAL_LINKS if icon == "telegram")
 
-def send_daily_word_email(to_email: str, user_id: str, content: dict) -> None:
+
+def send_daily_word_email(to_email: str, user_id: str, content: dict, exam_question: dict | None = None) -> None:
     """
     Günün kelimesi e-postası — kullanıcı isteği (6 Eylül 2026, çok dilli
     güncelleme): her gün üyelere kayıtlı e-postalarına, ÖĞRENDİKLERİ dilde
@@ -375,6 +380,25 @@ def send_daily_word_email(to_email: str, user_id: str, content: dict) -> None:
       <p style="margin:0 0 2px; color:#0f172a; font-size:14px;">2. {content['example_2_target']}</p>
       <p style="margin:0 0 4px; color:#64748b; font-size:13px; font-style: italic;">— {content.get('example_2_native', '')}</p>"""
 
+
+    exam_question_html = ""
+    if exam_question:
+        _opt_labels = ["A", "B", "C", "D"]
+        _opts_html = "".join(
+            f'<p style="margin:0 0 4px; color:#1e293b; font-size:13px;">'
+            f'<strong>{_opt_labels[i] if i < len(_opt_labels) else i + 1}.</strong> {opt.get("text", "")}</p>'
+            for i, opt in enumerate(exam_question.get("options") or [])
+        )
+        exam_question_html = f"""
+      <div style="margin: 20px 0; padding: 14px 16px; background:#eef2ff; border-radius: 10px;">
+        <p style="margin:0 0 8px; color:#312e81; font-size: 13px; font-weight:bold;">{ui.get('exam_title', '🎯')}</p>
+        <p style="margin:0 0 10px; color:#1e293b; font-size:14px;">{exam_question.get('question_text', '')}</p>
+        {_opts_html}
+        <a href="{_TELEGRAM_CHANNEL_URL}" style="display:inline-block; margin-top: 10px; background:#4338ca; color:#fff; text-decoration:none; padding:8px 16px; border-radius:8px; font-size:13px; font-weight:bold;">
+          {ui.get('exam_cta', 'Telegram')}
+        </a>
+      </div>"""
+
     social_icons_html = "".join(
         f'<a href="{href}" style="display:inline-block; margin:0 5px; text-decoration:none;" title="{label}">'
         f'<img src="{settings.FRONTEND_URL}/email-assets/{icon}.png" width="30" height="30" alt="{label}" '
@@ -405,7 +429,7 @@ def send_daily_word_email(to_email: str, user_id: str, content: dict) -> None:
         <p style="margin:0 0 4px; color:#78350f; font-size: 13px; font-weight:bold;">{note_label}</p>
         <p style="margin:0; color:#78350f; font-size: 13px; line-height:1.5;">{content['grammar_note_native']}</p>
       </div>
-
+      {exam_question_html}
       <a href="{settings.FRONTEND_URL}/dashboard" style="display:inline-block; margin-top: 8px; background:#0284c7; color:#fff; text-decoration:none; padding:10px 18px; border-radius:8px; font-size:14px; font-weight:bold;">
         {ui['open_app']}
       </a>
@@ -627,11 +651,12 @@ def send_membership_digest_email(
 
 def send_weekly_admin_report_email(to_email: str, report_date: str, stats: dict) -> bool:
     """
-    Haftalik admin ozet raporu (kullanici istegi, 18 Eylul 2026) -- yeni
-    kullanici + kaynagi, web/mobil kullanim orani, sisteme donus sikligi,
-    yeni kayitlarin aktivasyon orani, bolum/modul kullanim dagilimi, sistem
-    geneli yanlis soru/sik oranlari, ogrenilen dil dagilimi, premium geliri
-    ve reklam geliri (takip edilmiyor -- acikca belirtiliyor). Diger admin
+    Haftalik admin ozet raporu (kullanici istegi, 18 Eylul 2026; sadelestirme
+    + gelir bolumu guncellemesi 13 Ekim 2026 -- bkz. weekly_admin_report.py
+    dosya basi notu). Artik SADECE uyelik bilgisi (yeni uye + kaynak) ve
+    gelir bilgisi (premium tahmini + admob durumu) iceriyor -- onceki
+    surumdeki web/mobil kullanim, aktivasyon, bolum kullanimi, sinav
+    yanlis/sik orani ve dil dagilimi bolumleri kaldirildi. Diger admin
     bildirimleriyle ayni OTP_MODE/RESEND/SMTP altyapisini kullanir (bkz.
     send_membership_digest_email). Cagiran taraf: weekly_admin_report.py.
 
@@ -650,45 +675,21 @@ def send_weekly_admin_report_email(to_email: str, report_date: str, stats: dict)
         return f'<ul style="margin:8px 0 0; padding-left:20px; font-size:14px; color:#0f172a;">{rows}</ul>'
 
     new_by_platform = stats.get("new_by_platform") or {}
-    logins_by_platform = stats.get("logins_by_platform") or {}
-    module_counts = stats.get("module_counts") or {}
-    wrong_option_counts = stats.get("exam_wrong_option_counts") or {}
-    lang_counts = stats.get("lang_counts") or {}
     premium_by_plan = stats.get("premium_active_by_plan") or {}
-
-    activation_rate = stats.get("activation_rate")
-    activation_text = (
-        f"{stats.get('activation_count', 0)} / {stats.get('new_users_total', 0)} yeni uye "
-        f"({activation_rate}%) kayit sonrasi en az bir aktivite yapti (Quiz haric -- takip edilmiyor)."
-        if activation_rate is not None
-        else "Bu hafta yeni uye olmadi."
-    )
-
-    exam_total = stats.get("exam_total_attempts", 0)
-    exam_wrong_rate = stats.get("exam_wrong_rate")
-    exam_section = (
-        f'<p style="margin:4px 0;">Toplam deneme: <strong>{exam_total}</strong>, '
-        f'yanlis oranı: <strong>{exam_wrong_rate}%</strong> ({stats.get("exam_wrong_count", 0)} yanlis)</p>'
-        f'<p style="color:#94a3b8; font-size:12px; margin:4px 0;">Yanlis isaretlenen siklar:</p>'
-        f"{_kv_rows(wrong_option_counts, 'Bu hafta yanlis isaretlenen sik yok.')}"
-        if exam_total
-        else '<p style="color:#94a3b8; font-size:13px; margin:4px 0 0;">Bu hafta sinav sorusu denemesi yok.</p>'
-    )
-    if 0 < exam_total < 20:
-        exam_section += (
-            '<p style="color:#f59e0b; font-size:11px; margin:6px 0 0;">'
-            "Not: orneklem kucuk (20'den az deneme) -- oranlar guvenilir olmayabilir.</p>"
-        )
+    currency = stats.get("premium_currency", "TRY")
 
     mrr = stats.get("premium_mrr_estimate", 0)
+    total_to_date = stats.get("premium_total_to_date_estimate", 0)
+    this_week = stats.get("premium_this_week_estimate", 0)
     premium_section = f"""
       <p style="margin:4px 0;">Aktif abonelik (subscriptions tablosu): <strong>{sum(premium_by_plan.values())}</strong>,
-      tahmini aylik gelir: <strong>{mrr} {stats.get('premium_currency', 'TRY')}</strong></p>
+      tahmini aylik gelir hizi (MRR): <strong>{mrr} {currency}</strong></p>
       {_kv_rows(premium_by_plan, 'Aktif abonelik yok.')}
+      <p style="margin:10px 0 2px; color:#0f172a; font-size:13px;">Bu hafta olusan tahmini gelir: <strong>{this_week} {currency}</strong></p>
+      <p style="margin:0; color:#0f172a; font-size:13px;">Bu zamana kadar toplam tahmini gelir: <strong>{total_to_date} {currency}</strong></p>
       <p style="color:#94a3b8; font-size:11px; margin:6px 0 0;">
-        Bu rakam sadece subscriptions tablosundaki kayitlara gore hesaplaniyor -- Premium artik
-        mobil IAP uzerinden satiliyor, App Store/Play Store satin almalarinin bu tabloya dogru
-        yansidigi ayrica dogrulanmali.
+        Bu rakamlar subscriptions tablosundaki kayitlara ve plan fiyatina gore hesaplanan TAHMINLERDIR --
+        gercek tahsilat (App Store/Play Store komisyonu, iade/chargeback) bu tutarlara dahil degildir.
       </p>
     """
 
@@ -701,35 +702,6 @@ def send_weekly_admin_report_email(to_email: str, report_date: str, stats: dict)
         Yeni uyeler ({stats.get('new_users_total', 0)})
       </p>
       {_kv_rows(new_by_platform, 'Bu hafta yeni uye olmadi.')}
-      <p style="color:#64748b; font-size:12px; margin-top:8px;">{activation_text}</p>
-
-      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
-        Web / mobil kullanim ve donus sikligi
-      </p>
-      {_kv_rows(logins_by_platform, 'Bu hafta giris kaydi yok.')}
-      <p style="color:#64748b; font-size:12px; margin-top:8px;">
-        {stats.get('distinct_login_users', 0)} farkli kullanici giris yapti, ortalama kullanici basina
-        {stats.get('avg_logins_per_user', 0)} giris; {stats.get('returning_users', 0)} kullanici birden
-        fazla kez geri geldi.
-      </p>
-
-      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
-        Bolum kullanimi (bu hafta)
-      </p>
-      {_kv_rows(module_counts, 'Bu hafta hicbir bolumde kayit yok.')}
-      <p style="color:#94a3b8; font-size:11px; margin:4px 0 0;">
-        Not: Quiz modulu bu listede yok -- sunucu tarafinda hicbir tabloya yazmiyor (bilinen kapsam disi).
-      </p>
-
-      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
-        Sinav sorulari -- yanlis/sik oranlari (bu hafta)
-      </p>
-      {exam_section}
-
-      <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
-        Ogrenilen diller (anlik dagilim)
-      </p>
-      {_kv_rows(lang_counts, 'Veri yok.')}
 
       <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
         Premium geliri
@@ -737,10 +709,11 @@ def send_weekly_admin_report_email(to_email: str, report_date: str, stats: dict)
       {premium_section}
 
       <p style="color:#0f172a; font-weight:bold; font-size:15px; margin-top:20px; margin-bottom:0;">
-        Reklam geliri
+        Reklam geliri (AdMob)
       </p>
       <p style="color:#94a3b8; font-size:13px; margin:4px 0 0;">
-        AdMob geliri sistemde otomatik takip edilmiyor -- AdMob panelinden manuel kontrol gerekiyor.
+        AdMob geliri sistemde henuz otomatik takip edilmiyor -- AdMob Reporting API entegrasyonu
+        kurulana kadar AdMob panelinden manuel kontrol gerekiyor.
       </p>
 
       <p style="color:#94a3b8; font-size: 11px; margin-top: 24px;">

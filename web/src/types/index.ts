@@ -698,6 +698,45 @@ export interface MobilePushStatus {
   all_time: { category: string; status: string; count: number }[];
 }
 
+export interface MobileFeedFetchStatus {
+  platform: 'ios' | 'android';
+  feed: 'crashes' | 'reviews';
+  last_attempt_at: string | null;
+  ok: boolean;
+  error: string | null;
+}
+
+export interface MobileCrashReport {
+  platform: 'ios' | 'android';
+  crash_id: string;
+  occurred_at: string | null;
+  os_version: string | null;
+  device_model: string | null;
+  comment: string | null;
+  reporter_email: string | null;
+}
+
+export interface MobileCrashReportsResponse {
+  reports: MobileCrashReport[];
+  fetch_status: Partial<Record<'ios' | 'android', MobileFeedFetchStatus>>;
+}
+
+export interface MobileReview {
+  platform: 'ios' | 'android';
+  review_id: string;
+  rating: number | null;
+  review_date: string | null;
+  territory: string | null;
+  reviewer_name: string | null;
+  title: string | null;
+  body: string | null;
+}
+
+export interface MobileReviewsResponse {
+  reviews: MobileReview[];
+  fetch_status: Partial<Record<'ios' | 'android', MobileFeedFetchStatus>>;
+}
+
 export interface DetailedStats {
   language_distribution: {
     learning_lang: Record<string, number>;

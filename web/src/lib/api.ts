@@ -69,6 +69,8 @@ import type {
   SystemHealth,
   MobileReleaseStatus,
   MobilePushStatus,
+  MobileCrashReportsResponse,
+  MobileReviewsResponse,
   DetailedStats,
   Payment,
   PaymentsSummary,
@@ -910,6 +912,20 @@ export const adminApi = {
   // zaten var olan tablolar, yeni bir entegrasyon gerekmedi.
   getMobilePushStatus: async (): Promise<MobilePushStatus> => {
     const res = await api.get<MobilePushStatus>('/admin/mobile/push-status');
+    return res.data;
+  },
+  // 13 Ekim 2026 — admin/mobile sayfasının "Crash raporlama" kartı (önceden
+  // "yakında" placeholder'ıydı). mobile_crash_reports tablosunu okuyor,
+  // TestFlight/Play Console crash API'lerinden günlük Claude scheduled
+  // task ile dolduruluyor — yeni bir SDK entegrasyonu gerekmedi (bkz.
+  // backend admin_platform.py notu).
+  getMobileCrashReports: async (): Promise<MobileCrashReportsResponse> => {
+    const res = await api.get<MobileCrashReportsResponse>('/admin/mobile/crash-reports');
+    return res.data;
+  },
+  // 13 Ekim 2026 — admin/mobile sayfasının "Mağaza değerlendirmeleri" kartı.
+  getMobileReviews: async (): Promise<MobileReviewsResponse> => {
+    const res = await api.get<MobileReviewsResponse>('/admin/mobile/reviews');
     return res.data;
   },
   getDetailedStats: async (days = 30): Promise<DetailedStats> => {

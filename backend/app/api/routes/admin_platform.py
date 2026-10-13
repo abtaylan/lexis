@@ -212,6 +212,59 @@ async def mobile_release_status(admin=Depends(get_current_admin)):
 #     tablolar — burada yeni bir dış entegrasyon/cron GEREKMİYOR, backend
 #     doğrudan okuyor.
 # ================================================================
+# ================================================================
+# 1d) Crash raporlama + mağaza değerlendirmeleri — admin panel /admin/mobile
+#     (13 Ekim 2026'da "yakında" placeholder'ından canlı veriye çevrildi).
+#     Veri kaynağı: mcp__Expo__testflight_crashes / playstore_crashes /
+#     appstore_reviews / playstore_reviews — günlük bir Claude scheduled
+#     task (mobile_release_status ile aynı görev, bkz. BÖLÜM B/C) bu
+#     tabloları dolduruyor. Android crash verisi, kullanıcı Google Play
+#     Developer Reporting API'yi Google Cloud projesinde etkinleştirene
+#     kadar mobile_feed_fetch_status üzerinden "ok=false, error=..." olarak
+#     işaretli kalır — ASLA sahte/boş veri UYDURULMAZ.
+# ================================================================
+@router.get("/mobile/crash-reports")
+async def mobile_crash_reports(admin=Depends(get_current_admin)):
+    reports = (
+        supabase_admin.table("mobile_crash_reports")
+        .select("platform, crash_id, occurred_at, os_version, device_model, comment, reporter_email")
+        .order("occurred_at", desc=True)
+        .limit(50)
+        .execute()
+    ).data or []
+    status_rows = (
+        supabase_admin.table("mobile_feed_fetch_status")
+        .select("platform, feed, last_attempt_at, ok, error")
+        .eq("feed", "crashes")
+        .execute()
+    ).data or []
+    return {
+        "reports": reports,
+        "fetch_status": {row["platform"]: row for row in status_rows},
+    }
+
+
+@router.get("/mobile/reviews")
+async def mobile_reviews(admin=Depends(get_current_admin)):
+    reviews = (
+        supabase_admin.table("mobile_reviews")
+        .select("platform, review_id, rating, review_date, territory, reviewer_name, title, body")
+        .order("review_date", desc=True)
+        .limit(50)
+        .execute()
+    ).data or []
+    status_rows = (
+        supabase_admin.table("mobile_feed_fetch_status")
+        .select("platform, feed, last_attempt_at, ok, error")
+        .eq("feed", "reviews")
+        .execute()
+    ).data or []
+    return {
+        "reviews": reviews,
+        "fetch_status": {row["platform"]: row for row in status_rows},
+    }
+
+
 @router.get("/mobile/push-status")
 async def mobile_push_status(admin=Depends(get_current_admin)):
     tokens = (
@@ -457,17 +510,19 @@ async def list_word_pool(
     result = query.order("created_at", desc=True).range(start, start + page_size - 1).execute()
 
     # Dil çifti başına kaç kelime var — "hangi dillerde havuz boş" sorusuna
-    # (doc'taki general_word_pool takip maddesi) admin panelden cevap vermek için.
-    all_rows = (
-        supabase_admin.table("general_word_pool")
-        .select("source_lang, target_lang")
-        .eq("is_active", True)
-        .execute()
-    ).data or []
-    coverage: dict[str, int] = {}
-    for r in all_rows:
-        key = f"{r['source_lang']}->{r['target_lang']}"
-        coverage[key] = coverage.get(key, 0) + 1
+    # (doc'taki general_word_pool takip maddesi) admin panelden cevap vermek
+    # için. DÜZELTME (13 Ekim 2026): bu daha önce TÜM aktif satırları (şu an
+    # 68.000+) tek bir .select() ile çekiyordu -- PostgREST'in varsayılan
+    # 1000 satır sınırı yüzünden bazı dil çiftleri (örn. en->ja, en->ru)
+    # gerçekte dolu olduğu halde "boş" görünüyordu (admin panelde yanlış
+    # "havuz boş olabilir" uyarısı). Artık sayma işini DB tarafında tek bir
+    # group-by ile yapan general_word_pool_coverage() fonksiyonu çağrılıyor
+    # (bkz. migration add_general_word_pool_coverage_fn) -- 1000 satır
+    # sınırına hiç takılmıyor.
+    coverage_rows = supabase_admin.rpc("general_word_pool_coverage").execute().data or []
+    coverage: dict[str, int] = {
+        f"{r['source_lang']}->{r['target_lang']}": r["cnt"] for r in coverage_rows
+    }
 
     return {
         "items": result.data or [],

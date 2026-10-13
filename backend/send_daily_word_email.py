@@ -27,6 +27,56 @@ bir çalışma ipucu olduğu için (bkz. email_service.py::_DAILY_WORD_UI_STRING
 her dil çifti için gerçek, sözlük kalitesinde kelime + anlam + örnek cümle
 sağlıyor.
 
+"HER 2 GÜNDE BİR" + YDS/YÖKDİL SORUSU GÜNCELLEMESİ (13 Ekim 2026, kullanıcı
+isteği: "günün kelimesi mailini üye sayısını ele alarak 2 günde bir
+gönderelim ... YDS ve Yökdil tarzı soru olsun, soruyu cevaplamak
+istediklerinde telegram kanalına yönlensin"):
+
+  1) KOTA KORUMASI — ÜYE SAYISINA GÖRE OTOMATİK KADEME: tek bir Resend/SMTP
+     hesabının GÜNLÜK gönderim kotası sabit olduğu için (bkz. kullanıcıyla
+     bu konuda konuşulan Resend/Brevo fiyat-performans analizi), üye sayısı
+     arttıkça "herkese her gün" modeli kotayı aşma riski taşıyor. Bunun için
+     kullanıcılar _cohort_count kadar gruba (hash tabanlı, kullanıcı ID'sine
+     göre SABİT — bir kullanıcı hep aynı grupta kalır) bölünüyor ve her gün
+     SADECE o günün sırası gelen grup e-posta alıyor. Uygun kullanıcı sayısı
+     _SAFE_DAILY_EMAIL_CAP'in altındaysa grup sayısı 1 (eski davranış: hepsine
+     her gün); üstündeyse grup sayısı üye sayısına göre otomatik büyüyor
+     (örn. 127 üye, kap=90 -> 2 grup -> "2 günde bir"; üye sayısı ileride
+     300'e çıkarsa -> 4 grup -> "4 günde bir" gibi otomatik kademelenir).
+     Böylece kullanıcı "üye sayısını ele alarak" demişken kastettiği şey
+     tam olarak budur: sabit "2 günde bir" değil, üye sayısıyla BİRLİKTE
+     ölçeklenen bir kadans.
+     _SAFE_DAILY_EMAIL_CAP değeri şu an ihtiyatlı bir tahmin (90) -- gerçek
+     Resend/Brevo planı netleşince (kullanıcıyla konuşulan Pro/Brevo kararı)
+     bu sayı güncellenmeli.
+
+  2) AYLIK RAPORLA ÇARPIŞMA KORUMASI: backend/monthly_user_report.py her ayın
+     _MONTHLY_REPORT_DAY_OF_MONTH gününde TÜM aktif kullanıcılara kendi
+     e-postasını gönderiyor (bkz. o dosya + cron.py::run_monthly_user_report).
+     Aynı gün günün kelimesi de gönderilirse o günün kotası iki e-posta
+     türü yüzünden katlanır -- kullanıcının net uyarısı buydu ("günün
+     kelimesi maili atılırken rapor maili de atılırsa o günün kotası
+     aşmış olur"). Bu yüzden main() o gün günün kelimesi gönderimini TAMAMEN
+     atlıyor (sadece o 1 gün -- ertesi gün kohort sırasına normal devam
+     eder, kimse kelime kaybetmez, sadece 1 gün ötelenir).
+
+  3) YDS/YÖKDİL SORUSU + TELEGRAM CTA: Seçilen günün kelimesiyle
+     exam_questions tablosunda (exam_type IN ('yds','yokdil'), status=
+     'approved', is_active=true) related_words[].word alanı eşleşen bir
+     soru aranır (bkz. _find_exam_question). EŞLEŞME YOKSA SORU UYDURULMUYOR
+     -- o günün e-postasına soru bölümü hiç eklenmiyor (kullanıcı isteği,
+     13 Ekim 2026 netleştirme: "mevcut sınav sorularından seç ... yoksa o
+     gün soru eklenmez"). Soru bulunduğunda şıklar (A/B/C/D) gösterilir ama
+     doğru cevap mailde YAZILMAZ -- kullanıcı cevabı/açıklamayı görmek
+     isterse Telegram kanalımıza (https://t.me/lexis_words, bkz.
+     email_service.py::_SOCIAL_LINKS) yönlendirilir (bkz.
+     email_service.py::send_daily_word_email yeni exam_question parametresi).
+     Mevcut soru havuzu (exam_questions.related_words) şu an çoğunlukla
+     dilbilgisi KONUSU etiketli (örn. "mothers-in-law (istisna)"), tek tek
+     kelime bazlı etiketlenmiş değil -- bu yüzden erken dönemde eşleşme
+     oranı düşük olabilir, zaman içinde soru havuzu büyüdükçe/etiketlendikçe
+     artar. Bu bilinen, kabul edilmiş bir sınırlama.
+
 send_schedule_reminders.py / post_daily_content.py ile aynı desen: VPS'te
 gerçek internet erişimi olan bu backend'e Vercel Cron / GitHub Actions
 tarafından secret-korumalı HTTP endpoint (bkz. app/api/routes/cron.py)
@@ -37,21 +87,29 @@ erişimi olmadığı için burada da (aynı sebeple) tetiklenemiyor.
 Nasıl çalışır:
   1. profiles.email_daily_word_enabled = true VE is_active = true olan
      kullanıcılar (native_lang, learning_lang) çiftine göre gruplanır.
-  2. Her çift için ÖNCE daily_word_content'te o (target_lang=learning_lang,
+  2. Bugün ayın _MONTHLY_REPORT_DAY_OF_MONTH günüyse (bkz. yukarıdaki 2.
+     madde) hiçbir şey göndermeden çıkılır.
+  3. Uygun toplam kullanıcı sayısına göre kohort sayısı hesaplanır
+     (_cohort_count) ve bugünün kohort indeksi bulunur (_today_cohort_index).
+     Her grup, kendi kohortuna denk gelmeyen kullanıcıları filtreler.
+  4. Her çift için ÖNCE daily_word_content'te o (target_lang=learning_lang,
      native_lang=native_lang) kombinasyonuna ait, is_active=true bir kelime
      aranır: önce hiç gönderilmemiş (last_sent_at IS NULL) kayıtlardan en
      eski eklenen, yoksa en eski gönderilmiş kayıt (last_sent_at ASC).
-  3. Orada içerik yoksa general_word_pool'da (source_lang=learning_lang,
+  5. Orada içerik yoksa general_word_pool'da (source_lang=learning_lang,
      target_lang=native_lang) aynı rotasyon mantığıyla bir kelime aranır ve
      email_service'in beklediği alan adlarına eşlenir (definition -> anlam,
      meaning -> çeviri, example -> tek örnek cümle, dilbilgisi notu yerine
      genel bir çalışma ipucu).
-  4. İkisinde de yoksa grup atlanır ve log'a yazılır (hata sayılmaz — artık
+  6. İkisinde de yoksa grup atlanır ve log'a yazılır (hata sayılmaz — artık
      sadece hiçbir kelime havuzunda o dil çifti tanımlı değilse olur, ki
      10 dilin birbiriyle tüm kombinasyonu general_word_pool'da olduğu için
      pratikte artık HİÇBİR gerçek dil çifti atlanmaz).
-  5. Seçilen kullanıcılara send_daily_word_email() ile mail atılır.
-  6. Kullanılan kelimenin last_sent_at'i, geldiği tabloda (daily_word_content
+  7. Seçilen kelimeyle eşleşen bir YDS/YÖKDİL sorusu varsa bulunur (bkz. 3.
+     madde) — grup/kelime bazında TEK sefer, kullanıcı başına değil.
+  8. Bugünkü kohorta denk gelen kullanıcılara send_daily_word_email() ile
+     mail atılır.
+  9. Kullanılan kelimenin last_sent_at'i, geldiği tabloda (daily_word_content
      veya general_word_pool) bir kez güncellenir.
 
 16 EYLÜL 2026 BUG DÜZELTMESİ (Resend paneli incelemesinde keşfedildi: bounce
@@ -67,12 +125,10 @@ Kullanım (manuel test):
   cd backend
   venv\\Scripts\\activate   (Linux/Mac: source venv/bin/activate)
   python send_daily_word_email.py
-
-Not: OTP_MODE=fixed iken (varsayılan/geliştirme) gerçek mail atılmaz,
-sadece log'a yazılır — email_service.py'deki diğer fonksiyonlarla aynı
-güvenlik/test davranışı (bkz. send_otp_email).
 """
 
+import hashlib
+import math
 from collections import defaultdict
 from datetime import UTC, datetime
 
@@ -97,6 +153,70 @@ _POOL_TIP_BY_NATIVE_LANG: dict[str, str] = {
     "de": "Versuche, dieses Wort heute in einem eigenen Satz zu benutzen — Übung ist der beste Weg, es dir zu merken.",
     "pt": "Tenta usar esta palavra numa frase tua hoje — a prática é a melhor forma de a fixares.",
 }
+
+# backend/monthly_user_report.py'nin tüm kullanıcılara toplu gönderim yaptığı
+# ayın günü (bkz. .github/workflows/monthly-user-report.yml cron: "... 1 * *").
+# Bu gün günün kelimesi hiç gönderilmez (bkz. dosya başı not, madde 2).
+_MONTHLY_REPORT_DAY_OF_MONTH = 1
+
+# Tek bir gönderici hesabın (Resend/SMTP) güvenli günlük e-posta payı --
+# diğer transactional maillere (OTP, bildirimler, hatırlatmalar vb.) de yer
+# kalsın diye kasıtlı olarak toplam kotanın tamamı değil, ihtiyatlı bir alt
+# sınır. NOT: şu an gerçek sağlayıcı planına göre KALİBRE EDİLMEDİ -- Resend
+# Pro/Brevo kararı netleşince bu sayı gözden geçirilmeli.
+_SAFE_DAILY_EMAIL_CAP = 90
+
+
+def _cohort_count(eligible_count: int) -> int:
+    """Üye sayısına göre kaç güne bir gönderileceğini belirler. Kap altındaysa
+    1 (eski davranış -- herkese her gün); üstündeyse üye sayısıyla orantılı
+    büyüyen bir kohort sayısı (2 -> 2 günde bir, 3 -> 3 günde bir, ...)."""
+    if eligible_count <= _SAFE_DAILY_EMAIL_CAP:
+        return 1
+    return max(2, math.ceil(eligible_count / _SAFE_DAILY_EMAIL_CAP))
+
+
+def _cohort_of(user_id: str, cohort_count: int) -> int:
+    """Kullanıcıyı SABİT bir kohorta atar (ID'den hash) -- her çalıştırmada
+    aynı kullanıcı hep aynı kohortta olur, böylece "her N günde bir" kullanıcı
+    bazında tutarlı kalır."""
+    digest = hashlib.sha256(user_id.encode()).hexdigest()
+    return int(digest, 16) % cohort_count
+
+
+def _today_cohort_index(cohort_count: int) -> int:
+    return datetime.now(UTC).date().toordinal() % cohort_count
+
+
+def _find_exam_question(word: str, target_lang: str) -> dict | None:
+    """Günün kelimesiyle eşleşen YDS/YÖKDİL tarzı bir soru arar (bkz. dosya
+    başı not, madde 3). related_words[].word serbest metin olduğu için
+    sadece kaba bir alt-dize eşleşmesi yapılır. Eşleşme yoksa None döner --
+    bu durumda o günün e-postasına soru bölümü hiç eklenmez."""
+    try:
+        rows = (
+            supabase_admin.table("exam_questions")
+            .select("id, exam_type, question_text, options, correct_option, related_words")
+            .eq("status", "approved")
+            .eq("is_active", True)
+            .eq("learning_lang", target_lang)
+            .in_("exam_type", ["yds", "yokdil"])
+            .limit(300)
+            .execute()
+        ).data or []
+    except Exception as e:
+        print(f"DAILY WORD exam question lookup warning: {e}")
+        return None
+
+    needle = (word or "").strip().lower()
+    if not needle:
+        return None
+    for row in rows:
+        for rw in row.get("related_words") or []:
+            tag = str((rw or {}).get("word") or "").lower()
+            if tag and needle in tag:
+                return row
+    return None
 
 
 def _pick_from_daily_word_content(target_lang: str, native_lang: str) -> dict | None:
@@ -172,6 +292,14 @@ def _pick_word(target_lang: str, native_lang: str) -> dict | None:
 
 
 def main() -> dict:
+    if datetime.now(UTC).day == _MONTHLY_REPORT_DAY_OF_MONTH:
+        print(
+            f"[DAILY-WORD] Bugün ayın {_MONTHLY_REPORT_DAY_OF_MONTH}. günü -- "
+            "aylık kullanıcı raporu tüm kullanıcılara gidiyor, kota çarpışmasını "
+            "önlemek için günün kelimesi bugün atlanıyor."
+        )
+        return {"sent_count": 0, "pairs": {}, "skipped_reason": "monthly_user_report_day"}
+
     profiles = (
         supabase_admin.table("profiles")
         .select("id, native_lang, learning_lang")
@@ -185,14 +313,25 @@ def main() -> dict:
         print("Günün kelimesi e-postasına açık aktif kullanıcı yok.")
         return {"sent_count": 0, "pairs": {}}
 
-    # (native_lang, learning_lang) -> [user_id, ...]
+    cohort_count = _cohort_count(len(profiles))
+    today_cohort = _today_cohort_index(cohort_count)
+    print(
+        f"[DAILY-WORD] {len(profiles)} uygun kullanıcı, kohort sayısı={cohort_count} "
+        f"(kullanıcı başına ~{cohort_count} günde 1 kelime), bugünün kohortu={today_cohort}."
+    )
+
+    eligible_profiles = [
+        p for p in profiles if _cohort_of(p["id"], cohort_count) == today_cohort
+    ]
+
+    # (native_lang, learning_lang) -> [user_id, ...] -- SADECE bugünün kohortu.
     groups: dict[tuple[str, str], list[str]] = defaultdict(list)
-    for p in profiles:
+    for p in eligible_profiles:
         native = (p.get("native_lang") or "tr").lower()
         target = (p.get("learning_lang") or "en").lower()
         groups[(native, target)].append(p["id"])
 
-    all_eligible_ids = {p["id"] for p in profiles}
+    all_eligible_ids = {p["id"] for p in eligible_profiles}
 
     # E-posta auth.users'da tutuluyor — send_schedule_reminders.py ile aynı desen.
     email_map: dict[str, str] = {}
@@ -215,12 +354,14 @@ def main() -> dict:
             pair_results[pair_key] = {"sent": 0, "word": None, "skipped_no_content": len(user_ids)}
             continue
 
+        exam_question = _find_exam_question(word["word"], target_lang)
+
         sent = 0
         for user_id in user_ids:
             email = email_map.get(user_id)
             if not email:
                 continue
-            send_daily_word_email(email, user_id, word)
+            send_daily_word_email(email, user_id, word, exam_question)
             sent += 1
 
         supabase_admin.table(word["_source_table"]).update(
@@ -228,10 +369,24 @@ def main() -> dict:
         ).eq("id", word["id"]).execute()
 
         total_sent += sent
-        pair_results[pair_key] = {"sent": sent, "word": word["word"], "source": word["_source_table"]}
-        print(f"[{datetime.now(UTC).isoformat()}] '{pair_key}' ({word['_source_table']}): günün kelimesi '{word['word']}' {sent} kullanıcıya gönderildi.")
+        pair_results[pair_key] = {
+            "sent": sent,
+            "word": word["word"],
+            "source": word["_source_table"],
+            "exam_question_matched": bool(exam_question),
+        }
+        print(
+            f"[{datetime.now(UTC).isoformat()}] '{pair_key}' ({word['_source_table']}): günün kelimesi "
+            f"'{word['word']}' {sent} kullanıcıya gönderildi (soru eşleşti={bool(exam_question)})."
+        )
 
-    return {"sent_count": total_sent, "pairs": pair_results}
+    return {
+        "sent_count": total_sent,
+        "pairs": pair_results,
+        "cohort_count": cohort_count,
+        "today_cohort": today_cohort,
+        "eligible_total": len(profiles),
+    }
 
 
 if __name__ == "__main__":
