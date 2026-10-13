@@ -14,6 +14,7 @@ import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Card } from '@/components/ui/Card';
+import { AdBanner } from '@/components/ads/AdBanner';
 import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -301,6 +302,7 @@ export default function WordsScreen() {
         learningLang={user?.learning_lang}
         nativeLang={user?.native_lang}
       />
+      <AdBanner style={{ marginTop: 8 }} />
     </ScreenContainer>
   );
 }

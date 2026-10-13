@@ -16,6 +16,9 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { AdBanner } from '@/components/ads/AdBanner';
+import { RewardedAdButton } from '@/components/ads/RewardedAdButton';
+import { onRoundCompleted } from '@/lib/adsManager';
 import { ARABIC_KEYBOARD_ROWS, getKeyboardRowsForLanguage, isLetterGuessSupported } from '@/constants/keyboards';
 
 type Stage = 'mode' | 'direction' | 'fillvariant' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
@@ -125,6 +128,9 @@ export default function GameScreen() {
   const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
 
   const [stage, setStage] = useState<Stage>('mode');
+  useEffect(() => {
+    if (stage === 'done') onRoundCompleted(!!user?.is_premium);
+  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
   const [gameMode, setGameMode] = useState<GameMode>('multiple_choice');
   const [direction, setDirection] = useState<Direction>('word_to_meaning');
   const [poolSource, setPoolSource] = useState<PoolSource>('general');
@@ -1054,9 +1060,12 @@ export default function GameScreen() {
         <Card style={{ backgroundColor: c.accentSoft, borderColor: c.accentSoft, alignItems: 'center', marginTop: spacing.md, marginBottom: spacing.lg }}>
           <Text style={{ color: c.accent, fontWeight: '700' }}>{gt.doneXpTpl.replace('{xp}', String(xp))}</Text>
         </Card>
+        <RewardedAdButton />
+        <View style={{ height: spacing.sm }} />
         <Button title={gt.playAgainBtn} onPress={() => setStage('mode')} />
         <View style={{ height: spacing.sm }} />
         <Button title={gt.backToDashboardBtn} variant="ghost" onPress={() => router.push('/(app)/dashboard')} />
+        <AdBanner style={{ marginTop: spacing.md }} />
       </CenterScreen>
     );
   }

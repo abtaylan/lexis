@@ -59,24 +59,41 @@ import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 type MobileAdsFactory = () => { initialize: () => Promise<unknown> };
 
 let mobileAds: MobileAdsFactory | null = null;
+let adsConsent: { gatherConsent: () => Promise<unknown> } | null = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
-  mobileAds = require('react-native-google-mobile-ads').default;
+  const mod = require('react-native-google-mobile-ads');
+  mobileAds = mod.default;
+  adsConsent = mod.AdsConsent ?? null;
 } catch {
   mobileAds = null;
+  adsConsent = null;
 }
 
 export function initAds() {
   if (!mobileAds) return;
   requestTrackingPermissionsAsync()
     .catch(() => {
-      // İzin diyaloğu herhangi bir nedenle başarısız olursa (ör. bazı
-      // cihaz/OS kombinasyonlarında) sessizce yut — reklamlar yine de
-      // kişiselleştirilmemiş modda initialize edilecek.
+      // İzin diyaloğu herhangi bir nedenle başarısız olursa sessizce yut —
+      // reklamlar yine de kişiselleştirilmemiş modda initialize edilecek.
+    })
+    .then(async () => {
+      // 13 Ekim 2026: Google UMP onay akışı (AB/EEA ve ABD eyalet
+      // düzenlemeleri). AdMob > Gizlilik ve mesajlaşma'da bir mesaj
+      // yayınlanmamışsa form gösterilmez, çağrı sessizce biter.
+      try {
+        await adsConsent?.gatherConsent();
+      } catch {
+        /* sessiz */
+      }
     })
     .finally(() => {
       mobileAds!()
         .initialize()
+        .then(() => {
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          require('./adsManager').preloadAds();
+        })
         .catch(() => {});
     });
 }

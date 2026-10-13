@@ -91,7 +91,11 @@
       "router": {},
       "admob": {
         "androidBannerUnitId": "ca-app-pub-7117270113356521/6587599774",
-        "iosBannerUnitId": "ca-app-pub-7117270113356521/8058312745"
+        "iosBannerUnitId": "ca-app-pub-7117270113356521/8058312745",
+        "androidInterstitialUnitId": "ca-app-pub-7117270113356521/6682175959",
+        "iosInterstitialUnitId": "ca-app-pub-7117270113356521/4460257162",
+        "androidRewardedUnitId": "ca-app-pub-7117270113356521/7824042244",
+        "iosRewardedUnitId": "ca-app-pub-7117270113356521/2580199288"
       }
     },
     "runtimeVersion": {

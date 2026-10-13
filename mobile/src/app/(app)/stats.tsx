@@ -13,6 +13,7 @@ import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
+import { AdBanner } from '@/components/ads/AdBanner';
 
 // ── İstatistik ekranı — web'deki app/(app)/stats/page.tsx'in mobil karşılığı.
 // Web Recharts (DOM/SVG) kullanıyor, bu RN'de çalışmıyor — bunun yerine
@@ -356,6 +357,7 @@ export default function StatsScreen() {
           />
         </Card>
       )}
+      <AdBanner style={{ marginTop: 8 }} />
     </ScreenContainer>
   );
 }

@@ -23,6 +23,7 @@ from app.api.routes import (
     push_tokens,
     quests,
     referrals,
+    ads,
     roleplay,
     schedule,
     social,
@@ -94,6 +95,7 @@ app.include_router(quests.router, prefix="/api/v1/quests", tags=["Quests"])
 # V2 Faz 3d — B2B/kurumsal ligler, en dusuk oncelik (bkz. organizations.py modül docstring'i).
 app.include_router(organizations.router, prefix="/api/v1/organizations", tags=["Organizations"])
 app.include_router(referrals.router, prefix="/api/v1/referrals", tags=["Referrals"])
+app.include_router(ads.router, prefix="/api/v1/ads", tags=["Ads"])
 app.include_router(roleplay.router, prefix="/api/v1/roleplay", tags=["Roleplay"])
 app.include_router(study_program.router, prefix="/api/v1/study-program", tags=["Study Program"])
 # Vercel Cron / GitHub Actions'tan secret-korumalı tetikleme — bkz. app/api/routes/cron.py

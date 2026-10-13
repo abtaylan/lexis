@@ -85,7 +85,7 @@ export function AdBanner({ style }: AdBannerProps) {
         // uyumsuzluğuyla Gradle build'ini kırıyordu). ANCHORED_ADAPTIVE_BANNER
         // her iki sürümde de var (yenisinde deprecated ama çalışıyor) — bilerek bu kullanıldı.
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        requestOptions={{ requestNonPersonalizedAdsOnly: true }}
+        // Kişiselleştirme artık UMP onayına bağlı (bkz. lib/adsInit.ts).
         onAdFailedToLoad={() => {
           // Sessizce geç — reklam ağı henüz yapılandırılmamış/doldurulmamış
           // olabilir (gerçek AdMob hesabı açılana kadar beklenen durum).

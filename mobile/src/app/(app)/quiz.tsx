@@ -12,6 +12,10 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { AdBanner } from '@/components/ads/AdBanner';
+import { RewardedAdButton } from '@/components/ads/RewardedAdButton';
+import { onRoundCompleted } from '@/lib/adsManager';
+import { useAuth } from '@/store/auth';
 
 // ── Quiz — web'deki app/(app)/quiz/page.tsx'in mobil karşılığı. Aynı mantık:
 // kullanıcının kelimelerinden 4 seçenekli çoktan seçmeli 20 soruluk bir tur
@@ -244,6 +248,10 @@ function DoneScreen({
   c: ReturnType<typeof useThemeColors>;
 }) {
   const { t, gt } = useLocale();
+  const { user } = useAuth();
+  useEffect(() => {
+    onRoundCompleted(!!user?.is_premium);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const pct = total > 0 ? Math.round((score / total) * 100) : 0;
   const tier =
     pct >= 80
@@ -287,12 +295,15 @@ function DoneScreen({
           </View>
 
           <View style={{ width: '100%', marginTop: spacing.lg }}>
+            <RewardedAdButton />
+            <View style={{ height: spacing.sm }} />
             <Button title={t('retryQuizBtn')} icon={<RotateCcw color="#FFFFFF" size={16} />} onPress={onRestart} />
           </View>
           <View style={{ marginTop: spacing.sm, width: '100%' }}>
             <Button title={gt.backToDashboardBtn} variant="ghost" onPress={() => router.push('/(app)/dashboard')} />
           </View>
         </Card>
+        <AdBanner style={{ marginTop: spacing.md }} />
       </View>
     </ScreenContainer>
   );

@@ -85,6 +85,8 @@ XPSourceType = Literal[
     # MIN_TURNS_FOR_XP kullanici mesaji icerdiginde VE bu oturumda daha
     # once XP verilmediyse (roleplay_sessions.xp_awarded) cagrilir.
     "roleplay_session",
+    # Odullu reklam (13 Ekim 2026) -- api/routes/ads.py.
+    "ad_reward",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -166,6 +168,8 @@ XP_AMOUNTS: dict[str, int] = {
     # buyuklukte: en az 4 gercek, serbest metin uretimi gerektiren bir
     # diyalog turu -- tek bir wordle turundan (15) daha fazla emek.
     "roleplay_session": 20,
+    # Odullu reklam izleme bonusu -- kucuk (gunde en fazla 5 kez, bkz. ads.py).
+    "ad_reward": 10,
 }
 
 LEVEL_BASE = 50
