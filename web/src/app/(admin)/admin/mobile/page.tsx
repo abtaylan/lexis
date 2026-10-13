@@ -2,26 +2,30 @@
 
 import { Smartphone, Apple, Bell as BellIcon, Bug, GitBranch, CheckCircle2, Clock } from 'lucide-react';
 
-// Mobil uygulama (React Native / Expo) — durum güncellendi (6 Eylül 2026,
-// kullanıcı isteği): iOS App Store'da yayında/aktif, Android Play
-// Console'da kapalı test + inceleme/prod-erişim sürecinde. Bu sayfa henüz
-// canlı store API verisi çekmiyor (App Store Connect / Play Console API
-// entegrasyonu ayrı bir iş) — durum metni elle güncellenen bir özet.
+// Mobil uygulama (React Native / Expo) — durum güncellendi (13 Ekim 2026,
+// App Store Connect + Play Console'dan canlı kontrol edilerek): iOS 1.0.3
+// "Ready for Distribution" ile App Store'da yayında/aktif. Android da
+// artık "Üretim" durumunda yayında/aktif (25 Eylül'de üretime başvuru
+// onaylanmıştı — bu sayfadaki "kapalı test" metni o zamandan beri
+// güncellenmemişti). Bu sayfa henüz canlı store API verisi çekmiyor
+// (App Store Connect / Play Console API entegrasyonu ayrı bir iş) —
+// durum metni elle güncellenen bir özet, bu yüzden ileride tekrar
+// eskiyebilir.
 export default function MobileAppPage() {
   const storeStatus = [
     {
       icon: Apple,
       platform: 'iOS',
-      badge: 'Aktif',
+      badge: 'Aktif — 1.0.3',
       badgeClass: 'bg-[#EAF3DE] text-[#3B6D11]',
-      desc: 'App Store’da yayında ve indirilebilir durumda.',
+      desc: 'App Store’da "Ready for Distribution" durumunda, yayında ve indirilebilir.',
     },
     {
       icon: Smartphone,
       platform: 'Android',
-      badge: 'İnceleme sürecinde',
-      badgeClass: 'bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400',
-      desc: 'Play Console’da kapalı test aşamasında — prod erişimi için gereken minimum test kullanıcısı/süre şartları tamamlanıyor.',
+      badge: 'Aktif — Üretim',
+      badgeClass: 'bg-[#EAF3DE] text-[#3B6D11]',
+      desc: 'Play Console’da "Üretim" durumunda, yayında ve indirilebilir (app.lexis.mobile).',
     },
   ];
 
@@ -69,7 +73,7 @@ export default function MobileAppPage() {
       </div>
 
       <div className="flex items-center gap-2 text-xs text-gray-400 dark:text-slate-500">
-        <Smartphone className="w-3.5 h-3.5" />Bu sayfa henüz App Store Connect / Play Console API&apos;lerinden canlı veri çekmiyor — yukarıdaki durum elle güncellenen bir özet.
+        <Smartphone className="w-3.5 h-3.5" />Bu sayfa henüz App Store Connect / Play Console API&apos;lerinden canlı veri çekmiyor — yukarıdaki durum elle güncellenen bir özet (son kontrol: 13 Ekim 2026).
       </div>
     </div>
   );

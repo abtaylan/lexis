@@ -79,7 +79,41 @@ from app.services.user_report_service import get_user_growth_report, get_user_re
 
 router = APIRouter()
 
-CRON_JOB_NAMES = ["expire_premium", "send_schedule_reminders", "post_daily_content"]
+# NOT (13 Ekim 2026): Bu liste önceden sadece 3 job içeriyordu
+# (expire_premium, send_schedule_reminders, post_daily_content) ve admin
+# panelindeki "Sistem Sağlığı" sayfası bu yüzden çalışan ~20 arka plan
+# işinin büyük kısmını hiç göstermiyordu (güncel olmayan/eksik veri şikayeti,
+# 13 Ekim 2026). Artık app/services/job_log.py::job_run() ile
+# cron_job_runs tablosuna gerçekten log yazan TÜM script'ler burada
+# listeleniyor (backend/*.py + app/api/routes/cron.py taranarak
+# doğrulandı). league_weekly_rollover ve platform_daily_snapshot
+# BİLİNÇLİ OLARAK dışarıda bırakıldı: bunlar artık Python script'i
+# (job_run() ile) üzerinden değil, ayrı birer Claude scheduled task'ının
+# doğrudan Supabase'e SQL çalıştırmasıyla yürütülüyor — bu tabloya hiç
+# satır yazmıyorlar, burada listelenselerdi gerçekte haftalık/günlük
+# çalışıyor olmalarına rağmen yanlışlıkla "hiç çalışmadı" görünürlerdi.
+CRON_JOB_NAMES = [
+    "expire_premium",
+    "send_schedule_reminders",
+    "post_daily_content",
+    "send_daily_word_email",
+    "send_push_reminder_morning",
+    "send_push_reminder_evening",
+    "send_exam_reminders",
+    "notify_membership_changes",
+    "weekly_admin_report",
+    "monthly_user_report",
+    "weekly_weak_categories_email",
+    "reassess_user_levels",
+    "replenish_exam_questions",
+    "grow_word_pool",
+    "generate_daily_challenges",
+    "check_push_receipts",
+    "process_referral_rewards",
+    "simulate_bot_activity",
+    "distribute_leaderboard_rewards",
+    "send_ios_update_notification",
+]
 
 
 # ================================================================
@@ -112,7 +146,6 @@ async def system_health(admin=Depends(get_current_admin)):
         cron_jobs.append({
             "job_name": job_name,
             "last_run": last[0] if last else None,
-            "scheduled": False,  # Madde 4 (kalan): henüz VPS cron'una bağlanmadı
         })
 
     uptime_seconds = int((datetime.now(UTC).timestamp()) - START_TIME)
@@ -137,8 +170,14 @@ async def system_health(admin=Depends(get_current_admin)):
         },
         "cron_jobs": cron_jobs,
         "mobile_app": {
-            "status": "live_ios_pending_android",
-            "note": "iOS App Store'da yayında/aktif. Android Play Console'da kapalı test + prod-erişim inceleme sürecinde. Canlı sürüm/crash/push metrikleri için bu alan ileride store API'leriyle doldurulacak.",
+            # 13 Ekim 2026: App Store Connect + Play Console canlı kontrol
+            # edilerek güncellendi (önceki metin Android'i hâlâ "kapalı
+            # test" sanıyordu — oysa 25 Eylül'de üretime başvuru yapılmış
+            # ve onaylanmıştı). Hâlâ elle güncellenen bir özet — canlı
+            # sürüm/crash/push metrikleri için store API entegrasyonu
+            # ayrı bir iş olarak kalıyor.
+            "status": "live_ios_and_android",
+            "note": "iOS 1.0.3 App Store'da \"Ready for Distribution\" — yayında/aktif. Android app.lexis.mobile Play Console'da \"Üretim\" durumunda — yayında/aktif. Canlı sürüm/crash/push metrikleri için bu alan ileride store API'leriyle doldurulacak.",
         },
     }
 

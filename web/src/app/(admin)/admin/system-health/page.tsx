@@ -8,10 +8,31 @@ import {
 import { adminApi } from '@/lib/api';
 import type { SystemHealth } from '@/types';
 
+// 13 Ekim 2026: Önceden sadece 3 job etiketlenmişti, backend de sadece bu
+// 3'ünü tracking yapıyordu — gerçekte çalışan ~20 job'ın çoğu bu sayfada
+// hiç görünmüyordu (admin panelindeki "veri güncel değil" şikayeti).
+// Backend'deki CRON_JOB_NAMES ile birebir senkron tutulmalı.
 const JOB_LABELS: Record<string, string> = {
   expire_premium: 'Premium süresi dolan kullanıcıları kapat',
   send_schedule_reminders: 'Program hatırlatmaları gönder',
-  post_daily_content: 'Günlük sosyal medya içeriği paylaş',
+  post_daily_content: 'Günlük sosyal medya içeriği paylaş (Telegram/Slack)',
+  send_daily_word_email: 'Günün kelimesi e-postasını gönder',
+  send_push_reminder_morning: 'Sabah hatırlatma push bildirimi gönder',
+  send_push_reminder_evening: 'Akşam hatırlatma push bildirimi gönder',
+  send_exam_reminders: 'Sınav hatırlatma push bildirimi gönder',
+  notify_membership_changes: 'Günlük üyelik özeti e-postasını admin\'e gönder',
+  weekly_admin_report: 'Haftalık admin özet raporu e-postasını gönder',
+  monthly_user_report: 'Aylık kullanıcı rapor e-postasını gönder',
+  weekly_weak_categories_email: 'Haftalık zayıf kategori e-postasını gönder',
+  reassess_user_levels: 'Kullanıcı seviyelerini yeniden değerlendir',
+  replenish_exam_questions: 'Sınav soru havuzunu otomatik doldur',
+  grow_word_pool: 'Kelime havuzunu otomatik büyüt',
+  generate_daily_challenges: 'Günlük görevleri üret',
+  check_push_receipts: 'Push bildirim teslim makbuzlarını kontrol et',
+  process_referral_rewards: 'Referans/davet ödüllerini işle',
+  simulate_bot_activity: 'Bot kullanıcı aktivitesini simüle et',
+  distribute_leaderboard_rewards: 'Lider tablosu ödüllerini dağıt',
+  send_ios_update_notification: 'iOS güncelleme push bildirimi gönder (tek seferlik/manuel tetikleme)',
 };
 
 function formatDate(iso?: string | null) {
@@ -93,7 +114,7 @@ export default function SystemHealthPage() {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 dark:border-slate-800">
           <h2 className="text-sm font-semibold text-gray-700 dark:text-slate-300">Arka plan işleri (cron script&apos;leri)</h2>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">Henüz VPS cron&apos;una bağlanmadılar — manuel/lokal çalıştırmalar burada görünür</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">GitHub Actions + Railway cron servisleri üzerinden otomatik çalışıyor — aşağıda her job&apos;ın en son çalışma sonucu görünür</p>
         </div>
         <div className="divide-y divide-gray-50 dark:divide-slate-800">
           {data.cron_jobs.map((job) => (
@@ -124,7 +145,7 @@ export default function SystemHealthPage() {
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-6 flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 flex items-center justify-center shrink-0"><Smartphone className="w-6 h-6" /></div>
         <div>
-          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Mobil uygulama — iOS aktif, Android inceleme sürecinde</p>
+          <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">Mobil uygulama — iOS ve Android ikisi de üretimde/aktif</p>
           <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{data.mobile_app.note}</p>
         </div>
       </div>
@@ -134,6 +155,14 @@ export default function SystemHealthPage() {
         <span className="flex items-center gap-1"><Send className="w-3 h-3" />Telegram/Slack paylaşımları → Sosyal Medya sayfası</span>
         <span className="flex items-center gap-1"><CreditCard className="w-3 h-3" />Abonelik/ödeme durumu → Ödemeler sayfası</span>
       </div>
+
+      <p className="text-xs text-gray-400 dark:text-slate-500">
+        Not: Haftalık lig kapanışı (league_weekly_rollover) ve günlük platform anlık görüntüsü
+        (platform_daily_snapshot) yukarıdaki listede görünmez — bu ikisi artık ayrı birer
+        otomatik görev tarafından doğrudan veritabanına uygulanıyor, bu sayfanın okuduğu
+        çalışma kaydı tablosuna satır yazmıyorlar. Çalışmıyor değiller; sadece bu sayfada
+        henüz izlenmiyorlar.
+      </p>
     </div>
   );
 }
