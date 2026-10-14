@@ -36,6 +36,11 @@ from app.schemas.grammar import (
     GrammarCategoryResponse,
     GrammarTopicDetail,
     GrammarTopicSummary,
+    StudyPassageResponse,
+)
+from app.services.study_passage_generator import (
+    StudyPassageGenerationError,
+    generate_study_passage,
 )
 
 router = APIRouter()
@@ -172,3 +177,42 @@ async def get_topic(slug: str, current_user=Depends(get_current_user)):
     has_questions = bool(q_result.data)
 
     return GrammarTopicDetail(**row, has_practice_questions=has_questions)
+
+
+@router.get("/topics/{slug}/study-passage", response_model=StudyPassageResponse)
+async def get_study_passage(slug: str, current_user=Depends(get_current_user)):
+    """Günün Okuma Parçası (14 Ekim 2026, kullanıcı isteği) — bkz.
+    services/study_passage_generator.py modül docstring'i. Her çağrıda
+    TAZE üretilir (önbelleklenmez) — kullanıcı "Yeni Parça Üret" ile
+    istediği an farklı bir parça isteyebilir; düşük hacimli kişisel
+    kullanım için bu kabul edilebilir bir maliyet (bkz. admin AI soru
+    üretimiyle aynı Anthropic çağrısı deseni, exam_question_generator.py)."""
+    learning_lang = _profile_learning_lang(current_user.id)
+    if learning_lang not in _grammar_content_learning_langs():
+        raise HTTPException(
+            status_code=403,
+            detail="Gramer Rehberi şu an sadece İngilizce öğrenen kullanıcılar için kullanılabilir.",
+        )
+
+    result = (
+        supabase_admin.table("grammar_topics")
+        .select("slug, title_tr, summary_tr")
+        .eq("slug", slug)
+        .eq("status", "published")
+        .eq("learning_lang", learning_lang)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Konu bulunamadı.")
+    topic = result.data[0]
+
+    try:
+        passage = generate_study_passage(
+            topic_slug=topic["slug"],
+            topic_title_tr=topic["title_tr"],
+            topic_summary_tr=topic["summary_tr"],
+        )
+    except StudyPassageGenerationError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    return StudyPassageResponse(**passage)

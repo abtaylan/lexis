@@ -837,6 +837,29 @@ export interface GrammarTopicDetail extends GrammarTopicSummary {
   common_mistakes: GrammarCommonMistake[];
 }
 
+// ── Günün Okuma Parçası (14 Ekim 2026) — bkz. backend/app/schemas/grammar.py'deki
+// aynı adlı Pydantic şemaları (StudyPassage*) ──
+export interface StudyPassageVocabItem {
+  word: string;
+  meaning_tr: string;
+  part_of_speech?: string | null;
+}
+
+export interface StudyPassagePhrasalVerb {
+  phrase: string;
+  meaning_tr: string;
+  example_sentence: string;
+}
+
+export interface StudyPassageResponse {
+  topic_slug: string;
+  title_tr: string;
+  passage_en: string;
+  comprehension_note_tr: string;
+  vocabulary: StudyPassageVocabItem[];
+  phrasal_verb: StudyPassagePhrasalVerb | null;
+}
+
 // ── V2 §6.3 Faz 3 — Düello, Lig, Görev Haritası ──
 // web/src/types/index.ts'teki aynı adlı tiplerle birebir (backend Pydantic
 // şemalarına karşılık gelir, bkz. backend/app/schemas/duels.py|leagues.py|quests.py).

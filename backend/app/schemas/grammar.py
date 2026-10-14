@@ -54,3 +54,31 @@ class GrammarTopicDetail(BaseModel):
     example_sentences: list[GrammarExampleSentence]
     common_mistakes: list[GrammarCommonMistake]
     has_practice_questions: bool = False
+
+
+# ── Günün Okuma Parçası (14 Ekim 2026) — bkz. services/study_passage_generator.py ──
+# Kullanıcı isteği (Behçet, YÖKDİL hazırlığı sırasında): o gün çalıştığı gramer
+# konusunu içeren kısa bir AI-üretimi okuma parçası + parçadaki zor kelimeler
+# (tek dokunuşla kendi kelime listesine eklenebilsin) + parçaya doğal olarak
+# yerleştirilmiş bir phrasal verb.
+
+
+class StudyPassageVocabItem(BaseModel):
+    word: str
+    meaning_tr: str
+    part_of_speech: str | None = None
+
+
+class StudyPassagePhrasalVerb(BaseModel):
+    phrase: str
+    meaning_tr: str
+    example_sentence: str
+
+
+class StudyPassageResponse(BaseModel):
+    topic_slug: str
+    title_tr: str
+    passage_en: str
+    comprehension_note_tr: str
+    vocabulary: list[StudyPassageVocabItem]
+    phrasal_verb: StudyPassagePhrasalVerb | None = None
