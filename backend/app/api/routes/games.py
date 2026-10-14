@@ -670,7 +670,7 @@ async def next_word(
             attempted = _attempted_ids(session_id, "word_id")
             query = (
                 supabase_admin.table("words")
-                .select("id, word, meaning, meaning_native, example, next_review_at")
+                .select("id, word, meaning, meaning_native, example, next_review_at, source_lang, target_lang")
                 .eq("user_id", current_user.id)
             )
             if attempted:
@@ -814,10 +814,20 @@ async def next_word(
                 # doğrulanıyor — bu yüzden "own" dalı burada pratikte hiç tetiklenmez.)
                 correct_text = chosen["word"]
                 if pool_source == "own":
+                    # BUG FIX (14 Ekim 2026, kullanici bildirimi -- cevap siklarinda
+                    # baska bir dildeki kelime/anlam cikiyor): bu sorgu onceden
+                    # SADECE user_id'ye gore filtreliyordu, kullanicinin ayni
+                    # "words" tablosunda birden fazla dil ciftinde kelimesi varsa
+                    # (ornegin hem Arapca hem Ingilizce ogreniyorsa) yanlis dildeki
+                    # kelimeler çelen şık olarak sızabiliyordu. Artik secilen
+                    # kelimeyle AYNI dil ciftine (source_lang/target_lang) sahip
+                    # kelimeler arasindan seciliyor.
                     distractor_query = (
                         supabase_admin.table("words")
                         .select("id, word")
                         .eq("user_id", current_user.id)
+                        .eq("source_lang", chosen.get("source_lang"))
+                        .eq("target_lang", chosen.get("target_lang"))
                         .neq("id", chosen["id"])
                         .limit(DISTRACTOR_FETCH_LIMIT)
                     )
@@ -860,10 +870,17 @@ async def next_word(
             else:
                 # word_to_meaning (varsayılan): kelime gösterilir, doğru ANLAM 4 seçenekten bulunur.
                 if pool_source == "own":
+                    # BUG FIX (14 Ekim 2026) -- bkz. yukarisi (word seceneklerindeki
+                    # ayni yorum): dil ciftine gore filtrelenmeden cekilen anlamlar
+                    # baska dildeki kelimelerin anlamlarini çelen şık olarak
+                    # sizdirabiliyordu. Artik secilen kelimeyle AYNI dil ciftindeki
+                    # kelimeler arasindan seciliyor.
                     distractor_query = (
                         supabase_admin.table("words")
                         .select("id, meaning, meaning_native")
                         .eq("user_id", current_user.id)
+                        .eq("source_lang", chosen.get("source_lang"))
+                        .eq("target_lang", chosen.get("target_lang"))
                         .neq("id", chosen["id"])
                         .limit(DISTRACTOR_FETCH_LIMIT)
                     )
@@ -939,87 +956,103 @@ async def submit_attempt(
     attempt_in: AttemptCreate,
     current_user=Depends(get_current_user),
 ):
-    session = _get_session(session_id, current_user.id)
-    if session.get("ended_at"):
-        raise HTTPException(status_code=400, detail="Oturum zaten bitmiş.")
+    try:
+        session = _get_session(session_id, current_user.id)
+        if session.get("ended_at"):
+            raise HTTPException(status_code=400, detail="Oturum zaten bitmiş.")
 
-    if not attempt_in.word_id and not attempt_in.general_word_id:
-        raise HTTPException(status_code=422, detail="word_id veya general_word_id gerekli.")
+        if not attempt_in.word_id and not attempt_in.general_word_id:
+            raise HTTPException(status_code=422, detail="word_id veya general_word_id gerekli.")
 
-    xp_awarded = 0
-    leveled_up = False
-    new_level = None
+        xp_awarded = 0
+        leveled_up = False
+        new_level = None
 
-    # "İlk Doğru Deneme" kuralı (4 Eylül 2026): bu kelime için sunucunun daha
-    # önce kaydettiği bir deneme varsa (doğru ya da yanlış fark etmez), bu
-    # sefer doğru bilinse bile XP verilmez — sadece skor/ilerleme için sayılır.
-    # Detay ve gerekçe: LEXIS_XP_YENI_KURALLAR.md
-    prior_attempts = _prior_attempt_count(
-        session_id, attempt_in.word_id, attempt_in.general_word_id
-    )
-    is_first_attempt = prior_attempts == 0
-
-    if attempt_in.is_correct and is_first_attempt:
-        # multiple_choice modunda yöne göre farklı XP kaynağı kullanılır
-        # (definition_to_word en zor kabul edilir, meaning_to_word ondan
-        # biraz daha kolay — ikisi de word_to_meaning'den daha fazla XP verir).
-        session_direction = session.get("direction")
-        if session["mode"] == "multiple_choice" and session_direction == Direction.definition_to_word.value:
-            source_type = "game_multiple_choice_definition"
-        elif session["mode"] == "multiple_choice" and session_direction == Direction.meaning_to_word.value:
-            source_type = "game_multiple_choice_reverse"
-        else:
-            source_type = f"game_{session['mode']}"
-
-        xp_result = await award_xp(
-            user_id=current_user.id,
-            source_type=source_type,  # type: ignore[arg-type]
-            source_id=session_id,
+        # "İlk Doğru Deneme" kuralı (4 Eylül 2026): bu kelime için sunucunun daha
+        # önce kaydettiği bir deneme varsa (doğru ya da yanlış fark etmez), bu
+        # sefer doğru bilinse bile XP verilmez — sadece skor/ilerleme için sayılır.
+        # Detay ve gerekçe: LEXIS_XP_YENI_KURALLAR.md
+        prior_attempts = _prior_attempt_count(
+            session_id, attempt_in.word_id, attempt_in.general_word_id
         )
-        xp_awarded = xp_result.amount_awarded
-        leveled_up = xp_result.leveled_up
-        new_level = xp_result.level
+        is_first_attempt = prior_attempts == 0
 
-    attempt_row = {
-        "session_id": session_id,
-        "word_id": attempt_in.word_id,
-        "general_word_id": attempt_in.general_word_id,
-        "is_correct": attempt_in.is_correct,
-        "attempts_count": prior_attempts + 1,
-        "time_taken_ms": attempt_in.time_taken_ms,
-        "xp_awarded": xp_awarded,
-    }
-    attempt_result = supabase_admin.table("game_attempts").insert(attempt_row).execute()
-    if not attempt_result.data:
-        raise HTTPException(status_code=500, detail="Deneme kaydedilemedi.")
+        if attempt_in.is_correct and is_first_attempt:
+            # multiple_choice modunda yöne göre farklı XP kaynağı kullanılır
+            # (definition_to_word en zor kabul edilir, meaning_to_word ondan
+            # biraz daha kolay — ikisi de word_to_meaning'den daha fazla XP verir).
+            session_direction = session.get("direction")
+            if session["mode"] == "multiple_choice" and session_direction == Direction.definition_to_word.value:
+                source_type = "game_multiple_choice_definition"
+            elif session["mode"] == "multiple_choice" and session_direction == Direction.meaning_to_word.value:
+                source_type = "game_multiple_choice_reverse"
+            else:
+                source_type = f"game_{session['mode']}"
 
-    # Hazine/istatistik/spaced-repetition senkronizasyonu — bkz. yukarısı.
-    _sync_word_progress(
-        current_user.id, attempt_in.word_id, attempt_in.general_word_id, attempt_in.is_correct
-    )
+            xp_result = await award_xp(
+                user_id=current_user.id,
+                source_type=source_type,  # type: ignore[arg-type]
+                source_id=session_id,
+            )
+            xp_awarded = xp_result.amount_awarded
+            leveled_up = xp_result.leveled_up
+            new_level = xp_result.level
 
-    # Seri (streak) güncelle — Bug (9 Eylül 2026): bu çağrı hiç yoktu, sadece
-    # words.py'deki eski flashcard-review akışı update_streak() çağırıyordu.
-    # Sonuç: oyun modlarından (Çoktan Seçmeli/Adam Asmaca) XP kazanılıyor ama
-    # seri sayacı hiç ilerlemiyordu — "her gün giriyorum ama seri 0 gösteriyor"
-    # şikayetinin kök nedeni buydu.
-    game_learning_lang, _ = _get_profile_langs(current_user.id)
-    await update_streak(current_user.id, "word_reviewed", learning_lang=game_learning_lang)
+        attempt_row = {
+            "session_id": session_id,
+            "word_id": attempt_in.word_id,
+            "general_word_id": attempt_in.general_word_id,
+            "is_correct": attempt_in.is_correct,
+            "attempts_count": prior_attempts + 1,
+            "time_taken_ms": attempt_in.time_taken_ms,
+            "xp_awarded": xp_awarded,
+        }
+        attempt_result = supabase_admin.table("game_attempts").insert(attempt_row).execute()
+        if not attempt_result.data:
+            raise HTTPException(status_code=500, detail="Deneme kaydedilemedi.")
 
-    new_score = session["score"] + (1 if attempt_in.is_correct else 0)
-    new_xp_earned = session["xp_earned"] + xp_awarded
-    supabase_admin.table("game_sessions").update(
-        {"score": new_score, "xp_earned": new_xp_earned}
-    ).eq("id", session_id).execute()
+        # Hazine/istatistik/spaced-repetition senkronizasyonu — bkz. yukarısı.
+        _sync_word_progress(
+            current_user.id, attempt_in.word_id, attempt_in.general_word_id, attempt_in.is_correct
+        )
 
-    return AttemptResponse(
-        id=attempt_result.data[0]["id"],
-        is_correct=attempt_in.is_correct,
-        xp_awarded=xp_awarded,
-        session_score=new_score,
-        leveled_up=leveled_up,
-        new_level=new_level,
-    )
+        # Seri (streak) güncelle — Bug (9 Eylül 2026): bu çağrı hiç yoktu, sadece
+        # words.py'deki eski flashcard-review akışı update_streak() çağırıyordu.
+        # Sonuç: oyun modlarından (Çoktan Seçmeli/Adam Asmaca) XP kazanılıyor ama
+        # seri sayacı hiç ilerlemiyordu — "her gün giriyorum ama seri 0 gösteriyor"
+        # şikayetinin kök nedeni buydu.
+        game_learning_lang, _ = _get_profile_langs(current_user.id)
+        await update_streak(current_user.id, "word_reviewed", learning_lang=game_learning_lang)
+
+        new_score = session["score"] + (1 if attempt_in.is_correct else 0)
+        new_xp_earned = session["xp_earned"] + xp_awarded
+        supabase_admin.table("game_sessions").update(
+            {"score": new_score, "xp_earned": new_xp_earned}
+        ).eq("id", session_id).execute()
+
+        return AttemptResponse(
+            id=attempt_result.data[0]["id"],
+            is_correct=attempt_in.is_correct,
+            xp_awarded=xp_awarded,
+            session_score=new_score,
+            leveled_up=leveled_up,
+            new_level=new_level,
+        )
+    except HTTPException:
+        raise
+    except Exception:
+        # BUG FIX (14 Ekim 2026, kullanici bildirimi -- bir onceki soruda
+        # bozuk/capraz-dil cevap siklari cikan oturumda hemen ardindan
+        # "Bir seyler ters gitti" hatasi alindi): submit_attempt() burada
+        # next_word() ile AYNI korumadan (bkz. yukarisi, 3 Ekim 2026) yoksundu --
+        # beklenmeyen bir istisna (orn. award_xp/_sync_word_progress/update_streak
+        # zincirinde) Railway loglari disinda hicbir iz birakmadan yakalanmamis
+        # 500 olarak donuyordu. Artik tam traceback + oturum baglami loglaniyor.
+        logger.exception(
+            "submit_attempt basarisiz oldu (session_id=%s, word_id=%s, general_word_id=%s)",
+            session_id, attempt_in.word_id, attempt_in.general_word_id,
+        )
+        raise HTTPException(status_code=500, detail="Deneme kaydedilemedi, tekrar deneyin.")
 
 
 @router.post(
