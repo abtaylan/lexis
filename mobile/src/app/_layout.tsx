@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 import Animated, { FadeOut } from 'react-native-reanimated';
 import { StyleSheet } from 'react-native';
 import { initAds } from '@/lib/adsInit';
+import { useOtaUpdates } from '@/lib/useOtaUpdates';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LocaleProvider } from '@/i18n';
 import { ThemeProvider, useThemeMode } from '@/store/theme';
@@ -54,6 +55,11 @@ const asyncStoragePersister = createAsyncStoragePersister({
 const MIN_SPLASH_MS = 3800;
 
 export default function RootLayout() {
+  // 14 Ekim 2026: uygulama on plana her geldiginde OTA guncellemesini
+  // kontrol edip varsa aninda uygula (bkz. useOtaUpdates.ts) -- yeni build
+  // gerektirmez, sadece JS tarafinda calisir.
+  useOtaUpdates();
+
   return (
     // 11 Eylül 2026: en dışa AppErrorBoundary eklendi -- gerçek cihaz
     // crash log'unda görülen "JS hatası -> React Native'in New Architecture
