@@ -81,9 +81,26 @@ async function tryRefreshToken(): Promise<string | null> {
       // `api`'nin request interceptor'ı süresi dolmuş eski access_token'ı
       // Authorization header'ına eklerdi, oysa bu istekte kimlik doğrulama
       // tamamen refresh_token gövdesi üzerinden yapılmalı.
-      const res = await axios.post(`${BASE_URL}/api/v1/auth/refresh`, {
-        refresh_token: storedRefreshToken,
-      });
+      //
+      // BUG FIX (14 Ekim 2026 kullanıcı bildirimi): "kelime oyunu bitince
+      // 'panele dön' diyorum, işlem yapıyor simgesi çıkıp kalıyor" — çıplak
+      // axios'un (bu `api` instance'ının aksine) VARSAYILAN timeout'u yoktu
+      // (sonsuz bekler). Erişim token'ı süresi dolunca (Supabase'de ~1 saat)
+      // oyun bitişindeki finishSession() gibi herhangi bir istek 401 alıp bu
+      // fonksiyonu tetikliyordu; zayıf/kopan mobil bağlantıda bu /auth/refresh
+      // isteği hiç yanıt vermeyip sonsuza dek asılı kalabiliyordu — bu da
+      // await eden çağıranın (ör. game.tsx::handleFinish) hiçbir zaman
+      // dönmemesine, dolayısıyla ekranın 'loading' spinner'ında sonsuza dek
+      // takılı kalmasına yol açıyordu (kullanıcı app'i kapatmadan çıkamıyordu).
+      // Açık bir timeout eklendi; zaman aşımında axios hata nesnesinde
+      // `response` olmaz, bu yüzden aşağıdaki catch bunu zaten doğru şekilde
+      // 'network' (oturumu KORU) olarak sınıflandırıyor — davranış değişmedi,
+      // sadece artık gerçekten sonlanıyor.
+      const res = await axios.post(
+        `${BASE_URL}/api/v1/auth/refresh`,
+        { refresh_token: storedRefreshToken },
+        { timeout: 15000 }
+      );
       const { access_token, refresh_token: newRefreshToken } = res.data as {
         access_token?: string;
         refresh_token?: string;
