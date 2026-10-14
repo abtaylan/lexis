@@ -408,7 +408,15 @@ export default function ScheduleScreen() {
         await Promise.all(items.map((it) => scheduleApi.delete(it.id).catch(() => {})));
       }
       for (const it of templateItems) {
-        await scheduleApi.create(it).catch(() => {});
+        // BUG FIX (14 Ekim 2026, kullanici bildirimi -- "calisma programi ekli
+        // oldugu halde neden bildirim gelmiyor"): hazir sablonlardaki
+        // (TEMPLATES) maddeler reminder_lead alanini hic icermiyordu, bu
+        // yuzden "Sablon Uygula" ile eklenen programlar backend'deki
+        // send_schedule_reminders.py cron'u tarafindan SESSIZCE atlaniyordu
+        // (o script sadece reminder_lead IS NOT NULL olan satirlari isliyor).
+        // Artik sablonda ayrica belirtilmemisse varsayilan olarak 1 saat
+        // once hatirlatma ayarlaniyor.
+        await scheduleApi.create({ ...it, reminder_lead: it.reminder_lead ?? '1hour' }).catch(() => {});
       }
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule'] }),

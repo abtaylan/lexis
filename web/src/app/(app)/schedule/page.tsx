@@ -665,7 +665,10 @@ export default function SchedulePage() {
     }
     // Sıralı ekle (rate-limit'e takılmamak için)
     for (const it of templateItems) {
-      await scheduleApi.create(it).catch(() => {});
+      // BUG FIX (14 Ekim 2026) -- bkz. mobile/src/app/(app)/schedule.tsx'teki
+      // ayni yorum: sablon maddeleri reminder_lead icermiyordu, bu yuzden
+      // sablonla eklenen programlar hatirlatma cron'u tarafindan atlaniyordu.
+      await scheduleApi.create({ ...it, reminder_lead: it.reminder_lead ?? '1hour' }).catch(() => {});
     }
     await load();
   };
