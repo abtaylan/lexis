@@ -23,6 +23,10 @@ import type {
   ScheduleMiss,
   RoadmapResponse,
   DayCompletion,
+  StudyDaySummary,
+  StudyDayDetail,
+  StudyNote,
+  StudyNoteSource,
   ExamReminder,
   ExamReminderCreate,
   ExamType,
@@ -716,6 +720,36 @@ export const scheduleApi = {
   getDayCompletions: async (): Promise<DayCompletion[]> => {
     const res = await api.get('/schedule/day-completions');
     return res.data.items;
+  },
+};
+
+// ── "Çalışma Notlarım" (15 Ekim 2026 kullanıcı isteği) ─────────────────
+// Gemini/NotebookLM ile üretilen konu özetlerinin saklandığı sayfa.
+export const studyNotesApi = {
+  listDays: async (): Promise<StudyDaySummary[]> => {
+    const res = await api.get('/study-notes');
+    return res.data.days;
+  },
+  getDay: async (date: string): Promise<StudyDayDetail> => {
+    const res = await api.get<StudyDayDetail>(`/study-notes/${date}`);
+    return res.data;
+  },
+  saveNote: async (
+    date: string,
+    source: StudyNoteSource,
+    content: string,
+    topicTitle?: string | null
+  ): Promise<StudyNote> => {
+    const res = await api.post<StudyNote>('/study-notes', {
+      date,
+      source,
+      content,
+      topic_title: topicTitle || undefined,
+    });
+    return res.data;
+  },
+  deleteNote: async (date: string, source: StudyNoteSource): Promise<void> => {
+    await api.delete(`/study-notes/${date}/${source}`);
   },
 };
 

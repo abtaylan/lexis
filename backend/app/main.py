@@ -28,6 +28,7 @@ from app.api.routes import (
     schedule,
     social,
     stats,
+    study_notes,
     study_program,
     subscription,
     user_languages,
@@ -98,6 +99,7 @@ app.include_router(referrals.router, prefix="/api/v1/referrals", tags=["Referral
 app.include_router(ads.router, prefix="/api/v1/ads", tags=["Ads"])
 app.include_router(roleplay.router, prefix="/api/v1/roleplay", tags=["Roleplay"])
 app.include_router(study_program.router, prefix="/api/v1/study-program", tags=["Study Program"])
+app.include_router(study_notes.router, prefix="/api/v1/study-notes", tags=["Study Notes"])
 # Vercel Cron / GitHub Actions'tan secret-korumalı tetikleme — bkz. app/api/routes/cron.py
 app.include_router(cron.router, prefix="/internal/cron", tags=["Internal Cron"])
 

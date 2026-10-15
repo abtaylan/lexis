@@ -22,7 +22,8 @@
 // panelinde bir "Yapıldı" anahtarı olsun (bkz. backend
 // schedule_day_completions + /schedule/day-completion(s)).
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Clock, X, Check, ExternalLink } from 'lucide-react';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight, Clock, X, Check, ExternalLink, NotebookPen } from 'lucide-react';
 import { scheduleApi } from '@/lib/api';
 import type { ScheduleItem, ScheduleTemplateItem, RoadmapWeek } from '@/types';
 
@@ -341,6 +342,18 @@ function DayDetailPanel({
             <Check className="w-4 h-4" />
             {isDone ? 'Yapıldı olarak işaretlendi' : 'Yapıldı olarak işaretle'}
           </button>
+
+          {/* 15 Ekim 2026 kullanıcı isteği — Yapıldı işaretlenen gün için
+              Çalışma Notlarım'a (Gemini/NotebookLM özet) hızlı geçiş. */}
+          {isDone && (
+            <Link
+              href={`/study-notes/${isoOf(date)}`}
+              className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-[#378ADD] hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+            >
+              <NotebookPen className="w-3.5 h-3.5" />
+              Çalışma Notlarım&apos;da Aç
+            </Link>
+          )}
         </>
       )}
     </div>

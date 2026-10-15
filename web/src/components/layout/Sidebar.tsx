@@ -8,7 +8,7 @@ import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
   Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award, FileBarChart2,
-  Building2, MessagesSquare, Route,
+  Building2, MessagesSquare, Route, NotebookPen,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { organizationsApi } from '@/lib/api';
@@ -43,6 +43,22 @@ const ROADMAP_LABEL: Record<Locale, string> = {
   it: 'Tabella di marcia',
   ja: 'プログラムロードマップ',
   pt: 'Roteiro do Programa',
+};
+
+// "Çalışma Notlarım" — Takvimde Yapıldı işaretlenen günler için Gemini/
+// NotebookLM ile çıkarılan konu özetlerinin saklandığı sayfa (15 Ekim 2026
+// kullanıcı isteği).
+const STUDY_NOTES_LABEL: Record<Locale, string> = {
+  tr: 'Çalışma Notlarım',
+  en: 'My Study Notes',
+  ar: 'ملاحظات دراستي',
+  ru: 'Мои заметки',
+  de: 'Meine Lernnotizen',
+  fr: 'Mes notes d\'étude',
+  es: 'Mis notas de estudio',
+  it: 'I miei appunti',
+  ja: '学習ノート',
+  pt: 'Minhas Notas de Estudo',
 };
 
 // Madde 6, Faz 1 — Arkadaşlık + Takip + Profil görüntüleme
@@ -179,6 +195,7 @@ export function Sidebar() {
     { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
     { href: '/roadmap', label: ROADMAP_LABEL[locale], icon: Route },
+    { href: '/study-notes', label: STUDY_NOTES_LABEL[locale], icon: NotebookPen },
     // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası
     // mobildeki dashboard davranışıyla tutarlı: her zaman görünür, sayfanın
     // kendisi (exam-prep/page.tsx) uygun olmayan dil çiftleri için nazik bir

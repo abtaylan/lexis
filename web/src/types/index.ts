@@ -337,6 +337,37 @@ export interface RoadmapResponse {
   weeks: RoadmapWeek[];
 }
 
+// 15 Ekim 2026 -- "Çalışma Notlarım" sayfası: bir gün Takvimde Yapıldı
+// olarak işaretlenince (DayCompletion), o gün için Gemini/NotebookLM'den
+// alınan özetlerin kullanıcı tarafından yapıştırılıp saklandığı notlar
+// (bkz. backend study_notes tablosu + /study-notes route'ları).
+export type StudyNoteSource = 'gemini' | 'notebooklm' | 'manual';
+
+export interface StudyNote {
+  id: string;
+  user_id: string;
+  date: string; // YYYY-MM-DD
+  source: StudyNoteSource;
+  topic_title: string | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudyDaySummary {
+  date: string; // YYYY-MM-DD
+  topic_title: string | null;
+  activities: string[];
+  note_sources: StudyNoteSource[];
+}
+
+export interface StudyDayDetail {
+  date: string; // YYYY-MM-DD
+  topic_title: string | null;
+  activities: string[];
+  notes: StudyNote[];
+}
+
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı (YDS/YÖKDİL/
 // IELTS/TOEFL). mobile/src/api/types.ts'teki aynı adlı arayüzlerle birebir
 // alan eşleşmesi (backend/app/schemas/exams.py karşılığı).
