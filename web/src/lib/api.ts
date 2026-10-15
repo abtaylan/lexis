@@ -21,6 +21,7 @@ import type {
   ScheduleTemplate,
   ScheduleTemplateCreate,
   ScheduleMiss,
+  RoadmapResponse,
   ExamReminder,
   ExamReminderCreate,
   ExamType,
@@ -697,6 +698,12 @@ export const scheduleApi = {
   },
   resolveMissed: async (missId: string): Promise<ScheduleMiss> => {
     const res = await api.post<ScheduleMiss>(`/schedule/missed/${missId}/resolve`);
+    return res.data;
+  },
+
+  // ── Canlı "Program Haritası" (15 Ekim 2026 kullanıcı isteği) ───────────
+  getRoadmap: async (): Promise<RoadmapResponse> => {
+    const res = await api.get<RoadmapResponse>('/schedule/roadmap');
     return res.data;
   },
 };

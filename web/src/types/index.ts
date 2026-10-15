@@ -286,6 +286,29 @@ export interface ScheduleMiss {
   resolved_at: string | null;
 }
 
+// ── Canlı "Program Haritası" — 20 haftalık yol haritası (15 Ekim 2026) ──
+// bkz. backend study_roadmap_weeks tablosu + GET /schedule/roadmap route'u.
+export interface RoadmapWeek {
+  id: string;
+  user_id: string;
+  week_number: number; // 1-20
+  start_date: string; // YYYY-MM-DD (Pazartesi)
+  end_date: string; // YYYY-MM-DD (Pazar)
+  phase_label: string; // "Faz 1" | "Faz 2" | "Faz 3"
+  topic_slug: string | null; // Faz 3 tekrar haftalarında null
+  topic_title_tr: string | null;
+  level: 'a2' | 'b1' | 'b2' | 'c1' | null;
+  focus_note: string | null; // Faz 3 haftalarında konu başlığı yerine açıklama
+  schedule_items: ScheduleTemplateItem[];
+  created_at: string;
+}
+
+export interface RoadmapResponse {
+  today: string; // YYYY-MM-DD
+  current_week_number: number | null;
+  weeks: RoadmapWeek[];
+}
+
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı (YDS/YÖKDİL/
 // IELTS/TOEFL). mobile/src/api/types.ts'teki aynı adlı arayüzlerle birebir
 // alan eşleşmesi (backend/app/schemas/exams.py karşılığı).
@@ -563,13 +586,23 @@ export interface StudyPassagePhrasalVerb {
   example_sentence: string;
 }
 
+// 15 Ekim 2026, kullanıcı isteği: Türkçe çeviri + 4-5 YÖKDİL tarzı soru.
+export interface StudyPassageQuestion {
+  question_tr: string;
+  options: string[];
+  correct_index: number;
+  explanation_tr: string;
+}
+
 export interface StudyPassageResponse {
   topic_slug: string;
   title_tr: string;
   passage_en: string;
+  passage_tr: string;
   comprehension_note_tr: string;
   vocabulary: StudyPassageVocabItem[];
   phrasal_verb: StudyPassagePhrasalVerb | null;
+  questions: StudyPassageQuestion[];
 }
 
 export interface AdminUser {

@@ -188,6 +188,9 @@ export default function AppTabsLayout() {
           çubuğuna varsayılan ikonlu, istenmeyen bir sekme ekler. */}
       <Tabs.Screen name="study-focus-topics" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="weak-difficulty" options={{ href: null, headerShown: false }} />
+      {/* Canlı "Program Haritası" (15 Ekim 2026) — schedule.tsx'teki
+          "Program Haritası" çipinden açılıyor, kendi sekmesi yok. */}
+      <Tabs.Screen name="roadmap" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

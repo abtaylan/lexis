@@ -208,6 +208,41 @@ export interface ScheduleTemplateCreate {
   items: ScheduleTemplateItem[];
 }
 
+// Kaçırılan gün/etkinlik takibi (15 Ekim 2026 kullanıcı isteği) — web
+// ile birebir aynı şekil, bkz. web/src/types/index.ts ScheduleMiss.
+export interface ScheduleMiss {
+  id: string;
+  user_id: string;
+  schedule_item_id: string | null;
+  activity_snapshot: string;
+  week_start: string; // YYYY-MM-DD (o haftanın Pazar günü)
+  created_at: string;
+  resolved_at: string | null;
+}
+
+// Canlı "Program Haritası" — 20 haftalık yol haritası (15 Ekim 2026 kullanıcı
+// isteği). bkz. backend study_roadmap_weeks tablosu + GET /schedule/roadmap.
+export interface RoadmapWeek {
+  id: string;
+  user_id: string;
+  week_number: number; // 1-20
+  start_date: string; // YYYY-MM-DD (Pazartesi)
+  end_date: string; // YYYY-MM-DD (Pazar)
+  phase_label: string; // "Faz 1" | "Faz 2" | "Faz 3"
+  topic_slug: string | null;
+  topic_title_tr: string | null;
+  level: 'a2' | 'b1' | 'b2' | 'c1' | null;
+  focus_note: string | null;
+  schedule_items: ScheduleTemplateItem[];
+  created_at: string;
+}
+
+export interface RoadmapResponse {
+  today: string; // YYYY-MM-DD
+  current_week_number: number | null;
+  weeks: RoadmapWeek[];
+}
+
 export interface TypeBreakdown {
   word_type: string;
   total: number;
@@ -851,13 +886,23 @@ export interface StudyPassagePhrasalVerb {
   example_sentence: string;
 }
 
+// 15 Ekim 2026, kullanıcı isteği: Türkçe çeviri + 4-5 YÖKDİL tarzı soru.
+export interface StudyPassageQuestion {
+  question_tr: string;
+  options: string[];
+  correct_index: number;
+  explanation_tr: string;
+}
+
 export interface StudyPassageResponse {
   topic_slug: string;
   title_tr: string;
   passage_en: string;
+  passage_tr: string;
   comprehension_note_tr: string;
   vocabulary: StudyPassageVocabItem[];
   phrasal_verb: StudyPassagePhrasalVerb | null;
+  questions: StudyPassageQuestion[];
 }
 
 // ── V2 §6.3 Faz 3 — Düello, Lig, Görev Haritası ──

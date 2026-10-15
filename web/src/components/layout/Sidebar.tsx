@@ -8,7 +8,7 @@ import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
   Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award, FileBarChart2,
-  Building2, MessagesSquare,
+  Building2, MessagesSquare, Route,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { organizationsApi } from '@/lib/api';
@@ -29,6 +29,20 @@ const GAME_LABEL: Record<Locale, string> = {
   it: 'Gioco di parole',
   ja: '単語ゲーム',
   pt: 'Jogo de Palavras',
+};
+
+// Canlı "Program Haritası" — 20 haftalık yol haritası (15 Ekim 2026 kullanıcı isteği)
+const ROADMAP_LABEL: Record<Locale, string> = {
+  tr: 'Program Haritası',
+  en: 'Program Roadmap',
+  ar: 'خارطة البرنامج',
+  ru: 'Карта программы',
+  de: 'Programm-Fahrplan',
+  fr: 'Feuille de route',
+  es: 'Hoja de ruta',
+  it: 'Tabella di marcia',
+  ja: 'プログラムロードマップ',
+  pt: 'Roteiro do Programa',
 };
 
 // Madde 6, Faz 1 — Arkadaşlık + Takip + Profil görüntüleme
@@ -164,6 +178,7 @@ export function Sidebar() {
     ...(hasOrganizations ? [{ href: '/organizations', label: ORGANIZATIONS_LABEL[locale], icon: Building2 }] : []),
     { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
+    { href: '/roadmap', label: ROADMAP_LABEL[locale], icon: Route },
     // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası
     // mobildeki dashboard davranışıyla tutarlı: her zaman görünür, sayfanın
     // kendisi (exam-prep/page.tsx) uygun olmayan dil çiftleri için nazik bir

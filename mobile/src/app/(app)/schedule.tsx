@@ -6,11 +6,13 @@ import {
   Sparkles, Star, Save, X, Trash2, Plus, Check, CalendarClock,
   Flame, Zap, Coffee, Headphones, BookOpen, GraduationCap, User as UserIcon,
   Tv, RotateCcw, Search as SearchIcon, CalendarDays, Bell, CalendarPlus,
+  AlertTriangle, CheckCircle2, Map as MapIcon,
 } from 'lucide-react-native';
+import { router } from 'expo-router';
 import { useLocale } from '@/i18n';
 import { scheduleApi } from '@/api/schedule';
 import { examReminderApi } from '@/api/examReminders';
-import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ExamReminder } from '@/api/types';
+import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ExamReminder, ScheduleMiss } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { useThemeMode } from '@/store/theme';
 import { radius, spacing } from '@/constants/theme';
@@ -220,6 +222,58 @@ function daysUntilExam(dateStr: string): number {
   return Math.round((target.getTime() - today.getTime()) / 86400000);
 }
 
+function MissedThisWeekCard() {
+  const c = useThemeColors();
+  const qc = useQueryClient();
+
+  const { data: missed, isLoading } = useQuery({
+    queryKey: ['schedule-missed'],
+    queryFn: scheduleApi.getMissed,
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: (id: string) => scheduleApi.resolveMissed(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule-missed'] }),
+  });
+
+  if (isLoading || !missed || missed.length === 0) return null;
+
+  return (
+    <Card style={{ marginBottom: spacing.lg }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+        <View style={{ width: 34, height: 34, borderRadius: radius.md, backgroundColor: c.dangerSoft, alignItems: 'center', justifyContent: 'center' }}>
+          <AlertTriangle color={c.danger} size={18} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: c.text, fontSize: 14, fontWeight: '700' }}>Bu Hafta Kaçırdıkların</Text>
+          <Text style={{ color: c.textMuted, fontSize: 11 }}>Tamamladığında işaretle, yoksa haftalık genel tekrar gününe telafi olarak ekle</Text>
+        </View>
+      </View>
+      <View style={{ gap: spacing.xs }}>
+        {missed.map((m: ScheduleMiss) => (
+          <View
+            key={m.id}
+            style={{
+              flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm,
+              backgroundColor: c.dangerSoft, borderRadius: radius.md, paddingVertical: spacing.xs + 2, paddingHorizontal: spacing.sm,
+            }}
+          >
+            <Text style={{ color: c.danger, fontWeight: '600', fontSize: 12, flex: 1 }}>{m.activity_snapshot}</Text>
+            <Pressable
+              onPress={() => resolveMutation.mutate(m.id)}
+              disabled={resolveMutation.isPending}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FFFFFF', borderRadius: radius.sm, paddingVertical: 6, paddingHorizontal: 8 }}
+            >
+              <CheckCircle2 color={c.danger} size={13} />
+              <Text style={{ color: c.danger, fontSize: 11, fontWeight: '700' }}>Tamamladım</Text>
+            </Pressable>
+          </View>
+        ))}
+      </View>
+    </Card>
+  );
+}
+
 function ExamRemindersCard() {
   const c = useThemeColors();
   const qc = useQueryClient();
@@ -358,6 +412,13 @@ export default function ScheduleScreen() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule'] }),
   });
 
+  // Kaçırılan gün/etkinlik takibi (15 Ekim 2026 kullanıcı isteği) — bkz.
+  // MissedThisWeekCard ve backend POST /schedule/missed.
+  const markMissedMutation = useMutation({
+    mutationFn: (id: string) => scheduleApi.markMissed(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['schedule-missed'] }),
+  });
+
   // 9 Ekim 2026 -- "calisma programi telefon takvimine entegre olsun" istegi,
   // inline hatirlatma (push/e-posta -- bkz. backend send_schedule_reminders.py,
   // uzun suredir var ama mobilde secici hic gosterilmiyordu) ile ayni PATCH'i
@@ -423,6 +484,8 @@ export default function ScheduleScreen() {
   });
 
   const weekdays = t('weekdayLabels').split(',');
+  const todayDow = new Date().getDay(); // 0=Pazar..6=Cumartesi, backend ile aynı kural
+  const todayLabel = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
 
   const grouped = useMemo(() => {
     const map = new Map<number, ScheduleItem[]>();
@@ -472,6 +535,10 @@ export default function ScheduleScreen() {
             <Sparkles color="#FFFFFF" size={13} />
             <Text style={styles.pillBtnGhostText}>{t('templatesBtn')}</Text>
           </Pressable>
+          <Pressable onPress={() => router.push('/roadmap' as any)} style={styles.pillBtnGhost}>
+            <MapIcon color="#FFFFFF" size={13} />
+            <Text style={styles.pillBtnGhostText}>Program Haritası</Text>
+          </Pressable>
           {hasItems && (
             <Pressable onPress={() => calendarMutation.mutate()} style={styles.pillBtnGhost} disabled={calendarMutation.isPending}>
               <CalendarPlus color="#FFFFFF" size={13} />
@@ -491,6 +558,7 @@ export default function ScheduleScreen() {
         showsVerticalScrollIndicator={false}
       >
         <ExamRemindersCard />
+        <MissedThisWeekCard />
 
         {!isLoading && !hasItems && (
           <View>
@@ -513,10 +581,15 @@ export default function ScheduleScreen() {
           if (!dayItems || dayItems.length === 0) return null;
           return (
             <View key={dayIdx} style={{ marginBottom: spacing.lg }}>
-              <View style={[styles.dayPill, { backgroundColor: c.primarySoft }]}>
+              <View style={[styles.dayPill, { backgroundColor: c.primarySoft, flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
                 <Text style={{ color: c.primary, fontWeight: '800', fontSize: 12 }}>
                   {weekdays[dayIdx] ?? dayIdx}
                 </Text>
+                {dayIdx === todayDow && (
+                  <View style={{ backgroundColor: c.primary, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 1 }}>
+                    <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>Bugün · {todayLabel}</Text>
+                  </View>
+                )}
               </View>
               {dayItems.map((item) => {
                 const IconComp = activityIcon(item.activity);
@@ -550,6 +623,16 @@ export default function ScheduleScreen() {
                       onValueChange={(v) => toggleMutation.mutate({ id: item.id, is_active: v })}
                       trackColor={{ true: c.primary }}
                     />
+                    {active && (
+                      <Pressable
+                        onPress={() => markMissedMutation.mutate(item.id)}
+                        disabled={markMissedMutation.isPending}
+                        hitSlop={10}
+                        style={{ marginLeft: spacing.sm }}
+                      >
+                        <AlertTriangle color={c.textMuted} size={15} />
+                      </Pressable>
+                    )}
                     <Pressable
                       onPress={() =>
                         Alert.alert(t('deleteScheduleConfirm'), '', [

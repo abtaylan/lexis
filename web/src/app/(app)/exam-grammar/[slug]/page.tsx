@@ -7,11 +7,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { ArrowLeft, BookOpen, CheckCircle2, Loader2, Plus, RefreshCw, XCircle } from 'lucide-react';
+import { ArrowLeft, BookOpen, CheckCircle2, Loader2, Plus, RefreshCw, XCircle, Languages, HelpCircle } from 'lucide-react';
 import { grammarApi, wordsApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { markTopicVisited } from '@/lib/grammarProgress';
-import type { StudyPassageResponse, StudyPassageVocabItem } from '@/types';
+import type { StudyPassageResponse, StudyPassageVocabItem, StudyPassageQuestion } from '@/types';
 
 const L: Partial<Record<Locale, Record<string, string>>> = {
   tr: {
@@ -30,6 +30,12 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     passagePhrasalLabel: 'PHRASAL VERB',
     passageError: 'Okuma parçası üretilemedi, tekrar dener misin?',
     wordAddError: 'Kelime eklenemedi, tekrar dener misin?',
+    passageShowTr: 'Türkçesini Göster',
+    passageHideTr: 'Türkçesini Gizle',
+    passageQuestionsTitle: 'Okuduğunu Anlama Soruları',
+    passageQuestionCheck: 'Kontrol Et',
+    passageQuestionCorrect: 'Doğru!',
+    passageQuestionWrong: 'Yanlış',
   },
   en: {
     back: 'Back',
@@ -47,6 +53,12 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     passagePhrasalLabel: 'PHRASAL VERB',
     passageError: 'Could not generate the passage, try again?',
     wordAddError: 'Could not add the word, try again?',
+    passageShowTr: 'Show Turkish Translation',
+    passageHideTr: 'Hide Turkish Translation',
+    passageQuestionsTitle: 'Comprehension Questions',
+    passageQuestionCheck: 'Check',
+    passageQuestionCorrect: 'Correct!',
+    passageQuestionWrong: 'Incorrect',
   },
 };
 
@@ -59,6 +71,11 @@ function StudyPassageSection({ slug, t }: { slug: string; t: Record<string, stri
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
   const [passageError, setPassageError] = useState('');
   const [addError, setAddError] = useState('');
+  const [showTr, setShowTr] = useState(false);
+  // 15 Ekim 2026, kullanıcı isteği: her soru için seçilen şık + kontrol
+  // edildikten sonra doğru/yanlış + açıklama gösterimi.
+  const [quizSelected, setQuizSelected] = useState<Record<number, number>>({});
+  const [quizChecked, setQuizChecked] = useState<Record<number, boolean>>({});
 
   const passageMutation = useMutation({
     mutationFn: () => grammarApi.getStudyPassage(slug),
@@ -66,6 +83,9 @@ function StudyPassageSection({ slug, t }: { slug: string; t: Record<string, stri
       setPassage(data);
       setAddedWords({});
       setPassageError('');
+      setShowTr(false);
+      setQuizSelected({});
+      setQuizChecked({});
     },
     onError: () => setPassageError(t.passageError),
   });
@@ -107,6 +127,22 @@ function StudyPassageSection({ slug, t }: { slug: string; t: Record<string, stri
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
             <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">{passage.title_tr}</h3>
             <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed mt-2.5">{passage.passage_en}</p>
+            {passage.passage_tr && (
+              <>
+                <button
+                  onClick={() => setShowTr((s) => !s)}
+                  className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-[#378ADD] hover:underline"
+                >
+                  <Languages className="w-3.5 h-3.5" />
+                  {showTr ? t.passageHideTr : t.passageShowTr}
+                </button>
+                {showTr && (
+                  <p className="text-sm text-gray-500 dark:text-slate-400 leading-relaxed mt-2 bg-gray-50 dark:bg-slate-800/60 rounded-xl p-3">
+                    {passage.passage_tr}
+                  </p>
+                )}
+              </>
+            )}
             {passage.comprehension_note_tr && (
               <p className="text-xs text-gray-400 dark:text-slate-500 leading-relaxed mt-2.5">{passage.comprehension_note_tr}</p>
             )}
@@ -159,6 +195,72 @@ function StudyPassageSection({ slug, t }: { slug: string; t: Record<string, stri
               {passage.phrasal_verb.example_sentence && (
                 <p className="text-xs text-gray-400 dark:text-slate-500 italic mt-1">{passage.phrasal_verb.example_sentence}</p>
               )}
+            </div>
+          )}
+
+          {passage.questions.length > 0 && (
+            <div className="mt-4">
+              <p className="text-xs font-bold text-gray-400 dark:text-slate-500 mb-2 flex items-center gap-1.5">
+                <HelpCircle className="w-3.5 h-3.5" />{t.passageQuestionsTitle}
+              </p>
+              <div className="flex flex-col gap-3">
+                {passage.questions.map((q: StudyPassageQuestion, qi: number) => {
+                  const selected = quizSelected[qi];
+                  const checked = quizChecked[qi];
+                  const isCorrect = checked && selected === q.correct_index;
+                  return (
+                    <div key={qi} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-800 p-3.5">
+                      <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{qi + 1}. {q.question_tr}</p>
+                      <div className="mt-2 flex flex-col gap-1.5">
+                        {q.options.map((opt, oi) => {
+                          const isSelected = selected === oi;
+                          const showAsCorrect = checked && oi === q.correct_index;
+                          const showAsWrong = checked && isSelected && oi !== q.correct_index;
+                          return (
+                            <button
+                              key={oi}
+                              onClick={() => !checked && setQuizSelected((prev) => ({ ...prev, [qi]: oi }))}
+                              disabled={checked}
+                              className={`text-left text-xs rounded-lg px-3 py-2 border transition-colors ${
+                                showAsCorrect
+                                  ? 'bg-[#EAF3DE] border-[#3B6D11] text-[#3B6D11]'
+                                  : showAsWrong
+                                  ? 'bg-[#FDEEEA] border-[#9A3412] text-[#9A3412]'
+                                  : isSelected
+                                  ? 'bg-[#E6F1FB] border-[#378ADD] text-[#185FA5]'
+                                  : 'bg-gray-50 dark:bg-slate-800/60 border-gray-100 dark:border-slate-800 text-gray-600 dark:text-slate-300'
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {!checked ? (
+                        <button
+                          onClick={() => setQuizChecked((prev) => ({ ...prev, [qi]: true }))}
+                          disabled={selected === undefined}
+                          className="mt-2.5 text-xs font-semibold text-[#378ADD] disabled:opacity-40 hover:underline"
+                        >
+                          {t.passageQuestionCheck}
+                        </button>
+                      ) : (
+                        <div className="mt-2.5 flex items-start gap-1.5">
+                          {isCorrect ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-[#3B6D11] shrink-0 mt-0.5" />
+                          ) : (
+                            <XCircle className="w-3.5 h-3.5 text-[#9A3412] shrink-0 mt-0.5" />
+                          )}
+                          <p className={`text-xs ${isCorrect ? 'text-[#3B6D11]' : 'text-[#9A3412]'}`}>
+                            <span className="font-bold">{isCorrect ? t.passageQuestionCorrect : t.passageQuestionWrong}</span>
+                            {q.explanation_tr && <> — {q.explanation_tr}</>}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
 

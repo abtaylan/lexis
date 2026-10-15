@@ -37,6 +37,14 @@ _SUBMIT_TOOL = {
                     "3-4 farklı cümlede doğal şekilde kullanılmalı."
                 ),
             },
+            "passage_tr": {
+                "type": "string",
+                "description": (
+                    "passage_en'in TAM, doğal akan Türkçe çevirisi (birebir "
+                    "kelime kelime değil, anlamı doğru şekilde aktaran bir "
+                    "çeviri) — öğrenci anlamadığı bir cümleyi buradan kontrol eder."
+                ),
+            },
             "comprehension_note_tr": {
                 "type": "string",
                 "description": (
@@ -75,8 +83,45 @@ _SUBMIT_TOOL = {
                 },
                 "required": ["phrase", "meaning_tr", "example_sentence"],
             },
+            "questions": {
+                "type": "array",
+                "minItems": 4,
+                "maxItems": 5,
+                "description": (
+                    "Parçaya dayalı, YÖKDİL tarzında 4-5 adet çoktan seçmeli "
+                    "okuduğunu anlama sorusu (soru kökü ve şıklar Türkçe)."
+                ),
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "question_tr": {
+                            "type": "string",
+                            "description": "Türkçe soru kökü (örn. 'Parçaya göre, ... ?').",
+                        },
+                        "options": {
+                            "type": "array",
+                            "minItems": 4,
+                            "maxItems": 4,
+                            "items": {"type": "string"},
+                            "description": "4 şık, Türkçe, birbirine yakın uzunlukta.",
+                        },
+                        "correct_index": {
+                            "type": "integer",
+                            "description": "Doğru şıkkın 0 tabanlı indeksi (0-3).",
+                        },
+                        "explanation_tr": {
+                            "type": "string",
+                            "description": "Türkçe, kısa: doğru şıkkın parçanın hangi cümlesine dayandığının açıklaması.",
+                        },
+                    },
+                    "required": ["question_tr", "options", "correct_index", "explanation_tr"],
+                },
+            },
         },
-        "required": ["title_tr", "passage_en", "comprehension_note_tr", "vocabulary", "phrasal_verb"],
+        "required": [
+            "title_tr", "passage_en", "passage_tr", "comprehension_note_tr",
+            "vocabulary", "phrasal_verb", "questions",
+        ],
     },
 }
 
@@ -117,7 +162,14 @@ def generate_study_passage(
         "bilmediği 6-10 kelime, sözlük formunda ve Türkçe anlamlarıyla.\n"
         "- phrasal_verb: parçaya doğal şekilde yerleştirilmiş TEK bir phrasal verb "
         "(YÖKDİL/YDS'de sık çıkan türden, örn. 'bring about', 'carry out', 'come up with').\n"
+        "- passage_tr, passage_en'in tam ve doğal akan Türkçe çevirisi olsun (öğrencinin "
+        "anlamadığı bir cümleyi kontrol edebilmesi için).\n"
         "- comprehension_note_tr Türkçe, kısa, gramer konusunun parçada nasıl kullanıldığını işaret etsin.\n"
+        "- questions: parçanın içeriğine dayalı, YÖKDİL tarzında (okuduğunu anlama, çıkarım, "
+        "ana fikir/detay sorularının karışımı) 4-5 adet çoktan seçmeli soru üret. Her sorunun "
+        "soru kökü ve 4 şıkkı Türkçe olsun, şıklar birbirine yakın uzunlukta ve mantıklı çelirici "
+        "(distractor) olsun — kolayca elenebilecek saçma şıklar yazma. Her soru için doğru şıkkın "
+        "indeksini ve kısa bir Türkçe açıklama ver.\n"
         "- Telif hakkı olan bir metinden alıntı yapma — tamamen özgün içerik üret.\n"
         "- Sadece submit_study_passage aracını çağırarak cevap ver, ek metin yazma."
     )
@@ -148,6 +200,7 @@ def generate_study_passage(
 
     data = tool_use.input or {}
     passage_en = (data.get("passage_en") or "").strip()
+    passage_tr = (data.get("passage_tr") or "").strip()
     title_tr = (data.get("title_tr") or topic_title_tr).strip()
     comprehension_note_tr = (data.get("comprehension_note_tr") or "").strip()
     if not passage_en:
@@ -177,11 +230,46 @@ def generate_study_passage(
             "example_sentence": (raw_phrasal.get("example_sentence") or "").strip(),
         }
 
+    # 15 Ekim 2026, kullanıcı isteği: "o metinle ilgili 4-5 adet soru da olsun,
+    # yökdil tarzında" -- gevşek doğrulama: eksik/bozuk alanlı bir soru
+    # tamamen atlanır (tüm üretim boşa gitmesin), ama 4 şıktan azsa ya da
+    # correct_index aralık dışındaysa o soru da düşürülür.
+    raw_questions = data.get("questions") or []
+    if not isinstance(raw_questions, list):
+        raw_questions = []
+    questions = []
+    for item in raw_questions:
+        if not isinstance(item, dict):
+            continue
+        question_tr = (item.get("question_tr") or "").strip()
+        raw_options = item.get("options")
+        if not question_tr or not isinstance(raw_options, list) or len(raw_options) != 4:
+            continue
+        options = [str(opt).strip() for opt in raw_options]
+        if any(not opt for opt in options):
+            continue
+        try:
+            correct_index = int(item.get("correct_index"))
+        except (TypeError, ValueError):
+            continue
+        if correct_index < 0 or correct_index > 3:
+            continue
+        questions.append(
+            {
+                "question_tr": question_tr,
+                "options": options,
+                "correct_index": correct_index,
+                "explanation_tr": (item.get("explanation_tr") or "").strip(),
+            }
+        )
+
     return {
         "topic_slug": topic_slug,
         "title_tr": title_tr,
         "passage_en": passage_en,
+        "passage_tr": passage_tr,
         "comprehension_note_tr": comprehension_note_tr,
         "vocabulary": vocabulary,
         "phrasal_verb": phrasal_verb,
+        "questions": questions,
     }

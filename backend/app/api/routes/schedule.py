@@ -324,6 +324,45 @@ async def resolve_missed(miss_id: str, current_user=Depends(get_current_user)):
     return result.data[0]
 
 
+# ── Canlı "Program Haritası" — 20 Haftalık Yol Haritası (15 Ekim 2026) ──────
+# Kullanıcının "tüm 20 haftayı kaydırarak gezebileceği canlı bir ekran"
+# isteği üzerine: study_roadmap_weeks tablosundaki (Gramer Rehberi sırasına
+# göre, tek-konu/tek-hafta mantığıyla kurulmuş) 20 satırı döner. Ayrıca
+# bugünün tarihine göre "şu an hangi haftadayım" bilgisini hesaplar, böylece
+# web/mobil ekranı otomatik olarak güncel haftayı vurgulayıp açabilir.
+@router.get("/roadmap")
+async def get_roadmap(current_user=Depends(get_current_user)):
+    from datetime import date as _date
+
+    result = (
+        supabase_admin.table("study_roadmap_weeks")
+        .select("*")
+        .eq("user_id", current_user.id)
+        .order("week_number")
+        .execute()
+    )
+    weeks = result.data or []
+
+    today = _date.today().isoformat()
+    current_week_number = None
+    for w in weeks:
+        if w["start_date"] <= today <= w["end_date"]:
+            current_week_number = w["week_number"]
+            break
+    if current_week_number is None and weeks:
+        # Program henüz başlamadıysa ilk haftayı, bittiyse son haftayı öner.
+        if today < weeks[0]["start_date"]:
+            current_week_number = weeks[0]["week_number"]
+        elif today > weeks[-1]["end_date"]:
+            current_week_number = weeks[-1]["week_number"]
+
+    return {
+        "today": today,
+        "current_week_number": current_week_number,
+        "weeks": weeks,
+    }
+
+
 # ── Takvime Abonelik (ICS feed) — 9 Ekim 2026 kullanıcı isteği: "çalışma
 # programı telefonda kullanılan takvim uygulamasına entegre olsun" ────────
 # Gerçek bir Google/Apple Calendar OAuth entegrasyonu yerine, hiçbir native

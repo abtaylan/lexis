@@ -801,12 +801,20 @@ export default function SchedulePage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {grouped.map(({ day, color, items: dayItems }) => {
+          {grouped.map(({ day, dayIndex, color, items: dayItems }) => {
             const isEmpty = dayItems.length === 0;
+            const isToday = dayIndex === new Date().getDay();
             return (
-              <div key={day} className={`bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm overflow-hidden ${isEmpty ? 'opacity-50' : ''}`}>
+              <div key={day} className={`bg-white dark:bg-slate-900 rounded-2xl border overflow-hidden ${isToday ? 'border-[#378ADD] ring-1 ring-[#378ADD]/30' : 'border-gray-100 dark:border-slate-800'} shadow-sm ${isEmpty ? 'opacity-50' : ''}`}>
                 <div className={`px-4 py-3 flex items-center justify-between ${color.bg}`}>
-                  <div className="flex items-center gap-2"><span className={`w-2 h-2 rounded-full ${color.dot}`} /><span className={`text-xs font-semibold ${color.text}`}>{day}</span></div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`w-2 h-2 rounded-full ${color.dot}`} /><span className={`text-xs font-semibold ${color.text}`}>{day}</span>
+                    {isToday && (
+                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/70 text-[#185FA5]">
+                        Bugün · {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
+                      </span>
+                    )}
+                  </div>
                   {dayItems.length > 0 && <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/60 ${color.text}`}>{dayItems.length}</span>}
                 </div>
                 <div className="p-3 space-y-2">

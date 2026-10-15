@@ -6,11 +6,11 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { BookOpen, CheckCircle2, Plus, RefreshCw, XCircle } from 'lucide-react-native';
+import { BookOpen, CheckCircle2, Plus, RefreshCw, XCircle, Languages, HelpCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { grammarApi } from '@/api/grammar';
 import { wordsApi } from '@/api/words';
-import type { StudyPassageResponse } from '@/api/types';
+import type { StudyPassageResponse, StudyPassageQuestion } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -26,12 +26,20 @@ function StudyPassageSection({ slug }: { slug: string }) {
   const c = useThemeColors();
   const [passage, setPassage] = useState<StudyPassageResponse | null>(null);
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
+  const [showTr, setShowTr] = useState(false);
+  // 15 Ekim 2026, kullanıcı isteği: her soru için seçilen şık + kontrol
+  // edildikten sonra doğru/yanlış + açıklama gösterimi.
+  const [quizSelected, setQuizSelected] = useState<Record<number, number>>({});
+  const [quizChecked, setQuizChecked] = useState<Record<number, boolean>>({});
 
   const passageMutation = useMutation({
     mutationFn: () => grammarApi.getStudyPassage(slug),
     onSuccess: (data) => {
       setPassage(data);
       setAddedWords({});
+      setShowTr(false);
+      setQuizSelected({});
+      setQuizChecked({});
     },
     onError: () => Alert.alert('Hata', 'Okuma parçası üretilemedi, tekrar dener misin?'),
   });
@@ -74,6 +82,24 @@ function StudyPassageSection({ slug }: { slug: string }) {
             <Text style={{ fontSize: 14, lineHeight: 21, color: c.text, marginTop: spacing.sm }}>
               {passage.passage_en}
             </Text>
+            {passage.passage_tr ? (
+              <>
+                <Pressable
+                  onPress={() => setShowTr((s) => !s)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm }}
+                >
+                  <Languages color={c.primary} size={14} />
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: c.primary }}>
+                    {showTr ? 'Türkçesini Gizle' : 'Türkçesini Göster'}
+                  </Text>
+                </Pressable>
+                {showTr ? (
+                  <View style={{ backgroundColor: c.background, borderRadius: radius.md, padding: spacing.sm, marginTop: spacing.xs }}>
+                    <Text style={{ fontSize: 13, lineHeight: 19, color: c.textSecondary }}>{passage.passage_tr}</Text>
+                  </View>
+                ) : null}
+              </>
+            ) : null}
             {passage.comprehension_note_tr ? (
               <Text style={{ fontSize: 13, lineHeight: 19, color: c.textSecondary, marginTop: spacing.sm }}>
                 {passage.comprehension_note_tr}
@@ -141,6 +167,69 @@ function StudyPassageSection({ slug }: { slug: string }) {
                 </Text>
               ) : null}
             </Card>
+          ) : null}
+
+          {passage.questions.length > 0 ? (
+            <View style={{ marginTop: spacing.md, gap: spacing.xs }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <HelpCircle color={c.textSecondary} size={14} />
+                <Text style={{ fontSize: 13, fontWeight: '700', color: c.textSecondary }}>
+                  Okuduğunu Anlama Soruları
+                </Text>
+              </View>
+              {passage.questions.map((q: StudyPassageQuestion, qi: number) => {
+                const selected = quizSelected[qi];
+                const checked = quizChecked[qi];
+                const isCorrect = checked && selected === q.correct_index;
+                return (
+                  <Card key={qi}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: c.text }}>
+                      {qi + 1}. {q.question_tr}
+                    </Text>
+                    <View style={{ marginTop: spacing.sm, gap: 6 }}>
+                      {q.options.map((opt, oi) => {
+                        const isSelected = selected === oi;
+                        const showAsCorrect = checked && oi === q.correct_index;
+                        const showAsWrong = checked && isSelected && oi !== q.correct_index;
+                        const bg = showAsCorrect ? '#EAF3DE' : showAsWrong ? '#FDEEEA' : isSelected ? c.primarySoft : c.background;
+                        const fg = showAsCorrect ? '#3B6D11' : showAsWrong ? '#9A3412' : isSelected ? c.primary : c.textSecondary;
+                        return (
+                          <Pressable
+                            key={oi}
+                            disabled={!!checked}
+                            onPress={() => setQuizSelected((prev) => ({ ...prev, [qi]: oi }))}
+                            style={{ backgroundColor: bg, borderRadius: radius.sm, paddingVertical: 8, paddingHorizontal: 10 }}
+                          >
+                            <Text style={{ fontSize: 12, color: fg }}>{opt}</Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                    {!checked ? (
+                      <Pressable
+                        disabled={selected === undefined}
+                        onPress={() => setQuizChecked((prev) => ({ ...prev, [qi]: true }))}
+                        style={{ marginTop: spacing.sm, opacity: selected === undefined ? 0.4 : 1 }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: c.primary }}>Kontrol Et</Text>
+                      </Pressable>
+                    ) : (
+                      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: spacing.sm }}>
+                        {isCorrect ? (
+                          <CheckCircle2 color="#3B6D11" size={14} />
+                        ) : (
+                          <XCircle color="#9A3412" size={14} />
+                        )}
+                        <Text style={{ fontSize: 12, color: isCorrect ? '#3B6D11' : '#9A3412', flex: 1 }}>
+                          <Text style={{ fontWeight: '700' }}>{isCorrect ? 'Doğru!' : 'Yanlış'}</Text>
+                          {q.explanation_tr ? ` — ${q.explanation_tr}` : ''}
+                        </Text>
+                      </View>
+                    )}
+                  </Card>
+                );
+              })}
+            </View>
           ) : null}
 
           <View style={{ marginTop: spacing.md }}>

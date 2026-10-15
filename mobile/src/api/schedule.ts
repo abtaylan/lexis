@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ScheduleTemplateCreate } from './types';
+import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ScheduleTemplateCreate, ScheduleMiss, RoadmapResponse } from './types';
 
 export const scheduleApi = {
   getAll: async (): Promise<ScheduleItem[]> => {
@@ -36,6 +36,26 @@ export const scheduleApi = {
   // olusturur, bkz. backend/app/api/routes/schedule.py::get_calendar_feed).
   getCalendarFeed: async (): Promise<{ feed_url: string; webcal_url: string }> => {
     const res = await api.get('/schedule/calendar-feed');
+    return res.data;
+  },
+
+  // ── Kaçırılan gün/etkinlik takibi (15 Ekim 2026 kullanıcı isteği) ──────
+  markMissed: async (scheduleItemId: string): Promise<ScheduleMiss> => {
+    const res = await api.post<ScheduleMiss>('/schedule/missed', { schedule_item_id: scheduleItemId });
+    return res.data;
+  },
+  getMissed: async (): Promise<ScheduleMiss[]> => {
+    const res = await api.get('/schedule/missed');
+    return res.data.items;
+  },
+  resolveMissed: async (missId: string): Promise<ScheduleMiss> => {
+    const res = await api.post<ScheduleMiss>(`/schedule/missed/${missId}/resolve`);
+    return res.data;
+  },
+
+  // ── Canlı "Program Haritası" (15 Ekim 2026 kullanıcı isteği) ───────────
+  getRoadmap: async (): Promise<RoadmapResponse> => {
+    const res = await api.get<RoadmapResponse>('/schedule/roadmap');
     return res.data;
   },
 };
