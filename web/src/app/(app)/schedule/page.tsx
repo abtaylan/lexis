@@ -18,6 +18,23 @@ import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateIt
 // çevirisiyle birlikte kullanılıyor, bkz. `grouped` aşağıda.
 const DAYS = [0, 1, 2, 3, 4, 5, 6];
 
+// Verilen gün indeksinin (0=Pazar..6=Cumartesi) İÇİNDE BULUNULAN HAFTADAKİ
+// gerçek takvim tarihini döner — 15 Ekim 2026 kullanıcı isteği: sadece
+// bugünün değil, her günün kutusunda o günün tarihi görünsün ("hangi
+// tarihte ne çalıştık, neyi çalışmadık görelim").
+function dateForDayOfWeek(dayIndex: number): Date {
+  const now = new Date();
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() - now.getDay());
+  const result = new Date(sunday);
+  result.setDate(sunday.getDate() + dayIndex);
+  return result;
+}
+
+function fmtDayDate(dayIndex: number): string {
+  return dateForDayOfWeek(dayIndex).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+}
+
 const DAY_COLORS = [
   { bg: 'bg-[#FAEEDA]', text: 'text-[#854F0B]', dot: 'bg-[#854F0B]' },
   { bg: 'bg-[#E6F1FB]', text: 'text-[#185FA5]', dot: 'bg-[#185FA5]' },
@@ -809,11 +826,9 @@ export default function SchedulePage() {
                 <div className={`px-4 py-3 flex items-center justify-between ${color.bg}`}>
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`w-2 h-2 rounded-full ${color.dot}`} /><span className={`text-xs font-semibold ${color.text}`}>{day}</span>
-                    {isToday && (
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-white/70 text-[#185FA5]">
-                        Bugün · {new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}
-                      </span>
-                    )}
+                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${isToday ? 'bg-white text-[#185FA5]' : 'bg-white/55 text-slate-500 dark:text-slate-400'}`}>
+                      {isToday ? 'Bugün · ' : ''}{fmtDayDate(dayIndex)}
+                    </span>
                   </div>
                   {dayItems.length > 0 && <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full bg-white/60 ${color.text}`}>{dayItems.length}</span>}
                 </div>

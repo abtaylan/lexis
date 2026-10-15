@@ -179,7 +179,18 @@ export default function RoadmapPage() {
       setCurrentWeekNumber(res.current_week_number);
       setExpandedWeek((prev) => prev ?? res.current_week_number);
     } catch (e) {
-      setError(getErrorMessage(e, 'Program haritası yüklenemedi.'));
+      // 15 Ekim 2026 kullanıcı geri bildirimi: backend 405/500 gibi genel
+      // HTTP-protokol hatalarında FastAPI'nin ham İngilizce "detail" metnini
+      // ("Method Not Allowed" vb.) kullanıcıya göstermek yanıltıcıydı — bu
+      // tür durumlarda her zaman Türkçe genel mesajı gösteriyoruz; sadece
+      // kendi ürettiğimiz 400/404/422 Türkçe doğrulama mesajları olduğunda
+      // backend'in detail alanı aynen gösteriliyor.
+      const status = (e as { response?: { status?: number } })?.response?.status;
+      if (status === 405 || status === undefined || status >= 500) {
+        setError('Program haritası şu anda yüklenemedi. Lütfen birkaç dakika sonra tekrar deneyin.');
+      } else {
+        setError(getErrorMessage(e, 'Program haritası yüklenemedi.'));
+      }
     } finally {
       setLoading(false);
     }

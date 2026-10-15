@@ -485,7 +485,19 @@ export default function ScheduleScreen() {
 
   const weekdays = t('weekdayLabels').split(',');
   const todayDow = new Date().getDay(); // 0=Pazar..6=Cumartesi, backend ile aynı kural
-  const todayLabel = new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+
+  // Verilen gün indeksinin (0=Pazar..6=Cumartesi) İÇİNDE BULUNULAN HAFTADAKİ
+  // gerçek takvim tarihini döner — 15 Ekim 2026 kullanıcı isteği: sadece
+  // bugünün değil, her günün etiketinde o günün tarihi görünsün ("hangi
+  // tarihte ne çalıştık, neyi çalışmadık görelim").
+  const fmtDayDate = (dayIdx: number): string => {
+    const now = new Date();
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - now.getDay());
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + dayIdx);
+    return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+  };
 
   const grouped = useMemo(() => {
     const map = new Map<number, ScheduleItem[]>();
@@ -585,11 +597,11 @@ export default function ScheduleScreen() {
                 <Text style={{ color: c.primary, fontWeight: '800', fontSize: 12 }}>
                   {weekdays[dayIdx] ?? dayIdx}
                 </Text>
-                {dayIdx === todayDow && (
-                  <View style={{ backgroundColor: c.primary, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 1 }}>
-                    <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10 }}>Bugün · {todayLabel}</Text>
-                  </View>
-                )}
+                <View style={{ backgroundColor: dayIdx === todayDow ? c.primary : c.border, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 1 }}>
+                  <Text style={{ color: dayIdx === todayDow ? '#FFFFFF' : c.textSecondary, fontWeight: '700', fontSize: 10 }}>
+                    {dayIdx === todayDow ? 'Bugün · ' : ''}{fmtDayDate(dayIdx)}
+                  </Text>
+                </View>
               </View>
               {dayItems.map((item) => {
                 const IconComp = activityIcon(item.activity);

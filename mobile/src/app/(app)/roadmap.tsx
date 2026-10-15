@@ -11,7 +11,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 import { Link } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import {
-  MapPin, ChevronDown, ChevronUp, Calendar, Clock, ExternalLink, Route as RouteIcon,
+  MapPin, ChevronDown, ChevronUp, Calendar, Clock, ExternalLink, Route as RouteIcon, AlertTriangle, RotateCw,
 } from 'lucide-react-native';
 import { scheduleApi } from '@/api/schedule';
 import type { RoadmapWeek, ScheduleTemplateItem } from '@/api/types';
@@ -21,6 +21,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { getErrorMessage } from '@/utils/errors';
 
 const PHASE_COLORS: Record<string, { soft: string; strong: string }> = {
   'Faz 1': { soft: '#E6F1FB', strong: '#185FA5' },
@@ -173,7 +174,7 @@ export default function RoadmapScreen() {
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [expandedInit, setExpandedInit] = useState(false);
 
-  const { data, isLoading, refetch, isRefetching } = useQuery({
+  const { data, isLoading, isError, error, refetch, isRefetching } = useQuery({
     queryKey: ['roadmap'],
     queryFn: scheduleApi.getRoadmap,
   });
@@ -205,6 +206,23 @@ export default function RoadmapScreen() {
       {isLoading ? (
         <View style={{ paddingTop: spacing.xxl, alignItems: 'center' }}>
           <ActivityIndicator color={c.primary} />
+        </View>
+      ) : isError ? (
+        <View style={{ padding: spacing.lg, alignItems: 'center', paddingTop: spacing.xxl }}>
+          <AlertTriangle color={c.danger ?? '#9A3412'} size={28} />
+          <Text style={{ color: c.text, fontSize: 14, fontWeight: '700', marginTop: spacing.sm, textAlign: 'center' }}>
+            Yol haritası yüklenemedi
+          </Text>
+          <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 4, textAlign: 'center', maxWidth: 280 }}>
+            {getErrorMessage(error, 'Sunucuya bağlanırken bir sorun oluştu.')}
+          </Text>
+          <Pressable
+            onPress={() => refetch()}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.lg, backgroundColor: c.primary, borderRadius: radius.md, paddingHorizontal: 16, paddingVertical: 10 }}
+          >
+            <RotateCw color="#FFFFFF" size={14} />
+            <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>Tekrar Dene</Text>
+          </Pressable>
         </View>
       ) : weeks.length === 0 ? (
         <View style={{ padding: spacing.lg }}>
