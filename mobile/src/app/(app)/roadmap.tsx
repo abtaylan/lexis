@@ -31,13 +31,16 @@ const PHASE_COLORS: Record<string, { soft: string; strong: string }> = {
 
 const LEVEL_LABELS: Record<string, string> = { a2: 'A2', b1: 'B1', b2: 'B2', c1: 'C1' };
 
-const DAY_OFFSET_FROM_MONDAY: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6 };
+// 15 Ekim 2026 kullanıcı geri bildirimi -- "burada günler karışmış, 15 ekim
+// perşembe günü olması lazım": eski kod start_date'in HER ZAMAN Pazartesi
+// olduğunu varsayıyordu ve .toISOString() saat dilimi kayması yaşıyordu.
+// Artık backend her maddeye gerçek bir "date" alanı ekliyor; burada sadece o
+// tarihi okuyup gerçek takvim gününün adını hesaplıyoruz.
 const WEEKDAY_LABELS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
-function dateForDay(startDateIso: string, dayOfWeek: number): string {
-  const start = new Date(startDateIso + 'T00:00:00');
-  start.setDate(start.getDate() + (DAY_OFFSET_FROM_MONDAY[dayOfWeek] ?? 0));
-  return start.toISOString().slice(0, 10);
+function realWeekdayLabel(dateIso: string): string {
+  const d = new Date(dateIso + 'T00:00:00');
+  return WEEKDAY_LABELS[d.getDay()];
 }
 
 function fmtDate(iso: string): string {
@@ -53,12 +56,18 @@ function fmtRange(start: string, end: string): string {
   return `${s.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} - ${e.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
 }
 
-function groupByDay(items: ScheduleTemplateItem[], startDate: string) {
-  const byDay: Record<number, ScheduleTemplateItem[]> = {};
-  for (const it of items) (byDay[it.day_of_week] ??= []).push(it);
-  const order = [1, 2, 3, 4, 5, 6, 0];
-  return order
-    .map((d) => ({ day: d, date: dateForDay(startDate, d), items: (byDay[d] ?? []).sort((a, b) => a.time_slot.localeCompare(b.time_slot)) }))
+function groupByDate(items: ScheduleTemplateItem[], startDate: string) {
+  // Artık day_of_week'e göre değil, maddenin GERÇEK tarihine (item.date) göre
+  // grupluyoruz -- date alanı yoksa (eski/önbelleklenmiş veri) geriye dönük
+  // uyumluluk için start_date'i kullanıyoruz.
+  const byDate: Record<string, ScheduleTemplateItem[]> = {};
+  for (const it of items) {
+    const d = it.date ?? startDate;
+    (byDate[d] ??= []).push(it);
+  }
+  return Object.keys(byDate)
+    .sort()
+    .map((date) => ({ date, items: byDate[date].sort((a, b) => a.time_slot.localeCompare(b.time_slot)) }))
     .filter((g) => g.items.length > 0);
 }
 
@@ -79,7 +88,7 @@ function WeekCard({
 }) {
   const c = useThemeColors();
   const colors = PHASE_COLORS[week.phase_label] ?? PHASE_COLORS['Faz 1'];
-  const grouped = groupByDay(week.schedule_items, week.start_date);
+  const grouped = groupByDate(week.schedule_items, week.start_date);
 
   return (
     <View onLayout={onLayoutY ? (e) => onLayoutY(e.nativeEvent.layout.y) : undefined}>
@@ -125,13 +134,13 @@ function WeekCard({
 
         {expanded && (
           <View style={{ borderTopWidth: 1, borderTopColor: c.border, padding: spacing.md, paddingTop: spacing.sm, gap: spacing.sm }}>
-            {grouped.map(({ day, date, items }) => {
+            {grouped.map(({ date, items }) => {
               const isToday = date === todayIso;
               return (
-                <View key={day} style={{ backgroundColor: isToday ? '#FEF9E7' : c.background, borderRadius: radius.md, padding: spacing.sm }}>
+                <View key={date} style={{ backgroundColor: isToday ? '#FEF9E7' : c.background, borderRadius: radius.md, padding: spacing.sm }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                     <Calendar color={c.textMuted} size={12} />
-                    <Text style={{ color: c.textSecondary, fontWeight: '700', fontSize: 11 }}>{WEEKDAY_LABELS[day]}</Text>
+                    <Text style={{ color: c.textSecondary, fontWeight: '700', fontSize: 11 }}>{realWeekdayLabel(date)}</Text>
                     <Text style={{ color: c.textMuted, fontSize: 11 }}>{fmtDate(date)}</Text>
                     {isToday && (
                       <View style={{ backgroundColor: '#D4A017', borderRadius: radius.full, paddingHorizontal: 6, paddingVertical: 1 }}>

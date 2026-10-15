@@ -201,6 +201,12 @@ export interface Stats {
 // Madde 3a — görev bazında hatırlatma tercihi. undefined/null = kapalı.
 export type ReminderLead = '15min' | '1hour' | 'day_start';
 
+export interface RelatedTopic {
+  slug: string;
+  title: string;
+  link_url: string;
+}
+
 export interface ScheduleItem {
   id: string;
   user_id: string;
@@ -214,6 +220,12 @@ export interface ScheduleItem {
   resolved_resource_title?: string;
   is_active: boolean;
   reminder_lead?: ReminderLead | null;
+  // 15 Ekim 2026 -- Liste görünümünde "+N konu daha" yer tutucusu yerine
+  // gerçek konu adı + linki (bkz. backend _resolve_roadmap_slot).
+  related_topics?: RelatedTopic[];
+  // Liste görünümünde "bugünden önceki günler boş olsun" mantığı için --
+  // study_roadmap_weeks'teki en erken start_date (programın gerçek başlangıcı).
+  program_start_date?: string | null;
 }
 
 export interface ScheduleCreate {
@@ -242,6 +254,15 @@ export interface ScheduleTemplateItem {
   activity: string;
   duration_min: number;
   link_url?: string;
+  // 15 Ekim 2026 -- Program Haritası gün/tarih karışıklığı düzeltmesi: her
+  // maddeye artık GERÇEK bir takvim tarihi (YYYY-MM-DD) ekleniyor (backend'de
+  // study_roadmap_weeks.schedule_items üretilirken hesaplanıyor). Frontend
+  // artık day_of_week'ten kendi tarih hesabını yapmıyor, bu alanı doğrudan
+  // okuyor.
+  date?: string;
+  activity_key?: string;
+  reminder_lead?: ReminderLead | null;
+  related_topics?: RelatedTopic[];
 }
 
 export interface ScheduleTemplate {
@@ -301,6 +322,13 @@ export interface RoadmapWeek {
   focus_note: string | null; // Faz 3 haftalarında konu başlığı yerine açıklama
   schedule_items: ScheduleTemplateItem[];
   created_at: string;
+}
+
+// 15 Ekim 2026 -- Takvim gün tamamlama takibi (bkz. backend
+// schedule_day_completions tablosu + /schedule/day-completion(s) route'ları).
+export interface DayCompletion {
+  date: string; // YYYY-MM-DD
+  is_done: boolean;
 }
 
 export interface RoadmapResponse {

@@ -760,9 +760,27 @@ export default function SchedulePage() {
     await load();
   };
 
+  // 15 Ekim 2026 kullanıcı geri bildirimi -- "bugün başlangıç olduğu için
+  // bugünden önceki günler burada boş liste olmalı, derse bugün başlayacaz":
+  // study_schedule haftalık TEKRARLI bir şablon olduğundan (gerçek tarihi
+  // yok), bir gün kutusunun GERÇEK tarihini (dateForDayOfWeek) programın
+  // GERÇEK başlangıç tarihiyle (program_start_date, study_roadmap_weeks'ten)
+  // karşılaştırıyoruz -- "bugünden önce" değil, "program başlamadan önce"
+  // (yoksa bu mantık her hafta geçmiş günleri yanlışlıkla boşaltırdı).
+  const programStartDate = items.find((it) => it.program_start_date)?.program_start_date ?? null;
+
+  function isBeforeProgramStart(dayIndex: number): boolean {
+    if (!programStartDate) return false;
+    const d = dateForDayOfWeek(dayIndex);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return iso < programStartDate;
+  }
+
   const grouped = DAYS.map((day, i) => ({
     day: weekdays[i] ?? day, dayIndex: i, color: DAY_COLORS[i],
-    items: items.filter((it) => it.day_of_week === i).sort((a, b) => a.time_slot.localeCompare(b.time_slot)),
+    items: isBeforeProgramStart(i)
+      ? []
+      : items.filter((it) => it.day_of_week === i).sort((a, b) => a.time_slot.localeCompare(b.time_slot)),
   }));
 
   const totalItems = items.filter((it) => it.is_active !== false).length;
@@ -877,6 +895,22 @@ export default function SchedulePage() {
                           <a href={displayLink} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-gray-400 dark:text-slate-500 hover:text-[#185FA5] transition-colors truncate">
                             <ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{item.resolved_resource_title || displayLink.replace(/^https?:\/\//, '')}</span>
                           </a>
+                        )}
+                        {/* 15 Ekim 2026 -- "+N konu daha" yer tutucusu yerine her ek konu
+                            kendi adı ve kendi linkiyle ayrı bir satır olarak gösteriliyor. */}
+                        {item.related_topics && item.related_topics.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {item.related_topics.map((rt) => (
+                              <a
+                                key={rt.slug}
+                                href={rt.link_url}
+                                className="text-[11px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 hover:bg-[#E6F1FB] hover:text-[#185FA5] transition-colors truncate max-w-full"
+                                title={rt.title}
+                              >
+                                {rt.title}
+                              </a>
+                            ))}
+                          </div>
                         )}
                         <div className="mt-1.5 flex items-center gap-1">
                           <Bell className="w-3 h-3 text-gray-300 dark:text-slate-600 shrink-0" />

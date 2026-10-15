@@ -15,7 +15,6 @@ import {
   ExternalLink, Sparkles, RefreshCw, ArrowLeft,
 } from 'lucide-react';
 import { scheduleApi } from '@/lib/api';
-import { useLocale } from '@/lib/i18n';
 import { getErrorMessage } from '@/lib/errors';
 import type { RoadmapWeek } from '@/types';
 
@@ -42,15 +41,22 @@ function fmtRange(start: string, end: string): string {
   return `${s.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} - ${e.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}`;
 }
 
-// day_of_week: 0=Pazar…6=Cumartesi (study_schedule ile aynı kural). Haftanın
-// başlangıcı (start_date) her zaman Pazartesi (day_of_week=1) olduğundan, bir
-// günün gerçek takvim tarihini bulmak için ofseti buna göre hesaplıyoruz.
-const DAY_OFFSET_FROM_MONDAY: Record<number, number> = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6 };
+// 15 Ekim 2026 kullanıcı geri bildirimi -- "burada günler karışmış, 15 ekim
+// perşembe günü olması lazım": eski kod start_date'in HER ZAMAN Pazartesi
+// olduğunu varsayıyordu (DAY_OFFSET_FROM_MONDAY) ve .toISOString() ile saat
+// dilimi kayması (yerel gece yarısı -> UTC'de bir önceki gün) yaşıyordu. Artık
+// backend her maddeye gerçek bir "date" alanı ekliyor (bkz. study_roadmap_weeks
+// güncelleme script'i); burada sadece o tarihi okuyup GERÇEK takvim gününün
+// adını hesaplıyoruz -- day_of_week integer'ı artık yalnızca "haftanın
+// kaçıncı maddesi" anlamına geliyor, gerçek haftanın günüyle karıştırılmamalı.
+const WEEKDAY_NAMES_TR = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
 
-function dateForDay(startDateIso: string, dayOfWeek: number): string {
-  const start = new Date(startDateIso + 'T00:00:00');
-  start.setDate(start.getDate() + (DAY_OFFSET_FROM_MONDAY[dayOfWeek] ?? 0));
-  return start.toISOString().slice(0, 10);
+function realWeekdayLabel(dateIso: string): string {
+  // new Date(iso+'T00:00:00') yerel saat olarak ayrıştırılır; .getDay() de
+  // yerel takvime göre çalışır, böylece .toISOString() kaynaklı saat dilimi
+  // kayması oluşmaz.
+  const d = new Date(dateIso + 'T00:00:00');
+  return WEEKDAY_NAMES_TR[d.getDay()];
 }
 
 function WeekCard({
@@ -58,26 +64,30 @@ function WeekCard({
   isCurrent,
   expanded,
   onToggle,
-  weekdayLabels,
   todayIso,
 }: {
   week: RoadmapWeek;
   isCurrent: boolean;
   expanded: boolean;
   onToggle: () => void;
-  weekdayLabels: string[];
   todayIso: string;
 }) {
   const colors = PHASE_COLORS[week.phase_label] ?? PHASE_COLORS['Faz 1'];
   const grouped = useMemo(() => {
-    const byDay: Record<number, typeof week.schedule_items> = {};
+    // Artık day_of_week'e göre değil, maddenin GERÇEK tarihine (item.date)
+    // göre grupluyoruz -- date alanı yoksa (eski/önbelleklenmiş veri), geriye
+    // dönük uyumluluk için start_date'i kullanıyoruz.
+    const byDate: Record<string, typeof week.schedule_items> = {};
     for (const item of week.schedule_items) {
-      (byDay[item.day_of_week] ??= []).push(item);
+      const d = item.date ?? week.start_date;
+      (byDate[d] ??= []).push(item);
     }
-    // Pazartesi(1)'den başlayıp Pazar(0) ile bitsin
-    const order = [1, 2, 3, 4, 5, 6, 0];
-    return order
-      .map((d) => ({ day: d, date: dateForDay(week.start_date, d), items: (byDay[d] ?? []).sort((a, b) => a.time_slot.localeCompare(b.time_slot)) }))
+    return Object.keys(byDate)
+      .sort()
+      .map((date) => ({
+        date,
+        items: byDate[date].sort((a, b) => a.time_slot.localeCompare(b.time_slot)),
+      }))
       .filter((g) => g.items.length > 0);
   }, [week]);
 
@@ -118,13 +128,13 @@ function WeekCard({
 
       {expanded && (
         <div className="border-t border-gray-100 dark:border-slate-800 p-4 pt-3 space-y-3">
-          {grouped.map(({ day, date, items }) => {
+          {grouped.map(({ date, items }) => {
             const isToday = date === todayIso;
             return (
-              <div key={day} className={`rounded-xl p-3 ${isToday ? 'bg-[#FEF9E7] ring-1 ring-[#D4A017]/40' : 'bg-gray-50 dark:bg-slate-800/60'}`}>
+              <div key={date} className={`rounded-xl p-3 ${isToday ? 'bg-[#FEF9E7] ring-1 ring-[#D4A017]/40' : 'bg-gray-50 dark:bg-slate-800/60'}`}>
                 <div className="flex items-center gap-2 mb-2">
                   <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-xs font-semibold text-gray-700 dark:text-slate-300">{weekdayLabels[day]}</span>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-slate-300">{realWeekdayLabel(date)}</span>
                   <span className="text-xs text-gray-400 dark:text-slate-500">{fmtDate(date)}</span>
                   {isToday && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#D4A017] text-white">Bugün</span>}
                 </div>
@@ -153,7 +163,6 @@ function WeekCard({
 }
 
 export default function RoadmapPage() {
-  const { t } = useLocale();
   const [weeks, setWeeks] = useState<RoadmapWeek[]>([]);
   const [todayIso, setTodayIso] = useState('');
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number | null>(null);
@@ -161,13 +170,6 @@ export default function RoadmapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const scrolledRef = useRef(false);
-
-  let weekdayLabels: string[];
-  try {
-    weekdayLabels = t('weekdayLabels').split(',');
-  } catch {
-    weekdayLabels = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
-  }
 
   const load = async () => {
     setLoading(true);
@@ -247,7 +249,6 @@ export default function RoadmapPage() {
               isCurrent={week.week_number === currentWeekNumber}
               expanded={expandedWeek === week.week_number}
               onToggle={() => setExpandedWeek((prev) => (prev === week.week_number ? null : week.week_number))}
-              weekdayLabels={weekdayLabels}
               todayIso={todayIso}
             />
           ))}

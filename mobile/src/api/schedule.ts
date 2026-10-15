@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ScheduleTemplateCreate, ScheduleMiss, RoadmapResponse } from './types';
+import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ScheduleTemplateCreate, ScheduleMiss, RoadmapResponse, DayCompletion } from './types';
 
 export const scheduleApi = {
   getAll: async (): Promise<ScheduleItem[]> => {
@@ -57,5 +57,15 @@ export const scheduleApi = {
   getRoadmap: async (): Promise<RoadmapResponse> => {
     const res = await api.get<RoadmapResponse>('/schedule/roadmap');
     return res.data;
+  },
+
+  // ── Takvim gün tamamlama takibi (15 Ekim 2026 kullanıcı isteği) ────────
+  setDayCompletion: async (date: string, isDone: boolean): Promise<DayCompletion> => {
+    const res = await api.post<DayCompletion>('/schedule/day-completion', { date, is_done: isDone });
+    return res.data;
+  },
+  getDayCompletions: async (): Promise<DayCompletion[]> => {
+    const res = await api.get('/schedule/day-completions');
+    return res.data.items;
   },
 };

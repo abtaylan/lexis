@@ -503,16 +503,37 @@ export default function ScheduleScreen() {
     return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
   };
 
+  // 15 Ekim 2026 kullanıcı geri bildirimi -- "bugün başlangıç olduğu için
+  // bugünden önceki günler burada boş liste olmalı": study_schedule haftalık
+  // TEKRARLI bir şablon olduğundan (gerçek tarihi yok), bir gün kutusunun
+  // GERÇEK tarihini programın GERÇEK başlangıç tarihiyle (program_start_date)
+  // karşılaştırıyoruz -- "bugünden önce" değil "program başlamadan önce"
+  // (yoksa bu mantık her hafta geçmiş günleri yanlışlıkla boşaltırdı).
+  const programStartDate = (items ?? []).find((it) => it.program_start_date)?.program_start_date ?? null;
+
+  const isBeforeProgramStart = (dayIdx: number): boolean => {
+    if (!programStartDate) return false;
+    const now = new Date();
+    const sunday = new Date(now);
+    sunday.setDate(now.getDate() - now.getDay());
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + dayIdx);
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return iso < programStartDate;
+  };
+
   const grouped = useMemo(() => {
     const map = new Map<number, ScheduleItem[]>();
     for (const it of items ?? []) {
+      if (isBeforeProgramStart(it.day_of_week)) continue;
       const arr = map.get(it.day_of_week) ?? [];
       arr.push(it);
       map.set(it.day_of_week, arr);
     }
     for (const arr of map.values()) arr.sort((a, b) => a.time_slot.localeCompare(b.time_slot));
     return map;
-  }, [items]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, programStartDate]);
 
   const totalItems = (items ?? []).filter((it) => it.is_active !== false).length;
   const activeDays = Array.from(grouped.values()).filter((arr) => arr.length > 0).length;
@@ -633,6 +654,21 @@ export default function ScheduleScreen() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ color: c.text, fontWeight: '600', fontSize: 14 }}>{item.activity}</Text>
+                      {/* 15 Ekim 2026 -- "+N konu daha" yer tutucusu yerine her ek
+                          konu kendi adı + kendi linkiyle ayrı bir çip olarak gösteriliyor. */}
+                      {item.related_topics && item.related_topics.length > 0 && (
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                          {item.related_topics.map((rt) => (
+                            <Pressable
+                              key={rt.slug}
+                              onPress={() => router.push(rt.link_url as any)}
+                              style={{ backgroundColor: c.background, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 }}
+                            >
+                              <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '600' }} numberOfLines={1}>{rt.title}</Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      )}
                       <View style={styles.itemMetaRow}>
                         <Text style={{ color: c.textSecondary, fontSize: 12, fontWeight: '600' }}>{item.time_slot}</Text>
                         <View style={[styles.durationPill, { backgroundColor: c.background }]}>

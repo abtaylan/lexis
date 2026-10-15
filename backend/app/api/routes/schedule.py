@@ -158,6 +158,107 @@ def _resolve_resource(activity_key: str | None, learning_lang: str) -> dict | No
     )
     return result.data[0] if result.data else None
 
+# 15 Ekim 2026 -- roadmap_* activity_key'li maddeler için ortak çekirdek.
+# Hem _resolve_roadmap_slot (GÜNCEL hafta -- Liste görünümü /schedule) hem de
+# GET /schedule/roadmap (TÜM haftalar -- Program Haritası + Takvim görünümü)
+# bu fonksiyonu kullanır; böylece "(+N konu daha)" yer tutucusu yerine her ek
+# konunun gerçek adı+linki (related_topics) HER YERDE aynı şekilde üretilir.
+ROADMAP_KEYS = {
+    "roadmap_intro",
+    "roadmap_reinforce",
+    "roadmap_practice_short",
+    "roadmap_passage",
+    "roadmap_practice_long",
+}
+
+def _roadmap_related_for(key: str, extra_slugs: list[str], extra_titles: list[str]) -> list[dict]:
+    """Ek konular için, slot'un türüne uygun gerçek bir link üretir (ör.
+    roadmap_intro için gramer anlatım sayfası, roadmap_reinforce için
+    pekiştirme pratiği vb.) -- böylece her ek konu da kendi doğru sayfasına
+    gider, genel bir yer tutucu değil."""
+    out = []
+    for s, t in zip(extra_slugs, extra_titles):
+        if key == "roadmap_intro":
+            lnk = f"/exam-grammar/{s}"
+        elif key == "roadmap_reinforce":
+            lnk = f"/exam-topic-practice?topic_tag={s}&limit=6"
+        elif key == "roadmap_practice_short":
+            lnk = f"/exam-topic-practice?topic_tag={s}&limit=5"
+        elif key == "roadmap_passage":
+            lnk = f"/exam-grammar/{s}?focus=passage"
+        elif key == "roadmap_practice_long":
+            lnk = f"/exam-topic-practice?topic_tag={s}&limit=10"
+        else:
+            continue
+        out.append({"slug": s, "title": t, "link_url": lnk})
+    return out
+
+def _roadmap_slot_content(activity_key: str | None, week: dict) -> dict | None:
+    """Verilen TEK bir study_roadmap_weeks satırı için activity/link_url/
+    related_topics üretir. Haftayı BULMA işi burada yapılmaz -- çağıran
+    fonksiyon (güncel hafta ya da tüm haftalar) hangi week dict'ini
+    vereceğine kendi karar verir."""
+    if activity_key not in ROADMAP_KEYS:
+        return None
+
+    slug = week.get("topic_slug")
+    titles = (week.get("topic_title_tr") or "").split(" • ") if week.get("topic_title_tr") else []
+    slugs = week.get("topic_slugs") or []
+    # 15 Ekim 2026 kullanıcı geri bildirimi -- "Liste gösterimde de +4 konu
+    # yazılmış, bu gösterim iyi değil, o konuların ismi yazılmalı ve
+    # onlarında linki olmalı": artık başlıkta "(+N konu daha)" YAZMIYORUZ --
+    # yalnızca haftanın ANA konusunun adını kullanıyoruz, ek konular ise
+    # aşağıda `related_topics` listesinde kendi isim+linkleriyle dönüyor.
+    disp = titles[0] if titles else ""
+
+    if not slug:
+        # Faz'sız hafta (Sınav Öncesi Son Tekrar): genel/karışık içerik.
+        fallback = {
+            "roadmap_intro": ("Zayıf Gramer Konuları Tekrarı (Gramer Rehberi'nden)", "/exam-grammar"),
+            "roadmap_reinforce": ("Sınav Hazırlık: Süreli Karma Pratik", "/exam-topic-practice?topic_tag=weekly-quiz"),
+            "roadmap_practice_short": ("Sınav Hazırlık: Süreli Pratik (Kısa)", "/exam-topic-practice?topic_tag=weekly-quiz"),
+            "roadmap_passage": ("Son Hafta: Genel Gözden Geçirme", "/exam-grammar"),
+            "roadmap_practice_long": ("Tam Deneme (Süreli, 50 Soru — Gerçek Sınav Temposu)", "/exam-topic-practice?topic_tag=weekly-quiz"),
+        }
+        activity, link = fallback[activity_key]
+        return {"activity": activity, "link_url": link, "related_topics": []}
+
+    import json as _json
+    from urllib.parse import quote as _quote
+
+    also_param = ""
+    if len(slugs) > 1 and len(titles) > 1:
+        also_payload = _json.dumps(
+            [[s, t] for s, t in zip(slugs[1:], titles[1:])],
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+        also_param = f"also={_quote(also_payload)}"
+
+    related_topics = _roadmap_related_for(activity_key, slugs[1:], titles[1:]) if len(slugs) > 1 and len(titles) > 1 else []
+
+    if activity_key == "roadmap_intro":
+        activity = f"Gramer: {disp} — Giriş & Kural Anlatımı"
+        link = f"/exam-grammar/{slug}"
+        if also_param:
+            link = f"{link}?{also_param}"
+    elif activity_key == "roadmap_reinforce":
+        activity = f"Gramer: {disp} — Pekiştirme & Soru Çözme"
+        link = f"/exam-topic-practice?topic_tag={slug}&limit=6"
+    elif activity_key == "roadmap_practice_short":
+        activity = f"Sınav Hazırlık: YÖKDİL Kısa Pratik — {disp}"
+        link = f"/exam-topic-practice?topic_tag={slug}&limit=5"
+    elif activity_key == "roadmap_passage":
+        activity = f"Günün Okuma Parçası: {disp} Üzerine"
+        link = f"/exam-grammar/{slug}?focus=passage"
+    elif activity_key == "roadmap_practice_long":
+        activity = f"Sınav Hazırlık: Uzun Pratik + Hata Analizi — {disp}"
+        link = f"/exam-topic-practice?topic_tag={slug}&limit=10"
+    else:
+        return None
+
+    return {"activity": activity, "link_url": link, "related_topics": related_topics}
+
 def _resolve_roadmap_slot(activity_key: str | None, user_id: str) -> dict | None:
     """
     15 Ekim 2026: 'Yökdil Genel Çalışma' tek şablonunun roadmap_* activity_key'li
@@ -169,19 +270,10 @@ def _resolve_roadmap_slot(activity_key: str | None, user_id: str) -> dict | None
     sayfalara gider (bkz. kullanıcı şikayeti: "hepsi aynı sayfayı gösteriyor").
     activity_key roadmap_* değilse None döner (frontend kayıtlı link_url'e düşer).
     """
-    ROADMAP_KEYS = {
-        "roadmap_intro",
-        "roadmap_reinforce",
-        "roadmap_practice_short",
-        "roadmap_passage",
-        "roadmap_practice_long",
-    }
     if activity_key not in ROADMAP_KEYS:
         return None
 
     from datetime import date as _date
-    import json as _json
-    from urllib.parse import quote as _quote
 
     today = _date.today().isoformat()
     try:
@@ -210,55 +302,7 @@ def _resolve_roadmap_slot(activity_key: str | None, user_id: str) -> dict | None
         print(f"RESOLVE_ROADMAP_SLOT ERROR: {e}")
         return None
 
-    slug = week.get("topic_slug")
-    titles = (week.get("topic_title_tr") or "").split(" • ") if week.get("topic_title_tr") else []
-    slugs = week.get("topic_slugs") or []
-    disp = titles[0] if titles else ""
-    if len(titles) > 1:
-        disp = f"{titles[0]} (+{len(titles) - 1} konu daha)"
-
-    if not slug:
-        # Faz'sız hafta (Sınav Öncesi Son Tekrar): genel/karışık içerik.
-        fallback = {
-            "roadmap_intro": ("Zayıf Gramer Konuları Tekrarı (Gramer Rehberi'nden)", "/exam-grammar"),
-            "roadmap_reinforce": ("Sınav Hazırlık: Süreli Karma Pratik", "/exam-topic-practice?topic_tag=weekly-quiz"),
-            "roadmap_practice_short": ("Sınav Hazırlık: Süreli Pratik (Kısa)", "/exam-topic-practice?topic_tag=weekly-quiz"),
-            "roadmap_passage": ("Son Hafta: Genel Gözden Geçirme", "/exam-grammar"),
-            "roadmap_practice_long": ("Tam Deneme (Süreli, 50 Soru — Gerçek Sınav Temposu)", "/exam-topic-practice?topic_tag=weekly-quiz"),
-        }
-        activity, link = fallback[activity_key]
-        return {"activity": activity, "link_url": link}
-
-    also_param = ""
-    if len(slugs) > 1 and len(titles) > 1:
-        also_payload = _json.dumps(
-            [[s, t] for s, t in zip(slugs[1:], titles[1:])],
-            ensure_ascii=False,
-            separators=(",", ":"),
-        )
-        also_param = f"also={_quote(also_payload)}"
-
-    if activity_key == "roadmap_intro":
-        activity = f"Gramer: {disp} — Giriş & Kural Anlatımı"
-        link = f"/exam-grammar/{slug}"
-        if also_param:
-            link = f"{link}?{also_param}"
-    elif activity_key == "roadmap_reinforce":
-        activity = f"Gramer: {disp} — Pekiştirme & Soru Çözme"
-        link = f"/exam-topic-practice?topic_tag={slug}&limit=6"
-    elif activity_key == "roadmap_practice_short":
-        activity = f"Sınav Hazırlık: YÖKDİL Kısa Pratik — {disp}"
-        link = f"/exam-topic-practice?topic_tag={slug}&limit=5"
-    elif activity_key == "roadmap_passage":
-        activity = f"Günün Okuma Parçası: {disp} Üzerine"
-        link = f"/exam-grammar/{slug}?focus=passage"
-    elif activity_key == "roadmap_practice_long":
-        activity = f"Sınav Hazırlık: Uzun Pratik + Hata Analizi — {disp}"
-        link = f"/exam-topic-practice?topic_tag={slug}&limit=10"
-    else:
-        return None
-
-    return {"activity": activity, "link_url": link}
+    return _roadmap_slot_content(activity_key, week)
 
 # ── Mevcut program (haftalık etkinlikler) ────────────────────
 
@@ -274,7 +318,33 @@ async def get_schedule(current_user=Depends(get_current_user)):
     )
     items = result.data
     learning_lang = _get_learning_lang(current_user.id)
+
+    # 15 Ekim 2026 kullanıcı geri bildirimi -- "bugün başlangıç olduğu için
+    # bugünden önceki günler burada boş liste olmalı": Liste görünümü
+    # study_schedule'ı HAFTALIK TEKRARLI bir şablon olarak gösterir (gerçek
+    # bir tarihi yok, sadece day_of_week). Frontend'in "bu günün kutusu
+    # programın başlangıcından önce mi?" diye karar verebilmesi için programın
+    # GERÇEK başlangıç tarihini (study_roadmap_weeks'teki en erken start_date)
+    # her maddeye ekliyoruz -- sadece "bugünden önce" değil, "programın
+    # başladığı günden önce" olması gerekiyor, yoksa bu mantık her hafta
+    # geçmiş günleri yanlışlıkla boşaltırdı.
+    program_start_date = None
+    try:
+        earliest = (
+            supabase_admin.table("study_roadmap_weeks")
+            .select("start_date")
+            .eq("user_id", current_user.id)
+            .order("start_date")
+            .limit(1)
+            .execute()
+        )
+        if earliest.data:
+            program_start_date = earliest.data[0]["start_date"]
+    except Exception as e:
+        print(f"GET_SCHEDULE program_start_date ERROR: {e}")
+
     for item in items:
+        item["program_start_date"] = program_start_date
         roadmap_slot = _resolve_roadmap_slot(item.get("activity_key"), current_user.id)
         if roadmap_slot:
             # Program Haritası'ndaki GÜNCEL haftaya göre yeniden üretilen başlık/link —
@@ -283,7 +353,11 @@ async def get_schedule(current_user=Depends(get_current_user)):
             item["link_url"] = roadmap_slot["link_url"]
             item["resolved_link_url"] = roadmap_slot["link_url"]
             item["resolved_resource_title"] = None
+            # 15 Ekim 2026 -- "+N konu daha" yer tutucusu yerine gerçek
+            # konu adları + kendi linkleri (bkz. _resolve_roadmap_slot).
+            item["related_topics"] = roadmap_slot.get("related_topics") or []
             continue
+        item["related_topics"] = []
         resource = _resolve_resource(item.get("activity_key"), learning_lang)
         if resource:
             item["resolved_link_url"] = resource["url"]
@@ -293,7 +367,7 @@ async def get_schedule(current_user=Depends(get_current_user)):
             # kayıtlı sabit link_url'e düş (geriye dönük uyumluluk).
             item["resolved_link_url"] = item.get("link_url")
             item["resolved_resource_title"] = None
-    return {"items": items}
+    return {"items": items, "program_start_date": program_start_date}
 
 @router.post("", status_code=201)
 async def create_schedule_item(item: ScheduleItem, current_user=Depends(get_current_user)):
@@ -322,6 +396,23 @@ async def get_roadmap(current_user=Depends(get_current_user)):
         .execute()
     )
     weeks = result.data or []
+
+    # 15 Ekim 2026 kullanıcı geri bildirimi -- "+4 konu daha" yer tutucusu
+    # Program Haritası'nda ve Takvim'de de kullanıcıya aynen gösteriliyordu
+    # (DB'de kaydedildiği haliyle). _roadmap_slot_content ile HER haftanın
+    # roadmap_* maddesini serve-time'da yeniden üretip related_topics
+    # ekliyoruz -- Liste görünümüyle (_resolve_roadmap_slot) birebir aynı
+    # çekirdek, tek fark burada TÜM haftalar için (sadece güncel hafta değil).
+    for w in weeks:
+        for item in w.get("schedule_items") or []:
+            ak = item.get("activity_key")
+            content = _roadmap_slot_content(ak, w) if ak else None
+            if content:
+                item["activity"] = content["activity"]
+                item["link_url"] = content["link_url"]
+                item["related_topics"] = content["related_topics"]
+            else:
+                item["related_topics"] = item.get("related_topics") or []
 
     today = _date.today().isoformat()
     current_week_number = None
@@ -472,6 +563,48 @@ async def resolve_missed(miss_id: str, current_user=Depends(get_current_user)):
     if not result.data:
         raise HTTPException(status_code=404, detail="Kayıt bulunamadı.")
     return result.data[0]
+
+
+# ── Takvim Gün Tamamlama Takibi (15 Ekim 2026 kullanıcı isteği) ────────────
+# "Güne tıklayınca aşağıda çıkan yapılacak ders bilgisi kutusunun içinde
+# yapıldı seçeneği olsun, işaretlenirse o gün yeşile döner, yapılmadıysa...
+# kırmızı olsun" -- Takvim'deki gün-detay panelinde bir "Yapıldı" anahtarı;
+# renklendirme mantığı (yeşil/turuncu/kırmızı/sarı) tamamen frontend'de
+# hesaplanıyor (bkz. CalendarView), bu endpoint'ler sadece "bu GERÇEK tarih
+# (day_of_week değil) yapıldı mı?" durumunu okur/yazar.
+class DayCompletionRequest(BaseModel):
+    date: str  # YYYY-MM-DD
+    is_done: bool = True
+
+
+@router.post("/day-completion")
+async def set_day_completion(data: DayCompletionRequest, current_user=Depends(get_current_user)):
+    payload = {
+        "user_id": current_user.id,
+        "date": data.date,
+        "is_done": data.is_done,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    result = (
+        supabase_admin.table("schedule_day_completions")
+        .upsert(payload, on_conflict="user_id,date")
+        .execute()
+    )
+    return result.data[0] if result.data else payload
+
+
+@router.get("/day-completions")
+async def list_day_completions(current_user=Depends(get_current_user)):
+    """Kullanıcının tüm 'yapıldı' işaretlerini döner (tarih -> is_done) --
+    20 haftalık program için en fazla ~140 satır, tek seferde çekmek aralık
+    filtresi gerektirmeyecek kadar küçük."""
+    result = (
+        supabase_admin.table("schedule_day_completions")
+        .select("date, is_done")
+        .eq("user_id", current_user.id)
+        .execute()
+    )
+    return {"items": result.data or []}
 
 
 # ── Takvime Abonelik (ICS feed) — 9 Ekim 2026 kullanıcı isteği: "çalışma
