@@ -20,6 +20,7 @@ import type {
   ScheduleCreate,
   ScheduleTemplate,
   ScheduleTemplateCreate,
+  ScheduleMiss,
   ExamReminder,
   ExamReminderCreate,
   ExamType,
@@ -57,6 +58,7 @@ import type {
   GrammarCategory,
   GrammarTopicSummary,
   GrammarTopicDetail,
+  StudyPassageResponse,
   Notification,
   AdminUser,
   AdminUserDetail,
@@ -683,6 +685,20 @@ export const scheduleApi = {
     const res = await api.get('/schedule/calendar-feed');
     return res.data;
   },
+
+  // ── Kaçırılan gün/etkinlik takibi (15 Ekim 2026 kullanıcı isteği) ──────
+  markMissed: async (scheduleItemId: string): Promise<ScheduleMiss> => {
+    const res = await api.post<ScheduleMiss>('/schedule/missed', { schedule_item_id: scheduleItemId });
+    return res.data;
+  },
+  getMissed: async (): Promise<ScheduleMiss[]> => {
+    const res = await api.get('/schedule/missed');
+    return res.data.items;
+  },
+  resolveMissed: async (missId: string): Promise<ScheduleMiss> => {
+    const res = await api.post<ScheduleMiss>(`/schedule/missed/${missId}/resolve`);
+    return res.data;
+  },
 };
 
 // ── Sınav Hatırlatıcı API (tüm yabancı dil sınavları) ──────────
@@ -803,6 +819,12 @@ export const grammarApi = {
   },
   getTopic: async (slug: string): Promise<GrammarTopicDetail> => {
     const res = await api.get<GrammarTopicDetail>(`/grammar/topics/${slug}`);
+    return res.data;
+  },
+  // Günün Okuma Parçası (15 Ekim 2026) — bkz. backend
+  // services/study_passage_generator.py modül docstring'i.
+  getStudyPassage: async (slug: string): Promise<StudyPassageResponse> => {
+    const res = await api.get<StudyPassageResponse>(`/grammar/topics/${slug}/study-passage`);
     return res.data;
   },
 };

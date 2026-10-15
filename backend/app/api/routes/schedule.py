@@ -230,6 +230,100 @@ async def delete_schedule_item(item_id: str, current_user=Depends(get_current_us
     supabase_admin.table("study_schedule").update({"is_active": False}).eq("id", item_id).eq("user_id", current_user.id).execute()
 
 
+# ── Kaçırılan Gün/Etkinlik Takibi (15 Ekim 2026, kullanıcı isteği) ──────────
+# "kaçırdığım gün ve program olursa, onu da işaretleyim, genel tekrar günü
+# ya da öbür hafta bir güne eklensin." Tam otomatik yeniden zamanlama yerine
+# (schedule_misses'tan yeni bir study_schedule satırı üretmek, programın
+# haftalık-tekrarlı yapısıyla çakışır) kasıtlı olarak basit bir "işaretle +
+# gör" modeli seçildi: kullanıcı bir etkinliği "kaçırdım" olarak işaretler,
+# bu hafta içindeki tüm kaçırılanlar GET /missed ile listelenir (ör. Pazar
+# "Haftalık Genel Tekrar" ekranında gösterilmek üzere) ve tamamlandığında
+# resolve edilir. week_start = içinde bulunulan haftanın Pazar günü
+# (day_of_week=0 ile tutarlı, bkz. dosya başındaki Pazar=0 kuralı).
+def _week_start(d=None) -> str:
+    from datetime import date as _date
+
+    today = d or _date.today()
+    days_since_sunday = (today.weekday() + 1) % 7  # Python: Pazartesi=0..Pazar=6
+    return (today - timedelta(days=days_since_sunday)).isoformat()
+
+
+class MarkMissedRequest(BaseModel):
+    schedule_item_id: str
+
+
+@router.post("/missed", status_code=201)
+async def mark_missed(data: MarkMissedRequest, current_user=Depends(get_current_user)):
+    item = (
+        supabase_admin.table("study_schedule")
+        .select("id, activity")
+        .eq("id", data.schedule_item_id)
+        .eq("user_id", current_user.id)
+        .limit(1)
+        .execute()
+    )
+    if not item.data:
+        raise HTTPException(status_code=404, detail="Etkinlik bulunamadı.")
+
+    week_start = _week_start()
+    existing = (
+        supabase_admin.table("schedule_misses")
+        .select("id")
+        .eq("user_id", current_user.id)
+        .eq("schedule_item_id", data.schedule_item_id)
+        .eq("week_start", week_start)
+        .is_("resolved_at", "null")
+        .limit(1)
+        .execute()
+    )
+    if existing.data:
+        return existing.data[0]
+
+    payload = {
+        "user_id": current_user.id,
+        "schedule_item_id": data.schedule_item_id,
+        "activity_snapshot": item.data[0]["activity"],
+        "week_start": week_start,
+    }
+    result = supabase_admin.table("schedule_misses").insert(payload).execute()
+    return result.data[0]
+
+
+@router.get("/missed")
+async def list_missed(current_user=Depends(get_current_user)):
+    """Bu haftanın ve geçen haftanın çözülmemiş 'kaçırıldı' kayıtlarını döner
+    (geçen hafta da dahil — Pazar akşamı geç kaçırılan bir gün, haftanın son
+    günü olduğu için hemen görülmeyebilir diye bir hafta tolerans var)."""
+    from datetime import date as _date
+
+    this_week = _week_start()
+    last_week = _week_start(_date.today() - timedelta(days=7))
+    result = (
+        supabase_admin.table("schedule_misses")
+        .select("*")
+        .eq("user_id", current_user.id)
+        .in_("week_start", [this_week, last_week])
+        .is_("resolved_at", "null")
+        .order("created_at", desc=True)
+        .execute()
+    )
+    return {"items": result.data}
+
+
+@router.post("/missed/{miss_id}/resolve")
+async def resolve_missed(miss_id: str, current_user=Depends(get_current_user)):
+    result = (
+        supabase_admin.table("schedule_misses")
+        .update({"resolved_at": datetime.now(timezone.utc).isoformat()})
+        .eq("id", miss_id)
+        .eq("user_id", current_user.id)
+        .execute()
+    )
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Kayıt bulunamadı.")
+    return result.data[0]
+
+
 # ── Takvime Abonelik (ICS feed) — 9 Ekim 2026 kullanıcı isteği: "çalışma
 # programı telefonda kullanılan takvim uygulamasına entegre olsun" ────────
 # Gerçek bir Google/Apple Calendar OAuth entegrasyonu yerine, hiçbir native

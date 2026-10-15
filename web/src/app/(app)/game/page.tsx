@@ -1226,6 +1226,28 @@ export default function GamePage() {
     }
   };
 
+  // Program (Çalışma Programı) kartlarından tek dokunuşla oyuna geçiş —
+  // 15 Ekim 2026, kullanıcı isteği: "kelime tekrarı lexis oyun demişsin,
+  // hangi oyunu oynayım, genel liste mi kendi listem mi?" belirsizliği
+  // için Program sayfası artık ?mode=&pool= ile buraya link veriyor; bu
+  // etki, challengeId akışından bağımsız olarak mod+havuz seçim
+  // ekranlarını atlayıp direkt oyunu başlatır. challengeId varsa (üstteki
+  // efekt) önceliklidir, bu yüzden o durumda hiçbir şey yapmaz.
+  useEffect(() => {
+    if (searchParams.get('challengeId')) return;
+    const presetMode = searchParams.get('mode') as GameMode | null;
+    const presetPool = searchParams.get('pool') as PoolSource | null;
+    const VALID_MODES: GameMode[] = [
+      'wordle', 'multiple_choice', 'typing', 'matching', 'listening', 'sprint', 'sentence_building',
+    ];
+    if (!presetMode || !VALID_MODES.includes(presetMode)) return;
+    const pool: PoolSource = presetPool === 'own' ? 'own' : 'general';
+    const dir: Direction = presetMode === 'wordle' ? 'meaning_to_word' : 'word_to_meaning';
+    setDirection(dir);
+    start(presetMode, pool, dir);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ── çoktan seçmeli cevap (yöne göre doğru metin değişir) ──
   const handleAnswer = async (optionId: string, optionText: string) => {
     if (selectedId || !current || !sessionId) return;

@@ -274,6 +274,18 @@ export interface ScheduleTemplateCreate {
   items: ScheduleTemplateItem[];
 }
 
+// ── Kaçırılan gün/etkinlik takibi (15 Ekim 2026) — bkz. backend
+// schedule_misses tablosu + /schedule/missed route'ları. ──
+export interface ScheduleMiss {
+  id: string;
+  user_id: string;
+  schedule_item_id: string | null;
+  activity_snapshot: string;
+  week_start: string; // YYYY-MM-DD (o haftanın Pazar günü)
+  created_at: string;
+  resolved_at: string | null;
+}
+
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı (YDS/YÖKDİL/
 // IELTS/TOEFL). mobile/src/api/types.ts'teki aynı adlı arayüzlerle birebir
 // alan eşleşmesi (backend/app/schemas/exams.py karşılığı).
@@ -535,6 +547,29 @@ export interface GrammarTopicDetail extends GrammarTopicSummary {
   rule_content_md: string;
   example_sentences: GrammarExampleSentence[];
   common_mistakes: GrammarCommonMistake[];
+}
+
+// ── Günün Okuma Parçası (14-15 Ekim 2026) — bkz. backend
+// services/study_passage_generator.py modül docstring'i. ──
+export interface StudyPassageVocabItem {
+  word: string;
+  meaning_tr: string;
+  part_of_speech?: string | null;
+}
+
+export interface StudyPassagePhrasalVerb {
+  phrase: string;
+  meaning_tr: string;
+  example_sentence: string;
+}
+
+export interface StudyPassageResponse {
+  topic_slug: string;
+  title_tr: string;
+  passage_en: string;
+  comprehension_note_tr: string;
+  vocabulary: StudyPassageVocabItem[];
+  phrasal_verb: StudyPassagePhrasalVerb | null;
 }
 
 export interface AdminUser {

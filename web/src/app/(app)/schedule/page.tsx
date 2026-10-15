@@ -5,13 +5,14 @@ import {
   Plus, Trash2, X, Clock, CalendarDays, ExternalLink, Loader2,
   Sparkles, Flame, Zap, Coffee, Check, Headphones, BookOpen,
   GraduationCap, Save, Star, User as UserIcon, Bell, CalendarClock, FileText, CalendarPlus,
+  AlertTriangle, CheckCircle2,
 } from 'lucide-react';
 import { scheduleApi, examReminderApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/lib/errors';
 import { ScheduleExportModal } from '@/components/schedule/ScheduleExportModal';
-import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem, ExamReminder } from '@/types';
+import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem, ExamReminder, ScheduleMiss } from '@/types';
 
 // Haftanın günlerini index'lemek için (0=Pazar…6=Cumartesi) — weekdays[i]
 // çevirisiyle birlikte kullanılıyor, bkz. `grouped` aşağıda.
@@ -595,6 +596,66 @@ function ExamRemindersCard() {
   );
 }
 
+// ── "Bu Hafta Kaçırdıkların" — 15 Ekim 2026 kullanıcı isteği: "kaçırdığım
+// gün ve program olursa, onu da işaretleyim". Her programdan geçen hafta/bu
+// haftaki çözülmemiş "kaçırıldı" kayıtlarını listeler; "Tamamladım" ile
+// kapatılır. Program kartlarındaki "Kaçırdım" butonu (bkz. aşağıda
+// handleMarkMissed) buraya yeni satır ekler — refreshToken prop'u her
+// işaretlemede yeniden yüklenmesini tetikler.
+function MissedThisWeekCard({ refreshToken }: { refreshToken: number }) {
+  const [missed, setMissed] = useState<ScheduleMiss[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    try { setMissed(await scheduleApi.getMissed()); }
+    catch { setMissed([]); }
+    finally { setLoading(false); }
+  };
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/refreshToken değişiminde veri çekme (fetch-on-effect) deseni
+  useEffect(() => { load(); }, [refreshToken]);
+
+  const handleResolve = async (id: string) => {
+    setResolvingId(id);
+    try { await scheduleApi.resolveMissed(id); await load(); }
+    finally { setResolvingId(null); }
+  };
+
+  if (!loading && missed.length === 0) return null;
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-9 h-9 rounded-xl bg-[#FDEEEA] flex items-center justify-center"><AlertTriangle className="w-5 h-5 text-[#9A3412]" /></div>
+        <div>
+          <h2 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Bu Hafta Kaçırdıkların</h2>
+          <p className="text-xs text-gray-400 dark:text-slate-500">Tamamladığında işaretle, yoksa haftalık genel tekrar gününe telafi olarak ekleyebilirsin</p>
+        </div>
+      </div>
+      {loading ? (
+        <p className="text-xs text-gray-400 dark:text-slate-500">Yükleniyor…</p>
+      ) : (
+        <div className="space-y-2">
+          {missed.map((m) => (
+            <div key={m.id} className="flex items-center justify-between gap-3 rounded-xl bg-[#FDEEEA] px-3 py-2">
+              <span className="text-sm text-[#9A3412] font-medium">{m.activity_snapshot}</span>
+              <button
+                onClick={() => handleResolve(m.id)}
+                disabled={resolvingId === m.id}
+                className="flex items-center gap-1.5 bg-white text-[#9A3412] rounded-lg px-2.5 py-1.5 text-xs font-medium hover:bg-[#fff8f5] disabled:opacity-50 transition-colors shrink-0"
+              >
+                {resolvingId === m.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                Tamamladım
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SchedulePage() {
   const { t } = useLocale();
   const { user } = useAuth();
@@ -605,6 +666,7 @@ export default function SchedulePage() {
   const [showTemplates, setShowTemplates] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [missedRefresh, setMissedRefresh] = useState(0);
 
   // NOT: lib/scheduleTemplates.ts, öğrenme diline göre çok dilli şablon
   // çözümü için bilinçli olarak "hazır ama bağlanmamış" tutuluyor (bkz. o
@@ -629,6 +691,12 @@ export default function SchedulePage() {
   };
   const handleToggle = async (item: ScheduleItem) => {
     try { await scheduleApi.update(item.id, { is_active: !item.is_active }); load(); } catch { /* sessiz */ }
+  };
+  const handleMarkMissed = async (item: ScheduleItem) => {
+    try {
+      await scheduleApi.markMissed(item.id);
+      setMissedRefresh((n) => n + 1);
+    } catch { /* sessiz */ }
   };
   const handleReminderChange = async (item: ScheduleItem, value: string) => {
     try {
@@ -665,10 +733,7 @@ export default function SchedulePage() {
     }
     // Sıralı ekle (rate-limit'e takılmamak için)
     for (const it of templateItems) {
-      // BUG FIX (14 Ekim 2026) -- bkz. mobile/src/app/(app)/schedule.tsx'teki
-      // ayni yorum: sablon maddeleri reminder_lead icermiyordu, bu yuzden
-      // sablonla eklenen programlar hatirlatma cron'u tarafindan atlaniyordu.
-      await scheduleApi.create({ ...it, reminder_lead: it.reminder_lead ?? '1hour' }).catch(() => {});
+      await scheduleApi.create(it).catch(() => {});
     }
     await load();
   };
@@ -714,6 +779,7 @@ export default function SchedulePage() {
       </div>
 
       <ExamRemindersCard />
+      <MissedThisWeekCard refreshToken={missedRefresh} />
 
       {loading ? (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-12 flex items-center justify-center">
@@ -751,11 +817,14 @@ export default function SchedulePage() {
                         <div className="flex items-center justify-between mb-1">
                           <div className="flex items-center gap-1 text-xs font-semibold text-[#185FA5]"><Clock className="w-3 h-3" />{item.time_slot}<span className="font-normal text-gray-400 dark:text-slate-500 ml-0.5">· {item.duration_min}dk</span></div>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {item.is_active !== false && (
+                              <button onClick={() => handleMarkMissed(item)} title="Bugün kaçırdım" className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-[#9A3412] hover:bg-[#FDEEEA] transition-colors"><AlertTriangle className="w-3 h-3" /></button>
+                            )}
                             <button onClick={() => handleToggle(item)} className={`w-7 h-4 rounded-full transition-colors shrink-0 ${item.is_active !== false ? 'bg-[#378ADD]' : 'bg-gray-300 dark:bg-slate-600'}`} title={t('toggleTooltip')} />
                             <button onClick={() => handleDelete(item.id)} className="w-6 h-6 rounded-lg flex items-center justify-center text-gray-400 dark:text-slate-500 hover:text-red-500 hover:dark:text-red-400 hover:bg-red-50 hover:dark:bg-red-500/10 transition-colors"><Trash2 className="w-3 h-3" /></button>
                           </div>
                         </div>
-                        <p className="text-sm font-medium text-gray-800 dark:text-slate-200 truncate">{item.activity}</p>
+                        <p className="text-sm font-medium text-gray-800 dark:text-slate-200 break-words">{item.activity}</p>
                         {displayLink && (
                           <a href={displayLink} target="_blank" rel="noopener noreferrer" className="mt-1 flex items-center gap-1 text-xs text-gray-400 dark:text-slate-500 hover:text-[#185FA5] transition-colors truncate">
                             <ExternalLink className="w-3 h-3 shrink-0" /><span className="truncate">{item.resolved_resource_title || displayLink.replace(/^https?:\/\//, '')}</span>
