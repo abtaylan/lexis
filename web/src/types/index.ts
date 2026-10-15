@@ -350,6 +350,7 @@ export interface StudyNote {
   source: StudyNoteSource;
   topic_title: string | null;
   content: string;
+  image_urls: string[];
   created_at: string;
   updated_at: string;
 }

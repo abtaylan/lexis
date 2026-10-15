@@ -7,9 +7,27 @@
 // kopyalayıp ilgili sitede yapıştırır, oradan aldığı özeti de buraya geri
 // yapıştırıp kaydeder. Ayrıca Gemini/NotebookLM kullanmadan serbest not
 // yazmak isteyenler için bir "Kendi Notların" kutusu var.
+//
+// 16 Ekim 2026 kullanıcı isteği: metin özetinin yanında görsel de
+// yüklenebilsin ("buralara metin dışında ek olarak resimler yükleyeceğiz")
+// — ör. Gemini'nin ürettiği infografik görseli, NotebookLM zihin
+// haritasının ekran görüntüsü. Her panelde (Gemini/NotebookLM/Kendi
+// Notların) ayrı bir "Görsel Ekle" alanı var; görseller seçilince hemen
+// yüklenir (bkz. ImagesField), metinden bağımsız olarak da kaydedilebilir.
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Copy, Check, ExternalLink, Save, Trash2, Loader2, PenLine } from 'lucide-react';
+import {
+  ArrowLeft,
+  Copy,
+  Check,
+  ExternalLink,
+  Save,
+  Trash2,
+  Loader2,
+  PenLine,
+  ImagePlus,
+  X,
+} from 'lucide-react';
 import { studyNotesApi } from '@/lib/api';
 import type { StudyDayDetail, StudyNote, StudyNoteSource } from '@/types';
 import { getErrorMessage } from '@/lib/errors';
@@ -32,6 +50,71 @@ const EXTERNAL_SOURCES: {
   { key: 'notebooklm', label: 'NotebookLM', url: 'https://notebooklm.google.com/', accent: '#8E24AA', accentSoft: '#F3E5F7' },
 ];
 
+// Gemini/NotebookLM/manuel notların hepsinde kullanılan ortak görsel
+// yükleme + küçük resim galerisi alanı. Seçilen dosyalar hemen yüklenir
+// (ayrı bir "Kaydet" gerekmez), her görselin üzerine gelince çıkan çarpı
+// ile tek tek silinebilir.
+function ImagesField({
+  images,
+  onUpload,
+  onDelete,
+  uploading,
+}: {
+  images: string[];
+  onUpload: (files: FileList) => void;
+  onDelete: (url: string) => void;
+  uploading: boolean;
+}) {
+  return (
+    <div className="mt-3">
+      <div className="flex items-center justify-between mb-1.5 gap-2 flex-wrap">
+        <p className="text-xs font-semibold text-gray-500 dark:text-slate-400">
+          Görseller (infografik, zihin haritası, ekran görüntüsü vb.):
+        </p>
+        <label className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-lg border border-dashed border-gray-300 dark:border-slate-600 cursor-pointer text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:border-gray-400 dark:hover:border-slate-500">
+          {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ImagePlus className="w-3.5 h-3.5" />}
+          {uploading ? 'Yükleniyor...' : 'Görsel Ekle'}
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            multiple
+            className="hidden"
+            disabled={uploading}
+            onChange={(e) => {
+              if (e.target.files && e.target.files.length > 0) onUpload(e.target.files);
+              e.target.value = '';
+            }}
+          />
+        </label>
+      </div>
+      {images.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {images.map((url) => (
+            <div key={url} className="relative group">
+              <a href={url} target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element -- kullanıcının yüklediği dış görsel (Supabase Storage URL'i), diğer sayfalarda da aynı desen kullanılıyor */}
+                <img
+                  src={url}
+                  alt="Çalışma notu görseli"
+                  className="w-20 h-20 object-cover rounded-lg border border-gray-200 dark:border-slate-700"
+                />
+              </a>
+              <button
+                onClick={() => onDelete(url)}
+                disabled={uploading}
+                title="Görseli sil"
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SourcePanel({
   label,
   url,
@@ -42,6 +125,9 @@ function SourcePanel({
   onSave,
   onDelete,
   saving,
+  onUploadImages,
+  onDeleteImage,
+  uploadingImages,
 }: {
   label: string;
   url: string;
@@ -52,6 +138,9 @@ function SourcePanel({
   onSave: (content: string) => void;
   onDelete: () => void;
   saving: boolean;
+  onUploadImages: (files: FileList) => void;
+  onDeleteImage: (url: string) => void;
+  uploadingImages: boolean;
 }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -159,6 +248,13 @@ function SourcePanel({
             </span>
           )}
         </div>
+
+        <ImagesField
+          images={existingNote?.image_urls || []}
+          onUpload={onUploadImages}
+          onDelete={onDeleteImage}
+          uploading={uploadingImages}
+        />
       </div>
     </div>
   );
@@ -169,11 +265,17 @@ function ManualNoteBox({
   onSave,
   onDelete,
   saving,
+  onUploadImages,
+  onDeleteImage,
+  uploadingImages,
 }: {
   existingNote?: StudyNote;
   onSave: (content: string) => void;
   onDelete: () => void;
   saving: boolean;
+  onUploadImages: (files: FileList) => void;
+  onDeleteImage: (url: string) => void;
+  uploadingImages: boolean;
 }) {
   const [content, setContent] = useState(existingNote?.content || '');
 
@@ -213,6 +315,13 @@ function ManualNoteBox({
           </span>
         )}
       </div>
+
+      <ImagesField
+        images={existingNote?.image_urls || []}
+        onUpload={onUploadImages}
+        onDelete={onDeleteImage}
+        uploading={uploadingImages}
+      />
     </div>
   );
 }
@@ -226,6 +335,7 @@ export default function StudyNoteDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [savingSource, setSavingSource] = useState<StudyNoteSource | null>(null);
+  const [uploadingSource, setUploadingSource] = useState<StudyNoteSource | null>(null);
 
   useEffect(() => {
     if (!date) return;
@@ -264,6 +374,43 @@ export default function StudyNoteDetailPage() {
       setError(getErrorMessage(e, 'Not silinemedi.'));
     } finally {
       setSavingSource(null);
+    }
+  }
+
+  async function handleUploadImages(source: StudyNoteSource, files: FileList) {
+    if (!files || files.length === 0) return;
+    setUploadingSource(source);
+    setError('');
+    try {
+      const saved = await studyNotesApi.uploadImages(date, source, Array.from(files));
+      setDetail((prev) => {
+        if (!prev) return prev;
+        const notes = prev.notes.filter((n) => n.source !== source);
+        return { ...prev, notes: [...notes, saved] };
+      });
+    } catch (e) {
+      setError(getErrorMessage(e, 'Görsel yüklenemedi.'));
+    } finally {
+      setUploadingSource(null);
+    }
+  }
+
+  async function handleDeleteImage(source: StudyNoteSource, imageUrl: string) {
+    setUploadingSource(source);
+    setError('');
+    try {
+      await studyNotesApi.deleteImage(date, source, imageUrl);
+      setDetail((prev) => {
+        if (!prev) return prev;
+        const notes = prev.notes.map((n) =>
+          n.source === source ? { ...n, image_urls: n.image_urls.filter((u) => u !== imageUrl) } : n
+        );
+        return { ...prev, notes };
+      });
+    } catch (e) {
+      setError(getErrorMessage(e, 'Görsel silinemedi.'));
+    } finally {
+      setUploadingSource(null);
     }
   }
 
@@ -335,6 +482,9 @@ export default function StudyNoteDetailPage() {
           onSave={(content) => handleSave(s.key, content)}
           onDelete={() => handleDelete(s.key)}
           saving={savingSource === s.key}
+          onUploadImages={(files) => handleUploadImages(s.key, files)}
+          onDeleteImage={(url) => handleDeleteImage(s.key, url)}
+          uploadingImages={uploadingSource === s.key}
         />
       ))}
 
@@ -348,6 +498,9 @@ export default function StudyNoteDetailPage() {
           onSave={(content) => handleSave('manual', content)}
           onDelete={() => handleDelete('manual')}
           saving={savingSource === 'manual'}
+          onUploadImages={(files) => handleUploadImages('manual', files)}
+          onDeleteImage={(url) => handleDeleteImage('manual', url)}
+          uploadingImages={uploadingSource === 'manual'}
         />
       </div>
     </div>

@@ -751,6 +751,20 @@ export const studyNotesApi = {
   deleteNote: async (date: string, source: StudyNoteSource): Promise<void> => {
     await api.delete(`/study-notes/${date}/${source}`);
   },
+  // 16 Ekim 2026 kullanıcı isteği: metin özetinin yanında görsel de
+  // yüklenebilsin (ör. Gemini'nin ürettiği infografik, NotebookLM zihin
+  // haritası ekran görüntüsü) -- bkz. backend study_notes.py.
+  uploadImages: async (date: string, source: StudyNoteSource, files: File[]): Promise<StudyNote> => {
+    const form = new FormData();
+    files.forEach((f) => form.append('files', f));
+    const res = await api.post<StudyNote>(`/study-notes/${date}/${source}/images`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+  deleteImage: async (date: string, source: StudyNoteSource, imageUrl: string): Promise<void> => {
+    await api.delete(`/study-notes/${date}/${source}/images`, { params: { image_url: imageUrl } });
+  },
 };
 
 // ── Sınav Hatırlatıcı API (tüm yabancı dil sınavları) ──────────
