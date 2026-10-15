@@ -55,6 +55,11 @@ export default function ExamTopicPracticePage() {
   const searchParams = useSearchParams();
   const topicTag = searchParams.get('topic_tag') ?? '';
   const excludeQuestionId = searchParams.get('exclude_question_id') ?? undefined;
+  // 15 Ekim 2026 — Program Haritası roadmap_* maddeleri ?limit= ile gelir
+  // (Pekiştirme=6, Kısa Pratik=5, Uzun Pratik=10): başlıkta yazılan soru
+  // sayısıyla gerçekten eşleşsin diye artık sabit 5 değil, URL'den okunuyor.
+  const limitParam = searchParams.get('limit');
+  const limit = limitParam ? Math.max(1, Math.min(10, parseInt(limitParam, 10) || 5)) : 5;
   const { locale } = useLocale();
   const t = L[locale] ?? L.tr!;
 
@@ -62,11 +67,11 @@ export default function ExamTopicPracticePage() {
   // haftalık programın odak konularından karışık hafta sonu quizi açılır.
   const isWeeklyQuiz = topicTag === WEEKLY_QUIZ_TAG;
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['exam-topic-practice', topicTag, excludeQuestionId],
+    queryKey: ['exam-topic-practice', topicTag, excludeQuestionId, limit],
     queryFn: () =>
       isWeeklyQuiz
         ? studyProgramApi.weeklyQuiz()
-        : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit: 5 }),
+        : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
     enabled: !!topicTag,
   });
 

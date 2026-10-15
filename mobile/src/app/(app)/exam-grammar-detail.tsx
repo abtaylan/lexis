@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/Button';
 // services/study_passage_generator.py modül docstring'i): o gün çalışılan
 // gramer konusunu içeren AI-üretimi kısa okuma parçası + zor kelimeler
 // (tek dokunuşla kendi kelime listesine eklenebilir) + bir phrasal verb.
-function StudyPassageSection({ slug }: { slug: string }) {
+function StudyPassageSection({ slug, autoGenerate }: { slug: string; autoGenerate?: boolean }) {
   const c = useThemeColors();
   const [passage, setPassage] = useState<StudyPassageResponse | null>(null);
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
@@ -43,6 +43,16 @@ function StudyPassageSection({ slug }: { slug: string }) {
     },
     onError: () => Alert.alert('Hata', 'Okuma parçası üretilemedi, tekrar dener misin?'),
   });
+
+  // 15 Ekim 2026 — "Günün Okuma Parçası" maddesinden (?focus=passage) gelindiğinde
+  // otomatik üret: Cuma gününün diğer günlerden GERÇEKTEN farklı bir deneyim
+  // olmasını sağlıyor (bkz. kullanıcı şikayeti — hepsi aynı sayfayı gösteriyordu).
+  React.useEffect(() => {
+    if (autoGenerate && !passage && !passageMutation.isPending) {
+      passageMutation.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- yalnızca mount'ta bir kez tetiklenmeli
+  }, [autoGenerate]);
 
   const addWordMutation = useMutation({
     mutationFn: (item: { word: string; meaning_tr: string; part_of_speech?: string | null }) =>
@@ -248,10 +258,32 @@ function StudyPassageSection({ slug }: { slug: string }) {
 }
 
 export default function ExamGrammarDetailScreen() {
-  const { slug: slugParam } = useLocalSearchParams<{ slug: string }>();
+  const { slug: slugParam, also: alsoParam, focus: focusParam } = useLocalSearchParams<{
+    slug: string;
+    also?: string;
+    focus?: string;
+  }>();
   const slug = typeof slugParam === 'string' ? slugParam : '';
   const { et } = useLocale();
   const c = useThemeColors();
+
+  // 15 Ekim 2026 — Program Haritası'nın Pazartesi "Giriş" maddesi, aynı hafta
+  // birden fazla konu kapsıyorsa diğerlerini ?also=[[slug,title],...] ile
+  // ekler (bkz. backend _resolve_roadmap_slot) — yeni endpoint gerekmesin diye.
+  let alsoTopics: [string, string][] = [];
+  if (typeof alsoParam === 'string') {
+    try {
+      const parsed = JSON.parse(alsoParam);
+      if (Array.isArray(parsed)) {
+        alsoTopics = parsed.filter(
+          (x): x is [string, string] => Array.isArray(x) && x.length === 2 && typeof x[0] === 'string' && typeof x[1] === 'string'
+        );
+      }
+    } catch {
+      alsoTopics = [];
+    }
+  }
+  const focusPassage = focusParam === 'passage';
 
   const { data: topic, isLoading, isError } = useQuery({
     queryKey: ['grammar-topic', slug],
@@ -377,7 +409,25 @@ export default function ExamGrammarDetailScreen() {
             )}
           </View>
 
-          <StudyPassageSection slug={topic.slug} />
+          {alsoTopics.length > 0 ? (
+            <Card style={{ marginTop: spacing.lg }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: c.textMuted, marginBottom: spacing.xs }}>
+                Bu hafta ayrıca:
+              </Text>
+              <View style={{ gap: 4 }}>
+                {alsoTopics.map(([otherSlug, otherTitle]) => (
+                  <Pressable
+                    key={otherSlug}
+                    onPress={() => router.push({ pathname: '/(app)/exam-grammar-detail', params: { slug: otherSlug } })}
+                  >
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: c.primary }}>{otherTitle}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            </Card>
+          ) : null}
+
+          <StudyPassageSection slug={topic.slug} autoGenerate={focusPassage} />
 
           <View style={{ marginBottom: spacing.xl }} />
         </View>

@@ -23,6 +23,7 @@ import { TextField } from '@/components/ui/TextField';
 import { Button } from '@/components/ui/Button';
 import { ChipSelect } from '@/components/ui/ChipSelect';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { CalendarView } from '@/components/schedule/CalendarView';
 
 // Pazartesi'den başlayan görüntüleme sırası — day_of_week 0=Pazar..6=Cumartesi
 // (bkz. web/src/lib/scheduleTemplates.ts yorumu ve backend study_schedule şeması).
@@ -395,6 +396,9 @@ export default function ScheduleScreen() {
   const qc = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  // 15 Ekim 2026 kullanıcı isteği: mevcut gün listesine EK olarak
+  // (yıllık/aylık/haftalık) takvim gösterimi.
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
 
   const { data: items, isLoading, refetch, isRefetching } = useQuery({
@@ -547,6 +551,12 @@ export default function ScheduleScreen() {
             <Sparkles color="#FFFFFF" size={13} />
             <Text style={styles.pillBtnGhostText}>{t('templatesBtn')}</Text>
           </Pressable>
+          {hasItems && (
+            <Pressable onPress={() => setViewMode((m) => (m === 'list' ? 'calendar' : 'list'))} style={styles.pillBtnGhost}>
+              <CalendarDays color="#FFFFFF" size={13} />
+              <Text style={styles.pillBtnGhostText}>{viewMode === 'list' ? 'Takvim' : 'Liste'}</Text>
+            </Pressable>
+          )}
           <Pressable onPress={() => router.push('/roadmap' as any)} style={styles.pillBtnGhost}>
             <MapIcon color="#FFFFFF" size={13} />
             <Text style={styles.pillBtnGhostText}>Program Haritası</Text>
@@ -588,7 +598,13 @@ export default function ScheduleScreen() {
           </View>
         )}
 
-        {DISPLAY_ORDER.map((dayIdx) => {
+        {hasItems && viewMode === 'calendar' && (
+          <Card style={{ marginBottom: spacing.lg }}>
+            <CalendarView items={items ?? []} />
+          </Card>
+        )}
+
+        {viewMode === 'list' && DISPLAY_ORDER.map((dayIdx) => {
           const dayItems = grouped.get(dayIdx);
           if (!dayItems || dayItems.length === 0) return null;
           return (

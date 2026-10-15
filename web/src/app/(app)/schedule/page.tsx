@@ -12,6 +12,7 @@ import { useLocale } from '@/lib/i18n';
 import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/lib/errors';
 import { ScheduleExportModal } from '@/components/schedule/ScheduleExportModal';
+import { CalendarView } from '@/components/schedule/CalendarView';
 import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem, ExamReminder, ScheduleMiss } from '@/types';
 
 // Haftanın günlerini index'lemek için (0=Pazar…6=Cumartesi) — weekdays[i]
@@ -684,6 +685,10 @@ export default function SchedulePage() {
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [missedRefresh, setMissedRefresh] = useState(0);
+  // 15 Ekim 2026 kullanıcı isteği: Program Haritası dışında, bu sayfada da
+  // (yıllık/aylık/haftalık) takvim gösterimi — mevcut gün-ızgarası görünümüne
+  // EK olarak, onun yerine değil.
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   // NOT: lib/scheduleTemplates.ts, öğrenme diline göre çok dilli şablon
   // çözümü için bilinçli olarak "hazır ama bağlanmamış" tutuluyor (bkz. o
@@ -772,6 +777,22 @@ export default function SchedulePage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           {items.length > 0 && (
+            <div className="flex items-center gap-1 bg-gray-100 dark:bg-slate-800 rounded-full p-1">
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-2 rounded-full text-sm font-medium transition-colors ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm' : 'text-gray-500 dark:text-slate-400'}`}
+              >
+                Liste
+              </button>
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium transition-colors ${viewMode === 'calendar' ? 'bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 shadow-sm' : 'text-gray-500 dark:text-slate-400'}`}
+              >
+                <CalendarDays className="w-3.5 h-3.5" />Takvim
+              </button>
+            </div>
+          )}
+          {items.length > 0 && (
             <button onClick={() => setShowSaveTemplate(true)} className="flex items-center gap-2 bg-[#FEF3E7] hover:bg-[#fbe8cf] text-[#B7791F] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
               <Save className="w-4 h-4" />{t('saveAsTemplateBtn')}
             </button>
@@ -815,6 +836,10 @@ export default function SchedulePage() {
               <Plus className="w-4 h-4" />{t('manualAddBtn')}
             </button>
           </div>
+        </div>
+      ) : viewMode === 'calendar' ? (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          <CalendarView items={items} />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

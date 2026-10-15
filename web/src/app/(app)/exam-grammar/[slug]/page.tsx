@@ -4,8 +4,9 @@
 // detay sayfası, web. mobile/src/app/(app)/exam-grammar-detail.tsx ile aynı
 // desen. Dinamik segment için useParams() kullanılıyor (bkz. u/[username]/page.tsx
 // ve messages/[username]/page.tsx'teki aynı yaklaşım).
-import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { ArrowLeft, BookOpen, CheckCircle2, Loader2, Plus, RefreshCw, XCircle, Languages, HelpCircle } from 'lucide-react';
 import { grammarApi, wordsApi } from '@/lib/api';
@@ -36,6 +37,7 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     passageQuestionCheck: 'Kontrol Et',
     passageQuestionCorrect: 'Doğru!',
     passageQuestionWrong: 'Yanlış',
+    alsoThisWeek: 'Bu hafta ayrıca:',
   },
   en: {
     back: 'Back',
@@ -59,6 +61,7 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     passageQuestionCheck: 'Check',
     passageQuestionCorrect: 'Correct!',
     passageQuestionWrong: 'Incorrect',
+    alsoThisWeek: 'Also this week:',
   },
 };
 
@@ -66,8 +69,9 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
 // services/study_passage_generator.py modül docstring'i): o gün çalışılan
 // gramer konusunu içeren AI-üretimi kısa okuma parçası + zor kelimeler
 // (tek tıkla kendi kelime listesine eklenebilir) + bir phrasal verb.
-function StudyPassageSection({ slug, t }: { slug: string; t: Record<string, string> }) {
+function StudyPassageSection({ slug, t, autoGenerate }: { slug: string; t: Record<string, string>; autoGenerate?: boolean }) {
   const [passage, setPassage] = useState<StudyPassageResponse | null>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
   const [addedWords, setAddedWords] = useState<Record<string, boolean>>({});
   const [passageError, setPassageError] = useState('');
   const [addError, setAddError] = useState('');
@@ -90,6 +94,24 @@ function StudyPassageSection({ slug, t }: { slug: string; t: Record<string, stri
     onError: () => setPassageError(t.passageError),
   });
 
+  // 15 Ekim 2026 — "Günün Okuma Parçası" linkinden (?focus=passage) gelindiğinde
+  // kullanıcı her seferinde "Okuma Parçası Üret" butonuna basmasın: otomatik
+  // üret ve bu bölüme kaydır — bu, Cuma gününün diğer günlerden GERÇEKTEN
+  // farklı bir deneyim olmasını sağlıyor (bkz. kullanıcı şikayeti).
+  useEffect(() => {
+    if (autoGenerate && !passage && !passageMutation.isPending) {
+      passageMutation.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- yalnızca mount'ta bir kez tetiklenmeli
+  }, [autoGenerate]);
+
+  useEffect(() => {
+    if (autoGenerate) {
+      sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- yalnızca mount'ta bir kez kaydırmalı
+  }, [autoGenerate]);
+
   const addWordMutation = useMutation({
     mutationFn: (item: StudyPassageVocabItem) =>
       wordsApi.create({
@@ -110,7 +132,7 @@ function StudyPassageSection({ slug, t }: { slug: string; t: Record<string, stri
   };
 
   return (
-    <div className="mt-6">
+    <div className="mt-6" ref={sectionRef}>
       <h2 className="text-sm font-bold text-gray-900 dark:text-slate-100 mb-2.5">{t.passageTitle}</h2>
 
       {!passage ? (
@@ -283,8 +305,30 @@ export default function ExamGrammarDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = typeof params?.slug === 'string' ? params.slug : '';
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { locale } = useLocale();
   const t = L[locale] ?? L.tr!;
+
+  // 15 Ekim 2026 — Program Haritası'nın Pazartesi "Giriş" maddesi, aynı hafta
+  // birden fazla konu kapsıyorsa diğerlerini ?also=[[slug,title],...] ile
+  // ekler (bkz. backend _resolve_roadmap_slot) — yeni endpoint gerekmesin diye.
+  const alsoParam = searchParams.get('also');
+  let alsoTopics: [string, string][] = [];
+  if (alsoParam) {
+    try {
+      const parsed = JSON.parse(alsoParam);
+      if (Array.isArray(parsed)) {
+        alsoTopics = parsed.filter(
+          (x): x is [string, string] => Array.isArray(x) && x.length === 2 && typeof x[0] === 'string' && typeof x[1] === 'string'
+        );
+      }
+    } catch {
+      alsoTopics = [];
+    }
+  }
+  // 15 Ekim 2026 — Program Haritası'nın Cuma "Günün Okuma Parçası" maddesi
+  // ?focus=passage ile gelir: parça otomatik üretilsin diye.
+  const focusPassage = searchParams.get('focus') === 'passage';
 
   const { data: topic, isLoading, isError } = useQuery({
     queryKey: ['grammar-topic', slug],
@@ -398,7 +442,24 @@ export default function ExamGrammarDetailPage() {
             )}
           </div>
 
-          <StudyPassageSection slug={slug} t={t} />
+          {alsoTopics.length > 0 && (
+            <div className="mt-6 bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-800 p-3.5">
+              <p className="text-xs font-bold text-gray-500 dark:text-slate-400 mb-1.5">{t.alsoThisWeek}</p>
+              <div className="flex flex-col gap-1">
+                {alsoTopics.map(([otherSlug, otherTitle]) => (
+                  <Link
+                    key={otherSlug}
+                    href={`/exam-grammar/${encodeURIComponent(otherSlug)}`}
+                    className="text-sm font-medium text-[#378ADD] hover:underline"
+                  >
+                    {otherTitle}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <StudyPassageSection slug={slug} t={t} autoGenerate={focusPassage} />
 
           <div className="mb-4" />
         </div>

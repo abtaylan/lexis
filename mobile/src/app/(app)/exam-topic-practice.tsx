@@ -26,12 +26,18 @@ import { Button } from '@/components/ui/Button';
 const WEEKLY_QUIZ_TAG = 'weekly-quiz';
 
 export default function ExamTopicPracticeScreen() {
-  const { topic_tag: topicTagParam, exclude_question_id: excludeParam } = useLocalSearchParams<{
+  const { topic_tag: topicTagParam, exclude_question_id: excludeParam, limit: limitParam } = useLocalSearchParams<{
     topic_tag: string;
     exclude_question_id?: string;
+    limit?: string;
   }>();
   const topicTag = typeof topicTagParam === 'string' ? topicTagParam : '';
   const excludeQuestionId = typeof excludeParam === 'string' ? excludeParam : undefined;
+  // 15 Ekim 2026 — Program Haritası roadmap_* maddeleri ?limit= ile gelir
+  // (Pekiştirme=6, Kısa Pratik=5, Uzun Pratik=10): başlıkta yazılan soru
+  // sayısıyla gerçekten eşleşsin diye artık sabit 5 değil, parametreden okunuyor.
+  const limitNum = typeof limitParam === 'string' ? parseInt(limitParam, 10) : NaN;
+  const limit = Number.isFinite(limitNum) ? Math.max(1, Math.min(10, limitNum)) : 5;
 
   const { et } = useLocale();
   const c = useThemeColors();
@@ -40,11 +46,11 @@ export default function ExamTopicPracticeScreen() {
   // haftalık programın odak konularından karışık hafta sonu quizi açılır.
   const isWeeklyQuiz = topicTag === WEEKLY_QUIZ_TAG;
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['exam-topic-practice', topicTag, excludeQuestionId],
+    queryKey: ['exam-topic-practice', topicTag, excludeQuestionId, limit],
     queryFn: () =>
       isWeeklyQuiz
         ? studyProgramApi.weeklyQuiz()
-        : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit: 5 }),
+        : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
     enabled: !!topicTag,
   });
 
