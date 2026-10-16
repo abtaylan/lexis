@@ -125,6 +125,7 @@ function WeekCard({
               </View>
               <Text style={{ color: c.text, fontWeight: '700', fontSize: 13, marginTop: 4 }} numberOfLines={2}>
                 {week.topic_title_tr ?? week.focus_note ?? `Hafta ${week.week_number}`}
+                {week.topic_slugs && week.topic_slugs.length > 1 ? `  (${week.topic_slugs.length} konu)` : ''}
               </Text>
               <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2 }}>{fmtRange(week.start_date, week.end_date)}</Text>
             </View>
@@ -150,18 +151,43 @@ function WeekCard({
                   </View>
                   <View style={{ gap: 6 }}>
                     {items.map((it, idx) => (
-                      <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <Clock color={c.textMuted} size={10} />
-                        <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600' }}>{it.time_slot}</Text>
-                        {it.link_url ? (
-                          <Link href={it.link_url as any} asChild>
-                            <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 3, flex: 1 }}>
-                              <Text style={{ color: c.primary, fontSize: 11, flexShrink: 1 }} numberOfLines={1}>{it.activity}</Text>
-                              <ExternalLink color={c.primary} size={10} />
-                            </Pressable>
-                          </Link>
-                        ) : (
-                          <Text style={{ color: c.textSecondary, fontSize: 11, flex: 1 }} numberOfLines={1}>{it.activity}</Text>
+                      <View key={idx}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Clock color={c.textMuted} size={10} />
+                          <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600' }}>{it.time_slot}</Text>
+                          {it.link_url ? (
+                            <Link href={it.link_url as any} asChild>
+                              <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 3, flex: 1 }}>
+                                <Text style={{ color: c.primary, fontSize: 11, flexShrink: 1 }} numberOfLines={1}>
+                                  {it.topic_number ? `${it.topic_number}. ` : ''}{it.activity}
+                                </Text>
+                                <ExternalLink color={c.primary} size={10} />
+                              </Pressable>
+                            </Link>
+                          ) : (
+                            <Text style={{ color: c.textSecondary, fontSize: 11, flex: 1 }} numberOfLines={1}>{it.activity}</Text>
+                          )}
+                        </View>
+                        {/* 16 Ekim 2026 -- bu haftaya bağlı ek konular (GERÇEK
+                            müfredat, sadece referans değil) Program
+                            Haritası'nda önceden hiç gösterilmiyordu. */}
+                        {it.related_topics && it.related_topics.length > 0 && (
+                          <View style={{ marginLeft: 16, marginTop: 3, gap: 2 }}>
+                            <Text style={{ color: c.textMuted, fontSize: 9, fontWeight: '700' }}>
+                              Bu hafta bunları da çalışmalısın:
+                            </Text>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                              {it.related_topics.map((rt) => (
+                                <Link key={rt.slug} href={rt.link_url as any} asChild>
+                                  <Pressable style={{ backgroundColor: c.background, borderRadius: radius.full, paddingHorizontal: 6, paddingVertical: 2 }}>
+                                    <Text style={{ color: c.textSecondary, fontSize: 10 }} numberOfLines={1}>
+                                      {rt.topic_number ? `${rt.topic_number}. ` : ''}{rt.title}
+                                    </Text>
+                                  </Pressable>
+                                </Link>
+                              ))}
+                            </View>
+                          </View>
                         )}
                       </View>
                     ))}

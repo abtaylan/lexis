@@ -76,6 +76,33 @@ def _grammar_area_enabled(user_id: str) -> bool:
     return _profile_learning_lang(user_id) in _grammar_content_learning_langs()
 
 
+# 16 Ekim 2026, kullanici istegi: "Program Haritasi'nda bir haftaya 1 ana +
+# birden fazla 'ilgili' konu baglaniyor (bkz. schedule.py ROADMAP_KEYS/
+# topic_slugs) -- bunlarin da gercekten calisilmasi gerekiyor, bu yuzden
+# TUM 91 konuyu (kategori sirasina gore, kategori icinde de kendi
+# sort_order'ina gore) tek bir GLOBAL numarayla (1..91) isaretleyelim, ve bu
+# numara Gramer Rehberi + Program Haritasi + Takvim + Calisma Notlarim'da
+# AYNI konuya her yerde ayni numarayi gostersin." Kategori.sort_order +
+# topic.sort_order zaten DB'de var, burada sadece ikisini birlestirip GLOBAL
+# bir sira hesapliyoruz -- ekstra bir DB kolonu/migration gerekmiyor, bu
+# yuzden kategori/konu eklenip sort_order'lari degistiginde otomatik
+# guncel kalir.
+def _topic_number_map(learning_lang: str) -> dict[str, int]:
+    categories_result = supabase_admin.table("grammar_categories").select("id, sort_order").execute()
+    category_sort = {row["id"]: row["sort_order"] for row in (categories_result.data or [])}
+
+    topics_result = (
+        supabase_admin.table("grammar_topics")
+        .select("slug, category_id, sort_order")
+        .eq("status", "published")
+        .eq("learning_lang", learning_lang)
+        .execute()
+    )
+    rows = topics_result.data or []
+    rows.sort(key=lambda r: (category_sort.get(r["category_id"], 9999), r["sort_order"], r["slug"]))
+    return {row["slug"]: idx + 1 for idx, row in enumerate(rows)}
+
+
 @router.get("/categories", response_model=list[GrammarCategoryResponse])
 async def list_categories(current_user=Depends(get_current_user)):
     if not _grammar_area_enabled(current_user.id):
@@ -137,10 +164,29 @@ async def list_topics(current_user=Depends(get_current_user)):
     )
     slugs_with_questions = {r["topic_tag"] for r in (q_result.data or []) if r.get("topic_tag")}
 
+    number_map = _topic_number_map(learning_lang)
     return [
-        GrammarTopicSummary(**row, has_practice_questions=row["slug"] in slugs_with_questions)
+        GrammarTopicSummary(
+            **row,
+            has_practice_questions=row["slug"] in slugs_with_questions,
+            topic_number=number_map.get(row["slug"]),
+        )
         for row in rows
     ]
+
+
+@router.get("/topics/numbers")
+async def get_topic_numbers(current_user=Depends(get_current_user)):
+    """Hafif uc nokta -- sadece {slug: global numara} haritasini doner.
+    Program Haritasi/Takvim/Calisma Notlarim'daki 'ilgili konular' (also=...)
+    listesi SLUG+baslik tasiyor ama numara tasimiyor (link URL'si buyumesin
+    diye) -- bu sayfalar numarayi burasidan tek seferde cekip kendileri
+    eslestiriyor."""
+    learning_lang = _profile_learning_lang(current_user.id)
+    if learning_lang not in _grammar_content_learning_langs():
+        return {"numbers": {}, "total": 0}
+    number_map = _topic_number_map(learning_lang)
+    return {"numbers": number_map, "total": len(number_map)}
 
 
 @router.get("/topics/{slug}", response_model=GrammarTopicDetail)
@@ -176,7 +222,13 @@ async def get_topic(slug: str, current_user=Depends(get_current_user)):
     )
     has_questions = bool(q_result.data)
 
-    return GrammarTopicDetail(**row, has_practice_questions=has_questions)
+    number_map = _topic_number_map(learning_lang)
+    return GrammarTopicDetail(
+        **row,
+        has_practice_questions=has_questions,
+        topic_number=number_map.get(slug),
+        total_topics=len(number_map),
+    )
 
 
 @router.get("/topics/{slug}/study-passage", response_model=StudyPassageResponse)

@@ -205,6 +205,9 @@ export interface RelatedTopic {
   slug: string;
   title: string;
   link_url: string;
+  // 16 Ekim 2026 -- Gramer Rehberi'ndeki GLOBAL konu numarası (1..91),
+  // bkz. backend grammar.py::_topic_number_map.
+  topic_number?: number | null;
 }
 
 export interface ScheduleItem {
@@ -223,6 +226,10 @@ export interface ScheduleItem {
   // 15 Ekim 2026 -- Liste görünümünde "+N konu daha" yer tutucusu yerine
   // gerçek konu adı + linki (bkz. backend _resolve_roadmap_slot).
   related_topics?: RelatedTopic[];
+  // 16 Ekim 2026 -- bu maddenin bağlı olduğu Gramer Rehberi konusunun GLOBAL
+  // numarası + bu haftaya bağlı TOPLAM konu sayısı (ana + ilgili).
+  topic_number?: number | null;
+  week_topic_count?: number;
   // Liste görünümünde "bugünden önceki günler boş olsun" mantığı için --
   // study_roadmap_weeks'teki en erken start_date (programın gerçek başlangıcı).
   program_start_date?: string | null;
@@ -263,6 +270,8 @@ export interface ScheduleTemplateItem {
   activity_key?: string;
   reminder_lead?: ReminderLead | null;
   related_topics?: RelatedTopic[];
+  topic_number?: number | null;
+  week_topic_count?: number;
 }
 
 export interface ScheduleTemplate {
@@ -318,6 +327,9 @@ export interface RoadmapWeek {
   phase_label: string; // "Faz 1" | "Faz 2" | "Faz 3"
   topic_slug: string | null; // Faz 3 tekrar haftalarında null
   topic_title_tr: string | null;
+  // 16 Ekim 2026 -- ham slug listesi (ana + bu haftaya bağlı ek konular),
+  // "X konu" rozetini göstermek için (bkz. kullanıcı sorusu).
+  topic_slugs?: string[] | null;
   level: 'a2' | 'b1' | 'b2' | 'c1' | null;
   focus_note: string | null; // Faz 3 haftalarında konu başlığı yerine açıklama
   schedule_items: ScheduleTemplateItem[];
@@ -360,6 +372,9 @@ export interface StudyDaySummary {
   topic_title: string | null;
   activities: string[];
   note_sources: StudyNoteSource[];
+  topic_number?: number | null;
+  related_topics?: RelatedTopic[];
+  week_topic_count?: number;
 }
 
 export interface StudyDayDetail {
@@ -367,6 +382,13 @@ export interface StudyDayDetail {
   topic_title: string | null;
   activities: string[];
   notes: StudyNote[];
+  // 16 Ekim 2026, kullanıcı isteği -- "tek konu mu, yoksa diğerlerine de
+  // çalışmak gerekiyor mu? ... Çalışma Notlarım'da bunlar için bir başlık
+  // açılmalı": o haftaya bağlı GERÇEK ek konular (ana konunun numarası +
+  // bu haftaya bağlı toplam konu sayısıyla birlikte).
+  topic_number?: number | null;
+  related_topics?: RelatedTopic[];
+  week_topic_count?: number;
 }
 
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı (YDS/YÖKDİL/
@@ -660,12 +682,15 @@ export interface GrammarTopicSummary {
   exam_relevance: string[];
   sort_order: number;
   has_practice_questions: boolean;
+  // 16 Ekim 2026 -- bkz. RelatedTopic.topic_number üstündeki not.
+  topic_number?: number | null;
 }
 
 export interface GrammarTopicDetail extends GrammarTopicSummary {
   rule_content_md: string;
   example_sentences: GrammarExampleSentence[];
   common_mistakes: GrammarCommonMistake[];
+  total_topics?: number | null;
 }
 
 // ── Günün Okuma Parçası (14-15 Ekim 2026) — bkz. backend

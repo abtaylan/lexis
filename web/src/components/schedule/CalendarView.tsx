@@ -59,6 +59,7 @@ type DisplayItem = {
   activity: string;
   link_url?: string;
   related_topics?: ScheduleTemplateItem['related_topics'];
+  topic_number?: number | null;
 };
 
 function isoOf(d: Date): string {
@@ -120,6 +121,7 @@ export function CalendarView({ items }: { items: ScheduleItem[] }) {
           activity: it.activity,
           link_url: it.link_url,
           related_topics: it.related_topics,
+          topic_number: it.topic_number,
         });
       }
     }
@@ -145,6 +147,7 @@ export function CalendarView({ items }: { items: ScheduleItem[] }) {
         activity: it.activity,
         link_url: it.resolved_link_url || it.link_url,
         related_topics: it.related_topics,
+        topic_number: it.topic_number,
       });
     }
     for (const dow of Object.keys(map)) {
@@ -310,21 +313,34 @@ function DayDetailPanel({
                 >
                   <Clock className="w-3.5 h-3.5 shrink-0 text-gray-400" />
                   <span className="text-xs font-mono text-gray-400 dark:text-slate-500 shrink-0">{it.time_slot}</span>
-                  <span className="text-gray-700 dark:text-slate-300 truncate">{it.activity}</span>
+                  <span className="text-gray-700 dark:text-slate-300 truncate">
+                    {it.topic_number ? `${it.topic_number}. ` : ''}
+                    {it.activity}
+                  </span>
                   {it.link_url && <ExternalLink className="w-3 h-3 shrink-0 text-gray-300" />}
                 </a>
                 {it.related_topics && it.related_topics.length > 0 && (
-                  <div className="mt-1 ml-6 flex flex-wrap gap-1">
-                    {it.related_topics.map((rt) => (
-                      <a
-                        key={rt.slug}
-                        href={rt.link_url}
-                        className="text-[11px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 hover:bg-[#E6F1FB] hover:text-[#185FA5] transition-colors truncate max-w-full"
-                        title={rt.title}
-                      >
-                        {rt.title}
-                      </a>
-                    ))}
+                  <div className="mt-1 ml-6">
+                    {/* 16 Ekim 2026, kullanıcı isteği -- bunların sadece
+                        referans değil, bu haftanın GERÇEK ek konuları
+                        olduğu açıkça belirtiliyor (bkz. kullanıcı sorusu:
+                        "tek konu mu, yoksa diğerlerine de mi?"). */}
+                    <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mb-1">
+                      Bu hafta bunları da çalışmalısın:
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {it.related_topics.map((rt) => (
+                        <a
+                          key={rt.slug}
+                          href={rt.link_url}
+                          className="text-[11px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 hover:bg-[#E6F1FB] hover:text-[#185FA5] transition-colors truncate max-w-full"
+                          title={rt.title}
+                        >
+                          {rt.topic_number ? `${rt.topic_number}. ` : ''}
+                          {rt.title}
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

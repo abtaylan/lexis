@@ -510,7 +510,8 @@ export default function StudyNoteDetailScreen() {
     );
   }
 
-  const { topic_title: topicTitle, activities } = detail;
+  const { topic_title: topicTitle, activities, related_topics: relatedTopics, topic_number: topicNumber, week_topic_count: weekTopicCount } = detail;
+  const relatedTitles = (relatedTopics ?? []).map((rt) => rt.title);
   const noteBySource = Object.fromEntries(detail.notes.map((n) => [n.source, n])) as Partial<Record<StudyNoteSource, StudyNote>>;
 
   return (
@@ -522,6 +523,7 @@ export default function StudyNoteDetailScreen() {
       </Pressable>
       <Text style={{ fontSize: 18, fontWeight: '700', color: c.text }}>{formatDateTr(date)}</Text>
       <Text style={{ fontSize: 13, color: c.textSecondary, marginTop: 2 }}>
+        {topicNumber ? `${topicNumber}. ` : ''}
         {topicTitle || activities[0] || 'Genel Çalışma Programı'}
       </Text>
       {activities.length > 1 && (
@@ -531,6 +533,31 @@ export default function StudyNoteDetailScreen() {
               <Text style={{ fontSize: 10, color: c.textMuted }}>{a}</Text>
             </View>
           ))}
+        </View>
+      )}
+
+      {/* 16 Ekim 2026, kullanıcı isteği: "tek konu mu çalışmam gerekiyor,
+          yoksa diğerlerine de mi? ... Çalışma Notlarım'da bunlar için bir
+          başlık açılmalı." -- bu haftaya bağlı ek konular GERÇEK müfredat,
+          sadece referans değil (bkz. backend study_notes.py docstring'i). */}
+      {relatedTopics && relatedTopics.length > 0 && (
+        <View style={{ backgroundColor: '#FFF8E6', borderRadius: radius.lg, borderWidth: 1, borderColor: '#F3D98B', padding: spacing.md, marginTop: spacing.sm }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: c.text }}>
+            Bu Hafta Çalışman Gereken Diğer Konular{weekTopicCount ? ` (${weekTopicCount} konudan ${1 + relatedTopics.length}'i)` : ''}
+          </Text>
+          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 2, marginBottom: 6 }}>
+            Bu konular da bu haftanın gerçek müfredatına dahil — sadece ana konuyla sınırlı kalma, aşağıdakileri de incele ve not al.
+          </Text>
+          <View style={{ gap: 4 }}>
+            {relatedTopics.map((rt) => (
+              <Pressable key={rt.slug} onPress={() => router.push(rt.link_url as any)}>
+                <Text style={{ fontSize: 13, fontWeight: '600', color: c.primary }}>
+                  {rt.topic_number ? `${rt.topic_number}. ` : ''}
+                  {rt.title}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
       )}
 
@@ -544,7 +571,7 @@ export default function StudyNoteDetailScreen() {
             url={s.url}
             accent={s.accent}
             accentSoft={s.accentSoft}
-            promptText={s.key === 'gemini' ? buildGeminiPrompt(date, topicTitle, activities) : buildNotebookLMPrompt(date, topicTitle, activities)}
+            promptText={s.key === 'gemini' ? buildGeminiPrompt(date, topicTitle, activities, relatedTitles) : buildNotebookLMPrompt(date, topicTitle, activities, relatedTitles)}
             existingNote={noteBySource[s.key]}
             onSave={(content) => handleSave(s.key, content)}
             onDelete={() => handleDelete(s.key)}

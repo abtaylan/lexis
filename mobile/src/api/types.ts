@@ -149,6 +149,7 @@ export interface RelatedTopic {
   slug: string;
   title: string;
   link_url: string;
+  topic_number?: number | null;
 }
 
 export interface ScheduleItem {
@@ -165,6 +166,8 @@ export interface ScheduleItem {
   is_active: boolean;
   reminder_lead?: ReminderLead | null;
   related_topics?: RelatedTopic[];
+  topic_number?: number | null;
+  week_topic_count?: number;
   program_start_date?: string | null;
 }
 
@@ -190,6 +193,8 @@ export interface ScheduleTemplateItem {
   activity_key?: string;
   reminder_lead?: ReminderLead | null;
   related_topics?: RelatedTopic[];
+  topic_number?: number | null;
+  week_topic_count?: number;
 }
 
 export interface ScheduleTemplate {
@@ -245,6 +250,7 @@ export interface RoadmapWeek {
   phase_label: string; // "Faz 1" | "Faz 2" | "Faz 3"
   topic_slug: string | null;
   topic_title_tr: string | null;
+  topic_slugs?: string[] | null;
   level: 'a2' | 'b1' | 'b2' | 'c1' | null;
   focus_note: string | null;
   schedule_items: ScheduleTemplateItem[];
@@ -288,6 +294,9 @@ export interface StudyDaySummary {
   topic_title: string | null;
   activities: string[];
   note_sources: StudyNoteSource[];
+  topic_number?: number | null;
+  related_topics?: RelatedTopic[];
+  week_topic_count?: number;
 }
 
 export interface StudyDayDetail {
@@ -295,6 +304,9 @@ export interface StudyDayDetail {
   topic_title: string | null;
   activities: string[];
   notes: StudyNote[];
+  topic_number?: number | null;
+  related_topics?: RelatedTopic[];
+  week_topic_count?: number;
 }
 
 export interface TypeBreakdown {
@@ -931,12 +943,14 @@ export interface GrammarTopicSummary {
   exam_relevance: string[];
   sort_order: number;
   has_practice_questions: boolean;
+  topic_number?: number | null;
 }
 
 export interface GrammarTopicDetail extends GrammarTopicSummary {
   rule_content_md: string;
   example_sentences: GrammarExampleSentence[];
   common_mistakes: GrammarCommonMistake[];
+  total_topics?: number | null;
 }
 
 // ── Günün Okuma Parçası (14 Ekim 2026) — bkz. backend/app/schemas/grammar.py'deki

@@ -37,7 +37,7 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     passageQuestionCheck: 'Kontrol Et',
     passageQuestionCorrect: 'Doğru!',
     passageQuestionWrong: 'Yanlış',
-    alsoThisWeek: 'Bu hafta ayrıca:',
+    alsoThisWeek: 'Bu hafta bunları da çalışmalısın:',
   },
   en: {
     back: 'Back',
@@ -61,7 +61,7 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     passageQuestionCheck: 'Check',
     passageQuestionCorrect: 'Correct!',
     passageQuestionWrong: 'Incorrect',
-    alsoThisWeek: 'Also this week:',
+    alsoThisWeek: 'You should also study these this week:',
   },
 };
 
@@ -335,6 +335,13 @@ export default function ExamGrammarDetailPage() {
     queryFn: () => grammarApi.getTopic(slug),
     enabled: !!slug,
   });
+  // 16 Ekim 2026 -- "also" parametresindeki konuların da Gramer Rehberi'ndeki
+  // GLOBAL numarasını göstermek için (bkz. kullanıcı sorusu: "tek konu mu,
+  // yoksa diğerlerine de mi çalışmam gerekiyor?").
+  const { data: topicNumbers } = useQuery({
+    queryKey: ['grammar-topic-numbers'],
+    queryFn: () => grammarApi.getTopicNumbers(),
+  });
 
   // Harita görünümünde (exam-grammar/page.tsx) ilerlemenin işaretlenebilmesi
   // için, konu başarıyla yüklendiğinde "ziyaret edildi" olarak kaydedilir
@@ -377,7 +384,14 @@ export default function ExamGrammarDetailPage() {
             </span>
           </div>
 
-          <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 mt-3">{topic.title_tr}</h1>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 mt-3">
+            {topic.topic_number && topic.total_topics ? (
+              <span className="text-gray-400 dark:text-slate-500 font-semibold mr-1">
+                {topic.topic_number}/{topic.total_topics}
+              </span>
+            ) : null}
+            {topic.title_tr}
+          </h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">{topic.summary_tr}</p>
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5 mt-5">
@@ -452,6 +466,7 @@ export default function ExamGrammarDetailPage() {
                     href={`/exam-grammar/${encodeURIComponent(otherSlug)}`}
                     className="text-sm font-medium text-[#378ADD] hover:underline"
                   >
+                    {topicNumbers?.numbers[otherSlug] ? `${topicNumbers.numbers[otherSlug]}. ` : ''}
                     {otherTitle}
                   </Link>
                 ))}

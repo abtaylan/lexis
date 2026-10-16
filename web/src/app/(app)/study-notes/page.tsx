@@ -81,7 +81,13 @@ export default function StudyNotesPage() {
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-gray-400 dark:text-slate-500">{formatDateTr(day.date)}</p>
                 <p className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate mt-0.5">
+                  {day.topic_number ? `${day.topic_number}. ` : ''}
                   {day.topic_title || day.activities[0] || 'Genel Çalışma Programı'}
+                  {day.related_topics && day.related_topics.length > 0 && (
+                    <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FFF3D6] text-[#8A5A00] align-middle">
+                      +{day.related_topics.length} konu
+                    </span>
+                  )}
                 </p>
                 {day.note_sources.length > 0 && (
                   <div className="flex items-center gap-1.5 mt-2 flex-wrap">

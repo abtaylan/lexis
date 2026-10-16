@@ -114,7 +114,9 @@ export default function StudyNotesScreen() {
                     style={{ fontSize: 14, fontWeight: '700', color: c.text, marginTop: 2 }}
                     numberOfLines={1}
                   >
+                    {day.topic_number ? `${day.topic_number}. ` : ''}
                     {day.topic_title || day.activities[0] || 'Genel Çalışma Programı'}
+                    {day.related_topics && day.related_topics.length > 0 ? `  +${day.related_topics.length} konu` : ''}
                   </Text>
                   {day.note_sources.length > 0 && (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.xs }}>

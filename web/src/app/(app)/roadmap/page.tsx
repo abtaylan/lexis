@@ -119,6 +119,11 @@ function WeekCard({
             </div>
             <p className="text-sm font-semibold text-gray-900 dark:text-slate-100 mt-1 truncate">
               {week.topic_title_tr ?? week.focus_note ?? `Hafta ${week.week_number}`}
+              {week.topic_slugs && week.topic_slugs.length > 1 && (
+                <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FFF3D6] text-[#8A5A00] align-middle">
+                  {week.topic_slugs.length} konu
+                </span>
+              )}
             </p>
             <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{fmtRange(week.start_date, week.end_date)}</p>
           </div>
@@ -140,15 +145,39 @@ function WeekCard({
                 </div>
                 <div className="space-y-1.5">
                   {items.map((it, idx) => (
-                    <div key={idx} className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400">
-                      <Clock className="w-3 h-3 shrink-0 text-gray-300" />
-                      <span className="shrink-0 font-medium text-gray-500 dark:text-slate-500">{it.time_slot}</span>
-                      {it.link_url ? (
-                        <Link href={it.link_url} className="flex items-center gap-1 text-[#378ADD] hover:underline truncate">
-                          {it.activity}<ExternalLink className="w-3 h-3 shrink-0" />
-                        </Link>
-                      ) : (
-                        <span className="truncate">{it.activity}</span>
+                    <div key={idx}>
+                      <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-slate-400">
+                        <Clock className="w-3 h-3 shrink-0 text-gray-300" />
+                        <span className="shrink-0 font-medium text-gray-500 dark:text-slate-500">{it.time_slot}</span>
+                        {it.link_url ? (
+                          <Link href={it.link_url} className="flex items-center gap-1 text-[#378ADD] hover:underline truncate">
+                            {it.topic_number ? `${it.topic_number}. ` : ''}{it.activity}<ExternalLink className="w-3 h-3 shrink-0" />
+                          </Link>
+                        ) : (
+                          <span className="truncate">{it.activity}</span>
+                        )}
+                      </div>
+                      {/* 16 Ekim 2026, kullanıcı isteği -- bu haftaya bağlı
+                          ek konular (GERÇEK müfredat, sadece referans değil)
+                          Program Haritası'nda önceden HİÇ gösterilmiyordu. */}
+                      {it.related_topics && it.related_topics.length > 0 && (
+                        <div className="ml-5 mt-1">
+                          <p className="text-[10px] font-semibold text-gray-400 dark:text-slate-500 mb-1">
+                            Bu hafta bunları da çalışmalısın:
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {it.related_topics.map((rt) => (
+                              <Link
+                                key={rt.slug}
+                                href={rt.link_url}
+                                className="text-[11px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-[#E6F1FB] hover:text-[#185FA5] transition-colors truncate max-w-full"
+                                title={rt.title}
+                              >
+                                {rt.topic_number ? `${rt.topic_number}. ` : ''}{rt.title}
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   ))}

@@ -60,6 +60,7 @@ type DisplayItem = {
   activity: string;
   link_url?: string;
   related_topics?: RelatedTopic[];
+  topic_number?: number | null;
 };
 
 function isoOf(d: Date): string {
@@ -115,6 +116,7 @@ export function CalendarView({ items }: { items: ScheduleItem[] }) {
           activity: it.activity,
           link_url: it.link_url,
           related_topics: it.related_topics,
+          topic_number: it.topic_number,
         });
       }
     }
@@ -139,6 +141,7 @@ export function CalendarView({ items }: { items: ScheduleItem[] }) {
         activity: it.activity,
         link_url: it.resolved_link_url || it.link_url,
         related_topics: it.related_topics,
+        topic_number: it.topic_number,
       });
     }
     for (const dow of Object.keys(map)) {
@@ -293,20 +296,32 @@ function DayDetailPanel({
                 >
                   <Clock color={c.textMuted} size={12} />
                   <Text style={{ fontSize: 11, color: c.textMuted, fontWeight: '700' }}>{it.time_slot}</Text>
-                  <Text style={{ fontSize: 13, color: c.text, flex: 1 }} numberOfLines={2}>{it.activity}</Text>
+                  <Text style={{ fontSize: 13, color: c.text, flex: 1 }} numberOfLines={2}>
+                    {it.topic_number ? `${it.topic_number}. ` : ''}{it.activity}
+                  </Text>
                   {!!it.link_url && <ExternalLink color={c.border} size={12} />}
                 </Pressable>
                 {it.related_topics && it.related_topics.length > 0 && (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4, marginLeft: 20 }}>
-                    {it.related_topics.map((rt) => (
-                      <Pressable
-                        key={rt.slug}
-                        onPress={() => router.push(rt.link_url as any)}
-                        style={{ backgroundColor: c.background, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 }}
-                      >
-                        <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '600' }} numberOfLines={1}>{rt.title}</Text>
-                      </Pressable>
-                    ))}
+                  <View style={{ marginTop: 4, marginLeft: 20 }}>
+                    {/* 16 Ekim 2026, kullanıcı isteği -- bunların sadece
+                        referans değil, GERÇEK ek müfredat konusu olduğu
+                        açıkça belirtiliyor. */}
+                    <Text style={{ color: c.textMuted, fontSize: 9, fontWeight: '700', marginBottom: 2 }}>
+                      Bu hafta bunları da çalışmalısın:
+                    </Text>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                      {it.related_topics.map((rt) => (
+                        <Pressable
+                          key={rt.slug}
+                          onPress={() => router.push(rt.link_url as any)}
+                          style={{ backgroundColor: c.background, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 }}
+                        >
+                          <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '600' }} numberOfLines={1}>
+                            {rt.topic_number ? `${rt.topic_number}. ` : ''}{rt.title}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
                   </View>
                 )}
               </View>

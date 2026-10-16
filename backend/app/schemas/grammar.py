@@ -40,6 +40,10 @@ class GrammarTopicSummary(BaseModel):
     exam_relevance: list[str]
     sort_order: int
     has_practice_questions: bool = False
+    # 16 Ekim 2026, kullanici istegi: "konu basliklarini numaralandiralim,
+    # tum programa da uygulayalim" -- kategori sirasina gore degil, TUM
+    # 91 konu arasinda GLOBAL sira numarasi (bkz. grammar.py::_topic_number_map).
+    topic_number: int | None = None
 
 
 class GrammarTopicDetail(BaseModel):
@@ -54,6 +58,9 @@ class GrammarTopicDetail(BaseModel):
     example_sentences: list[GrammarExampleSentence]
     common_mistakes: list[GrammarCommonMistake]
     has_practice_questions: bool = False
+    # 16 Ekim 2026 -- bkz. GrammarTopicSummary.topic_number ustundeki not.
+    topic_number: int | None = None
+    total_topics: int | None = None
 
 
 # ── Günün Okuma Parçası (14 Ekim 2026) — bkz. services/study_passage_generator.py ──

@@ -35,7 +35,8 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, field_validator
 
-from app.api.routes.schedule import _roadmap_slot_content
+from app.api.routes.grammar import _topic_number_map
+from app.api.routes.schedule import _get_learning_lang, _roadmap_slot_content
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 
@@ -51,34 +52,54 @@ ALLOWED_IMAGE_CONTENT_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/we
 MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8 MB
 
 
-def _topic_context_for_date(date_iso: str, weeks: list[dict]) -> dict:
+def _topic_context_for_date(date_iso: str, weeks: list[dict], number_map: dict[str, int] | None = None) -> dict:
     """Verilen tarihin dustugu Program Haritasi haftasini bulup o gunun ana
     konu basligini + o gun icin planlanmis aktivitelerin (temizlenmis,
     "+N konu daha" icermeyen) listesini dondurur. Tarih hicbir haftaya
     denk gelmiyorsa (program henuz kurulmamis/bos) ikisi de bos doner --
     frontend bu durumda genel bir baslik gosterir.
-    """
+
+    16 Ekim 2026, kullanici sorusu ("tek konu mu calismam gerekiyor, yoksa
+    diğerlerine de mi?"): bir haftaya Gramer Rehberi'nden 1 ana + genelde
+    birden fazla "ilgili" konu bagli (bkz. schedule.py ROADMAP_KEYS/
+    topic_slugs) -- bunlarin HEPSI gercek mufredat konusu, sadece referans
+    linki degil. Bu yuzden artik related_topics (kendi GLOBAL numarasi +
+    basligi + linkiyle) de donuyor, Calisma Notlarim o haftanin TUM
+    konularini acik bir baslik altinda gosterebilsin."""
     week = next(
         (w for w in weeks if w.get("start_date") and w.get("end_date") and w["start_date"] <= date_iso <= w["end_date"]),
         None,
     )
     if not week:
-        return {"topic_title": None, "activities": []}
+        return {"topic_title": None, "activities": [], "topic_number": None, "related_topics": [], "week_topic_count": 0}
 
+    number_map = number_map or {}
     titles = (week.get("topic_title_tr") or "").split(" • ") if week.get("topic_title_tr") else []
     topic_title = titles[0] if titles else None
+    main_slug = week.get("topic_slug")
 
     activities: list[str] = []
+    related_topics: list[dict] = []
     for item in week.get("schedule_items") or []:
         if item.get("date") != date_iso:
             continue
         ak = item.get("activity_key")
-        content = _roadmap_slot_content(ak, week) if ak else None
+        content = _roadmap_slot_content(ak, week, number_map) if ak else None
         activity_text = content["activity"] if content else item.get("activity")
         if activity_text and activity_text not in activities:
             activities.append(activity_text)
+        if content:
+            for rt in content.get("related_topics") or []:
+                if not any(r["slug"] == rt["slug"] for r in related_topics):
+                    related_topics.append(rt)
 
-    return {"topic_title": topic_title, "activities": activities}
+    return {
+        "topic_title": topic_title,
+        "activities": activities,
+        "topic_number": number_map.get(main_slug) if main_slug else None,
+        "related_topics": related_topics,
+        "week_topic_count": len(week.get("topic_slugs") or []) or (1 if main_slug else 0),
+    }
 
 
 def _load_weeks(user_id: str) -> list[dict]:
@@ -119,6 +140,7 @@ async def list_study_days(current_user=Depends(get_current_user)):
         return {"days": []}
 
     weeks = _load_weeks(current_user.id)
+    number_map = _topic_number_map(_get_learning_lang(current_user.id))
 
     notes = (
         supabase_admin.table("study_notes")
@@ -133,13 +155,16 @@ async def list_study_days(current_user=Depends(get_current_user)):
 
     days = []
     for d in done_dates:
-        ctx = _topic_context_for_date(d, weeks)
+        ctx = _topic_context_for_date(d, weeks, number_map)
         days.append(
             {
                 "date": d,
                 "topic_title": ctx["topic_title"],
                 "activities": ctx["activities"],
                 "note_sources": notes_by_date.get(d, []),
+                "topic_number": ctx["topic_number"],
+                "related_topics": ctx["related_topics"],
+                "week_topic_count": ctx["week_topic_count"],
             }
         )
     return {"days": days}
@@ -148,7 +173,8 @@ async def list_study_days(current_user=Depends(get_current_user)):
 @router.get("/{date}")
 async def get_study_day(date: str, current_user=Depends(get_current_user)):
     weeks = _load_weeks(current_user.id)
-    ctx = _topic_context_for_date(date, weeks)
+    number_map = _topic_number_map(_get_learning_lang(current_user.id))
+    ctx = _topic_context_for_date(date, weeks, number_map)
     notes = (
         supabase_admin.table("study_notes")
         .select("*")
@@ -161,6 +187,9 @@ async def get_study_day(date: str, current_user=Depends(get_current_user)):
         "topic_title": ctx["topic_title"],
         "activities": ctx["activities"],
         "notes": notes,
+        "topic_number": ctx["topic_number"],
+        "related_topics": ctx["related_topics"],
+        "week_topic_count": ctx["week_topic_count"],
     }
 
 

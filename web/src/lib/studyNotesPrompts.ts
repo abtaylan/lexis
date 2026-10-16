@@ -25,13 +25,25 @@ function topicLine(topicTitle: string | null, activities: string[]): string {
 // Rehberi sayfası NotebookLM'e önceden kaynak olarak yüklenmiş olmalı).
 // "Zihin Haritası" ayrı bir Studio butonu olduğu için bu metne dahil
 // edilmiyor, ayrıca tek tıkla üretilebiliyor.
-export function buildNotebookLMPrompt(dateIso: string, topicTitle: string | null, activities: string[]): string {
+export function buildNotebookLMPrompt(
+  dateIso: string,
+  topicTitle: string | null,
+  activities: string[],
+  relatedTopics: string[] = []
+): string {
   const tarih = formatDateTr(dateIso);
   const konu = topicLine(topicTitle, activities);
   const aktiviteSatiri =
     activities.length > 0 ? `\nBugün tamamladığım etkinlikler: ${activities.join(', ')}.` : '';
+  // 16 Ekim 2026, kullanıcı isteği -- bu haftaya bağlı diğer konular da
+  // GERÇEK müfredat (sadece referans değil), özet/infografik bunları da
+  // kapsasın.
+  const ilgiliSatiri =
+    relatedTopics.length > 0
+      ? `\nBu hafta ayrıca şu konulara da çalışmam gerekiyor, lütfen her biri için de aynı formatta ayrı bir bölüm hazırla: ${relatedTopics.join(', ')}.`
+      : '';
 
-  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}
+  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}${ilgiliSatiri}
 
 Yüklediğim kaynaklardan yola çıkarak bu konuyu aşağıdaki formatta, görsel olarak zengin ve akılda kalıcı bir "çalışma özeti" infografiği hazırla:
 
@@ -51,13 +63,22 @@ Ayrıca bu konu için ayrı bir Zihin Haritası da oluştur: ana konu merkezde, 
 // Gemini: düz sohbet penceresine yapıştırılır, Gemini'nin kendi görsel
 // üretim özelliğini (resim oluştur) kullanarak renkli bir infografik
 // GÖRSELİ üretmesi istenir (kullanıcının önceki örneği de bu şekildeydi).
-export function buildGeminiPrompt(dateIso: string, topicTitle: string | null, activities: string[]): string {
+export function buildGeminiPrompt(
+  dateIso: string,
+  topicTitle: string | null,
+  activities: string[],
+  relatedTopics: string[] = []
+): string {
   const tarih = formatDateTr(dateIso);
   const konu = topicLine(topicTitle, activities);
   const aktiviteSatiri =
     activities.length > 0 ? `\nBugün tamamladığım etkinlikler: ${activities.join(', ')}.` : '';
+  const ilgiliSatiri =
+    relatedTopics.length > 0
+      ? `\nBu hafta ayrıca şu konulara da çalışmam gerekiyor, lütfen her biri için de ayrı bir görsel/bölüm hazırla: ${relatedTopics.join(', ')}.`
+      : '';
 
-  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}
+  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}${ilgiliSatiri}
 
 Bu konuyu özetleyen, renkli ve görsel olarak zengin bir İNFOGRAFİK GÖRSELİ oluştur (bir resim üret, düz metin değil). Görsel şu özelliklere sahip olsun:
 

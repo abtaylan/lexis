@@ -432,7 +432,8 @@ export default function StudyNoteDetailPage() {
     );
   }
 
-  const { topic_title: topicTitle, activities } = detail;
+  const { topic_title: topicTitle, activities, related_topics: relatedTopics, topic_number: topicNumber, week_topic_count: weekTopicCount } = detail;
+  const relatedTitles = (relatedTopics ?? []).map((rt) => rt.title);
   const noteBySource = Object.fromEntries(detail.notes.map((n) => [n.source, n])) as Partial<
     Record<StudyNoteSource, StudyNote>
   >;
@@ -448,6 +449,7 @@ export default function StudyNoteDetailPage() {
         </button>
         <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">{formatDateTr(date)}</h1>
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
+          {topicNumber ? `${topicNumber}. ` : ''}
           {topicTitle || activities[0] || 'Genel Çalışma Programı'}
         </p>
         {activities.length > 1 && (
@@ -464,6 +466,34 @@ export default function StudyNoteDetailPage() {
         )}
       </div>
 
+      {/* 16 Ekim 2026, kullanıcı isteği: "tek konu mu çalışmam gerekiyor,
+          yoksa diğerlerine de mi? ... Çalışma Notlarım'da bunlar için bir
+          başlık açılmalı." -- bu haftaya bağlı ek konular SADECE referans
+          değil, gerçek müfredat (bkz. backend study_notes.py docstring'i);
+          bu yüzden burada ayrı, açık bir başlık altında gösteriliyor. */}
+      {relatedTopics && relatedTopics.length > 0 && (
+        <div className="bg-[#FFF8E6] dark:bg-amber-900/20 rounded-2xl border border-[#F3D98B] dark:border-amber-800/40 p-4">
+          <h2 className="text-sm font-bold text-gray-900 dark:text-slate-100">
+            Bu Hafta Çalışman Gereken Diğer Konular {weekTopicCount ? `(${weekTopicCount} konudan ${1 + relatedTopics.length}'i)` : ''}
+          </h2>
+          <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 mb-2.5">
+            Bu konular da bu haftanın gerçek müfredatına dahil — sadece ana konuyla sınırlı kalma, aşağıdakileri de incele ve not al.
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {relatedTopics.map((rt) => (
+              <a
+                key={rt.slug}
+                href={rt.link_url}
+                className="text-sm font-medium text-[#378ADD] hover:underline"
+              >
+                {rt.topic_number ? `${rt.topic_number}. ` : ''}
+                {rt.title}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 
       {EXTERNAL_SOURCES.map((s) => (
@@ -475,8 +505,8 @@ export default function StudyNoteDetailPage() {
           accentSoft={s.accentSoft}
           promptText={
             s.key === 'gemini'
-              ? buildGeminiPrompt(date, topicTitle, activities)
-              : buildNotebookLMPrompt(date, topicTitle, activities)
+              ? buildGeminiPrompt(date, topicTitle, activities, relatedTitles)
+              : buildNotebookLMPrompt(date, topicTitle, activities, relatedTitles)
           }
           existingNote={noteBySource[s.key]}
           onSave={(content) => handleSave(s.key, content)}

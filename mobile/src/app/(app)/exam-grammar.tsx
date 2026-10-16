@@ -84,7 +84,10 @@ export default function ExamGrammarScreen() {
                       >
                         <Card style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.md }}>
                           <View style={{ flex: 1 }}>
-                            <Text style={{ fontSize: 15, fontWeight: '600', color: c.text }}>{topic.title_tr}</Text>
+                            <Text style={{ fontSize: 15, fontWeight: '600', color: c.text }}>
+                              {topic.topic_number ? `${topic.topic_number}. ` : ''}
+                              {topic.title_tr}
+                            </Text>
                             <Text style={{ fontSize: 13, marginTop: 2, color: c.textSecondary }} numberOfLines={2}>
                               {topic.summary_tr}
                             </Text>

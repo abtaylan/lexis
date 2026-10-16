@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 
+from app.api.routes.grammar import _topic_number_map
 from app.core.auth import get_current_user
 from app.core.config import settings
 from app.core.database import supabase_admin
@@ -171,11 +172,18 @@ ROADMAP_KEYS = {
     "roadmap_practice_long",
 }
 
-def _roadmap_related_for(key: str, extra_slugs: list[str], extra_titles: list[str]) -> list[dict]:
+def _roadmap_related_for(
+    key: str, extra_slugs: list[str], extra_titles: list[str], number_map: dict[str, int] | None = None
+) -> list[dict]:
     """Ek konular için, slot'un türüne uygun gerçek bir link üretir (ör.
     roadmap_intro için gramer anlatım sayfası, roadmap_reinforce için
     pekiştirme pratiği vb.) -- böylece her ek konu da kendi doğru sayfasına
-    gider, genel bir yer tutucu değil."""
+    gider, genel bir yer tutucu değil. 16 Ekim 2026: number_map verilirse her
+    ek konuya da Gramer Rehberi'ndeki GLOBAL numarasini (topic_number) ekler
+    -- bkz. grammar.py::_topic_number_map. Kullanici bunlarin "bence bunlara
+    da calismam gerekiyordu" dedigi GERCEK mufredat konulari oldugunu, sade
+    bir referans linki degil, netlestirmek icin."""
+    number_map = number_map or {}
     out = []
     for s, t in zip(extra_slugs, extra_titles):
         if key == "roadmap_intro":
@@ -190,10 +198,10 @@ def _roadmap_related_for(key: str, extra_slugs: list[str], extra_titles: list[st
             lnk = f"/exam-topic-practice?topic_tag={s}&limit=10"
         else:
             continue
-        out.append({"slug": s, "title": t, "link_url": lnk})
+        out.append({"slug": s, "title": t, "link_url": lnk, "topic_number": number_map.get(s)})
     return out
 
-def _roadmap_slot_content(activity_key: str | None, week: dict) -> dict | None:
+def _roadmap_slot_content(activity_key: str | None, week: dict, number_map: dict[str, int] | None = None) -> dict | None:
     """Verilen TEK bir study_roadmap_weeks satırı için activity/link_url/
     related_topics üretir. Haftayı BULMA işi burada yapılmaz -- çağıran
     fonksiyon (güncel hafta ya da tüm haftalar) hangi week dict'ini
@@ -221,7 +229,7 @@ def _roadmap_slot_content(activity_key: str | None, week: dict) -> dict | None:
             "roadmap_practice_long": ("Tam Deneme (Süreli, 50 Soru — Gerçek Sınav Temposu)", "/exam-topic-practice?topic_tag=weekly-quiz"),
         }
         activity, link = fallback[activity_key]
-        return {"activity": activity, "link_url": link, "related_topics": []}
+        return {"activity": activity, "link_url": link, "related_topics": [], "topic_number": None, "week_topic_count": 0}
 
     import json as _json
     from urllib.parse import quote as _quote
@@ -235,7 +243,12 @@ def _roadmap_slot_content(activity_key: str | None, week: dict) -> dict | None:
         )
         also_param = f"also={_quote(also_payload)}"
 
-    related_topics = _roadmap_related_for(activity_key, slugs[1:], titles[1:]) if len(slugs) > 1 and len(titles) > 1 else []
+    related_topics = (
+        _roadmap_related_for(activity_key, slugs[1:], titles[1:], number_map) if len(slugs) > 1 and len(titles) > 1 else []
+    )
+    number_map = number_map or {}
+    topic_number = number_map.get(slug)
+    week_topic_count = len(slugs) if slugs else 1
 
     if activity_key == "roadmap_intro":
         activity = f"Gramer: {disp} — Giriş & Kural Anlatımı"
@@ -257,7 +270,13 @@ def _roadmap_slot_content(activity_key: str | None, week: dict) -> dict | None:
     else:
         return None
 
-    return {"activity": activity, "link_url": link, "related_topics": related_topics}
+    return {
+        "activity": activity,
+        "link_url": link,
+        "related_topics": related_topics,
+        "topic_number": topic_number,
+        "week_topic_count": week_topic_count,
+    }
 
 def _resolve_roadmap_slot(activity_key: str | None, user_id: str) -> dict | None:
     """
@@ -302,7 +321,9 @@ def _resolve_roadmap_slot(activity_key: str | None, user_id: str) -> dict | None
         print(f"RESOLVE_ROADMAP_SLOT ERROR: {e}")
         return None
 
-    return _roadmap_slot_content(activity_key, week)
+    learning_lang = _get_learning_lang(user_id)
+    number_map = _topic_number_map(learning_lang)
+    return _roadmap_slot_content(activity_key, week, number_map)
 
 # ── Mevcut program (haftalık etkinlikler) ────────────────────
 
@@ -356,8 +377,15 @@ async def get_schedule(current_user=Depends(get_current_user)):
             # 15 Ekim 2026 -- "+N konu daha" yer tutucusu yerine gerçek
             # konu adları + kendi linkleri (bkz. _resolve_roadmap_slot).
             item["related_topics"] = roadmap_slot.get("related_topics") or []
+            # 16 Ekim 2026 -- Gramer Rehberi'ndeki GLOBAL konu numarası +
+            # bu haftaya bağlı toplam konu sayısı (bkz. kullanıcı sorusu:
+            # "tek konu mu çalışmam gerekiyor yoksa diğerlerine de mi?").
+            item["topic_number"] = roadmap_slot.get("topic_number")
+            item["week_topic_count"] = roadmap_slot.get("week_topic_count") or 0
             continue
         item["related_topics"] = []
+        item["topic_number"] = None
+        item["week_topic_count"] = 0
         resource = _resolve_resource(item.get("activity_key"), learning_lang)
         if resource:
             item["resolved_link_url"] = resource["url"]
@@ -403,16 +431,24 @@ async def get_roadmap(current_user=Depends(get_current_user)):
     # roadmap_* maddesini serve-time'da yeniden üretip related_topics
     # ekliyoruz -- Liste görünümüyle (_resolve_roadmap_slot) birebir aynı
     # çekirdek, tek fark burada TÜM haftalar için (sadece güncel hafta değil).
+    # 16 Ekim 2026 -- aynı çekirdeğe artık GLOBAL konu numarası da ekleniyor
+    # (bkz. grammar.py::_topic_number_map) -- tek sorgu, tüm haftalar için.
+    learning_lang = _get_learning_lang(current_user.id)
+    number_map = _topic_number_map(learning_lang)
     for w in weeks:
         for item in w.get("schedule_items") or []:
             ak = item.get("activity_key")
-            content = _roadmap_slot_content(ak, w) if ak else None
+            content = _roadmap_slot_content(ak, w, number_map) if ak else None
             if content:
                 item["activity"] = content["activity"]
                 item["link_url"] = content["link_url"]
                 item["related_topics"] = content["related_topics"]
+                item["topic_number"] = content.get("topic_number")
+                item["week_topic_count"] = content.get("week_topic_count") or 0
             else:
                 item["related_topics"] = item.get("related_topics") or []
+                item["topic_number"] = None
+                item["week_topic_count"] = 0
 
     today = _date.today().isoformat()
     current_week_number = None

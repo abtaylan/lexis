@@ -286,6 +286,7 @@ export default function ExamGrammarPage() {
                                         <span className="w-4 h-4 shrink-0 rounded-full border-2 border-gray-200 dark:border-slate-600" />
                                       )}
                                       <span className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate">
+                                        {topic.topic_number ? `${topic.topic_number}. ` : ''}
                                         {topic.title_tr}
                                       </span>
                                     </div>

@@ -653,20 +653,31 @@ export default function ScheduleScreen() {
                       <IconComp color={active ? c.primary : c.textMuted} size={17} />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: c.text, fontWeight: '600', fontSize: 14 }}>{item.activity}</Text>
+                      <Text style={{ color: c.text, fontWeight: '600', fontSize: 14 }}>
+                        {item.topic_number ? `${item.topic_number}. ` : ''}{item.activity}
+                      </Text>
                       {/* 15 Ekim 2026 -- "+N konu daha" yer tutucusu yerine her ek
-                          konu kendi adı + kendi linkiyle ayrı bir çip olarak gösteriliyor. */}
+                          konu kendi adı + kendi linkiyle ayrı bir çip olarak gösteriliyor.
+                          16 Ekim 2026, kullanıcı isteği -- bunların sadece referans değil,
+                          GERÇEK ek müfredat konusu olduğu açıkça belirtiliyor + numaralandı. */}
                       {item.related_topics && item.related_topics.length > 0 && (
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                          {item.related_topics.map((rt) => (
-                            <Pressable
-                              key={rt.slug}
-                              onPress={() => router.push(rt.link_url as any)}
-                              style={{ backgroundColor: c.background, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 }}
-                            >
-                              <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '600' }} numberOfLines={1}>{rt.title}</Text>
-                            </Pressable>
-                          ))}
+                        <View style={{ marginTop: 4 }}>
+                          <Text style={{ color: c.textMuted, fontSize: 9, fontWeight: '700', marginBottom: 2 }}>
+                            Bu hafta bunları da çalışmalısın:
+                          </Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                            {item.related_topics.map((rt) => (
+                              <Pressable
+                                key={rt.slug}
+                                onPress={() => router.push(rt.link_url as any)}
+                                style={{ backgroundColor: c.background, borderRadius: radius.sm, paddingHorizontal: 6, paddingVertical: 2 }}
+                              >
+                                <Text style={{ color: c.textMuted, fontSize: 10, fontWeight: '600' }} numberOfLines={1}>
+                                  {rt.topic_number ? `${rt.topic_number}. ` : ''}{rt.title}
+                                </Text>
+                              </Pressable>
+                            ))}
+                          </View>
                         </View>
                       )}
                       <View style={styles.itemMetaRow}>

@@ -896,6 +896,11 @@ export const grammarApi = {
     const res = await api.get<StudyPassageResponse>(`/grammar/topics/${slug}/study-passage`);
     return res.data;
   },
+  // 16 Ekim 2026 — konu numaralandırma (bkz. backend grammar.py::_topic_number_map).
+  getTopicNumbers: async (): Promise<{ numbers: Record<string, number>; total: number }> => {
+    const res = await api.get<{ numbers: Record<string, number>; total: number }>('/grammar/topics/numbers');
+    return res.data;
+  },
 };
 
 // ── Subscription API ─────────────────────────────────────────

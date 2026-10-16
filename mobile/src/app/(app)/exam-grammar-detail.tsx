@@ -290,6 +290,13 @@ export default function ExamGrammarDetailScreen() {
     queryFn: () => grammarApi.getTopic(slug),
     enabled: !!slug,
   });
+  // 16 Ekim 2026 -- "also" parametresindeki konuların da GLOBAL numarasını
+  // göstermek için (bkz. kullanıcı sorusu: "tek konu mu, yoksa diğerlerine
+  // de mi çalışmam gerekiyor?").
+  const { data: topicNumbers } = useQuery({
+    queryKey: ['grammar-topic-numbers'],
+    queryFn: () => grammarApi.getTopicNumbers(),
+  });
 
   const paragraphs = (topic?.rule_content_md ?? '')
     .split('\n')
@@ -334,7 +341,10 @@ export default function ExamGrammarDetailScreen() {
             </View>
           </View>
 
-          <Text style={{ fontSize: 20, fontWeight: '700', color: c.text, marginTop: spacing.sm }}>{topic.title_tr}</Text>
+          <Text style={{ fontSize: 20, fontWeight: '700', color: c.text, marginTop: spacing.sm }}>
+            {topic.topic_number && topic.total_topics ? `${topic.topic_number}/${topic.total_topics} — ` : ''}
+            {topic.title_tr}
+          </Text>
           <Text style={{ fontSize: 14, marginTop: spacing.xs, lineHeight: 20, color: c.textSecondary }}>{topic.summary_tr}</Text>
 
           <Card style={{ marginTop: spacing.lg }}>
@@ -412,7 +422,7 @@ export default function ExamGrammarDetailScreen() {
           {alsoTopics.length > 0 ? (
             <Card style={{ marginTop: spacing.lg }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: c.textMuted, marginBottom: spacing.xs }}>
-                Bu hafta ayrıca:
+                Bu hafta bunları da çalışmalısın:
               </Text>
               <View style={{ gap: 4 }}>
                 {alsoTopics.map(([otherSlug, otherTitle]) => (
@@ -420,7 +430,10 @@ export default function ExamGrammarDetailScreen() {
                     key={otherSlug}
                     onPress={() => router.push({ pathname: '/(app)/exam-grammar-detail', params: { slug: otherSlug } })}
                   >
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: c.primary }}>{otherTitle}</Text>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: c.primary }}>
+                      {topicNumbers?.numbers[otherSlug] ? `${topicNumbers.numbers[otherSlug]}. ` : ''}
+                      {otherTitle}
+                    </Text>
                   </Pressable>
                 ))}
               </View>

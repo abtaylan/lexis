@@ -17,13 +17,22 @@ function topicLine(topicTitle: string | null, activities: string[]): string {
   return 'Genel Çalışma Programı';
 }
 
-export function buildNotebookLMPrompt(dateIso: string, topicTitle: string | null, activities: string[]): string {
+export function buildNotebookLMPrompt(
+  dateIso: string,
+  topicTitle: string | null,
+  activities: string[],
+  relatedTopics: string[] = []
+): string {
   const tarih = formatDateTr(dateIso);
   const konu = topicLine(topicTitle, activities);
   const aktiviteSatiri =
     activities.length > 0 ? `\nBugün tamamladığım etkinlikler: ${activities.join(', ')}.` : '';
+  const ilgiliSatiri =
+    relatedTopics.length > 0
+      ? `\nBu hafta ayrıca şu konulara da çalışmam gerekiyor, lütfen her biri için de aynı formatta ayrı bir bölüm hazırla: ${relatedTopics.join(', ')}.`
+      : '';
 
-  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}
+  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}${ilgiliSatiri}
 
 Yüklediğim kaynaklardan yola çıkarak bu konuyu aşağıdaki formatta, görsel olarak zengin ve akılda kalıcı bir "çalışma özeti" infografiği hazırla:
 
@@ -40,13 +49,22 @@ Yüklediğim kaynaklardan yola çıkarak bu konuyu aşağıdaki formatta, görse
 Ayrıca bu konu için ayrı bir Zihin Haritası da oluştur: ana konu merkezde, alt başlıklar dallar, her dalın altında en fazla 3-4 alt madde olacak şekilde.`;
 }
 
-export function buildGeminiPrompt(dateIso: string, topicTitle: string | null, activities: string[]): string {
+export function buildGeminiPrompt(
+  dateIso: string,
+  topicTitle: string | null,
+  activities: string[],
+  relatedTopics: string[] = []
+): string {
   const tarih = formatDateTr(dateIso);
   const konu = topicLine(topicTitle, activities);
   const aktiviteSatiri =
     activities.length > 0 ? `\nBugün tamamladığım etkinlikler: ${activities.join(', ')}.` : '';
+  const ilgiliSatiri =
+    relatedTopics.length > 0
+      ? `\nBu hafta ayrıca şu konulara da çalışmam gerekiyor, lütfen her biri için de ayrı bir görsel/bölüm hazırla: ${relatedTopics.join(', ')}.`
+      : '';
 
-  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}
+  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}${ilgiliSatiri}
 
 Bu konuyu özetleyen, renkli ve görsel olarak zengin bir İNFOGRAFİK GÖRSELİ oluştur (bir resim üret, düz metin değil). Görsel şu özelliklere sahip olsun:
 
