@@ -282,6 +282,9 @@ export interface StudyNote {
   user_id: string;
   date: string; // YYYY-MM-DD
   source: StudyNoteSource;
+  // 16 Ekim 2026, İKİNCİ kullanıcı isteği -- artık gün başına değil, KONU
+  // başına bir not satırı (bkz. backend migration 090_study_notes_topic_slug.sql).
+  topic_slug: string;
   topic_title: string | null;
   content: string;
   image_urls: string[];
@@ -299,14 +302,24 @@ export interface StudyDaySummary {
   week_topic_count?: number;
 }
 
+// 16 Ekim 2026, İKİNCİ kullanıcı isteği (aynı gün, mobil karşılığı): gün
+// detayı artık tek bir "topic_title" + yan not listesi değil, o günün TÜM
+// konularını (ana + ilgili, her biri kendi Gemini/NotebookLM/manuel
+// notlarıyla) bir dizi olarak dönüyor (bkz. web/src/types/index.ts).
+export interface StudyDayTopic {
+  slug: string;
+  title: string | null;
+  topic_number: number | null;
+  link_url: string | null;
+  is_main: boolean;
+  notes: StudyNote[];
+}
+
 export interface StudyDayDetail {
   date: string; // YYYY-MM-DD
-  topic_title: string | null;
   activities: string[];
-  notes: StudyNote[];
-  topic_number?: number | null;
-  related_topics?: RelatedTopic[];
   week_topic_count?: number;
+  topics: StudyDayTopic[];
 }
 
 export interface TypeBreakdown {

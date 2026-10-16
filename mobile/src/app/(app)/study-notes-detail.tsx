@@ -8,7 +8,14 @@
 // yükleyip kaydeder. league-detail.tsx ile AYNI desen: bu projede expo-router
 // dinamik [date].tsx segmenti kullanılmıyor, düz rota dosyası +
 // useLocalSearchParams (bkz. router.push({ pathname: '/(app)/study-notes-detail', params: { date } })).
-import React, { useEffect, useState } from 'react';
+//
+// 16 Ekim 2026, İKİNCİ kullanıcı isteği (aynı gün, web'deki karşılığıyla
+// birebir): sayfa artık o günün TEK bir ana konusunu değil TÜM konularını
+// (ana + haftaya bağlı ilgili konular) numaralı, dokunulabilir bir "konu
+// seçici" olarak gösteriyor; seçilen konu değişince Gemini/NotebookLM/
+// Kendi Notların panelleri o konuya özel promptu ve notları gösterecek
+// şekilde yeniden kuruluyor (key=slug).
+import React, { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 // NOT (16 Ekim 2026, acil duzeltme): expo-clipboard ve expo-image-picker
@@ -25,7 +32,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 // store'a cikana kadar nazikce "guncelleme gerekiyor" mesaji gosterir.
 import { Copy, Check, ExternalLink, Save, Trash2, PenLine, ImagePlus, X } from 'lucide-react-native';
 import { studyNotesApi, type PickedImage } from '@/api/studyNotes';
-import type { StudyDayDetail, StudyNote, StudyNoteSource } from '@/api/types';
+import type { StudyDayDetail, StudyDayTopic, StudyNote, StudyNoteSource } from '@/api/types';
 import { getErrorMessage } from '@/utils/errors';
 import { buildGeminiPrompt, buildNotebookLMPrompt } from '@/lib/studyNotesPrompts';
 import { useThemeColors } from '@/hooks/useThemeColors';
@@ -195,10 +202,6 @@ function SourcePanel({
   const [copied, setCopied] = useState(false);
   const [content, setContent] = useState(existingNote?.content || '');
 
-  useEffect(() => {
-    setContent(existingNote?.content || '');
-  }, [existingNote?.content]);
-
   async function openAndReveal() {
     setShowPrompt(true);
     try {
@@ -339,10 +342,6 @@ function ManualNoteBox({
   const c = useThemeColors();
   const [content, setContent] = useState(existingNote?.content || '');
 
-  useEffect(() => {
-    setContent(existingNote?.content || '');
-  }, [existingNote?.content]);
-
   return (
     <Card>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm }}>
@@ -401,6 +400,84 @@ function ManualNoteBox({
   );
 }
 
+// 16 Ekim 2026, İKİNCİ kullanıcı isteği (mobil karşılığı): o günün konuları
+// arasında geçiş yapmak için numaralı, dokunulabilir bir "konu seçici"
+// kutusu. Her satır kendi numarasını + başlığını gösterir; o konu için en
+// az bir not kaydedilmişse küçük bir "✓" rozeti de görünür.
+function TopicSwitcher({
+  topics,
+  activeSlug,
+  onSelect,
+  weekTopicCount,
+}: {
+  topics: StudyDayTopic[];
+  activeSlug: string;
+  onSelect: (slug: string) => void;
+  weekTopicCount?: number;
+}) {
+  const c = useThemeColors();
+  if (topics.length === 0) return null;
+
+  return (
+    <View style={{ backgroundColor: '#FFF8E6', borderRadius: radius.lg, borderWidth: 1, borderColor: '#F3D98B', padding: spacing.md, marginTop: spacing.sm }}>
+      <Text style={{ fontSize: 13, fontWeight: '700', color: c.text }}>
+        Bugünün Konuları{weekTopicCount && weekTopicCount > 1 ? ` (${topics.length}/${weekTopicCount})` : ''}
+      </Text>
+      <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 2, marginBottom: 8 }}>
+        {topics.length > 1
+          ? 'Bu hafta çalışman gereken tüm konular aşağıda — her biri gerçek müfredatın parçası. Birine dokununca onun için hazırlanmış Gemini/NotebookLM ekranı açılır.'
+          : 'Bugünün konusu için Gemini/NotebookLM ekranı aşağıda.'}
+      </Text>
+      <View style={{ gap: 6 }}>
+        {topics.map((t) => {
+          const isActive = t.slug === activeSlug;
+          const savedCount = t.notes.length;
+          return (
+            <Pressable
+              key={t.slug}
+              onPress={() => onSelect(t.slug)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: spacing.sm,
+                paddingHorizontal: spacing.sm,
+                paddingVertical: 10,
+                borderRadius: radius.md,
+                borderWidth: 1,
+                borderColor: isActive ? c.primary : c.border,
+                backgroundColor: isActive ? c.primary : c.surface,
+              }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{ flex: 1, fontSize: 13, fontWeight: '600', color: isActive ? '#FFFFFF' : c.text }}
+              >
+                {t.topic_number ? `${t.topic_number}. ` : ''}
+                {t.title || 'Genel Çalışma Programı'}
+              </Text>
+              {savedCount > 0 && (
+                <View
+                  style={{
+                    backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : '#E1F5EE',
+                    borderRadius: radius.full,
+                    paddingHorizontal: 7,
+                    paddingVertical: 2,
+                  }}
+                >
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: isActive ? '#FFFFFF' : '#0F6E56' }}>
+                    ✓ {savedCount}
+                  </Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
 export default function StudyNoteDetailScreen() {
   const { date: dateParam } = useLocalSearchParams<{ date: string }>();
   const date = typeof dateParam === 'string' ? dateParam : '';
@@ -409,86 +486,94 @@ export default function StudyNoteDetailScreen() {
   const [detail, setDetail] = useState<StudyDayDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [savingSource, setSavingSource] = useState<StudyNoteSource | null>(null);
-  const [uploadingSource, setUploadingSource] = useState<StudyNoteSource | null>(null);
+  const [activeSlug, setActiveSlug] = useState('');
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (!date) return;
     studyNotesApi
       .getDay(date)
-      .then(setDetail)
+      .then((d) => {
+        setDetail(d);
+        setActiveSlug(d.topics[0]?.slug || '');
+      })
       .catch((e) => setError(getErrorMessage(e, 'Gün bilgisi yüklenemedi.')))
       .finally(() => setLoading(false));
   }, [date]);
 
-  async function handleSave(source: StudyNoteSource, content: string) {
+  function updateTopicNotes(topicSlug: string, updater: (notes: StudyNote[]) => StudyNote[]) {
+    setDetail((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        topics: prev.topics.map((t) => (t.slug === topicSlug ? { ...t, notes: updater(t.notes) } : t)),
+      };
+    });
+  }
+
+  async function handleSave(topic: StudyDayTopic, source: StudyNoteSource, content: string) {
     if (!content.trim()) return;
-    setSavingSource(source);
+    const key = `${topic.slug}:${source}`;
+    setSavingKey(key);
     setError('');
     try {
-      const saved = await studyNotesApi.saveNote(date, source, content, detail?.topic_title ?? undefined);
-      setDetail((prev) => {
-        if (!prev) return prev;
-        const notes = prev.notes.filter((n) => n.source !== source);
-        return { ...prev, notes: [...notes, saved] };
-      });
+      const saved = await studyNotesApi.saveNote(date, source, topic.slug, content, topic.title ?? undefined);
+      updateTopicNotes(topic.slug, (notes) => [...notes.filter((n) => n.source !== source), saved]);
     } catch (e) {
       setError(getErrorMessage(e, 'Not kaydedilemedi.'));
     } finally {
-      setSavingSource(null);
+      setSavingKey(null);
     }
   }
 
-  async function handleDelete(source: StudyNoteSource) {
-    setSavingSource(source);
+  async function handleDelete(topic: StudyDayTopic, source: StudyNoteSource) {
+    const key = `${topic.slug}:${source}`;
+    setSavingKey(key);
     setError('');
     try {
-      await studyNotesApi.deleteNote(date, source);
-      setDetail((prev) => (prev ? { ...prev, notes: prev.notes.filter((n) => n.source !== source) } : prev));
+      await studyNotesApi.deleteNote(date, source, topic.slug);
+      updateTopicNotes(topic.slug, (notes) => notes.filter((n) => n.source !== source));
     } catch (e) {
       setError(getErrorMessage(e, 'Not silinemedi.'));
     } finally {
-      setSavingSource(null);
+      setSavingKey(null);
     }
   }
 
-  async function handlePickImages(source: StudyNoteSource) {
+  async function handlePickImages(topic: StudyDayTopic, source: StudyNoteSource) {
     const images = await pickImages();
     if (!images || images.length === 0) return;
-    setUploadingSource(source);
+    const key = `${topic.slug}:${source}`;
+    setUploadingKey(key);
     setError('');
     try {
-      const saved = await studyNotesApi.uploadImages(date, source, images);
-      setDetail((prev) => {
-        if (!prev) return prev;
-        const notes = prev.notes.filter((n) => n.source !== source);
-        return { ...prev, notes: [...notes, saved] };
-      });
+      const saved = await studyNotesApi.uploadImages(date, source, topic.slug, images);
+      updateTopicNotes(topic.slug, (notes) => [...notes.filter((n) => n.source !== source), saved]);
     } catch (e) {
       setError(getErrorMessage(e, 'Görsel yüklenemedi.'));
     } finally {
-      setUploadingSource(null);
+      setUploadingKey(null);
     }
   }
 
-  async function handleDeleteImage(source: StudyNoteSource, imageUrl: string) {
-    setUploadingSource(source);
+  async function handleDeleteImage(topic: StudyDayTopic, source: StudyNoteSource, imageUrl: string) {
+    const key = `${topic.slug}:${source}`;
+    setUploadingKey(key);
     setError('');
     try {
-      await studyNotesApi.deleteImage(date, source, imageUrl);
-      setDetail((prev) => {
-        if (!prev) return prev;
-        const notes = prev.notes.map((n) =>
-          n.source === source ? { ...n, image_urls: n.image_urls.filter((u) => u !== imageUrl) } : n
-        );
-        return { ...prev, notes };
-      });
+      await studyNotesApi.deleteImage(date, source, topic.slug, imageUrl);
+      updateTopicNotes(topic.slug, (notes) =>
+        notes.map((n) => (n.source === source ? { ...n, image_urls: n.image_urls.filter((u) => u !== imageUrl) } : n))
+      );
     } catch (e) {
       setError(getErrorMessage(e, 'Görsel silinemedi.'));
     } finally {
-      setUploadingSource(null);
+      setUploadingKey(null);
     }
   }
+
+  const activeTopic = useMemo(() => detail?.topics.find((t) => t.slug === activeSlug) || null, [detail, activeSlug]);
 
   if (loading) {
     return (
@@ -510,9 +595,9 @@ export default function StudyNoteDetailScreen() {
     );
   }
 
-  const { topic_title: topicTitle, activities, related_topics: relatedTopics, topic_number: topicNumber, week_topic_count: weekTopicCount } = detail;
-  const relatedTitles = (relatedTopics ?? []).map((rt) => rt.title);
-  const noteBySource = Object.fromEntries(detail.notes.map((n) => [n.source, n])) as Partial<Record<StudyNoteSource, StudyNote>>;
+  const { activities, week_topic_count: weekTopicCount, topics } = detail;
+  const noteBySource = (topic: StudyDayTopic) =>
+    Object.fromEntries(topic.notes.map((n) => [n.source, n])) as Partial<Record<StudyNoteSource, StudyNote>>;
 
   return (
     <ScreenContainer>
@@ -522,11 +607,7 @@ export default function StudyNoteDetailScreen() {
         <Text style={{ fontSize: 13, fontWeight: '600', color: c.textMuted }}>← Çalışma Notlarım</Text>
       </Pressable>
       <Text style={{ fontSize: 18, fontWeight: '700', color: c.text }}>{formatDateTr(date)}</Text>
-      <Text style={{ fontSize: 13, color: c.textSecondary, marginTop: 2 }}>
-        {topicNumber ? `${topicNumber}. ` : ''}
-        {topicTitle || activities[0] || 'Genel Çalışma Programı'}
-      </Text>
-      {activities.length > 1 && (
+      {activities.length > 0 && (
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.xs }}>
           {activities.map((a) => (
             <View key={a} style={{ backgroundColor: c.background, borderRadius: radius.full, paddingHorizontal: 8, paddingVertical: 3 }}>
@@ -536,62 +617,57 @@ export default function StudyNoteDetailScreen() {
         </View>
       )}
 
-      {/* 16 Ekim 2026, kullanıcı isteği: "tek konu mu çalışmam gerekiyor,
-          yoksa diğerlerine de mi? ... Çalışma Notlarım'da bunlar için bir
-          başlık açılmalı." -- bu haftaya bağlı ek konular GERÇEK müfredat,
-          sadece referans değil (bkz. backend study_notes.py docstring'i). */}
-      {relatedTopics && relatedTopics.length > 0 && (
-        <View style={{ backgroundColor: '#FFF8E6', borderRadius: radius.lg, borderWidth: 1, borderColor: '#F3D98B', padding: spacing.md, marginTop: spacing.sm }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: c.text }}>
-            Bu Hafta Çalışman Gereken Diğer Konular{weekTopicCount ? ` (${weekTopicCount} konudan ${1 + relatedTopics.length}'i)` : ''}
-          </Text>
-          <Text style={{ fontSize: 11, color: c.textMuted, marginTop: 2, marginBottom: 6 }}>
-            Bu konular da bu haftanın gerçek müfredatına dahil — sadece ana konuyla sınırlı kalma, aşağıdakileri de incele ve not al.
-          </Text>
-          <View style={{ gap: 4 }}>
-            {relatedTopics.map((rt) => (
-              <Pressable key={rt.slug} onPress={() => router.push(rt.link_url as any)}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: c.primary }}>
-                  {rt.topic_number ? `${rt.topic_number}. ` : ''}
-                  {rt.title}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      )}
+      <TopicSwitcher topics={topics} activeSlug={activeSlug} onSelect={setActiveSlug} weekTopicCount={weekTopicCount} />
 
       {!!error && <Text style={{ color: c.danger, fontSize: 12, marginTop: spacing.sm }}>{error}</Text>}
 
-      <View style={{ marginTop: spacing.lg }}>
-        {EXTERNAL_SOURCES.map((s) => (
-          <SourcePanel
-            key={s.key}
-            label={s.label}
-            url={s.url}
-            accent={s.accent}
-            accentSoft={s.accentSoft}
-            promptText={s.key === 'gemini' ? buildGeminiPrompt(date, topicTitle, activities, relatedTitles) : buildNotebookLMPrompt(date, topicTitle, activities, relatedTitles)}
-            existingNote={noteBySource[s.key]}
-            onSave={(content) => handleSave(s.key, content)}
-            onDelete={() => handleDelete(s.key)}
-            saving={savingSource === s.key}
-            onPickImages={() => handlePickImages(s.key)}
-            onDeleteImage={(url) => handleDeleteImage(s.key, url)}
-            uploadingImages={uploadingSource === s.key}
-          />
-        ))}
+      {activeTopic && (
+        <View key={activeTopic.slug} style={{ marginTop: spacing.lg }}>
+          {activeTopic.link_url && (
+            <Pressable onPress={() => router.push(activeTopic.link_url as any)} style={{ marginBottom: spacing.sm }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: c.primary }}>
+                Gramer Rehberi&apos;nde bu konuyu aç →
+              </Text>
+            </Pressable>
+          )}
 
-        <ManualNoteBox
-          existingNote={noteBySource.manual}
-          onSave={(content) => handleSave('manual', content)}
-          onDelete={() => handleDelete('manual')}
-          saving={savingSource === 'manual'}
-          onPickImages={() => handlePickImages('manual')}
-          onDeleteImage={(url) => handleDeleteImage('manual', url)}
-          uploadingImages={uploadingSource === 'manual'}
-        />
-      </View>
+          {EXTERNAL_SOURCES.map((s) => {
+            const notesBySource = noteBySource(activeTopic);
+            const key = `${activeTopic.slug}:${s.key}`;
+            return (
+              <SourcePanel
+                key={s.key}
+                label={s.label}
+                url={s.url}
+                accent={s.accent}
+                accentSoft={s.accentSoft}
+                promptText={
+                  s.key === 'gemini'
+                    ? buildGeminiPrompt(date, activeTopic.title, activities, activeTopic.is_main)
+                    : buildNotebookLMPrompt(date, activeTopic.title, activities, activeTopic.is_main)
+                }
+                existingNote={notesBySource[s.key]}
+                onSave={(content) => handleSave(activeTopic, s.key, content)}
+                onDelete={() => handleDelete(activeTopic, s.key)}
+                saving={savingKey === key}
+                onPickImages={() => handlePickImages(activeTopic, s.key)}
+                onDeleteImage={(url) => handleDeleteImage(activeTopic, s.key, url)}
+                uploadingImages={uploadingKey === key}
+              />
+            );
+          })}
+
+          <ManualNoteBox
+            existingNote={noteBySource(activeTopic).manual}
+            onSave={(content) => handleSave(activeTopic, 'manual', content)}
+            onDelete={() => handleDelete(activeTopic, 'manual')}
+            saving={savingKey === `${activeTopic.slug}:manual`}
+            onPickImages={() => handlePickImages(activeTopic, 'manual')}
+            onDeleteImage={(url) => handleDeleteImage(activeTopic, 'manual', url)}
+            uploadingImages={uploadingKey === `${activeTopic.slug}:manual`}
+          />
+        </View>
+      )}
     </ScreenContainer>
   );
 }

@@ -7,6 +7,15 @@
 // yerine kullanıcı bu metni kopyalayıp ilgili sitede (Gemini/NotebookLM)
 // manuel olarak yapıştırıyor, oradan aldığı özeti de geri buraya yapıştırıp
 // kaydediyor (bkz. study-notes/[date]/page.tsx).
+//
+// 16 Ekim 2026, kullanıcının İKİNCİ isteği (aynı gün): "bu prompt sadece
+// [ana konu] için oluştu, ama diğer dört konu için de bu tarz prompt
+// oluşmalı" -- önceden tek bir prompt, o haftaya bağlı diğer konuları
+// sadece bir ek cümleyle ("...için de ayrı bir bölüm hazırla") listeliyordu.
+// Artık GÜNÜN HER KONUSU (ana + ilgili) için AYRI, kendi başına tam bir
+// infografik prompt'u üretiliyor -- bkz. study-notes/[date]/page.tsx'teki
+// konu seçici (1-2-3-4-5 sekmeleri), her sekme kendi promptunu bu
+// fonksiyonlarla (isMain bayrağıyla) üretiyor.
 
 function formatDateTr(dateIso: string): string {
   const [y, m, d] = dateIso.split('-').map(Number);
@@ -20,6 +29,20 @@ function topicLine(topicTitle: string | null, activities: string[]): string {
   return 'Genel Çalışma Programı';
 }
 
+// Günün ana konusu için "bugün bunu çalıştım" baglamı, haftaya bağlı ilgili
+// (ama bugün asıl çalışılmış olmayan) konular için "bu hafta çalışmam
+// gereken konulardan biri" baglamı -- ikisi de kendi başına tam bir
+// infografik isteği olarak devam ediyor.
+function contextLine(dateIso: string, konu: string, activities: string[], isMain: boolean): string {
+  const tarih = formatDateTr(dateIso);
+  if (isMain) {
+    const aktiviteSatiri =
+      activities.length > 0 ? `\nBugün tamamladığım etkinlikler: ${activities.join(', ')}.` : '';
+    return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}`;
+  }
+  return `Bu hafta (${tarih} tarihli günün de içinde olduğu haftanın programına dahil) çalışmam gereken konulardan biri: ${konu}.`;
+}
+
 // NotebookLM: Studio panelindeki "İnfografik" veya "Raporlar" aracının özel
 // talimat alanına yapıştırılır (kaynak olarak o günkü ders notu/Gramer
 // Rehberi sayfası NotebookLM'e önceden kaynak olarak yüklenmiş olmalı).
@@ -29,21 +52,13 @@ export function buildNotebookLMPrompt(
   dateIso: string,
   topicTitle: string | null,
   activities: string[],
-  relatedTopics: string[] = []
+  isMain: boolean = true
 ): string {
   const tarih = formatDateTr(dateIso);
   const konu = topicLine(topicTitle, activities);
-  const aktiviteSatiri =
-    activities.length > 0 ? `\nBugün tamamladığım etkinlikler: ${activities.join(', ')}.` : '';
-  // 16 Ekim 2026, kullanıcı isteği -- bu haftaya bağlı diğer konular da
-  // GERÇEK müfredat (sadece referans değil), özet/infografik bunları da
-  // kapsasın.
-  const ilgiliSatiri =
-    relatedTopics.length > 0
-      ? `\nBu hafta ayrıca şu konulara da çalışmam gerekiyor, lütfen her biri için de aynı formatta ayrı bir bölüm hazırla: ${relatedTopics.join(', ')}.`
-      : '';
+  const giris = contextLine(dateIso, konu, activities, isMain);
 
-  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}${ilgiliSatiri}
+  return `${giris}
 
 Yüklediğim kaynaklardan yola çıkarak bu konuyu aşağıdaki formatta, görsel olarak zengin ve akılda kalıcı bir "çalışma özeti" infografiği hazırla:
 
@@ -67,18 +82,12 @@ export function buildGeminiPrompt(
   dateIso: string,
   topicTitle: string | null,
   activities: string[],
-  relatedTopics: string[] = []
+  isMain: boolean = true
 ): string {
-  const tarih = formatDateTr(dateIso);
   const konu = topicLine(topicTitle, activities);
-  const aktiviteSatiri =
-    activities.length > 0 ? `\nBugün tamamladığım etkinlikler: ${activities.join(', ')}.` : '';
-  const ilgiliSatiri =
-    relatedTopics.length > 0
-      ? `\nBu hafta ayrıca şu konulara da çalışmam gerekiyor, lütfen her biri için de ayrı bir görsel/bölüm hazırla: ${relatedTopics.join(', ')}.`
-      : '';
+  const giris = contextLine(dateIso, konu, activities, isMain);
 
-  return `Bugün (${tarih}) çalıştığım konu: ${konu}.${aktiviteSatiri}${ilgiliSatiri}
+  return `${giris}
 
 Bu konuyu özetleyen, renkli ve görsel olarak zengin bir İNFOGRAFİK GÖRSELİ oluştur (bir resim üret, düz metin değil). Görsel şu özelliklere sahip olsun:
 

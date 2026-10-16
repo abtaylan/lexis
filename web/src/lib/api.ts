@@ -737,36 +737,51 @@ export const studyNotesApi = {
     const res = await api.get<StudyDayDetail>(`/study-notes/${date}`);
     return res.data;
   },
+  // 16 Ekim 2026, İKİNCİ kullanıcı isteği -- her kaynak (gemini/notebooklm/
+  // manual) artık GÜN değil, KONU başına kaydediliyor (bkz. backend
+  // study_notes.py / migration 090_study_notes_topic_slug.sql).
   saveNote: async (
     date: string,
     source: StudyNoteSource,
+    topicSlug: string,
     content: string,
     topicTitle?: string | null
   ): Promise<StudyNote> => {
     const res = await api.post<StudyNote>('/study-notes', {
       date,
       source,
+      topic_slug: topicSlug,
       content,
       topic_title: topicTitle || undefined,
     });
     return res.data;
   },
-  deleteNote: async (date: string, source: StudyNoteSource): Promise<void> => {
-    await api.delete(`/study-notes/${date}/${source}`);
+  deleteNote: async (date: string, source: StudyNoteSource, topicSlug: string): Promise<void> => {
+    await api.delete(`/study-notes/${date}/${source}/${topicSlug}`);
   },
   // 16 Ekim 2026 kullanıcı isteği: metin özetinin yanında görsel de
   // yüklenebilsin (ör. Gemini'nin ürettiği infografik, NotebookLM zihin
   // haritası ekran görüntüsü) -- bkz. backend study_notes.py.
-  uploadImages: async (date: string, source: StudyNoteSource, files: File[]): Promise<StudyNote> => {
+  uploadImages: async (
+    date: string,
+    source: StudyNoteSource,
+    topicSlug: string,
+    files: File[]
+  ): Promise<StudyNote> => {
     const form = new FormData();
     files.forEach((f) => form.append('files', f));
-    const res = await api.post<StudyNote>(`/study-notes/${date}/${source}/images`, form, {
+    const res = await api.post<StudyNote>(`/study-notes/${date}/${source}/${topicSlug}/images`, form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
     return res.data;
   },
-  deleteImage: async (date: string, source: StudyNoteSource, imageUrl: string): Promise<void> => {
-    await api.delete(`/study-notes/${date}/${source}/images`, { params: { image_url: imageUrl } });
+  deleteImage: async (
+    date: string,
+    source: StudyNoteSource,
+    topicSlug: string,
+    imageUrl: string
+  ): Promise<void> => {
+    await api.delete(`/study-notes/${date}/${source}/${topicSlug}/images`, { params: { image_url: imageUrl } });
   },
 };
 

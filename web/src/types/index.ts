@@ -360,6 +360,9 @@ export interface StudyNote {
   user_id: string;
   date: string; // YYYY-MM-DD
   source: StudyNoteSource;
+  // 16 Ekim 2026, İKİNCİ kullanıcı isteği -- artık gün başına değil, KONU
+  // başına bir not satırı (bkz. backend migration 090_study_notes_topic_slug.sql).
+  topic_slug: string;
   topic_title: string | null;
   content: string;
   image_urls: string[];
@@ -377,18 +380,26 @@ export interface StudyDaySummary {
   week_topic_count?: number;
 }
 
+// 16 Ekim 2026, İKİNCİ kullanıcı isteği (aynı gün): "ayrı ayrı her biri için
+// link olmalı, bu kutu içinde 1-2-3-4-5 şeklinde her birinin ayrı başlığı
+// olmalı. Sonra bu başlıklara tıklayınca her biri için gemini ve notebooklm
+// özet ekleme ekranı çıkacak" -- gün detayı artık tek bir "topic_title" +
+// yan not listesi değil, o günün TÜM konularını (ana + ilgili, her biri
+// kendi Gemini/NotebookLM/manuel notlarıyla) bir dizi olarak dönüyor.
+export interface StudyDayTopic {
+  slug: string;
+  title: string | null;
+  topic_number: number | null;
+  link_url: string | null;
+  is_main: boolean;
+  notes: StudyNote[];
+}
+
 export interface StudyDayDetail {
   date: string; // YYYY-MM-DD
-  topic_title: string | null;
   activities: string[];
-  notes: StudyNote[];
-  // 16 Ekim 2026, kullanıcı isteği -- "tek konu mu, yoksa diğerlerine de
-  // çalışmak gerekiyor mu? ... Çalışma Notlarım'da bunlar için bir başlık
-  // açılmalı": o haftaya bağlı GERÇEK ek konular (ana konunun numarası +
-  // bu haftaya bağlı toplam konu sayısıyla birlikte).
-  topic_number?: number | null;
-  related_topics?: RelatedTopic[];
   week_topic_count?: number;
+  topics: StudyDayTopic[];
 }
 
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı (YDS/YÖKDİL/

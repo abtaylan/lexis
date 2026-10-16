@@ -17,15 +17,31 @@ Supabase Storage bucket'ina backend'in service role anahtariyla
 yukleniyor, URL'leri study_notes.image_urls dizisinde saklaniyor (bkz.
 migration 088_study_notes_images.sql).
 
+16 Ekim 2026, IKINCI kullanici istegi (ayni gun, Program Haritasi
+numaralandirmasindan hemen sonra): bir gunun GERCEK mufredati 1 ana +
+genelde birden fazla "ilgili" Gramer Rehberi konusundan olusuyor (bkz.
+schedule.py ROADMAP_KEYS/topic_slugs). Su ana kadar Gemini/NotebookLM
+prompt'u VE kaydedilen ozet/gorseller sadece GUNE baglanmisti (tek bir
+"gunluk" not satiri, sadece ana konuyu temsil ediyordu) -- kullanici artik
+HER KONU icin AYRI bir prompt + ayri kaydedilen ozet/gorsel seti istiyor
+("ayri ayri her biri icin link olmali, bu kutu icinde 1-2-3-4-5 seklinde
+her birinin ayri basligi olmali, tiklayinca her biri icin gemini ve
+notebooklm ozet ekleme ekrani cikacak"). Bu yuzden study_notes artik
+(user_id, date, source, topic_slug) benzersizligiyle saklaniyor (bkz.
+migration 090_study_notes_topic_slug.sql) -- GET /study-notes/{date} artik
+tek bir "topic_title" degil, o gunun TUM konularini (ana + ilgili, her biri
+kendi notes listesiyle) bir "topics" dizisi olarak donduruyor.
+
 Bu dosya kasitli olarak NotebookLM/Gemini ile canli bir API entegrasyonu
 YAPMIYOR -- ikisinin de bu is icin genel kullanima acik, ucretsiz bir API'si
 yok (kullanici onceden soru uretimi icin odemeli bir LLM API'sini iptal
 etmisti, ayni maliyete tekrar girmek istemiyor). Bunun yerine prompt metni
 frontend'de (web/src/lib/studyNotesPrompts.ts) uretiliyor, bu dosya sadece
-"hangi tarihte hangi konu calisildi" baglamini ve kullanicinin yapistirdigi
-notlari / yukledigi gorselleri saklamayi saglıyor.
+"hangi tarihte hangi konu(lar) calisildi" baglamini ve kullanicinin her
+konu icin yapistirdigi notlari / yukledigi gorselleri saklamayi sagliyor.
 
-Bkz. migration 087_study_notes.sql, 088_study_notes_images.sql.
+Bkz. migration 087_study_notes.sql, 088_study_notes_images.sql,
+090_study_notes_topic_slug.sql.
 """
 
 import uuid
@@ -44,6 +60,12 @@ router = APIRouter()
 
 NoteSource = Literal["gemini", "notebooklm", "manual"]
 
+# Gercek bir Gramer Rehberi konusuna baglanmayan "genel program" gunleri
+# icin sabit yer tutucu slug (ornegin sadece kelime tekrari/dinleme gibi
+# aktivitelerin oldugu gunler) -- study_notes.topic_slug NOT NULL oldugu
+# icin bu gunlerde de bir deger gerekiyor.
+GENERAL_TOPIC_SLUG = "genel"
+
 # Gorsel yukleme (16 Ekim 2026) -- bkz. migration 088_study_notes_images.sql
 # (public storage bucket, RLS gerekmiyor cunku yazma/silme sadece service
 # role anahtariyla backend uzerinden yapiliyor).
@@ -54,24 +76,30 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8 MB
 
 def _topic_context_for_date(date_iso: str, weeks: list[dict], number_map: dict[str, int] | None = None) -> dict:
     """Verilen tarihin dustugu Program Haritasi haftasini bulup o gunun ana
-    konu basligini + o gun icin planlanmis aktivitelerin (temizlenmis,
-    "+N konu daha" icermeyen) listesini dondurur. Tarih hicbir haftaya
-    denk gelmiyorsa (program henuz kurulmamis/bos) ikisi de bos doner --
-    frontend bu durumda genel bir baslik gosterir.
+    konu basligi + slug'ini, o haftaya bagli ilgili konulari ve o gun icin
+    planlanmis aktivitelerin (temizlenmis, "+N konu daha" icermeyen)
+    listesini dondurur. Tarih hicbir haftaya denk gelmiyorsa (program henuz
+    kurulmamis/bos) hepsi bos doner -- frontend bu durumda genel bir baslik
+    gosterir.
 
     16 Ekim 2026, kullanici sorusu ("tek konu mu calismam gerekiyor, yoksa
     diğerlerine de mi?"): bir haftaya Gramer Rehberi'nden 1 ana + genelde
     birden fazla "ilgili" konu bagli (bkz. schedule.py ROADMAP_KEYS/
     topic_slugs) -- bunlarin HEPSI gercek mufredat konusu, sadece referans
-    linki degil. Bu yuzden artik related_topics (kendi GLOBAL numarasi +
-    basligi + linkiyle) de donuyor, Calisma Notlarim o haftanin TUM
-    konularini acik bir baslik altinda gosterebilsin."""
+    linki degil."""
     week = next(
         (w for w in weeks if w.get("start_date") and w.get("end_date") and w["start_date"] <= date_iso <= w["end_date"]),
         None,
     )
     if not week:
-        return {"topic_title": None, "activities": [], "topic_number": None, "related_topics": [], "week_topic_count": 0}
+        return {
+            "topic_title": None,
+            "main_slug": None,
+            "activities": [],
+            "topic_number": None,
+            "related_topics": [],
+            "week_topic_count": 0,
+        }
 
     number_map = number_map or {}
     titles = (week.get("topic_title_tr") or "").split(" • ") if week.get("topic_title_tr") else []
@@ -95,11 +123,66 @@ def _topic_context_for_date(date_iso: str, weeks: list[dict], number_map: dict[s
 
     return {
         "topic_title": topic_title,
+        "main_slug": main_slug,
         "activities": activities,
         "topic_number": number_map.get(main_slug) if main_slug else None,
         "related_topics": related_topics,
         "week_topic_count": len(week.get("topic_slugs") or []) or (1 if main_slug else 0),
     }
+
+
+def _topics_for_date(date_iso: str, weeks: list[dict], number_map: dict[str, int], notes: list[dict]) -> tuple[dict, list[dict]]:
+    """_topic_context_for_date()'in sonucunu, o gun icin kaydedilmis TUM
+    notlarla birlestirip frontend'in dogrudan render edebilecegi bir
+    "topics" listesine cevirir -- her oge kendi slug/title/topic_number/
+    link_url + sadece o konuya ait notes listesine sahip. Ana konu her
+    zaman ilk sirada (is_main=True)."""
+    ctx = _topic_context_for_date(date_iso, weeks, number_map)
+
+    notes_by_slug: dict[str, list[dict]] = {}
+    for n in notes:
+        notes_by_slug.setdefault(n.get("topic_slug") or GENERAL_TOPIC_SLUG, []).append(n)
+
+    topics: list[dict] = []
+    if ctx["topic_title"] and ctx["main_slug"]:
+        topics.append(
+            {
+                "slug": ctx["main_slug"],
+                "title": ctx["topic_title"],
+                "topic_number": ctx["topic_number"],
+                "link_url": f"/exam-grammar/{ctx['main_slug']}",
+                "is_main": True,
+                "notes": notes_by_slug.get(ctx["main_slug"], []),
+            }
+        )
+    elif ctx["activities"]:
+        # Gercek bir Gramer Rehberi konusuna baglanmayan "genel program"
+        # gunu -- yine de kullanicinin o gun icin bir ozet/not kaydedebilmesi
+        # icin sabit bir yer tutucu "konu" olarak gosteriliyor.
+        topics.append(
+            {
+                "slug": GENERAL_TOPIC_SLUG,
+                "title": None,
+                "topic_number": None,
+                "link_url": None,
+                "is_main": True,
+                "notes": notes_by_slug.get(GENERAL_TOPIC_SLUG, []),
+            }
+        )
+
+    for rt in ctx["related_topics"]:
+        topics.append(
+            {
+                "slug": rt["slug"],
+                "title": rt["title"],
+                "topic_number": rt.get("topic_number"),
+                "link_url": rt.get("link_url"),
+                "is_main": False,
+                "notes": notes_by_slug.get(rt["slug"], []),
+            }
+        )
+
+    return ctx, topics
 
 
 def _load_weeks(user_id: str) -> list[dict]:
@@ -126,7 +209,10 @@ def _extract_storage_path(public_url: str) -> str | None:
 @router.get("")
 async def list_study_days(current_user=Depends(get_current_user)):
     """Calisma Notlarim ana sayfasi -- "Yapildi" isaretlenmis her tarih icin
-    kisa bir ozet kart (tarih, konu basligi, o gune ait not kaynaklari)."""
+    kisa bir ozet kart (tarih, ana konu basligi, o gune ait TUM konulardan
+    herhangi birinde not bulunan kaynaklar). Gun bazli ozet kaldigi icin
+    (konu bazli degil) burada bir degisiklik gerekmiyor -- tiklanince acilan
+    gun detayinda (get_study_day) artik her konu ayri gosteriliyor."""
     completions = (
         supabase_admin.table("schedule_day_completions")
         .select("date")
@@ -151,7 +237,9 @@ async def list_study_days(current_user=Depends(get_current_user)):
     ).data or []
     notes_by_date: dict[str, list[str]] = {}
     for n in notes:
-        notes_by_date.setdefault(n["date"], []).append(n["source"])
+        sources = notes_by_date.setdefault(n["date"], [])
+        if n["source"] not in sources:
+            sources.append(n["source"])
 
     days = []
     for d in done_dates:
@@ -174,7 +262,6 @@ async def list_study_days(current_user=Depends(get_current_user)):
 async def get_study_day(date: str, current_user=Depends(get_current_user)):
     weeks = _load_weeks(current_user.id)
     number_map = _topic_number_map(_get_learning_lang(current_user.id))
-    ctx = _topic_context_for_date(date, weeks, number_map)
     notes = (
         supabase_admin.table("study_notes")
         .select("*")
@@ -182,22 +269,29 @@ async def get_study_day(date: str, current_user=Depends(get_current_user)):
         .eq("date", date)
         .execute()
     ).data or []
+    ctx, topics = _topics_for_date(date, weeks, number_map, notes)
     return {
         "date": date,
-        "topic_title": ctx["topic_title"],
         "activities": ctx["activities"],
-        "notes": notes,
-        "topic_number": ctx["topic_number"],
-        "related_topics": ctx["related_topics"],
         "week_topic_count": ctx["week_topic_count"],
+        "topics": topics,
     }
 
 
 class StudyNoteUpsert(BaseModel):
     date: str  # YYYY-MM-DD
     source: NoteSource
+    topic_slug: str
     content: str
     topic_title: str | None = None
+
+    @field_validator("topic_slug")
+    @classmethod
+    def _topic_slug_not_blank(cls, v: str) -> str:
+        v = (v or "").strip()
+        if not v:
+            raise ValueError("topic_slug gerekli.")
+        return v[:200]
 
     @field_validator("content")
     @classmethod
@@ -214,6 +308,7 @@ async def upsert_study_note(data: StudyNoteUpsert, current_user=Depends(get_curr
         "user_id": current_user.id,
         "date": data.date,
         "source": data.source,
+        "topic_slug": data.topic_slug,
         "topic_title": (data.topic_title or "").strip()[:200] or None,
         "content": data.content,
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -221,7 +316,7 @@ async def upsert_study_note(data: StudyNoteUpsert, current_user=Depends(get_curr
     try:
         result = (
             supabase_admin.table("study_notes")
-            .upsert(payload, on_conflict="user_id,date,source")
+            .upsert(payload, on_conflict="user_id,date,source,topic_slug")
             .execute()
         )
         return result.data[0] if result.data else payload
@@ -230,22 +325,23 @@ async def upsert_study_note(data: StudyNoteUpsert, current_user=Depends(get_curr
         raise HTTPException(status_code=500, detail="Not kaydedilemedi.")
 
 
-@router.delete("/{date}/{source}", status_code=204)
-async def delete_study_note(date: str, source: NoteSource, current_user=Depends(get_current_user)):
-    supabase_admin.table("study_notes").delete().eq("user_id", current_user.id).eq(
-        "date", date
-    ).eq("source", source).execute()
+@router.delete("/{date}/{source}/{topic_slug}", status_code=204)
+async def delete_study_note(date: str, source: NoteSource, topic_slug: str, current_user=Depends(get_current_user)):
+    supabase_admin.table("study_notes").delete().eq("user_id", current_user.id).eq("date", date).eq(
+        "source", source
+    ).eq("topic_slug", topic_slug).execute()
 
 
-@router.post("/{date}/{source}/images", status_code=201)
+@router.post("/{date}/{source}/{topic_slug}/images", status_code=201)
 async def upload_study_note_images(
     date: str,
     source: NoteSource,
+    topic_slug: str,
     files: list[UploadFile] = File(...),
     current_user=Depends(get_current_user),
 ):
-    """Bir gun + kaynak icin bir ya da daha fazla gorsel yukler (ornegin
-    Gemini'nin urettigi infografik, NotebookLM zihin haritasi ekran
+    """Bir gun + kaynak + konu icin bir ya da daha fazla gorsel yukler
+    (ornegin Gemini'nin urettigi infografik, NotebookLM zihin haritasi ekran
     goruntusu) ve study_notes satirina ekler. Metin ozeti henuz girilmemis
     olsa bile tek basina kaydedilebilir (content '' ile baslar)."""
     if not files:
@@ -262,7 +358,7 @@ async def upload_study_note_images(
         if len(data) > MAX_IMAGE_BYTES:
             raise HTTPException(status_code=400, detail=f"'{f.filename}' 8MB sınırını aşıyor.")
         ext = (f.filename or "").rsplit(".", 1)[-1].lower() if f.filename and "." in f.filename else "png"
-        path = f"{current_user.id}/{date}/{source}/{uuid.uuid4().hex}.{ext}"
+        path = f"{current_user.id}/{date}/{source}/{topic_slug}/{uuid.uuid4().hex}.{ext}"
         try:
             supabase_admin.storage.from_(STUDY_NOTES_IMAGE_BUCKET).upload(
                 path, data, {"content-type": content_type}
@@ -278,6 +374,7 @@ async def upload_study_note_images(
         .eq("user_id", current_user.id)
         .eq("date", date)
         .eq("source", source)
+        .eq("topic_slug", topic_slug)
         .execute()
     ).data
     existing_row = existing[0] if existing else None
@@ -287,6 +384,7 @@ async def upload_study_note_images(
         "user_id": current_user.id,
         "date": date,
         "source": source,
+        "topic_slug": topic_slug,
         "content": (existing_row.get("content") if existing_row else None) or "",
         "topic_title": existing_row.get("topic_title") if existing_row else None,
         "image_urls": merged_images,
@@ -295,7 +393,7 @@ async def upload_study_note_images(
     try:
         result = (
             supabase_admin.table("study_notes")
-            .upsert(payload, on_conflict="user_id,date,source")
+            .upsert(payload, on_conflict="user_id,date,source,topic_slug")
             .execute()
         )
         return result.data[0] if result.data else payload
@@ -304,10 +402,11 @@ async def upload_study_note_images(
         raise HTTPException(status_code=500, detail="Görsel kaydedilemedi.")
 
 
-@router.delete("/{date}/{source}/images", status_code=200)
+@router.delete("/{date}/{source}/{topic_slug}/images", status_code=200)
 async def delete_study_note_image(
     date: str,
     source: NoteSource,
+    topic_slug: str,
     image_url: str,
     current_user=Depends(get_current_user),
 ):
@@ -317,6 +416,7 @@ async def delete_study_note_image(
         .eq("user_id", current_user.id)
         .eq("date", date)
         .eq("source", source)
+        .eq("topic_slug", topic_slug)
         .execute()
     ).data
     if not existing:
@@ -337,6 +437,7 @@ async def delete_study_note_image(
         .eq("user_id", current_user.id)
         .eq("date", date)
         .eq("source", source)
+        .eq("topic_slug", topic_slug)
         .execute()
     )
     return result.data[0] if result.data else {"image_urls": remaining}
