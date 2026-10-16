@@ -116,8 +116,24 @@ export default function StudyNotesScreen() {
                   >
                     {day.topic_number ? `${day.topic_number}. ` : ''}
                     {day.topic_title || day.activities[0] || 'Genel Çalışma Programı'}
-                    {day.related_topics && day.related_topics.length > 0 ? `  +${day.related_topics.length} konu` : ''}
                   </Text>
+                  {/* 16 Ekim 2026, kullanıcı isteği: "+4 konu" rozeti yerine
+                      o güne bağlı diğer konuların başlıkları tek tek
+                      yazılsın (web ile aynı davranış). */}
+                  {day.related_topics && day.related_topics.length > 0 && (
+                    <View style={{ marginTop: 2, gap: 1 }}>
+                      {day.related_topics.map((rt) => (
+                        <Text
+                          key={rt.slug}
+                          style={{ fontSize: 11, color: c.textMuted }}
+                          numberOfLines={1}
+                        >
+                          {rt.topic_number ? `${rt.topic_number}. ` : ''}
+                          {rt.title}
+                        </Text>
+                      ))}
+                    </View>
+                  )}
                   {day.note_sources.length > 0 && (
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: spacing.xs }}>
                       {day.note_sources.map((s) => (

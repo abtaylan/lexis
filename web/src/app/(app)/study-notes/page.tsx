@@ -83,12 +83,19 @@ export default function StudyNotesPage() {
                 <p className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate mt-0.5">
                   {day.topic_number ? `${day.topic_number}. ` : ''}
                   {day.topic_title || day.activities[0] || 'Genel Çalışma Programı'}
-                  {day.related_topics && day.related_topics.length > 0 && (
-                    <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FFF3D6] text-[#8A5A00] align-middle">
-                      +{day.related_topics.length} konu
-                    </span>
-                  )}
                 </p>
+                {/* 16 Ekim 2026, kullanıcı isteği: "+4 konu" rozeti yerine o
+                    güne bağlı diğer konuların başlıkları tek tek yazılsın. */}
+                {day.related_topics && day.related_topics.length > 0 && (
+                  <div className="mt-1 space-y-0.5">
+                    {day.related_topics.map((rt) => (
+                      <p key={rt.slug} className="text-xs text-gray-500 dark:text-slate-400 truncate">
+                        {rt.topic_number ? `${rt.topic_number}. ` : ''}
+                        {rt.title}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 {day.note_sources.length > 0 && (
                   <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                     {day.note_sources.map((s) => (
