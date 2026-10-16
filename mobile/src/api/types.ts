@@ -889,6 +889,19 @@ export interface ExamQuestionSuggestionResult {
   xp_awarded: number;
 }
 
+// "Hata bildirimi" butonu — 16 Ekim 2026 (bkz. backend exams.py::report_question)
+export type QuestionReportReason = 'wrong_answer' | 'typo_unclear' | 'other';
+
+export interface QuestionReportInput {
+  reason: QuestionReportReason;
+  details?: string;
+}
+
+export interface QuestionReportResult {
+  id: string;
+  status: string;
+}
+
 export interface GrammarExampleSentence {
   en: string;
   tr?: string | null;

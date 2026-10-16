@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Link, router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, CheckCircle2, Clock, Plus, XCircle } from 'lucide-react-native';
+import { BookOpen, CheckCircle2, Clock, Flag, Plus, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { examsApi } from '@/api/exams';
 import type {
@@ -24,6 +24,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ReportQuestionModal } from '@/components/ReportQuestionModal';
 
 type Stage = 'loading' | 'disabled' | 'select-type' | 'select-mode' | 'playing' | 'result' | 'error';
 
@@ -54,6 +55,8 @@ export default function ExamPrepScreen() {
   const [session, setSession] = useState<ExamSession | null>(null);
   const [question, setQuestion] = useState<NextQuestionResult | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
+  // "Hata bildirimi" butonu -- 16 Ekim 2026
+  const [reportModalOpen, setReportModalOpen] = useState(false);
   const [attemptResult, setAttemptResult] = useState<ExamAttemptResult | null>(null);
   const [finishResult, setFinishResult] = useState<ExamFinishResult | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -348,6 +351,14 @@ export default function ExamPrepScreen() {
               <Text style={[styles.bodyText, { color: c.text }]}>{question.question_text}</Text>
             </Card>
 
+            <Pressable
+              onPress={() => setReportModalOpen(true)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: spacing.xs }}
+            >
+              <Flag color={c.textMuted} size={13} />
+              <Text style={{ color: c.textMuted, fontSize: 12 }}>{et.reportQuestionBtn}</Text>
+            </Pressable>
+
             <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
               {question.options?.map((opt) => {
                 const isSelected = selectedOption === opt.id;
@@ -457,6 +468,12 @@ export default function ExamPrepScreen() {
             )}
           </>
         )}
+
+        <ReportQuestionModal
+          visible={reportModalOpen}
+          questionId={question?.question_id}
+          onClose={() => setReportModalOpen(false)}
+        />
       </ScreenContainer>
     );
   }

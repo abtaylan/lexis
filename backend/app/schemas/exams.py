@@ -195,6 +195,72 @@ class ExamQuestionModerationResponse(BaseModel):
 
 
 
+# ── "Hata bildirimi" butonu — kullanıcı soruyu hatalı bulduğunu bildirir,
+# admin inceleyip düzeltir ve exam_questions satırını YERİNDE güncelleyerek
+# (aynı id, status=approved kalır) yeniden yayınlar. 16 Ekim 2026 — kullanıcı
+# talebi: "biz çözüldü diyoruz ama başka biri sorun devam ediyor diyor...
+# Hata bildirimi butonu işini de yap... bildirim yapılan soruları inceleyip
+# doğru halini yeniden yayınla." social.py::report_user (reports tablosu,
+# 018_reports.sql) ile aynı reporter/reason/details/status deseni, ama
+# hedef bir kullanıcı değil bir exam_questions satırı (question_reports
+# tablosu, bkz. supabase/migrations/089_question_reports.sql).
+
+
+class QuestionReportReason(str, Enum):
+    wrong_answer = "wrong_answer"
+    typo_unclear = "typo_unclear"
+    other = "other"
+
+
+class QuestionReportCreate(BaseModel):
+    reason: QuestionReportReason
+    details: str | None = Field(default=None, max_length=1000)
+
+
+class QuestionReportCreateResponse(BaseModel):
+    id: str
+    status: str
+
+
+class QuestionReportItem(BaseModel):
+    """Admin inceleme kuyruğunda listelenen bildirim — bildirilen sorunun
+    GÜNCEL (canlı) içeriğiyle birlikte döner, admin burada düzenler."""
+
+    id: str
+    question_id: str
+    reason: str
+    details: str | None = None
+    status: str
+    admin_note: str | None = None
+    reporter_email: str | None = None
+    created_at: datetime
+    # Aynı soruya birden fazla bekleyen bildirim gelmiş olabilir — "bir
+    # kullanıcı çözüldü dedi, başka biri hâlâ sorun var dedi" senaryosu
+    # tam olarak bu; admin'in bunu görmesi önemli.
+    report_count: int = 1
+    exam_type: str
+    question_text: str
+    options: list[ExamQuestionOption]
+    correct_option: str
+    explanation: str | None = None
+    topic_tag: str | None = None
+
+
+class QuestionReportResolveRequest(BaseModel):
+    action: str  # "fix" | "reject"
+    admin_note: str | None = Field(default=None, max_length=1000)
+    question_text: str | None = Field(default=None, max_length=2000)
+    options: list[ExamQuestionOption] | None = Field(default=None, min_length=2, max_length=6)
+    correct_option: str | None = None
+    explanation: str | None = Field(default=None, max_length=2000)
+    topic_tag: str | None = Field(default=None, max_length=100)
+
+
+class QuestionReportResolveResponse(BaseModel):
+    id: str
+    status: str
+
+
 # ── İstatistik & İçerik Motoru Faz 2b: AI ile soru üretimi (admin) ─────
 
 

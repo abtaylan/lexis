@@ -52,6 +52,9 @@ import type {
   ExamQuestionModerationResult,
   AIQuestionGenerateInput,
   AIQuestionGenerateResult,
+  QuestionReportItem,
+  QuestionReportResolveInput,
+  QuestionReportResolveResult,
   ContentAccuracySummary,
   QuestionAccuracyResponse,
   WordAccuracyResponse,
@@ -1063,6 +1066,16 @@ export const adminApi = {
   },
   generateAiExamQuestions: async (data: AIQuestionGenerateInput): Promise<AIQuestionGenerateResult> => {
     const res = await api.post<AIQuestionGenerateResult>('/exams/admin/questions/generate-ai', data);
+    return res.data;
+  },
+
+  // "Hata bildirimi" butonu -- 16 Ekim 2026 (bkz. backend exams.py)
+  getQuestionReports: async (status = 'pending'): Promise<QuestionReportItem[]> => {
+    const res = await api.get<QuestionReportItem[]>('/exams/admin/question-reports', { params: { status } });
+    return res.data;
+  },
+  resolveQuestionReport: async (id: string, data: QuestionReportResolveInput): Promise<QuestionReportResolveResult> => {
+    const res = await api.post<QuestionReportResolveResult>(`/exams/admin/question-reports/${id}/resolve`, data);
     return res.data;
   },
   getSocialPosts: async (limit = 30): Promise<{ posts: SocialPost[]; last_cron_run: { started_at: string; status: string } | null; mode: string }> => {

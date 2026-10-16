@@ -7,6 +7,8 @@ import type {
   ExamPracticeQuestionsResult,
   ExamQuestionSuggestionInput,
   ExamQuestionSuggestionResult,
+  QuestionReportInput,
+  QuestionReportResult,
   ExamSession,
   ExamSessionMode,
   ExamType,
@@ -51,6 +53,11 @@ export const examsApi = {
   // Sınav Hazırlık İstatistik & İçerik Motoru Faz 2 — kullanıcı soru önerisi.
   suggestQuestion: async (data: ExamQuestionSuggestionInput): Promise<ExamQuestionSuggestionResult> => {
     const res = await api.post<ExamQuestionSuggestionResult>('/exams/questions/suggest', data);
+    return res.data;
+  },
+  // "Hata bildirimi" butonu — 16 Ekim 2026 (bkz. backend exams.py::report_question)
+  reportQuestion: async (questionId: string, data: QuestionReportInput): Promise<QuestionReportResult> => {
+    const res = await api.post<QuestionReportResult>(`/exams/questions/${questionId}/report`, data);
     return res.data;
   },
   // Madde #3b — yanlış cevaptan sonra aynı konudan ekstra pratik soru seti.

@@ -11,7 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, XCircle } from 'lucide-react-native';
+import { CheckCircle2, Flag, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { examsApi } from '@/api/exams';
 import { studyProgramApi } from '@/api/studyProgram';
@@ -22,6 +22,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ReportQuestionModal } from '@/components/ReportQuestionModal';
 
 const WEEKLY_QUIZ_TAG = 'weekly-quiz';
 
@@ -57,6 +58,8 @@ export default function ExamTopicPracticeScreen() {
   const [index, setIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
+  // "Hata bildirimi" butonu -- 16 Ekim 2026
+  const [reportModalOpen, setReportModalOpen] = useState(false);
 
   useEffect(() => {
     setIndex(0);
@@ -120,6 +123,14 @@ export default function ExamTopicPracticeScreen() {
             <Text style={[styles.bodyText, { color: c.text }]}>{current.question_text}</Text>
           </Card>
 
+          <Pressable
+            onPress={() => setReportModalOpen(true)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-end', marginTop: spacing.xs }}
+          >
+            <Flag color={c.textMuted} size={13} />
+            <Text style={{ color: c.textMuted, fontSize: 12 }}>{et.reportQuestionBtn}</Text>
+          </Pressable>
+
           <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
             {current.options.map((opt) => {
               const isSelected = selectedOption === opt.id;
@@ -158,6 +169,12 @@ export default function ExamTopicPracticeScreen() {
           )}
         </>
       )}
+
+      <ReportQuestionModal
+        visible={reportModalOpen}
+        questionId={current?.id}
+        onClose={() => setReportModalOpen(false)}
+      />
     </ScreenContainer>
   );
 }

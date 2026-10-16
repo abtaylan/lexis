@@ -62,6 +62,18 @@ export type ExamStrings = {
   suggestSuccessBody: string;
   suggestXpAwardedTpl: string;
   suggestAnotherBtn: string;
+  // "Hata bildirimi" butonu -- 16 Ekim 2026 (bkz. backend exams.py::report_question)
+  reportQuestionBtn: string;
+  reportModalTitle: string;
+  reportReasonWrongAnswer: string;
+  reportReasonTypoUnclear: string;
+  reportReasonOther: string;
+  reportDetailsLabel: string;
+  reportDetailsPlaceholder: string;
+  reportSubmitBtn: string;
+  reportCancelBtn: string;
+  reportSuccessMsg: string;
+  reportValidationError: string;
   grammarEntryLabel: string;
   grammarListTitle: string;
   grammarListSubtitle: string;
@@ -152,6 +164,17 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     suggestSuccessBody: 'Sorun onay kuyruğuna eklendi. Onaylandığında havuza eklenip diğer kullanıcılarla paylaşılacak.',
     suggestXpAwardedTpl: '+{xp} XP kazandın — onaylanınca ek XP de eklenecek.',
     suggestAnotherBtn: 'Başka Soru Öner',
+    reportQuestionBtn: 'Soruyu Bildir',
+    reportModalTitle: 'Bu Soruyu Bildir',
+    reportReasonWrongAnswer: 'Doğru cevap yanlış işaretli',
+    reportReasonTypoUnclear: 'Yazım hatası / anlaşılmıyor',
+    reportReasonOther: 'Diğer',
+    reportDetailsLabel: 'Açıklama (opsiyonel)',
+    reportDetailsPlaceholder: 'Sorunu kısaca anlat (opsiyonel)',
+    reportSubmitBtn: 'Bildir',
+    reportCancelBtn: 'Vazgeç',
+    reportSuccessMsg: 'Teşekkürler, bildirimin ekibimize iletildi.',
+    reportValidationError: 'Lütfen bir sebep seç.',
     grammarEntryLabel: 'Gramer Rehberi',
     grammarListTitle: 'Gramer Rehberi',
     grammarListSubtitle: 'YDS/YÖKDİL sınavlarında en sık çıkan konular — kural, örnek ve Türkçe konuşanlara özgü hatalar.',
@@ -234,6 +257,17 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     suggestSuccessBody: 'Your question was added to the review queue. Once approved, it will join the pool and be shared with other users.',
     suggestXpAwardedTpl: '+{xp} XP earned — you will get bonus XP once it is approved.',
     suggestAnotherBtn: 'Suggest Another',
+    reportQuestionBtn: 'Report Question',
+    reportModalTitle: 'Report This Question',
+    reportReasonWrongAnswer: 'Correct answer is marked wrong',
+    reportReasonTypoUnclear: 'Typo / unclear',
+    reportReasonOther: 'Other',
+    reportDetailsLabel: 'Details (optional)',
+    reportDetailsPlaceholder: 'Briefly describe the issue (optional)',
+    reportSubmitBtn: 'Report',
+    reportCancelBtn: 'Cancel',
+    reportSuccessMsg: 'Thanks, your report has been sent to our team.',
+    reportValidationError: 'Please select a reason.',
     grammarEntryLabel: 'Grammar Guide',
     grammarListTitle: 'Grammar Guide',
     grammarListSubtitle: 'The most common topics in YDS/YÖKDİL exams — rules, examples, and mistakes specific to Turkish speakers.',

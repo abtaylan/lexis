@@ -59,6 +59,11 @@ from app.schemas.exams import (
     NextQuestionResponse,
     PendingExamQuestion,
     PlacementStatusResponse,
+    QuestionReportCreate,
+    QuestionReportCreateResponse,
+    QuestionReportItem,
+    QuestionReportResolveRequest,
+    QuestionReportResolveResponse,
     RelatedGrammarTopic,
     TopicPracticeAttemptCreate,
     WeakTopicItem,
@@ -1344,6 +1349,171 @@ async def reject_question(question_id: str, admin=Depends(get_current_admin_full
         raise HTTPException(status_code=404, detail="Soru bulunamadı.")
     log_admin_action(admin.id, admin.email, "exam_question.reject", "exam_question", question_id)
     return ExamQuestionModerationResponse(id=question_id, status="rejected")
+
+
+# ── "Hata bildirimi" butonu — kullanıcı soruyu hatalı bulduğunu bildirir,
+# admin inceleyip exam_questions satırını YERİNDE düzeltip (aynı id,
+# status=approved kalır) yeniden yayınlar. 16 Ekim 2026 — kullanıcı talebi:
+# "biz çözüldü diyoruz ama başka biri sorun devam ediyor diyor... Hata
+# bildirimi butonu işini de yap... bildirim yapılan soruları inceleyip
+# doğru halini yeniden yayınla." social.py::report_user'daki (reports
+# tablosu) reporter/reason/details/status desenini izler — question_reports
+# tablosu (bkz. supabase/migrations/089_question_reports.sql).
+
+
+@router.post("/questions/{question_id}/report", response_model=QuestionReportCreateResponse, status_code=201)
+async def report_question(
+    question_id: str, payload: QuestionReportCreate, current_user=Depends(get_current_user)
+):
+    existing = supabase_admin.table("exam_questions").select("id").eq("id", question_id).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Soru bulunamadı.")
+
+    row = {
+        "question_id": question_id,
+        "reporter_id": current_user.id,
+        "reason": payload.reason.value,
+        "details": payload.details,
+        "status": "pending",
+    }
+    result = supabase_admin.table("question_reports").insert(row).execute()
+    if not result.data:
+        raise HTTPException(status_code=500, detail="Bildirim kaydedilemedi.")
+    created = result.data[0]
+    return QuestionReportCreateResponse(id=created["id"], status=created["status"])
+
+
+@router.get("/admin/question-reports", response_model=list[QuestionReportItem])
+async def list_question_reports(status: str = "pending", admin=Depends(get_current_admin)):
+    reports_result = (
+        supabase_admin.table("question_reports")
+        .select("*")
+        .eq("status", status)
+        .order("created_at", desc=False)
+        .execute()
+    )
+    reports = reports_result.data or []
+    if not reports:
+        return []
+
+    question_ids = list({r["question_id"] for r in reports})
+    questions_result = supabase_admin.table("exam_questions").select("*").in_("id", question_ids).execute()
+    question_by_id = {q["id"]: q for q in (questions_result.data or [])}
+
+    email_map: dict[str, str] = {}
+    reporter_ids = {r["reporter_id"] for r in reports if r.get("reporter_id")}
+    if reporter_ids:
+        try:
+            users = list_all_auth_users()
+            for u in users:
+                if u.id in reporter_ids:
+                    email_map[u.id] = u.email
+        except Exception as e:
+            print(f"LIST_QUESTION_REPORTS email map warning: {e}")
+
+    # Aynı soruya birden fazla bekleyen bildirim gelmiş olabilir — "bir
+    # kullanıcı çözüldü dedi, başka biri hâlâ sorun var dedi" senaryosu tam
+    # olarak bu; admin'in bunu görmesi önemli.
+    count_by_question: dict[str, int] = {}
+    for r in reports:
+        count_by_question[r["question_id"]] = count_by_question.get(r["question_id"], 0) + 1
+
+    items: list[QuestionReportItem] = []
+    for r in reports:
+        q = question_by_id.get(r["question_id"])
+        if not q:
+            continue
+        items.append(
+            QuestionReportItem(
+                id=r["id"],
+                question_id=r["question_id"],
+                reason=r["reason"],
+                details=r.get("details"),
+                status=r["status"],
+                admin_note=r.get("admin_note"),
+                reporter_email=email_map.get(r.get("reporter_id")),
+                created_at=r["created_at"],
+                report_count=count_by_question.get(r["question_id"], 1),
+                exam_type=q["exam_type"],
+                question_text=q["question_text"],
+                options=[ExamQuestionOption(**opt) for opt in q["options"]],
+                correct_option=q["correct_option"],
+                explanation=q.get("explanation"),
+                topic_tag=q.get("topic_tag"),
+            )
+        )
+    return items
+
+
+@router.post("/admin/question-reports/{report_id}/resolve", response_model=QuestionReportResolveResponse)
+async def resolve_question_report(
+    report_id: str, payload: QuestionReportResolveRequest, admin=Depends(get_current_admin_full)
+):
+    report_result = supabase_admin.table("question_reports").select("*").eq("id", report_id).execute()
+    if not report_result.data:
+        raise HTTPException(status_code=404, detail="Bildirim bulunamadı.")
+    report = report_result.data[0]
+    question_id = report["question_id"]
+
+    if payload.action not in ("fix", "reject"):
+        raise HTTPException(status_code=422, detail="action, 'fix' veya 'reject' olmalı.")
+
+    now = datetime.now(UTC).isoformat()
+
+    if payload.action == "fix":
+        question_patch: dict = {"updated_at": now}
+        if payload.question_text is not None:
+            question_patch["question_text"] = payload.question_text
+        if payload.options is not None:
+            question_patch["options"] = [opt.model_dump() for opt in payload.options]
+        if payload.explanation is not None:
+            question_patch["explanation"] = payload.explanation
+        if payload.topic_tag is not None:
+            question_patch["topic_tag"] = payload.topic_tag
+        if payload.correct_option is not None:
+            question_patch["correct_option"] = payload.correct_option
+
+        # correct_option, (güncellenmişse) güncel options listesindeki bir
+        # id ile eşleşmeli — hiçbir zaman tutarsız bir correct_option ile
+        # "yeniden yayınlanmasın".
+        if payload.options is not None and payload.correct_option is not None:
+            option_ids = {opt.id for opt in payload.options}
+            if payload.correct_option not in option_ids:
+                raise HTTPException(
+                    status_code=422, detail="correct_option, options listesindeki bir id ile eşleşmeli."
+                )
+
+        updated = (
+            supabase_admin.table("exam_questions").update(question_patch).eq("id", question_id).execute()
+        )
+        if not updated.data:
+            raise HTTPException(status_code=404, detail="Soru bulunamadı.")
+
+        # Aynı soruya ait TÜM bekleyen bildirimler artık çözüldü.
+        supabase_admin.table("question_reports").update(
+            {
+                "status": "fixed",
+                "admin_note": payload.admin_note,
+                "reviewed_by": admin.id,
+                "reviewed_at": now,
+            }
+        ).eq("question_id", question_id).eq("status", "pending").execute()
+
+        log_admin_action(admin.id, admin.email, "question_report.fix", "exam_question", question_id)
+        return QuestionReportResolveResponse(id=report_id, status="fixed")
+
+    # reject — sadece bu bildirimi reddet, soruyu DEĞİŞTİRME, diğer bekleyen
+    # bildirimleri etkileme.
+    supabase_admin.table("question_reports").update(
+        {
+            "status": "rejected",
+            "admin_note": payload.admin_note,
+            "reviewed_by": admin.id,
+            "reviewed_at": now,
+        }
+    ).eq("id", report_id).execute()
+    log_admin_action(admin.id, admin.email, "question_report.reject", "exam_question", question_id)
+    return QuestionReportResolveResponse(id=report_id, status="rejected")
 
 
 # ── İstatistik & İçerik Motoru Faz 2b: AI ile soru üretimi (admin) ────

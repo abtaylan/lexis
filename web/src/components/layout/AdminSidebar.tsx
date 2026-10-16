@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   Users, BarChart3, ArrowLeft, LogOut, ShieldCheck, Activity, CreditCard,
   BookOpen, Share2, Bell, Gamepad2, History, Smartphone, Eye, LayoutDashboard,
-  GraduationCap, FileBarChart, Building2, Menu, X,
+  GraduationCap, FileBarChart, Building2, Menu, X, Flag,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 
@@ -24,6 +24,7 @@ const adminNav = [
   { href: '/admin/payments', label: 'Ödemeler', icon: CreditCard },
   { href: '/admin/content', label: 'Kelime Havuzu', icon: BookOpen },
   { href: '/admin/exam-questions', label: 'Sınav Soruları', icon: GraduationCap },
+  { href: '/admin/question-reports', label: 'Hata Bildirimleri', icon: Flag },
   { href: '/admin/social', label: 'Sosyal Medya', icon: Share2 },
   { href: '/admin/notifications-log', label: 'Bildirim Logları', icon: Bell },
   { href: '/admin/game-analytics', label: 'Oyun Analitiği', icon: Gamepad2 },

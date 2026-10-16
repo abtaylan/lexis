@@ -578,6 +578,42 @@ export interface PendingExamQuestion {
   created_at: string;
 }
 
+// "Hata bildirimi" butonu -- 16 Ekim 2026 (bkz. backend exams.py::list_question_reports)
+export type QuestionReportReason = 'wrong_answer' | 'typo_unclear' | 'other';
+
+export interface QuestionReportItem {
+  id: string;
+  question_id: string;
+  reason: QuestionReportReason;
+  details?: string | null;
+  status: string;
+  admin_note?: string | null;
+  reporter_email?: string | null;
+  created_at: string;
+  report_count: number;
+  exam_type: ExamType;
+  question_text: string;
+  options: ExamQuestionOption[];
+  correct_option: string;
+  explanation?: string | null;
+  topic_tag?: string | null;
+}
+
+export interface QuestionReportResolveInput {
+  action: 'fix' | 'reject';
+  admin_note?: string;
+  question_text?: string;
+  options?: ExamQuestionOption[];
+  correct_option?: string;
+  explanation?: string;
+  topic_tag?: string;
+}
+
+export interface QuestionReportResolveResult {
+  id: string;
+  status: string;
+}
+
 export interface ExamQuestionModerationResult {
   id: string;
   status: string;
