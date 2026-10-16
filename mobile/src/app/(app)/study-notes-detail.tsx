@@ -11,8 +11,18 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Image, Linking, Pressable, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import * as Clipboard from 'expo-clipboard';
-import * as ImagePicker from 'expo-image-picker';
+// NOT (16 Ekim 2026, acil duzeltme): expo-clipboard ve expo-image-picker
+// STATIK import EDILMIYOR -- bu iki native modul 16 Ekim'de package.json'a
+// eklendi ama henuz bunlari iceren YENI bir native EAS Build hic store'a
+// cikmadi (sadece JS-only bir OTA update yayinlandi, bkz. eas-update.yml'in
+// path-filtre notu). Kullanicilarin telefonunda hala ESKI native binary
+// (bu modulleri HIC icermiyor) + YENI JS bundle calisiyor -- modul en
+// tepede import edilirse requireNativeModule() aninda patlayip TUM ekranin
+// (dolayisiyla uygulamanin) kapanmasina sebep oluyordu. Bunun yerine
+// modul sadece kullanici gercekten o ozelligi (gorsel sec / kopyala)
+// kullanmaya calistiginda, try/catch icinde lazy require() ediliyor --
+// boylece ekran normal acilir, sadece o iki ozellik yeni native build
+// store'a cikana kadar nazikce "guncelleme gerekiyor" mesaji gosterir.
 import { Copy, Check, ExternalLink, Save, Trash2, PenLine, ImagePlus, X } from 'lucide-react-native';
 import { studyNotesApi, type PickedImage } from '@/api/studyNotes';
 import type { StudyDayDetail, StudyNote, StudyNoteSource } from '@/api/types';
@@ -40,6 +50,17 @@ const EXTERNAL_SOURCES: { key: 'gemini' | 'notebooklm'; label: string; url: stri
 ];
 
 async function pickImages(): Promise<PickedImage[] | null> {
+  let ImagePicker: typeof import('expo-image-picker');
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- bkz. dosya basindaki NOT
+    ImagePicker = require('expo-image-picker');
+  } catch {
+    Alert.alert(
+      'Güncelleme gerekiyor',
+      'Görsel ekleme özelliği için uygulamayı App Store / Play Store\'dan güncellemen gerekiyor.'
+    );
+    return null;
+  }
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (perm.status !== 'granted') {
     Alert.alert('İzin gerekli', 'Görsel seçebilmek için galeri erişim izni vermelisin.');
@@ -189,11 +210,13 @@ function SourcePanel({
 
   async function copyPrompt() {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports -- bkz. dosya basindaki NOT
+      const Clipboard: typeof import('expo-clipboard') = require('expo-clipboard');
       await Clipboard.setStringAsync(promptText);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Panoya erişilemezse sessizce geç.
+      // Panoya erişilemezse (ya da native modül henüz yoksa) sessizce geç.
     }
   }
 
