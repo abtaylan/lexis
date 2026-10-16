@@ -1,0 +1,27 @@
+name: Lexis - uygulamayi yeniden ac bildirimi (tek seferlik)
+
+# BILINCLI OLARAK otomatik (push/schedule) DEGIL -- 16 Ekim 2026, OTA log
+# analizinde 4-13 Ekim arasinda 4 OTA yayininin art arda basarisiz oldugu
+# (eksik AnimatedSplash komponenti) ortaya cikinca, o pencerede/sonrasinda
+# uygulamayi hic tam kapatip acmamis olabilecek TUM kayitli kullanicilara
+# (iOS+Android) tek seferlik "uygulamayi kapatip yeniden ac" duyurusu,
+# elle (workflow_dispatch) tetiklenir.
+on:
+  workflow_dispatch: {}
+
+jobs:
+  trigger-app-reopen-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/send-app-reopen-notification
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/send-app-reopen-notification" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "Istek basarisiz (HTTP $http_code)"
+            exit 1
+          fi

@@ -327,6 +327,31 @@ async def run_send_ios_update_notification(
     return {"status": "ok", "result": result}
 
 
+# 16 Ekim 2026 -- kullanici talebi: OTA log analizinde 4-13 Ekim arasinda
+# 4 OTA yayininin art arda basarisiz oldugu (eksik AnimatedSplash komponenti)
+# ve Expo Updates'in guncellemeyi sadece acilista indirip BIR SONRAKI
+# acilista uyguladigi ortaya cikinca -- "uygulamasi yuklu olanlara bildirim
+# gonder, uygulamadan cikis yapip tekrar girsinler, sebebini de acikla"
+# istendi. Yukaridaki iOS-only job'dan farki: TUM platformlara (iOS+Android)
+# gider. Tek seferlik yayin duyurusu, already_ran_today korumasi YOK.
+@router.post("/send-app-reopen-notification")
+async def run_send_app_reopen_notification(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    def _run() -> dict:
+        import send_app_reopen_notification
+
+        with job_run("send_app_reopen_notification") as run:
+            result = send_app_reopen_notification.main()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
+
+
 # 24 Eylul 2026 -- Adaptif Ogrenme Motoru Madde 1: dinamik seviye
 # degerlendirmesi. backend/reassess_user_levels.py "Railway cron'dan
 # gunluk calistirilmali" diyordu ama hic zamanlanmamisti (cron_job_runs'ta

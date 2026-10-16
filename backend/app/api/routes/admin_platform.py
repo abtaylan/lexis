@@ -113,6 +113,7 @@ CRON_JOB_NAMES = [
     "simulate_bot_activity",
     "distribute_leaderboard_rewards",
     "send_ios_update_notification",
+    "send_app_reopen_notification",
 ]
 
 
