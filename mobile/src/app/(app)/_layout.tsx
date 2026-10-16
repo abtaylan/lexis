@@ -191,6 +191,11 @@ export default function AppTabsLayout() {
       {/* Canlı "Program Haritası" (15 Ekim 2026) — schedule.tsx'teki
           "Program Haritası" çipinden açılıyor, kendi sekmesi yok. */}
       <Tabs.Screen name="roadmap" options={{ href: null, headerShown: false }} />
+      {/* "Çalışma Notlarım" (16 Ekim 2026 kullanıcı isteği) — roadmap ile
+          AYNI desen: kendi sekmesi yok, dashboard'daki "Sosyal & Rekabet"
+          kısayol grid'inden açılıyor (bkz. dashboard.tsx). */}
+      <Tabs.Screen name="study-notes" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="study-notes-detail" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

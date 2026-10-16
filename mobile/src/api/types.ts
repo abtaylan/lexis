@@ -264,6 +264,39 @@ export interface RoadmapResponse {
   weeks: RoadmapWeek[];
 }
 
+// 16 Ekim 2026 -- "Çalışma Notlarım" sayfası (mobil): bir gün Takvimde
+// "Yapıldı" olarak işaretlenince, o gün için Gemini/NotebookLM'den alınan
+// özetlerin/görsellerin kullanıcı tarafından saklandığı notlar (bkz. backend
+// study_notes tablosu + /study-notes route'ları; web'deki types/index.ts ile
+// birebir aynı).
+export type StudyNoteSource = 'gemini' | 'notebooklm' | 'manual';
+
+export interface StudyNote {
+  id: string;
+  user_id: string;
+  date: string; // YYYY-MM-DD
+  source: StudyNoteSource;
+  topic_title: string | null;
+  content: string;
+  image_urls: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StudyDaySummary {
+  date: string; // YYYY-MM-DD
+  topic_title: string | null;
+  activities: string[];
+  note_sources: StudyNoteSource[];
+}
+
+export interface StudyDayDetail {
+  date: string; // YYYY-MM-DD
+  topic_title: string | null;
+  activities: string[];
+  notes: StudyNote[];
+}
+
 export interface TypeBreakdown {
   word_type: string;
   total: number;

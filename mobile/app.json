@@ -77,6 +77,12 @@
           "enableBackgroundPlayback": false
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Çalışma notlarına görsel eklemek için fotoğraflarına erişim izni gerekiyor."
+        }
+      ],
       "./plugins/withStripAudioBackgroundMode.js"
     ],
     "experiments": {
