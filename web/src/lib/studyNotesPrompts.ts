@@ -101,3 +101,37 @@ Bu konuyu özetleyen, renkli ve görsel olarak zengin bir İNFOGRAFİK GÖRSELİ
 
 Görseli oluşturduktan sonra, aynı içeriği kısa bir metin özeti olarak da yaz ki kopyalayıp notlarıma ekleyebileyim.`;
 }
+
+
+// 21 Ekim 2026 kullanici istegi: "o gun icinde cikarttigimiz tum ozetleri
+// videolu sekilde anlatan notebooklm promtu hazirla" -- yukaridaki
+// buildNotebookLMPrompt KONU bazli (her sekme/konu icin ayri infografik
+// prompt'u), bu fonksiyon ise GUN bazli TEK bir prompt uretir: o gunun TUM
+// konularini (ana + ilgili, StudyDayTopic dizisi) sirayla ele alan, tek bir
+// NotebookLM "Video Ozeti" (Video Overview) studio araci icin ozel talimat
+// metni. "Bugunun Ozet Videosu" karti bu prompt'u gosterir (bkz.
+// study-notes/[date]/page.tsx).
+export function buildDaySummaryVideoPrompt(
+  dateIso: string,
+  topics: { title: string | null; is_main: boolean }[],
+  activities: string[]
+): string {
+  const tarih = formatDateTr(dateIso);
+  const konuBasliklari = topics.map((t) => topicLine(t.title, activities));
+  const konuListesi = konuBasliklari.map((k, i) => `${i + 1}. ${k}`).join('\n');
+  const konuSayisi = konuBasliklari.length;
+
+  return `Bugün (${tarih}) çalıştığım, aşağıda sıraladığım ${konuSayisi} konuyu kapsayan; yüklediğim kaynaklara (o günkü ders notları/Gramer Rehberi sayfaları) dayanan TEK bir video özeti hazırla.
+
+Bugünün konuları (bu sırayla ele al):
+${konuListesi}
+
+Video şu şekilde kurgulansın:
+1. Kısa bir açılış: "${tarih} tarihli çalışma özeti" ve bugün kaç konu işlendiği.
+2. Her konu için ayrı bir bölüm: konunun en kritik 2-3 kuralı, birer somut örnek cümle ve varsa sık yapılan hata/karıştırılan yapı.
+3. Konular arasında net bir geçiş olsun ("Şimdi ikinci konumuza geçiyoruz" gibi), her konuya yaklaşık eşit süre ayrılsın.
+4. Kaynaklardaki örnekleri ve kuralları birebir kullan, uydurma bilgi ekleme.
+5. En sonda, tüm günün konularını özetleyen 3-4 maddelik hızlı bir tekrar/kapanış bölümü olsun.
+
+Ton: bir öğretmenin sınava hazırlanan öğrenciye video dersi anlatması gibi, sade ve akıcı.`;
+}

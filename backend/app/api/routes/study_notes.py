@@ -73,6 +73,14 @@ STUDY_NOTES_IMAGE_BUCKET = "study-notes-images"
 ALLOWED_IMAGE_CONTENT_TYPES = {"image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"}
 MAX_IMAGE_BYTES = 8 * 1024 * 1024  # 8 MB
 
+# Video yukleme (21 Ekim 2026 kullanici istegi) -- gunun TUM konularini tek
+# bir videoda ozetleyen 'Bugunun Ozet Videosu' karti icin. KONU bazli degil
+# GUN bazli (study_notes'tan farkli, bkz. study_day_videos tablosu / migration
+# 091_study_day_videos.sql).
+STUDY_DAY_VIDEO_BUCKET = "study-notes-videos"
+ALLOWED_VIDEO_CONTENT_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
+MAX_VIDEO_BYTES = 200 * 1024 * 1024  # 200 MB -- NotebookLM Video Ozeti indirmeleri genelde bunun cok altinda.
+
 
 def _topic_context_for_date(date_iso: str, weeks: list[dict], number_map: dict[str, int] | None = None) -> dict:
     """Verilen tarihin dustugu Program Haritasi haftasini bulup o gunun ana
@@ -196,10 +204,10 @@ def _load_weeks(user_id: str) -> list[dict]:
     return result.data or []
 
 
-def _extract_storage_path(public_url: str) -> str | None:
+def _extract_storage_path(public_url: str, bucket: str = STUDY_NOTES_IMAGE_BUCKET) -> str | None:
     """Supabase public URL'den (.../object/public/<bucket>/<path>) storage
-    path'ini cikarir -- gorsel silinirken storage'dan da kaldirmak icin."""
-    marker = f"/{STUDY_NOTES_IMAGE_BUCKET}/"
+    path'ini cikarir -- gorsel/video silinirken storage'dan da kaldirmak icin."""
+    marker = f"/{bucket}/"
     idx = public_url.find(marker)
     if idx == -1:
         return None
@@ -270,11 +278,22 @@ async def get_study_day(date: str, current_user=Depends(get_current_user)):
         .execute()
     ).data or []
     ctx, topics = _topics_for_date(date, weeks, number_map, notes)
+    # 21 Ekim 2026 kullanici istegi -- gunun TUM konularini tek bir videoda
+    # ozetleyen "Bugunun Ozet Videosu" karti, KONU degil GUN basina tek satir
+    # (bkz. study_day_videos / migration 091_study_day_videos.sql).
+    video_rows = (
+        supabase_admin.table("study_day_videos")
+        .select("video_url,updated_at")
+        .eq("user_id", current_user.id)
+        .eq("date", date)
+        .execute()
+    ).data or []
     return {
         "date": date,
         "activities": ctx["activities"],
         "week_topic_count": ctx["week_topic_count"],
         "topics": topics,
+        "day_video": video_rows[0] if video_rows else None,
     }
 
 
@@ -441,3 +460,85 @@ async def delete_study_note_image(
         .execute()
     )
     return result.data[0] if result.data else {"image_urls": remaining}
+
+
+# ── Bugunun Ozet Videosu (21 Ekim 2026 kullanici istegi) ──────────────────
+# Gunun TUM konularini (1-5 arasi, bkz. migration 090) tek bir videoda
+# ozetleyen kart: kullanici NotebookLM Studio'nun "Video Ozeti" aracini,
+# o gunun butun konularini kapsayan ozel bir talimatla (bkz.
+# buildDaySummaryVideoPrompt, web/src/lib/studyNotesPrompts.ts) calistirip
+# indirdigi mp4'u buraya yukluyor. study_notes'tan farkli olarak KONU bazli
+# degil GUN bazli -- bir gun icin tek video (yeniden yuklenirse oncekinin
+# hem storage dosyasi hem satiri yerini alir, bkz. unique(user_id, date)).
+@router.post("/{date}/video", status_code=201)
+async def upload_study_day_video(
+    date: str,
+    file: UploadFile = File(...),
+    current_user=Depends(get_current_user),
+):
+    content_type = file.content_type or ""
+    if content_type not in ALLOWED_VIDEO_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail=f"Desteklenmeyen video türü: {content_type or 'bilinmiyor'}")
+    data = await file.read()
+    if len(data) > MAX_VIDEO_BYTES:
+        raise HTTPException(status_code=400, detail="Video 200MB sınırını aşıyor.")
+
+    existing = (
+        supabase_admin.table("study_day_videos")
+        .select("video_url")
+        .eq("user_id", current_user.id)
+        .eq("date", date)
+        .execute()
+    ).data
+    if existing:
+        old_path = _extract_storage_path(existing[0]["video_url"], STUDY_DAY_VIDEO_BUCKET)
+        if old_path:
+            try:
+                supabase_admin.storage.from_(STUDY_DAY_VIDEO_BUCKET).remove([old_path])
+            except Exception as e:
+                print(f"STUDY_DAY_VIDEO_REPLACE_STORAGE ERROR: {e}")
+
+    ext = (file.filename or "").rsplit(".", 1)[-1].lower() if file.filename and "." in file.filename else "mp4"
+    path = f"{current_user.id}/{date}/{uuid.uuid4().hex}.{ext}"
+    try:
+        supabase_admin.storage.from_(STUDY_DAY_VIDEO_BUCKET).upload(path, data, {"content-type": content_type})
+    except Exception as e:
+        print(f"STUDY_DAY_VIDEO_UPLOAD ERROR: {e}")
+        raise HTTPException(status_code=500, detail="Video yüklenemedi.")
+    video_url = supabase_admin.storage.from_(STUDY_DAY_VIDEO_BUCKET).get_public_url(path)
+
+    payload = {
+        "user_id": current_user.id,
+        "date": date,
+        "video_url": video_url,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        result = (
+            supabase_admin.table("study_day_videos")
+            .upsert(payload, on_conflict="user_id,date")
+            .execute()
+        )
+        return result.data[0] if result.data else payload
+    except Exception as e:
+        print(f"UPSERT_STUDY_DAY_VIDEO ERROR: {e}")
+        raise HTTPException(status_code=500, detail="Video kaydedilemedi.")
+
+
+@router.delete("/{date}/video", status_code=204)
+async def delete_study_day_video(date: str, current_user=Depends(get_current_user)):
+    existing = (
+        supabase_admin.table("study_day_videos")
+        .select("video_url")
+        .eq("user_id", current_user.id)
+        .eq("date", date)
+        .execute()
+    ).data
+    if existing:
+        path = _extract_storage_path(existing[0]["video_url"], STUDY_DAY_VIDEO_BUCKET)
+        if path:
+            try:
+                supabase_admin.storage.from_(STUDY_DAY_VIDEO_BUCKET).remove([path])
+            except Exception as e:
+                print(f"STUDY_DAY_VIDEO_DELETE_STORAGE ERROR: {e}")
+    supabase_admin.table("study_day_videos").delete().eq("user_id", current_user.id).eq("date", date).execute()

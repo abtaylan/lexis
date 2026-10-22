@@ -24,6 +24,7 @@
 // bir "konu seçici" olarak gösteriyor; seçilen konu değişince altındaki
 // Gemini/NotebookLM/Kendi Notların panelleri o konuya özel promptu ve o
 // konuya kayıtlı notları gösterecek şekilde yeniden kuruluyor (key=slug).
+import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -36,12 +37,13 @@ import {
   PenLine,
   Save,
   Trash2,
+  Video,
   X,
 } from 'lucide-react';
 import { studyNotesApi } from '@/lib/api';
-import type { StudyDayDetail, StudyDayTopic, StudyNote, StudyNoteSource } from '@/types';
+import type { StudyDayDetail, StudyDayTopic, StudyDayVideo, StudyNote, StudyNoteSource } from '@/types';
 import { getErrorMessage } from '@/lib/errors';
-import { buildGeminiPrompt, buildNotebookLMPrompt } from '@/lib/studyNotesPrompts';
+import { buildDaySummaryVideoPrompt, buildGeminiPrompt, buildNotebookLMPrompt } from '@/lib/studyNotesPrompts';
 
 function formatDateTr(dateIso: string): string {
   const [y, m, d] = dateIso.split('-').map(Number);
@@ -390,6 +392,170 @@ function TopicSwitcher({
   );
 }
 
+// 21 Ekim 2026 kullanıcı isteği: "Bugünün Konuları Kart alanının altına
+// Bugünün Özet Videosu bölümü kartı ekle, videoyu oluşturmak için
+// NotebookLM bölümündeki gibi alan oluştur, NotebookLM'yi Aç butonuna
+// tıklayınca, prompt oluşsun, onu kullanarak video özeti hazırlatalım.
+// oluşan videoyu da buraya ekleyelim." — SourcePanel ile aynı "Aç + prompt
+// göster + kopyala" deseni, ama tek bir panel (günün TÜM konularını
+// kapsayan tek prompt, bkz. buildDaySummaryVideoPrompt) ve metin yapıştırma
+// yerine NotebookLM'den indirilen video dosyasının yüklenmesi var. KONU
+// bazlı değil GÜN bazlı (bkz. backend study_day_videos tablosu).
+function DaySummaryVideoCard({
+  dateIso,
+  topics,
+  activities,
+  video,
+  onUpload,
+  onDelete,
+  uploading,
+}: {
+  dateIso: string;
+  topics: StudyDayTopic[];
+  activities: string[];
+  video?: StudyDayVideo | null;
+  onUpload: (file: File) => void;
+  onDelete: () => void;
+  uploading: boolean;
+}) {
+  const [showPrompt, setShowPrompt] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const promptText = useMemo(
+    () =>
+      buildDaySummaryVideoPrompt(
+        dateIso,
+        topics.map((t) => ({ title: t.title, is_main: t.is_main })),
+        activities
+      ),
+    [dateIso, topics, activities]
+  );
+
+  if (topics.length === 0) return null;
+
+  function openAndReveal() {
+    window.open('https://notebooklm.google.com/', '_blank', 'noopener,noreferrer');
+    setShowPrompt(true);
+  }
+
+  async function copyPrompt() {
+    try {
+      await navigator.clipboard.writeText(promptText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API kullanılamıyorsa sessizce geç — kullanıcı metni elle seçip kopyalayabilir.
+    }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files && e.target.files.length > 0) onUpload(e.target.files[0]);
+    e.target.value = '';
+  }
+
+  return (
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
+      <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#8E24AA' }} />
+          <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100">Bugünün Özet Videosu</h3>
+          {video && (
+            <span
+              className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
+              style={{ backgroundColor: '#F3E5F7', color: '#8E24AA' }}
+            >
+              Yüklendi
+            </span>
+          )}
+        </div>
+        <button
+          onClick={openAndReveal}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-white transition-opacity hover:opacity-90"
+          style={{ backgroundColor: '#8E24AA' }}
+        >
+          NotebookLM&apos;yi Aç <ExternalLink className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
+        Bugünün tüm konularını ({topics.length} konu) tek bir videoda anlatan bir özet oluşturmak için NotebookLM&apos;in
+        Studio panelindeki &quot;Video Özeti&quot; aracını kullan — açılan metni kopyala, özel talimat alanına yapıştır,
+        video oluşunca indirip aşağıya yükle.
+      </p>
+
+      {showPrompt && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-xs font-semibold text-gray-500 dark:text-slate-400">
+              Bu metni kopyalayıp NotebookLM Video Özeti&apos;nin özel talimat alanına yapıştır:
+            </p>
+            <button
+              onClick={copyPrompt}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-[#0F6E56]" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? 'Kopyalandı' : 'Kopyala'}
+            </button>
+          </div>
+          <textarea
+            readOnly
+            value={promptText}
+            rows={8}
+            onFocus={(e) => e.currentTarget.select()}
+            className="w-full text-xs font-mono p-3 rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-slate-300 resize-none"
+          />
+        </div>
+      )}
+
+      {video ? (
+        <div className="space-y-2">
+          <video
+            key={video.video_url}
+            src={video.video_url}
+            controls
+            className="w-full rounded-lg border border-gray-200 dark:border-slate-700 bg-black"
+          />
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-dashed border-gray-300 dark:border-slate-600 cursor-pointer text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:border-gray-400 dark:hover:border-slate-500">
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Video className="w-3.5 h-3.5" />}
+              {uploading ? 'Yükleniyor...' : 'Videoyu Değiştir'}
+              <input
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                className="hidden"
+                disabled={uploading}
+                onChange={handleFileChange}
+              />
+            </label>
+            <button
+              onClick={onDelete}
+              disabled={uploading}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Sil
+            </button>
+            <span className="text-[11px] text-gray-400 dark:text-slate-500">
+              Son güncelleme: {new Date(video.updated_at).toLocaleString('tr-TR')}
+            </span>
+          </div>
+        </div>
+      ) : (
+        <label className="flex flex-col items-center justify-center gap-1.5 text-xs font-semibold px-3 py-6 rounded-lg border border-dashed border-gray-300 dark:border-slate-600 cursor-pointer text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:border-gray-400 dark:hover:border-slate-500 text-center">
+          {uploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Video className="w-5 h-5" />}
+          {uploading ? 'Yükleniyor...' : "NotebookLM'de oluşturduğun videoyu buraya yükle"}
+          <input
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime"
+            className="hidden"
+            disabled={uploading}
+            onChange={handleFileChange}
+          />
+        </label>
+      )}
+    </div>
+  );
+}
+
 export default function StudyNoteDetailPage() {
   const params = useParams<{ date: string }>();
   const date = typeof params?.date === 'string' ? params.date : '';
@@ -402,6 +568,7 @@ export default function StudyNoteDetailPage() {
   const [activeSlug, setActiveSlug] = useState<string>('');
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   useEffect(() => {
     if (!date) return;
@@ -495,6 +662,32 @@ export default function StudyNoteDetailPage() {
     }
   }
 
+  async function handleUploadDayVideo(file: File) {
+    setUploadingVideo(true);
+    setError('');
+    try {
+      const saved = await studyNotesApi.uploadDayVideo(date, file);
+      setDetail((prev) => (prev ? { ...prev, day_video: saved } : prev));
+    } catch (e) {
+      setError(getErrorMessage(e, 'Video yüklenemedi.'));
+    } finally {
+      setUploadingVideo(false);
+    }
+  }
+
+  async function handleDeleteDayVideo() {
+    setUploadingVideo(true);
+    setError('');
+    try {
+      await studyNotesApi.deleteDayVideo(date);
+      setDetail((prev) => (prev ? { ...prev, day_video: null } : prev));
+    } catch (e) {
+      setError(getErrorMessage(e, 'Video silinemedi.'));
+    } finally {
+      setUploadingVideo(false);
+    }
+  }
+
   const activeTopic = useMemo(
     () => detail?.topics.find((t) => t.slug === activeSlug) || null,
     [detail, activeSlug]
@@ -547,6 +740,16 @@ export default function StudyNoteDetailPage() {
       </div>
 
       <TopicSwitcher topics={topics} activeSlug={activeSlug} onSelect={selectTopic} weekTopicCount={weekTopicCount} />
+
+      <DaySummaryVideoCard
+        dateIso={date}
+        topics={topics}
+        activities={activities}
+        video={detail.day_video}
+        onUpload={handleUploadDayVideo}
+        onDelete={handleDeleteDayVideo}
+        uploading={uploadingVideo}
+      />
 
       {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
 

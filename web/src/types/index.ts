@@ -395,11 +395,22 @@ export interface StudyDayTopic {
   notes: StudyNote[];
 }
 
+// 21 Ekim 2026 kullanici istegi -- "Bugunun Ozet Videosu" karti: gunun TUM
+// konularini (yukaridaki StudyDayTopic dizisi) tek bir videoda ozetleyen,
+// NotebookLM Video Ozeti araciyla uretilip yuklenen video (KONU bazli degil
+// GUN bazli -- bkz. backend study_day_videos tablosu / migration
+// 091_study_day_videos.sql).
+export interface StudyDayVideo {
+  video_url: string;
+  updated_at: string;
+}
+
 export interface StudyDayDetail {
   date: string; // YYYY-MM-DD
   activities: string[];
   week_topic_count?: number;
   topics: StudyDayTopic[];
+  day_video?: StudyDayVideo | null;
 }
 
 // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı (YDS/YÖKDİL/

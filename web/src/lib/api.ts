@@ -25,6 +25,7 @@ import type {
   DayCompletion,
   StudyDaySummary,
   StudyDayDetail,
+  StudyDayVideo,
   StudyNote,
   StudyNoteSource,
   ExamReminder,
@@ -782,6 +783,20 @@ export const studyNotesApi = {
     imageUrl: string
   ): Promise<void> => {
     await api.delete(`/study-notes/${date}/${source}/${topicSlug}/images`, { params: { image_url: imageUrl } });
+  },
+  // 21 Ekim 2026 kullanıcı isteği -- "Bugünün Özet Videosu" kartı: gün
+  // başına (konu başına değil) TEK video, NotebookLM Video Özeti aracıyla
+  // üretilip buraya yükleniyor (bkz. backend study_day_videos tablosu).
+  uploadDayVideo: async (date: string, file: File): Promise<StudyDayVideo> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await api.post<StudyDayVideo>(`/study-notes/${date}/video`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return res.data;
+  },
+  deleteDayVideo: async (date: string): Promise<void> => {
+    await api.delete(`/study-notes/${date}/video`);
   },
 };
 
