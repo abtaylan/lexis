@@ -23,6 +23,9 @@ import {
   Volume2,
   Rows3,
   Lightbulb,
+  PencilLine,
+  Scale,
+  Link2,
 } from 'lucide-react';
 import {
   gamesApi,
@@ -108,6 +111,30 @@ type Strings = {
   wordleLostTitle: string;
   correctWordTpl: string;
   exampleHintLabel: string;
+  // Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (mobile/src/app/(app)/game.tsx
+  // ile aynı 3 yeni mod — bkz. backend games.py docstring'i).
+  modeFillBlankLabel: string;
+  modeFillBlankDesc: string;
+  modeTrueFalseLabel: string;
+  modeTrueFalseDesc: string;
+  modeChainLabel: string;
+  modeChainDesc: string;
+  fillBlankPromptLabel: string;
+  chainPromptLabel: string;
+  chainPrevWordTpl: string;
+  trueFalsePromptLabel: string;
+  trueLabel: string;
+  falseLabel: string;
+  correctMeaningTpl: string;
+  // fill_blank oynanış tarzı seçimi — mobile/src/i18n/fillBlankStrings.ts'teki
+  // 'choice'/'typing' varyantlarıyla aynı metinler (web'de ayrı bir i18n
+  // modülü yerine bu dosyadaki tek büyük per-locale nesnesine katlandı).
+  fbVariantTitle: string;
+  fbChoiceLabel: string;
+  fbChoiceDesc: string;
+  fbTypingLabel: string;
+  fbTypingDesc: string;
+  fbMeaningHintTpl: string;
   // Madde 6, Faz 3 — Meydan okuma (challenge) entegrasyonu
   challengeModeHint: string;
   challengeSubmittedMsg: string;
@@ -187,6 +214,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Hakların bitti',
     correctWordTpl: 'Doğru kelime: {word}',
     exampleHintLabel: 'Örnek cümle:',
+    modeFillBlankLabel: 'Boşluk Doldurma',
+    modeFillBlankDesc: 'Cümledeki boşluğu doğru kelimeyle doldur',
+    modeTrueFalseLabel: 'Doğru mu Yanlış mı',
+    modeTrueFalseDesc: 'Kelime ve anlam eşleşmesi doğru mu, çabuk karar ver',
+    modeChainLabel: 'Kelime Zinciri',
+    modeChainDesc: 'Önceki kelimenin son harfiyle başlayan kelimeyi yaz',
+    fillBlankPromptLabel: 'Boşluğu doldur',
+    chainPromptLabel: 'Bu anlama gelen kelimeyi yaz',
+    chainPrevWordTpl: 'Önceki kelime: {word} (son harf: {letter})',
+    trueFalsePromptLabel: 'Bu eşleşme doğru mu?',
+    trueLabel: 'Doğru',
+    falseLabel: 'Yanlış',
+    correctMeaningTpl: 'Doğrusu: {meaning}',
+    fbVariantTitle: 'Nasıl oynamak istersin?',
+    fbChoiceLabel: 'Seçenekli',
+    fbChoiceDesc: 'Cümledeki boşluğa uyan kelimeyi seçeneklerden seç',
+    fbTypingLabel: 'Yazarak (en zor)',
+    fbTypingDesc: 'Boşluğa gelecek kelimeyi klavyeyle yaz',
+    fbMeaningHintTpl: 'İpucu: {meaning}',
     challengeModeHint: 'Bu oyunu bir meydan okuma için oynuyorsun.',
     challengeSubmittedMsg: 'Skorun meydan okumaya gönderildi!',
     challengeSubmitError: 'Skor gönderilemedi, Arkadaşlar sayfasından tekrar deneyebilirsin.',
@@ -263,6 +309,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Out of lives',
     correctWordTpl: 'Correct word: {word}',
     exampleHintLabel: 'Example sentence:',
+    modeFillBlankLabel: 'Fill in the Blank',
+    modeFillBlankDesc: 'Fill in the missing word in the sentence',
+    modeTrueFalseLabel: 'True or False',
+    modeTrueFalseDesc: 'Decide quickly whether the word-meaning match is correct',
+    modeChainLabel: 'Word Chain',
+    modeChainDesc: "Type a word starting with the previous word's last letter",
+    fillBlankPromptLabel: 'Fill in the blank',
+    chainPromptLabel: 'Type the word that matches this meaning',
+    chainPrevWordTpl: 'Previous word: {word} (last letter: {letter})',
+    trueFalsePromptLabel: 'Is this match correct?',
+    trueLabel: 'True',
+    falseLabel: 'False',
+    correctMeaningTpl: 'Correct answer: {meaning}',
+    fbVariantTitle: 'How do you want to play?',
+    fbChoiceLabel: 'Multiple choice',
+    fbChoiceDesc: 'Pick the word that fits the blank in the sentence',
+    fbTypingLabel: 'Typing (hardest)',
+    fbTypingDesc: 'Type the missing word with the keyboard',
+    fbMeaningHintTpl: 'Hint: {meaning}',
     challengeModeHint: "You're playing this game for a challenge.",
     challengeSubmittedMsg: 'Your score was submitted to the challenge!',
     challengeSubmitError: 'Could not submit your score — you can retry from the Friends page.',
@@ -339,6 +404,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'انتهت محاولاتك',
     correctWordTpl: 'الكلمة الصحيحة: {word}',
     exampleHintLabel: 'جملة مثال:',
+    modeFillBlankLabel: 'إكمال الفراغ',
+    modeFillBlankDesc: 'أكمل الكلمة الناقصة في الجملة',
+    modeTrueFalseLabel: 'صح أم خطأ',
+    modeTrueFalseDesc: 'قرر بسرعة إن كانت مطابقة الكلمة والمعنى صحيحة',
+    modeChainLabel: 'سلسلة الكلمات',
+    modeChainDesc: 'اكتب كلمة تبدأ بآخر حرف من الكلمة السابقة',
+    fillBlankPromptLabel: 'أكمل الفراغ',
+    chainPromptLabel: 'اكتب الكلمة التي تطابق هذا المعنى',
+    chainPrevWordTpl: 'الكلمة السابقة: {word} (آخر حرف: {letter})',
+    trueFalsePromptLabel: 'هل هذه المطابقة صحيحة؟',
+    trueLabel: 'صحيح',
+    falseLabel: 'خطأ',
+    correctMeaningTpl: 'الصحيح: {meaning}',
+    fbVariantTitle: 'كيف تريد أن تلعب؟',
+    fbChoiceLabel: 'اختيار من متعدد',
+    fbChoiceDesc: 'اختر الكلمة المناسبة للفراغ في الجملة',
+    fbTypingLabel: 'الكتابة (الأصعب)',
+    fbTypingDesc: 'اكتب الكلمة الناقصة بلوحة المفاتيح',
+    fbMeaningHintTpl: 'تلميح: {meaning}',
     challengeModeHint: 'أنت تلعب هذه اللعبة من أجل مبارزة.',
     challengeSubmittedMsg: 'تم إرسال نتيجتك إلى المبارزة!',
     challengeSubmitError: 'تعذّر إرسال النتيجة — يمكنك المحاولة مرة أخرى من صفحة الأصدقاء.',
@@ -415,6 +499,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Жизни закончились',
     correctWordTpl: 'Правильное слово: {word}',
     exampleHintLabel: 'Пример предложения:',
+    modeFillBlankLabel: 'Заполни пропуск',
+    modeFillBlankDesc: 'Вставь пропущенное слово в предложение',
+    modeTrueFalseLabel: 'Правда или ложь',
+    modeTrueFalseDesc: 'Быстро реши, верно ли соответствие слова и значения',
+    modeChainLabel: 'Цепочка слов',
+    modeChainDesc: 'Напиши слово, начинающееся на последнюю букву предыдущего',
+    fillBlankPromptLabel: 'Заполни пропуск',
+    chainPromptLabel: 'Напиши слово, соответствующее этому значению',
+    chainPrevWordTpl: 'Предыдущее слово: {word} (последняя буква: {letter})',
+    trueFalsePromptLabel: 'Это соответствие верно?',
+    trueLabel: 'Верно',
+    falseLabel: 'Неверно',
+    correctMeaningTpl: 'Правильно: {meaning}',
+    fbVariantTitle: 'Как хочешь играть?',
+    fbChoiceLabel: 'Выбор ответа',
+    fbChoiceDesc: 'Выбери слово, которое подходит в пропуск',
+    fbTypingLabel: 'Ввод (самый сложный)',
+    fbTypingDesc: 'Введи пропущенное слово с клавиатуры',
+    fbMeaningHintTpl: 'Подсказка: {meaning}',
     challengeModeHint: 'Вы играете в эту игру ради состязания.',
     challengeSubmittedMsg: 'Ваш результат отправлен в состязание!',
     challengeSubmitError: 'Не удалось отправить результат — попробуйте снова со страницы «Друзья».',
@@ -491,6 +594,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Keine Leben mehr',
     correctWordTpl: 'Richtiges Wort: {word}',
     exampleHintLabel: 'Beispielsatz:',
+    modeFillBlankLabel: 'Lückentext',
+    modeFillBlankDesc: 'Fülle die Lücke im Satz mit dem richtigen Wort',
+    modeTrueFalseLabel: 'Wahr oder Falsch',
+    modeTrueFalseDesc: 'Entscheide schnell, ob die Wort-Bedeutungs-Zuordnung stimmt',
+    modeChainLabel: 'Wortkette',
+    modeChainDesc: 'Schreibe ein Wort, das mit dem letzten Buchstaben des vorigen beginnt',
+    fillBlankPromptLabel: 'Fülle die Lücke',
+    chainPromptLabel: 'Schreibe das Wort, das zu dieser Bedeutung passt',
+    chainPrevWordTpl: 'Vorheriges Wort: {word} (letzter Buchstabe: {letter})',
+    trueFalsePromptLabel: 'Ist diese Zuordnung richtig?',
+    trueLabel: 'Wahr',
+    falseLabel: 'Falsch',
+    correctMeaningTpl: 'Richtig wäre: {meaning}',
+    fbVariantTitle: 'Wie möchtest du spielen?',
+    fbChoiceLabel: 'Multiple Choice',
+    fbChoiceDesc: 'Wähle das Wort, das in die Lücke passt',
+    fbTypingLabel: 'Tippen (am schwersten)',
+    fbTypingDesc: 'Tippe das fehlende Wort mit der Tastatur',
+    fbMeaningHintTpl: 'Hinweis: {meaning}',
     challengeModeHint: 'Du spielst dieses Spiel für eine Herausforderung.',
     challengeSubmittedMsg: 'Dein Ergebnis wurde an die Herausforderung gesendet!',
     challengeSubmitError: 'Ergebnis konnte nicht gesendet werden — versuche es erneut über die Freunde-Seite.',
@@ -567,6 +689,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Plus de vies',
     correctWordTpl: 'Mot correct : {word}',
     exampleHintLabel: "Phrase d'exemple :",
+    modeFillBlankLabel: 'Texte à trous',
+    modeFillBlankDesc: 'Complète le mot manquant dans la phrase',
+    modeTrueFalseLabel: 'Vrai ou Faux',
+    modeTrueFalseDesc: "Décide rapidement si l'association mot-sens est correcte",
+    modeChainLabel: 'Chaîne de mots',
+    modeChainDesc: 'Écris un mot commençant par la dernière lettre du précédent',
+    fillBlankPromptLabel: 'Complète le trou',
+    chainPromptLabel: 'Écris le mot qui correspond à ce sens',
+    chainPrevWordTpl: 'Mot précédent : {word} (dernière lettre : {letter})',
+    trueFalsePromptLabel: 'Cette association est-elle correcte ?',
+    trueLabel: 'Vrai',
+    falseLabel: 'Faux',
+    correctMeaningTpl: 'Réponse correcte : {meaning}',
+    fbVariantTitle: 'Comment veux-tu jouer ?',
+    fbChoiceLabel: 'Choix multiple',
+    fbChoiceDesc: 'Choisis le mot qui complète la phrase',
+    fbTypingLabel: 'Saisie (très difficile)',
+    fbTypingDesc: 'Écris le mot manquant au clavier',
+    fbMeaningHintTpl: 'Indice : {meaning}',
     challengeModeHint: 'Tu joues cette partie pour un défi.',
     challengeSubmittedMsg: 'Ton score a été envoyé au défi !',
     challengeSubmitError: "Impossible d'envoyer le score — réessaie depuis la page Amis.",
@@ -643,6 +784,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Sin vidas',
     correctWordTpl: 'Palabra correcta: {word}',
     exampleHintLabel: 'Frase de ejemplo:',
+    modeFillBlankLabel: 'Rellenar el Hueco',
+    modeFillBlankDesc: 'Completa la palabra que falta en la frase',
+    modeTrueFalseLabel: 'Verdadero o Falso',
+    modeTrueFalseDesc: 'Decide rápido si la relación palabra-significado es correcta',
+    modeChainLabel: 'Cadena de Palabras',
+    modeChainDesc: 'Escribe una palabra que empiece con la última letra de la anterior',
+    fillBlankPromptLabel: 'Completa el hueco',
+    chainPromptLabel: 'Escribe la palabra que corresponde a este significado',
+    chainPrevWordTpl: 'Palabra anterior: {word} (última letra: {letter})',
+    trueFalsePromptLabel: '¿Es correcta esta relación?',
+    trueLabel: 'Verdadero',
+    falseLabel: 'Falso',
+    correctMeaningTpl: 'Respuesta correcta: {meaning}',
+    fbVariantTitle: '¿Cómo quieres jugar?',
+    fbChoiceLabel: 'Opción múltiple',
+    fbChoiceDesc: 'Elige la palabra que encaja en el hueco',
+    fbTypingLabel: 'Escribir (muy difícil)',
+    fbTypingDesc: 'Escribe la palabra que falta con el teclado',
+    fbMeaningHintTpl: 'Pista: {meaning}',
     challengeModeHint: 'Estás jugando esta partida para un desafío.',
     challengeSubmittedMsg: '¡Tu puntuación fue enviada al desafío!',
     challengeSubmitError: 'No se pudo enviar la puntuación — puedes reintentar desde la página de Amigos.',
@@ -719,6 +879,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Vite finite',
     correctWordTpl: 'Parola corretta: {word}',
     exampleHintLabel: 'Frase di esempio:',
+    modeFillBlankLabel: 'Completa la Frase',
+    modeFillBlankDesc: 'Completa la parola mancante nella frase',
+    modeTrueFalseLabel: 'Vero o Falso',
+    modeTrueFalseDesc: 'Decidi rapidamente se la corrispondenza parola-significato è corretta',
+    modeChainLabel: 'Catena di Parole',
+    modeChainDesc: "Scrivi una parola che inizia con l'ultima lettera della precedente",
+    fillBlankPromptLabel: 'Completa lo spazio',
+    chainPromptLabel: 'Scrivi la parola che corrisponde a questo significato',
+    chainPrevWordTpl: 'Parola precedente: {word} (ultima lettera: {letter})',
+    trueFalsePromptLabel: 'Questa corrispondenza è corretta?',
+    trueLabel: 'Vero',
+    falseLabel: 'Falso',
+    correctMeaningTpl: 'Risposta corretta: {meaning}',
+    fbVariantTitle: 'Come vuoi giocare?',
+    fbChoiceLabel: 'Scelta multipla',
+    fbChoiceDesc: 'Scegli la parola che completa la frase',
+    fbTypingLabel: 'Digitando (molto difficile)',
+    fbTypingDesc: 'Scrivi la parola mancante con la tastiera',
+    fbMeaningHintTpl: 'Suggerimento: {meaning}',
     challengeModeHint: 'Stai giocando questa partita per una sfida.',
     challengeSubmittedMsg: 'Il tuo punteggio è stato inviato alla sfida!',
     challengeSubmitError: 'Impossibile inviare il punteggio — riprova dalla pagina Amici.',
@@ -795,6 +974,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'ライフがなくなりました',
     correctWordTpl: '正解の単語: {word}',
     exampleHintLabel: '例文:',
+    modeFillBlankLabel: '穴埋め問題',
+    modeFillBlankDesc: '文中の空欄に正しい単語を入力しよう',
+    modeTrueFalseLabel: '正誤問題',
+    modeTrueFalseDesc: '単語と意味の組み合わせが正しいか素早く判断しよう',
+    modeChainLabel: '単語しりとり',
+    modeChainDesc: '前の単語の最後の文字で始まる単語を入力しよう',
+    fillBlankPromptLabel: '空欄を埋めてください',
+    chainPromptLabel: 'この意味に合う単語を入力してください',
+    chainPrevWordTpl: '前の単語: {word}(最後の文字: {letter})',
+    trueFalsePromptLabel: 'この組み合わせは正しいですか?',
+    trueLabel: '正しい',
+    falseLabel: '間違い',
+    correctMeaningTpl: '正解: {meaning}',
+    fbVariantTitle: 'どうやって遊びますか？',
+    fbChoiceLabel: '選択式',
+    fbChoiceDesc: '空欄に合う単語を選ぶ',
+    fbTypingLabel: '入力（最難）',
+    fbTypingDesc: '抜けている単語をキーボードで入力',
+    fbMeaningHintTpl: 'ヒント: {meaning}',
     challengeModeHint: 'これはチャレンジのためのプレイです。',
     challengeSubmittedMsg: 'スコアをチャレンジに送信しました!',
     challengeSubmitError: 'スコアを送信できませんでした — フレンドページから再試行できます。',
@@ -871,6 +1069,25 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Sem vidas',
     correctWordTpl: 'Palavra correta: {word}',
     exampleHintLabel: 'Frase de exemplo:',
+    modeFillBlankLabel: 'Preencher a Lacuna',
+    modeFillBlankDesc: 'Preenche a palavra em falta na frase',
+    modeTrueFalseLabel: 'Verdadeiro ou Falso',
+    modeTrueFalseDesc: 'Decide rapidamente se a relação palavra-significado está correta',
+    modeChainLabel: 'Cadeia de Palavras',
+    modeChainDesc: 'Escreve uma palavra que comece com a última letra da anterior',
+    fillBlankPromptLabel: 'Preenche a lacuna',
+    chainPromptLabel: 'Escreve a palavra que corresponde a este significado',
+    chainPrevWordTpl: 'Palavra anterior: {word} (última letra: {letter})',
+    trueFalsePromptLabel: 'Esta relação está correta?',
+    trueLabel: 'Verdadeiro',
+    falseLabel: 'Falso',
+    correctMeaningTpl: 'Resposta correta: {meaning}',
+    fbVariantTitle: 'Como você quer jogar?',
+    fbChoiceLabel: 'Múltipla escolha',
+    fbChoiceDesc: 'Escolhe a palavra que completa a lacuna',
+    fbTypingLabel: 'Digitando (muito difícil)',
+    fbTypingDesc: 'Digita a palavra que falta no teclado',
+    fbMeaningHintTpl: 'Dica: {meaning}',
     challengeModeHint: 'Estás a jogar este jogo para um desafio.',
     challengeSubmittedMsg: 'A tua pontuação foi enviada para o desafio!',
     challengeSubmitError: 'Não foi possível enviar a tua pontuação — podes tentar novamente na página Amigos.',
@@ -940,6 +1157,21 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a;
 }
 
+// Boşluk Doldurma (fill_blank) -- örnek cümledeki hedef kelimeyi boşluğa
+// çevirir (büyük/küçük harf duyarsız, tam kelime sınırıyla). Eşleşme
+// bulunamazsa (ör. çekimli/farklı biçim) cümle olduğu gibi döner. Mobile
+// (mobile/src/app/(app)/game.tsx) ile birebir aynı mantık.
+function buildClozeText(example: string, word: string): string {
+  if (!example || !word) return example;
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`\\b${escaped}\\b`, 'i');
+  if (re.test(example)) return example.replace(re, '_____');
+  // \b sadece ASCII "kelime" karakterleriyle çalışır; Arapça/Japonca/Kiril
+  // gibi yazılarda düz (büyük/küçük harf duyarsız) alt dize aranır.
+  const plain = new RegExp(escaped, 'i');
+  return plain.test(example) ? example.replace(plain, '_____') : example;
+}
+
 const MATCHING_BATCH_SIZE = 4;
 
 type MatchingItem = {
@@ -950,7 +1182,7 @@ type MatchingItem = {
   general_word_id?: string;
 };
 
-type Stage = 'mode' | 'direction' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
+type Stage = 'mode' | 'direction' | 'fillvariant' | 'setup' | 'loading' | 'playing' | 'error' | 'done';
 
 export default function GamePage() {
   const { locale } = useLocale();
@@ -1032,6 +1264,35 @@ export default function GamePage() {
   const [sentencePicked, setSentencePicked] = useState<string[]>([]);
   const [sentenceResult, setSentenceResult] = useState<'correct' | 'wrong' | null>(null);
 
+  // ── Boşluk Doldurma varyantı (fill_blank) — 'choice' = seçeneklerden kelime
+  // seç, 'typing' = klavyeyle yaz. Backend'de mod hepsi için aynı:
+  // 'fill_blank'. Mobile'daki 'letters' (harf dizme) varyantı web'e
+  // taşınmadı — bkz. bu dosyanın sonundaki final rapor notu (ek tile
+  // state'i ve handler'ları gerektirdiği için faydaya kıyasla kapsamı
+  // gereksiz büyütüyordu; 'choice' ve 'typing' zaten kolay↔zor yelpazesini
+  // kapsıyor). ──
+  const [fillVariant, setFillVariant] = useState<'choice' | 'typing'>('choice');
+
+  // ── Doğru mu Yanlış mı (true_false) state -- loadNext her yeni kelimede
+  // current.options'tan rastgele BİR seçeneği "iddia" olarak seçer (bazen
+  // doğru anlamı, bazen bir uzaklaştırıcıyı); kullanıcı Doğru/Yanlış der. ──
+  const [tfClaimText, setTfClaimText] = useState('');
+  const [tfClaimIsTrue, setTfClaimIsTrue] = useState(true);
+
+  // ── Kelime Zinciri (word_chain) state -- bir önceki turda gösterilen
+  // kelimeyi SADECE görsel bağlam için ("önceki kelime: ...") hatırlar;
+  // zincir kısıtının kendisi backend'de (game_sessions.state.required_letter)
+  // uygulanıyor, bkz. games.py next_word. ──
+  const [chainPrevWord, setChainPrevWord] = useState<string | null>(null);
+  // loadNext useCallback([]) ile sabit kimlikli olduğu için (bkz. yukarıdaki
+  // challengeIdRef notu) gameMode/current state'lerini DOĞRUDAN okuyamaz —
+  // bunun yerine her zaman güncel tutulan ref'ler okunuyor.
+  const gameModeRef = useRef<GameMode>('multiple_choice');
+  const currentWordRef = useRef<string | null>(null);
+  useEffect(() => {
+    gameModeRef.current = gameMode;
+  }, [gameMode]);
+
   const [score, setScore] = useState(0);
   const [xpEarned, setXpEarned] = useState(0);
   const [questionNum, setQuestionNum] = useState(0);
@@ -1075,6 +1336,12 @@ export default function GamePage() {
 
   const loadNext = useCallback(async (sid: string, hadAnswered: boolean, pool: PoolSource) => {
     try {
+      // Kelime Zinciri -- bir SONRAKİ kelime çekilmeden ÖNCE, ekranda o ana
+      // kadar gösterilmiş olan kelimeyi "önceki kelime" bağlamı için sakla
+      // (zincir kısıtının kendisi backend'de uygulanıyor, bu sadece görsel).
+      if (gameModeRef.current === 'word_chain') {
+        setChainPrevWord(currentWordRef.current);
+      }
       const nw = await gamesApi.nextWord(sid);
       if (nw.finished) {
         if (!hadAnswered) {
@@ -1093,8 +1360,19 @@ export default function GamePage() {
         return;
       }
       setCurrent(nw);
+      currentWordRef.current = nw.word ?? null;
       setSelectedId(null);
       setFeedback(null);
+      // Doğru mu Yanlış mı -- her yeni kelimede %50 ihtimalle GERÇEK anlam,
+      // %50 ihtimalle bir uzaklaştırıcı "iddia" olarak gösterilir (options
+      // boşsa ya da uzaklaştırıcı yoksa her zaman gerçek anlam gösterilir).
+      if (gameModeRef.current === 'true_false') {
+        const correctMeaning = nw.meaning ?? '';
+        const distractors = (nw.options || []).map((o) => o.text).filter((txt) => txt !== correctMeaning);
+        const showTrue = distractors.length === 0 || Math.random() < 0.5;
+        setTfClaimIsTrue(showTrue);
+        setTfClaimText(showTrue ? correctMeaning : distractors[Math.floor(Math.random() * distractors.length)]);
+      }
       setRevealed(nw.revealed ?? '');
       setGuessedLetters([]);
       setWrongGuesses(0);
@@ -1203,6 +1481,10 @@ export default function GamePage() {
     setLevelUp(null);
     setFinishResult(null);
     if (mode === 'sprint') setSprintSecondsLeft(SPRINT_DURATION_SECS);
+    if (mode === 'word_chain') {
+      setChainPrevWord(null);
+      currentWordRef.current = null;
+    }
     if (mode === 'matching') {
       setMatchingItems([]);
       setMatchedUids([]);
@@ -1239,10 +1521,12 @@ export default function GamePage() {
     const presetPool = searchParams.get('pool') as PoolSource | null;
     const VALID_MODES: GameMode[] = [
       'wordle', 'multiple_choice', 'typing', 'matching', 'listening', 'sprint', 'sentence_building',
+      'fill_blank', 'true_false', 'word_chain',
     ];
     if (!presetMode || !VALID_MODES.includes(presetMode)) return;
     const pool: PoolSource = presetPool === 'own' ? 'own' : 'general';
     const dir: Direction = presetMode === 'wordle' ? 'meaning_to_word' : 'word_to_meaning';
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi (bkz. üstteki challengeId efektindeki aynı not)
     setDirection(dir);
     start(presetMode, pool, dir);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1254,10 +1538,37 @@ export default function GamePage() {
     setSelectedId(optionId);
     const currentDirection = current.direction ?? direction;
     const correctText =
-      currentDirection === 'meaning_to_word' || currentDirection === 'definition_to_word'
+      gameMode === 'fill_blank' ||
+      currentDirection === 'meaning_to_word' ||
+      currentDirection === 'definition_to_word'
         ? current.word
         : current.meaning;
     const isCorrect = optionText === correctText;
+    setFeedback(isCorrect);
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        word_id: current.word_id ?? undefined,
+        general_word_id: current.general_word_id ?? undefined,
+        is_correct: isCorrect,
+      });
+      setScore(res.session_score);
+      setXpEarned((x) => x + res.xp_awarded);
+      if (res.leveled_up) setLevelUp(res.new_level);
+    } catch {
+      /* sessiz */
+    }
+
+    setTimeout(() => {
+      loadNext(sessionId, true, poolSource);
+    }, 900);
+  };
+
+  // ── Doğru mu Yanlış mı (true_false) cevap gönderimi -- ground truth
+  // tfClaimIsTrue'da: kullanıcının seçimi bununla eşleşiyorsa doğru. ──
+  const handleTrueFalseAnswer = async (userSaysTrue: boolean) => {
+    if (selectedId || !current || !sessionId) return;
+    setSelectedId(userSaysTrue ? 'true' : 'false');
+    const isCorrect = userSaysTrue === tfClaimIsTrue;
     setFeedback(isCorrect);
     try {
       const res = await gamesApi.submitAttempt(sessionId, {
@@ -1693,7 +2004,101 @@ export default function GamePage() {
                 <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeSentenceDesc}</p>
               </div>
             </button>
+            {/* Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri —
+                mobile/src/app/(app)/game.tsx'teki aynı 3 yeni mod. */}
+            <button
+              onClick={() => {
+                setGameMode('fill_blank');
+                setDirection('meaning_to_word');
+                setStage('fillvariant');
+              }}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-[#E4F5EA] flex items-center justify-center">
+                <PencilLine className="w-4 h-4 text-[#1D7A46]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeFillBlankLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeFillBlankDesc}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setGameMode('true_false');
+                setDirection('word_to_meaning');
+                setStage('setup');
+              }}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-red-50 dark:bg-red-500/10 flex items-center justify-center">
+                <Scale className="w-4 h-4 text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeTrueFalseLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeTrueFalseDesc}</p>
+              </div>
+            </button>
+            <button
+              onClick={() => {
+                setGameMode('word_chain');
+                setDirection('word_to_meaning');
+                setStage('setup');
+              }}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-[#EEEDFE] flex items-center justify-center">
+                <Link2 className="w-4 h-4 text-[#534AB7]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeChainLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeChainDesc}</p>
+              </div>
+            </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Boşluk Doldurma: oynanış tarzı seçimi ──
+  if (stage === 'fillvariant') {
+    return (
+      <div className="p-6 flex flex-col items-center justify-center min-h-[70vh]">
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-8 w-full max-w-md text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#E4F5EA] flex items-center justify-center mx-auto mb-4">
+            <PencilLine className="w-7 h-7 text-[#1D7A46]" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">{t.modeFillBlankLabel}</h1>
+          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 mb-6">{t.fbVariantTitle}</p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => {
+                setFillVariant('choice');
+                setStage('setup');
+              }}
+              className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.fbChoiceLabel}</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.fbChoiceDesc}</p>
+            </button>
+            <button
+              onClick={() => {
+                setFillVariant('typing');
+                setStage('setup');
+              }}
+              className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.fbTypingLabel}</p>
+              <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.fbTypingDesc}</p>
+            </button>
+          </div>
+          <button
+            onClick={() => setStage('mode')}
+            className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400 mt-5"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            {t.backBtn}
+          </button>
         </div>
       </div>
     );
@@ -1772,13 +2177,15 @@ export default function GamePage() {
           ) : (
             <>
               <div className="flex flex-col gap-3">
-                <button
-                  onClick={() => start(gameMode, 'general', direction)}
-                  className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
-                >
-                  <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.poolGeneralLabel}</p>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.poolGeneralDesc}</p>
-                </button>
+                {gameMode !== 'word_chain' && (
+                  <button
+                    onClick={() => start(gameMode, 'general', direction)}
+                    className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+                  >
+                    <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.poolGeneralLabel}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.poolGeneralDesc}</p>
+                  </button>
+                )}
                 {direction !== 'definition_to_word' && gameMode !== 'sentence_building' && (
                   <button
                     onClick={() => start(gameMode, 'own', direction)}
@@ -1790,7 +2197,7 @@ export default function GamePage() {
                 )}
               </div>
               <button
-                onClick={() => setStage(gameMode === 'multiple_choice' ? 'direction' : 'mode')}
+                onClick={() => setStage(gameMode === 'multiple_choice' ? 'direction' : gameMode === 'fill_blank' ? 'fillvariant' : 'mode')}
                 className="w-full flex items-center justify-center gap-2 text-xs text-gray-400 dark:text-slate-500 hover:text-gray-600 hover:dark:text-slate-400 mt-5"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -1994,6 +2401,21 @@ export default function GamePage() {
   const isSprint = gameMode === 'sprint';
   const isSentence = gameMode === 'sentence_building';
   const isMultipleChoice = gameMode === 'multiple_choice';
+  const isFillBlank = gameMode === 'fill_blank';
+  // Seçenekli varyantta backend seçenek göndermediyse (olağan dışı) yazma
+  // varyantına düşülür; oyun asla boş ekranda kalmaz (bkz. mobile'daki aynı
+  // fillMode hesaplaması).
+  const fillMode: 'choice' | 'typing' | null = !isFillBlank
+    ? null
+    : fillVariant === 'choice' && !(current.options && current.options.length > 0)
+      ? 'typing'
+      : fillVariant;
+  const isTrueFalse = gameMode === 'true_false';
+  const isWordChain = gameMode === 'word_chain';
+  // fill_blank: current.example yoksa (özellikle general havuzda olabilir)
+  // typing moduna düşüldüğü gibi burada da meaning gösterilir (bkz. backend
+  // games.py docstring'indeki "fill_blank" bölümü).
+  const fillPromptText = isFillBlank && current.example ? buildClozeText(current.example, current.word ?? '') : current.meaning;
   const keyboardRows = user?.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
   const activeDirection = current.direction ?? direction;
   const isDefinition = activeDirection === 'definition_to_word';
@@ -2117,6 +2539,55 @@ export default function GamePage() {
         </>
       )}
 
+      {isTrueFalse && (
+        <>
+          <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">
+              {t.trueFalsePromptLabel}
+            </p>
+            <p className="text-4xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">{current.word}</p>
+            <p className="text-base text-gray-500 dark:text-slate-400 mt-3">= {tfClaimText}</p>
+          </div>
+
+          <div className="w-full grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleTrueFalseAnswer(true)}
+              disabled={selectedId !== null}
+              className={`w-full flex items-center justify-center gap-2 border-2 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all ${
+                selectedId === 'true'
+                  ? feedback
+                    ? 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]'
+                    : 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                  : 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-[#378ADD] hover:bg-[#E6F1FB]'
+              }`}
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              {t.trueLabel}
+            </button>
+            <button
+              onClick={() => handleTrueFalseAnswer(false)}
+              disabled={selectedId !== null}
+              className={`w-full flex items-center justify-center gap-2 border-2 rounded-xl px-4 py-3.5 text-sm font-semibold transition-all ${
+                selectedId === 'false'
+                  ? feedback
+                    ? 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]'
+                    : 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                  : 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-[#378ADD] hover:bg-[#E6F1FB]'
+              }`}
+            >
+              <XCircle className="w-4 h-4" />
+              {t.falseLabel}
+            </button>
+          </div>
+
+          {feedback !== null && (
+            <p className={`text-sm font-semibold ${feedback ? 'text-[#3B6D11]' : 'text-red-500 dark:text-red-400'}`}>
+              {feedback ? t.correctLabel : `${t.wrongLabel} — ${t.correctMeaningTpl.replace('{meaning}', current.meaning ?? '')}`}
+            </p>
+          )}
+        </>
+      )}
+
       {isWordle && (
         <>
           {/* İpucu / anlam */}
@@ -2218,13 +2689,84 @@ export default function GamePage() {
         </>
       )}
 
-      {(isTyping || isSprint) && (
+      {isFillBlank && fillMode === 'choice' && (
         <>
           <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center">
             <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">
-              {t.typingPromptLabel}
+              {t.fillBlankPromptLabel}
             </p>
-            <p className="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">{current.meaning}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">{fillPromptText}</p>
+            {current.example && current.meaning && (
+              <p className="text-sm text-gray-400 dark:text-slate-500 mt-3">
+                {t.fbMeaningHintTpl.replace('{meaning}', current.meaning)}
+              </p>
+            )}
+          </div>
+
+          <div className="w-full grid grid-cols-1 gap-3">
+            {(current.options || []).map((opt) => {
+              const isCorrectOption = opt.text === current.word;
+              const isSelected = opt.id === selectedId;
+              const answered = selectedId !== null;
+
+              let cls = 'border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-300 hover:border-[#378ADD] hover:bg-[#E6F1FB]';
+              let icon: React.ReactNode = null;
+
+              if (answered) {
+                if (isCorrectOption) {
+                  cls = 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]';
+                  icon = <CheckCircle2 className="w-4 h-4 shrink-0 text-[#3B6D11]" />;
+                } else if (isSelected) {
+                  cls = 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400';
+                  icon = <XCircle className="w-4 h-4 shrink-0 text-red-400 dark:text-red-300" />;
+                } else {
+                  cls = 'border-gray-100 dark:border-slate-800 text-gray-300 dark:text-slate-600';
+                }
+              }
+
+              return (
+                <button
+                  key={opt.id}
+                  onClick={() => handleAnswer(opt.id, opt.text)}
+                  disabled={answered}
+                  className={`w-full flex items-center gap-3 border-2 rounded-xl px-4 py-3.5 text-sm font-medium text-left transition-all ${cls}`}
+                >
+                  <span className="flex-1">{opt.text}</span>
+                  {icon}
+                </button>
+              );
+            })}
+          </div>
+
+          {feedback !== null && (
+            <p className={`text-sm font-semibold ${feedback ? 'text-[#3B6D11]' : 'text-red-500 dark:text-red-400'}`}>
+              {feedback ? t.correctLabel : t.wrongLabel}
+            </p>
+          )}
+        </>
+      )}
+
+      {(isTyping || isSprint || (isFillBlank && fillMode === 'typing') || isWordChain) && (
+        <>
+          <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">
+              {isFillBlank ? t.fillBlankPromptLabel : isWordChain ? t.chainPromptLabel : t.typingPromptLabel}
+            </p>
+            <p className="text-3xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
+              {isFillBlank ? fillPromptText : current.meaning}
+            </p>
+            {isFillBlank && current.example && current.meaning && (
+              <p className="text-sm text-gray-400 dark:text-slate-500 mt-3">
+                {t.fbMeaningHintTpl.replace('{meaning}', current.meaning)}
+              </p>
+            )}
+            {isWordChain && chainPrevWord && (
+              <p className="text-sm font-semibold text-[#534AB7] mt-3">
+                {t.chainPrevWordTpl
+                  .replace('{word}', chainPrevWord.toUpperCase())
+                  .replace('{letter}', chainPrevWord.slice(-1).toUpperCase())}
+              </p>
+            )}
           </div>
 
           <div className="w-full flex flex-col gap-3">

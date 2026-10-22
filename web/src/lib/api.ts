@@ -1239,7 +1239,10 @@ export type GameMode =
   | 'matching'
   | 'listening'
   | 'sprint'
-  | 'sentence_building';
+  | 'sentence_building'
+  | 'fill_blank'
+  | 'true_false'
+  | 'word_chain';
 export type PoolSource = 'own' | 'general';
 // multiple_choice modunda soru yönü. wordle modunda kullanılmaz (her zaman anlam
 // gösterilip kelime bulunur). "definition_to_word" (Faz 2, monolingual) sadece
