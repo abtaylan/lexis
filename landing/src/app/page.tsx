@@ -1,6 +1,7 @@
 import { Header } from '@/components/Header';
 import { Hero } from '@/components/Hero';
 import { Features } from '@/components/Features';
+import { Games } from '@/components/Games';
 import { ExamPrep } from '@/components/ExamPrep';
 import { MoreFeatures } from '@/components/MoreFeatures';
 import { Showcase } from '@/components/Showcase';
@@ -16,6 +17,7 @@ export default function HomePage() {
       <main>
         <Hero />
         <Features />
+        <Games />
         <ExamPrep />
         <MoreFeatures />
         <Showcase />
