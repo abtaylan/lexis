@@ -132,10 +132,17 @@ ${konuListesi}
 
 Video şu şekilde kurgulansın:
 1. Kısa bir açılış: "${tarih} tarihli çalışma özeti" ve bugün kaç konu işlendiği.
-2. Her konu için ayrı bir bölüm: konunun en kritik 2-3 kuralı, birer somut örnek cümle ve varsa sık yapılan hata/karıştırılan yapı.
-3. Konular arasında net bir geçiş olsun ("Şimdi ikinci konumuza geçiyoruz" gibi), her konuya yaklaşık eşit süre ayrılsın.
-4. Kaynaklardaki örnekleri ve kuralları birebir kullan, uydurma bilgi ekleme.
-5. En sonda, tüm günün konularını özetleyen 3-4 maddelik hızlı bir tekrar/kapanış bölümü olsun.
+2. Her konu için ayrı bir bölüm: konunun en kritik 2-3 kuralı, birer somut örnek cümle ve varsa sık yapılan hata/karıştırılan yapı. Her bölümde AŞAĞIDAKİLER MUTLAKA ekranda YAZILI METİN olarak görünsün (sadece sözlü anlatılıp geçilmesin):
+   - Konunun gramer yapısı/formülü kısa ve net bir şablon halinde (ör. "Subject + have/has + V3", "Subject + was/were + V-ing").
+   - O an anlatılan kural/zaman ifadesi ekranda okunabilir metin olarak dursun — anlatımda geçen anahtar kelimeler (ör. "since", "for", "already", "yet", "ago") ekranda büyük ve vurgulu yazı olarak gösterilsin.
+   - Her örnek cümlenin TAMAMI (İngilizce, varsa kısa Türkçe karşılığıyla) ekranda eksiksiz yazılı metin olarak görünsün — sadece bir ikon/illüstrasyonla temsil edilmesin.
+   - Sık yapılan hata varsa, yanlış ve doğru halleri TAM CÜMLE olarak yan yana ekranda yazsın (ör. "❌ I have went..." / "✅ I have gone...").
+3. GÖRSEL-ANLATIM SENKRONU: Ekrandaki yazı/görsel, o anda anlatılan şeyle birebir eşleşsin. Anlatıcı bir kelimeyi, kuralı ya da cümleyi söylerken o kelime/kural/cümle o anda gerçekten ekranda yazılı olmalı; anlatıcı "ekranda gördüğünüz gibi" dediğinde ekranda sözü edilen şey fiilen görünür olmalı. Bir görsel/illüstrasyon sadece dekoratif kalıp anlatım onun kapsamadığı yeni bir noktaya geçmesin — her yeni kurala, kelimeye ya da örneğe geçildiğinde ekran içeriği de hemen güncellensin.
+4. Konular arasında net bir geçiş olsun ("Şimdi ikinci konumuza geçiyoruz" gibi), her konuya yaklaşık eşit süre ayrılsın.
+5. Kaynaklardaki örnekleri ve kuralları birebir kullan, uydurma bilgi ekleme.
+6. En sonda, tüm günün konularını özetleyen 3-4 maddelik hızlı bir tekrar/kapanış bölümü olsun; bu bölümde de her maddenin yanında ilgili anahtar yapı/kelime ekranda yazılı olarak görünsün.
+
+Bu video sadece hızlıca konuşulup geçilen bir "özet" OLMAMALI — gerçek bir ders videosu gibi öğretici ve eğitici olmalı: izleyen kişi sesi kapatıp sadece ekranı okuyarak bile konunun gramer yapısını, anahtar kelimelerini ve örnek cümlelerini öğrenebilmeli. Dekoratif illüstrasyon/ikon kullanımı serbest ama bunlar yazılı içeriğin (yapı, kelime, örnek cümle) YERİNE DEĞİL, ONUN YANINDA/DESTEĞİNDE olmalı — her sahnede mutlaka o an anlatılan gramer yapısı, kelime(ler) ve örnek cümle(ler) okunabilir yazı olarak bulunsun.
 
 Ton: bir öğretmenin sınava hazırlanan öğrenciye video dersi anlatması gibi, sade ve akıcı.`;
 }
