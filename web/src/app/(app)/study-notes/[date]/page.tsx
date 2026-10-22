@@ -31,6 +31,7 @@ import {
   ArrowLeft,
   Check,
   Copy,
+  Download,
   ExternalLink,
   ImagePlus,
   Loader2,
@@ -40,10 +41,16 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import { studyNotesApi } from '@/lib/api';
+import { grammarApi, studyNotesApi } from '@/lib/api';
 import type { StudyDayDetail, StudyDayTopic, StudyDayVideo, StudyNote, StudyNoteSource } from '@/types';
 import { getErrorMessage } from '@/lib/errors';
-import { buildDaySummaryVideoPrompt, buildGeminiPrompt, buildNotebookLMPrompt } from '@/lib/studyNotesPrompts';
+import {
+  buildDaySourcesDocument,
+  buildDaySummaryVideoPrompt,
+  buildGeminiPrompt,
+  buildNotebookLMPrompt,
+  type DaySourceTopic,
+} from '@/lib/studyNotesPrompts';
 
 function formatDateTr(dateIso: string): string {
   const [y, m, d] = dateIso.split('-').map(Number);
@@ -420,6 +427,13 @@ function DaySummaryVideoCard({
 }) {
   const [showPrompt, setShowPrompt] = useState(false);
   const [copied, setCopied] = useState(false);
+  // 22 Ekim 2026 kullanıcı isteği: NotebookLM, not defterine kaynak
+  // yüklenmeden Video Özeti çalıştırılınca kullanıcıya soru soruyordu
+  // ("henüz yüklenmiş kaynak görünmüyor"). Çözüm: kullanıcının önce
+  // NotebookLM'e kaynak olarak yükleyebileceği bir dosya indirmesini
+  // sağlıyoruz -- bkz. buildDaySourcesDocument (studyNotesPrompts.ts).
+  const [downloadingSources, setDownloadingSources] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   const promptText = useMemo(
     () =>
@@ -453,6 +467,65 @@ function DaySummaryVideoCard({
     e.target.value = '';
   }
 
+  // Gramer Rehberi'ndeki (kural/örnek/sık-hata) ve bu konu için daha önce
+  // Gemini/NotebookLM/Kendi Notların panellerine kaydedilmiş notları tek bir
+  // Markdown dosyasında birleştirip indiriyor -- bu dosya NotebookLM'e
+  // kaynak olarak yüklenince Video Özeti artık soru sormadan çalışabiliyor.
+  async function downloadSources() {
+    setDownloadingSources(true);
+    setDownloadError(null);
+    try {
+      const grammarDetails = await Promise.all(
+        topics.map(async (t) => {
+          try {
+            return await grammarApi.getTopic(t.slug);
+          } catch {
+            // "genel" gibi Gramer Rehberi'nde karşılığı olmayan slug'lar için
+            // null -- o konu sadece kullanıcının kendi notlarıyla yazılır.
+            return null;
+          }
+        })
+      );
+
+      const sourceTopics: DaySourceTopic[] = topics.map((t, i) => {
+        const grammar = grammarDetails[i];
+        return {
+          slug: t.slug,
+          title: t.title,
+          grammar: grammar
+            ? {
+                title_tr: grammar.title_tr,
+                summary_tr: grammar.summary_tr,
+                rule_content_md: grammar.rule_content_md,
+                example_sentences: grammar.example_sentences,
+                common_mistakes: grammar.common_mistakes,
+              }
+            : null,
+          savedNotes: t.notes.map((n) => ({
+            source: n.source,
+            content: n.content,
+            image_urls: n.image_urls,
+          })),
+        };
+      });
+
+      const doc = buildDaySourcesDocument(dateIso, sourceTopics);
+      const blob = new Blob([doc], { type: 'text/markdown;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `calisma-notlari-${dateIso}-kaynaklar.md`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setDownloadError(getErrorMessage(err, 'Kaynak dosyası hazırlanamadı.'));
+    } finally {
+      setDownloadingSources(false);
+    }
+  }
+
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5">
       <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
@@ -468,20 +541,40 @@ function DaySummaryVideoCard({
             </span>
           )}
         </div>
-        <button
-          onClick={openAndReveal}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-white transition-opacity hover:opacity-90"
-          style={{ backgroundColor: '#8E24AA' }}
-        >
-          NotebookLM&apos;yi Aç <ExternalLink className="w-3.5 h-3.5" />
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={downloadSources}
+            disabled={downloadingSources}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 disabled:opacity-50"
+          >
+            {downloadingSources ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            Kaynakları İndir
+          </button>
+          <button
+            onClick={openAndReveal}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg text-white transition-opacity hover:opacity-90"
+            style={{ backgroundColor: '#8E24AA' }}
+          >
+            NotebookLM&apos;yi Aç <ExternalLink className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       <p className="text-xs text-gray-500 dark:text-slate-400 mb-3">
-        Bugünün tüm konularını ({topics.length} konu) tek bir videoda anlatan bir özet oluşturmak için NotebookLM&apos;in
-        Studio panelindeki &quot;Video Özeti&quot; aracını kullan — açılan metni kopyala, özel talimat alanına yapıştır,
-        video oluşunca indirip aşağıya yükle.
+        Bugünün tüm konularını ({topics.length} konu) tek bir videoda anlatan bir özet oluşturmak için: önce{' '}
+        <strong className="font-semibold text-gray-700 dark:text-slate-200">&quot;Kaynakları İndir&quot;</strong> ile
+        bugünün konularının Gramer Rehberi kurallarını ve kayıtlı notlarını tek bir dosyada indir; NotebookLM&apos;de
+        yeni (veya ilgili) not defterine bu dosyayı kaynak olarak yükle; sonra Studio panelindeki &quot;Video
+        Özeti&quot; aracını aç — açılan metni kopyala, özel talimat alanına yapıştır, video oluşunca indirip aşağıya
+        yükle.
       </p>
+      {downloadError && (
+        <p className="text-xs text-red-600 dark:text-red-400 mb-3">Kaynak dosyası indirilemedi: {downloadError}</p>
+      )}
 
       {showPrompt && (
         <div className="mb-4">

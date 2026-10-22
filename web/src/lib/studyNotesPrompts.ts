@@ -72,7 +72,9 @@ Yüklediğim kaynaklardan yola çıkarak bu konuyu aşağıdaki formatta, görse
 8. Renk paletini tutarlı kullan: ana kurallar mavi/yeşil, uyarılar turuncu/kırmızı, örnekler nötr gri kutularda olsun.
 9. Uzun düz metin paragrafları yerine kutular, ikonlar ve kısa maddeler kullan — format bir infografik/rapor olsun, deneme değil.
 
-Ayrıca bu konu için ayrı bir Zihin Haritası da oluştur: ana konu merkezde, alt başlıklar dallar, her dalın altında en fazla 3-4 alt madde olacak şekilde.`;
+Ayrıca bu konu için ayrı bir Zihin Haritası da oluştur: ana konu merkezde, alt başlıklar dallar, her dalın altında en fazla 3-4 alt madde olacak şekilde.
+
+Not defterine yüklediğim kaynaklar bu iş için yeterli ve tamamlanmış durumda — bana hangi kaynağı yüklemem gerektiğini sorma, ek araştırma teklif etme ya da onay isteme; doğrudan üretime başla.`;
 }
 
 // Gemini: düz sohbet penceresine yapıştırılır, Gemini'nin kendi görsel
@@ -123,6 +125,8 @@ export function buildDaySummaryVideoPrompt(
 
   return `Bugün (${tarih}) çalıştığım, aşağıda sıraladığım ${konuSayisi} konuyu kapsayan; yüklediğim kaynaklara (o günkü ders notları/Gramer Rehberi sayfaları) dayanan TEK bir video özeti hazırla.
 
+ÖNEMLİ: Bu not defterine YÜKLEDİĞİM kaynaklar bu video için yeterli ve tamamlanmış durumda. Bana hangi kaynağı yükleyeceğimi sorma, web araştırması yapmayı teklif etme ya da başka bir onay/netleştirme sorusu sorma — doğrudan video özetini üretmeye başla. Kaynaklarda bir konuyla ilgili ayrıntı sınırlıysa bile elindeki bilgiyle en iyi özeti çıkar, durup soru sorma.
+
 Bugünün konuları (bu sırayla ele al):
 ${konuListesi}
 
@@ -134,4 +138,101 @@ Video şu şekilde kurgulansın:
 5. En sonda, tüm günün konularını özetleyen 3-4 maddelik hızlı bir tekrar/kapanış bölümü olsun.
 
 Ton: bir öğretmenin sınava hazırlanan öğrenciye video dersi anlatması gibi, sade ve akıcı.`;
+}
+
+
+// 22 Ekim 2026 kullanıcı isteği: "Video özeti oluşturması için bizim
+// hazırladığımız not, özet ve görsellere ihtiyaç olacaksa, onları
+// indirebileceğimiz bir buton yapalım." -- NotebookLM'in Video Özeti aracı
+// SADECE not defterine önceden kaynak yüklenmişse çalışıyor (bkz.
+// DaySummaryVideoCard, study-notes/[date]/page.tsx); bu fonksiyon o
+// kaynağı üretir: günün her konusu için Gramer Rehberi'ndeki kural/örnek/
+// sık-hata içeriğini (grammar_topics -- otorite kaynak) ve kullanıcının o
+// konu için daha önce Gemini/NotebookLM/manuel panellerine kaydettiği notu
+// (study_notes.content/image_urls) TEK bir Markdown dosyasında birleştirir.
+// Kullanıcı bu dosyayı indirip NotebookLM'e kaynak olarak yükledikten sonra
+// yukarıdaki buildDaySummaryVideoPrompt'u çalıştırabilir.
+export interface DaySourceGrammarContent {
+  title_tr: string;
+  summary_tr: string;
+  rule_content_md: string;
+  example_sentences: { en: string; tr?: string | null }[];
+  common_mistakes: { wrong: string; correct: string; note: string }[];
+}
+
+export interface DaySourceSavedNote {
+  source: string;
+  content: string;
+  image_urls: string[];
+}
+
+export interface DaySourceTopic {
+  slug: string;
+  title: string | null;
+  // grammar: o konu için Gramer Rehberi'nde içerik bulunamadıysa (ör. "genel"
+  // slug'lı gün) null -- bu durumda sadece kullanıcının kendi notları yazılır.
+  grammar: DaySourceGrammarContent | null;
+  savedNotes: DaySourceSavedNote[];
+}
+
+const NOTE_SOURCE_LABELS: Record<string, string> = {
+  gemini: 'Gemini',
+  notebooklm: 'NotebookLM',
+  manual: 'Kendi Notlarım',
+};
+
+export function buildDaySourcesDocument(dateIso: string, topics: DaySourceTopic[]): string {
+  const tarih = formatDateTr(dateIso);
+
+  const sections = topics.map((topic, i) => {
+    const baslik = topic.title || topic.grammar?.title_tr || `Konu ${i + 1}`;
+    const parts: string[] = [`## ${i + 1}. ${baslik}`];
+
+    if (topic.grammar) {
+      parts.push(topic.grammar.summary_tr);
+      parts.push(topic.grammar.rule_content_md);
+
+      if (topic.grammar.example_sentences.length > 0) {
+        parts.push(
+          '### Örnek Cümleler\n' +
+            topic.grammar.example_sentences
+              .map((e) => `- ${e.en}${e.tr ? ` — ${e.tr}` : ''}`)
+              .join('\n')
+        );
+      }
+
+      if (topic.grammar.common_mistakes.length > 0) {
+        parts.push(
+          '### Sık Yapılan Hatalar\n' +
+            topic.grammar.common_mistakes
+              .map((m) => `- ❌ ${m.wrong} → ✅ ${m.correct} (${m.note})`)
+              .join('\n')
+        );
+      }
+    } else {
+      parts.push('_Bu konu için Gramer Rehberi içeriği bulunamadı._');
+    }
+
+    if (topic.savedNotes.length > 0) {
+      const notLines = topic.savedNotes
+        .map((n) => {
+          const etiket = NOTE_SOURCE_LABELS[n.source] || n.source;
+          const gorseller =
+            n.image_urls.length > 0 ? `\n(Görseller: ${n.image_urls.join(', ')})` : '';
+          return `**${etiket}:**\n${n.content}${gorseller}`;
+        })
+        .join('\n\n');
+      parts.push(`### Daha Önce Kaydettiğim Notlarım\n${notLines}`);
+    }
+
+    return parts.join('\n\n');
+  });
+
+  return `# ${tarih} — Çalışma Kaynakları
+
+Bu dosya, ${tarih} tarihinde çalıştığım ${topics.length} konunun Gramer Rehberi'ndeki kuralları, örnekleri, sık yapılan hataları ve (varsa) bu konular için daha önce kaydettiğim notları/görsel bağlantılarını içerir.
+
+NotebookLM'de yeni bir not defteri aç (veya bugünün konularına ayrılmış defteri kullan), bu dosyayı kaynak olarak yükle, ardından "Bugünün Özet Videosu" kartındaki metni kopyalayıp Video Özeti aracının özel talimat alanına yapıştır.
+
+${sections.join('\n\n---\n\n')}`;
 }
