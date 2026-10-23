@@ -39,6 +39,10 @@ XPSourceType = Literal[
     "game_fill_blank",
     "game_true_false",
     "game_word_chain",
+    # "Gramer Cümle Kurma" (23 Ekim 2026, Behçet'in kullanıcı isteği) --
+    # games.py'nin dinamik f"game_{session['mode']}" deseniyle
+    # (submit_attempt) otomatik üretilir, diğer oyun modlarıyla AYNI şekilde.
+    "game_grammar_sentence",
     # Ödül sistemi (bkz. badge_service.py / distribute_leaderboard_rewards.py) —
     # streak.py içinde seri kilometre taşına (7/30/100/365 gün) ulaşınca,
     # ya da haftalık/aylık liderlik tablosu ödülleri dağıtılırken kullanılır.
@@ -131,6 +135,10 @@ XP_AMOUNTS: dict[str, int] = {
     # gerektiriyor, tek kelimelik modlardan (multiple_choice/true_false) daha
     # zor kabul ediliyor.
     "game_word_chain": 6,
+    # Gramer Cümle Kurma -- game_sentence_building (8) ile AYNI büyüklükte:
+    # aynı next-word/attempt serbest-metin mekaniği, üstüne gramer konusuna
+    # (topic_tag) özel bir cümle kalıbı üretimi gerektiriyor.
+    "game_grammar_sentence": 8,
     # Bu ikisi için çağıran kod (streak.py / distribute_leaderboard_rewards.py)
     # her zaman kendi `amount`ını açıkça geçer (kilometre taşı / sıralamaya göre
     # değişken miktar) — buradaki değerler sadece olası bir eksik-amount çağrısına

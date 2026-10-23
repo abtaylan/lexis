@@ -20,6 +20,11 @@ class GameMode(str, Enum):
     fill_blank = "fill_blank"
     true_false = "true_false"
     word_chain = "word_chain"
+    # "Gramer Cümle Kurma" (23 Ekim 2026, Behçet'in kullanıcı isteği) —
+    # sentence_building ile AYNI next-word/attempt akışı ama pool_source'a
+    # BAĞLI DEĞİL -- her zaman game_grammar_sentences'tan beslenir (bkz.
+    # 092_topic_translation_practice.sql modül notu).
+    grammar_sentence = "grammar_sentence"
 
 
 class PoolSource(str, Enum):
@@ -79,11 +84,28 @@ class NextWordResponse(BaseModel):
     # gönderilmesiyle AYNI güven modeli) — istemci kendi karıştırır, kendi
     # kontrol eder.
     sentence_tokens: list[str] | None = None
+    # ── grammar_sentence (gramer cümle kurma) moduna özel alanlar (23 Ekim
+    # 2026) — exams.py::TopicTranslationQuestionItem ile AYNI hesaplama
+    # sözleşmesi (prompt_sentence/correct_sentence question_type'a göre
+    # sunucuda hesaplanır, istemci yöne göre dallanmaz). Bu alan adları
+    # başka bir ajanla paylaşılan sözleşme — DEĞİŞTİRİLMEMELİ.
+    grammar_sentence_id: str | None = None
+    question_type: str | None = None  # "tr_en" | "en_tr"
+    prompt_sentence: str | None = None
+    correct_sentence: str | None = None
+    acceptable_answers: list[str] | None = None
+    word_hints: list[dict] | None = None
+    topic_tag: str | None = None
+    level: str | None = None
 
 
 class AttemptCreate(BaseModel):
     word_id: str | None = None
     general_word_id: str | None = None
+    # grammar_sentence modu (23 Ekim 2026) — word_id/general_word_id'nin
+    # ÜÇÜNCÜ, birbirini dışlayan alternatifi (bkz. game_attempts_word_ref_check,
+    # 092_topic_translation_practice.sql).
+    grammar_sentence_id: str | None = None
     is_correct: bool
     attempts_count: int = Field(default=1, ge=1)
     time_taken_ms: int | None = None

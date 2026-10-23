@@ -70,6 +70,14 @@ type Strings = {
   sentencePromptLabel: string;
   sentenceEmptyHint: string;
   sentenceResetBtn: string;
+  // 23 Ekim 2026, Behçet'in kullanıcı isteği — "Cümle Kurma" oyununda
+  // Genel Havuz'a ek, tüm gramer konularını kapsayan serbest-metin modu.
+  modeGrammarLabel: string;
+  modeGrammarDesc: string;
+  grammarPromptLabel: string;
+  grammarInputPlaceholder: string;
+  grammarHintsLabel: string;
+  grammarCorrectSentenceTpl: string;
   chooseDirectionTitle: string;
   dirWordToMeaningLabel: string;
   dirWordToMeaningDesc: string;
@@ -173,6 +181,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: 'Kelimeleri doğru sırada diz',
     sentenceEmptyHint: 'Kelimeleri aşağıdan seç',
     sentenceResetBtn: 'Sıfırla',
+    modeGrammarLabel: 'Gramer Pratiği',
+    modeGrammarDesc: 'Tüm gramer konularından çeviri cümleleri kurarak pratik yap',
+    grammarPromptLabel: 'Bu cümleyi çevir',
+    grammarInputPlaceholder: 'Cümleni buraya yaz…',
+    grammarHintsLabel: 'Yardımcı Kelimeler',
+    grammarCorrectSentenceTpl: 'Doğru cümle: {sentence}',
     chooseDirectionTitle: 'Hangi yönde çalışmak istersin?',
     dirWordToMeaningLabel: 'Kelime → Anlam',
     dirWordToMeaningDesc: 'Kelimeyi gör, doğru anlamı seç',
@@ -268,6 +282,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: 'Put the words in the right order',
     sentenceEmptyHint: 'Tap the words below',
     sentenceResetBtn: 'Reset',
+    modeGrammarLabel: 'Grammar Practice',
+    modeGrammarDesc: 'Practice by writing translation sentences from all grammar topics',
+    grammarPromptLabel: 'Translate this sentence',
+    grammarInputPlaceholder: 'Type your sentence here…',
+    grammarHintsLabel: 'Helpful Words',
+    grammarCorrectSentenceTpl: 'Correct sentence: {sentence}',
     chooseDirectionTitle: 'Which direction do you want to practice?',
     dirWordToMeaningLabel: 'Word → Meaning',
     dirWordToMeaningDesc: 'See the word, pick the right meaning',
@@ -363,6 +383,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: 'رتب الكلمات بالترتيب الصحيح',
     sentenceEmptyHint: 'اختر الكلمات أدناه',
     sentenceResetBtn: 'إعادة تعيين',
+    modeGrammarLabel: 'تمرين القواعد',
+    modeGrammarDesc: 'تدرّب بكتابة جمل ترجمة من جميع مواضيع القواعد',
+    grammarPromptLabel: 'ترجم هذه الجملة',
+    grammarInputPlaceholder: 'اكتب جملتك هنا…',
+    grammarHintsLabel: 'كلمات مساعدة',
+    grammarCorrectSentenceTpl: 'الجملة الصحيحة: {sentence}',
     chooseDirectionTitle: 'بأي اتجاه تريد التدرب؟',
     dirWordToMeaningLabel: 'كلمة ← معنى',
     dirWordToMeaningDesc: 'شاهد الكلمة، اختر المعنى الصحيح',
@@ -458,6 +484,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: 'Расставь слова в правильном порядке',
     sentenceEmptyHint: 'Выбери слова ниже',
     sentenceResetBtn: 'Сбросить',
+    modeGrammarLabel: 'Грамматическая практика',
+    modeGrammarDesc: 'Практикуйся, составляя переводы предложений по всем темам грамматики',
+    grammarPromptLabel: 'Переведи это предложение',
+    grammarInputPlaceholder: 'Напиши своё предложение здесь…',
+    grammarHintsLabel: 'Подсказки слов',
+    grammarCorrectSentenceTpl: 'Правильное предложение: {sentence}',
     chooseDirectionTitle: 'В каком направлении хочешь тренироваться?',
     dirWordToMeaningLabel: 'Слово → Значение',
     dirWordToMeaningDesc: 'Смотри слово, выбирай правильное значение',
@@ -553,6 +585,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: 'Bring die Wörter in die richtige Reihenfolge',
     sentenceEmptyHint: 'Wähle die Wörter unten aus',
     sentenceResetBtn: 'Zurücksetzen',
+    modeGrammarLabel: 'Grammatikübung',
+    modeGrammarDesc: 'Übe, indem du Übersetzungssätze zu allen Grammatikthemen schreibst',
+    grammarPromptLabel: 'Übersetze diesen Satz',
+    grammarInputPlaceholder: 'Schreibe deinen Satz hier…',
+    grammarHintsLabel: 'Hilfswörter',
+    grammarCorrectSentenceTpl: 'Richtiger Satz: {sentence}',
     chooseDirectionTitle: 'In welche Richtung möchtest du üben?',
     dirWordToMeaningLabel: 'Wort → Bedeutung',
     dirWordToMeaningDesc: 'Sieh das Wort, wähle die richtige Bedeutung',
@@ -648,6 +686,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: 'Place les mots dans le bon ordre',
     sentenceEmptyHint: 'Choisis les mots ci-dessous',
     sentenceResetBtn: 'Réinitialiser',
+    modeGrammarLabel: 'Pratique de grammaire',
+    modeGrammarDesc: 'Pratique en écrivant des phrases de traduction sur tous les sujets de grammaire',
+    grammarPromptLabel: 'Traduis cette phrase',
+    grammarInputPlaceholder: 'Écris ta phrase ici…',
+    grammarHintsLabel: "Mots d'aide",
+    grammarCorrectSentenceTpl: 'Phrase correcte : {sentence}',
     chooseDirectionTitle: 'Dans quel sens veux-tu t\u2019entraîner ?',
     dirWordToMeaningLabel: 'Mot → Sens',
     dirWordToMeaningDesc: 'Vois le mot, choisis le bon sens',
@@ -743,6 +787,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: 'Coloca las palabras en el orden correcto',
     sentenceEmptyHint: 'Elige las palabras de abajo',
     sentenceResetBtn: 'Reiniciar',
+    modeGrammarLabel: 'Práctica de gramática',
+    modeGrammarDesc: 'Practica escribiendo frases de traducción de todos los temas de gramática',
+    grammarPromptLabel: 'Traduce esta frase',
+    grammarInputPlaceholder: 'Escribe tu frase aquí…',
+    grammarHintsLabel: 'Palabras de ayuda',
+    grammarCorrectSentenceTpl: 'Frase correcta: {sentence}',
     chooseDirectionTitle: '¿En qué dirección quieres practicar?',
     dirWordToMeaningLabel: 'Palabra → Significado',
     dirWordToMeaningDesc: 'Ve la palabra, elige el significado correcto',
@@ -838,6 +888,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: 'Metti le parole nell\'ordine giusto',
     sentenceEmptyHint: 'Scegli le parole qui sotto',
     sentenceResetBtn: 'Reimposta',
+    modeGrammarLabel: 'Pratica di grammatica',
+    modeGrammarDesc: 'Pratica scrivendo frasi di traduzione da tutti gli argomenti di grammatica',
+    grammarPromptLabel: 'Traduci questa frase',
+    grammarInputPlaceholder: 'Scrivi la tua frase qui…',
+    grammarHintsLabel: 'Parole di aiuto',
+    grammarCorrectSentenceTpl: 'Frase corretta: {sentence}',
     chooseDirectionTitle: 'In quale direzione vuoi esercitarti?',
     dirWordToMeaningLabel: 'Parola → Significato',
     dirWordToMeaningDesc: 'Vedi la parola, scegli il significato corretto',
@@ -933,6 +989,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: '単語を正しい順番に並べてください',
     sentenceEmptyHint: '下から単語を選んでください',
     sentenceResetBtn: 'リセット',
+    modeGrammarLabel: '文法練習',
+    modeGrammarDesc: 'すべての文法トピックから翻訳文を作って練習しよう',
+    grammarPromptLabel: 'この文を訳してください',
+    grammarInputPlaceholder: 'ここに文を入力…',
+    grammarHintsLabel: 'ヒントの単語',
+    grammarCorrectSentenceTpl: '正解の文: {sentence}',
     chooseDirectionTitle: 'どの方向で練習しますか?',
     dirWordToMeaningLabel: '単語 → 意味',
     dirWordToMeaningDesc: '単語を見て正しい意味を選ぶ',
@@ -1028,6 +1090,12 @@ const STRINGS: Record<Locale, Strings> = {
     sentencePromptLabel: 'Coloque as palavras na ordem correta',
     sentenceEmptyHint: 'Escolha as palavras abaixo',
     sentenceResetBtn: 'Redefinir',
+    modeGrammarLabel: 'Prática de Gramática',
+    modeGrammarDesc: 'Pratique escrevendo frases de tradução de todos os tópicos de gramática',
+    grammarPromptLabel: 'Traduza esta frase',
+    grammarInputPlaceholder: 'Escreva sua frase aqui…',
+    grammarHintsLabel: 'Palavras de Ajuda',
+    grammarCorrectSentenceTpl: 'Frase correta: {sentence}',
     chooseDirectionTitle: 'Em que direção queres praticar?',
     dirWordToMeaningLabel: 'Palavra → Significado',
     dirWordToMeaningDesc: 'Vê a palavra, escolhe o significado certo',
@@ -1264,6 +1332,14 @@ export default function GamePage() {
   const [sentencePicked, setSentencePicked] = useState<string[]>([]);
   const [sentenceResult, setSentenceResult] = useState<'correct' | 'wrong' | null>(null);
 
+  // ── Gramer Pratiği (grammar_sentence) state — 23 Ekim 2026, Behçet'in
+  // kullanıcı isteği: "Cümleleri kurarken kelimeleri ben yazayım. kutu
+  // içinden kelimeleri tıklayarak olmasın." Serbest metin girişi, backend
+  // current.correct_sentence/acceptable_answers ile istemci tarafında
+  // karşılaştırılır (typing moduyla aynı güven modeli). ──
+  const [grammarSentenceInput, setGrammarSentenceInput] = useState('');
+  const [grammarSentenceResult, setGrammarSentenceResult] = useState<'correct' | 'wrong' | null>(null);
+
   // ── Boşluk Doldurma varyantı (fill_blank) — 'choice' = seçeneklerden kelime
   // seç, 'typing' = klavyeyle yaz. Backend'de mod hepsi için aynı:
   // 'fill_blank'. Mobile'daki 'letters' (harf dizme) varyantı web'e
@@ -1394,6 +1470,10 @@ export default function GamePage() {
       );
       setSentencePicked([]);
       setSentenceResult(null);
+      // Gramer Pratiği (grammar_sentence) — her yeni cümlede serbest metin
+      // girişi ve sonucu sıfırlanır (bkz. 23 Ekim 2026 kullanıcı isteği).
+      setGrammarSentenceInput('');
+      setGrammarSentenceResult(null);
       setQuestionNum((n) => n + 1);
       setStage('playing');
     } catch {
@@ -1521,7 +1601,7 @@ export default function GamePage() {
     const presetPool = searchParams.get('pool') as PoolSource | null;
     const VALID_MODES: GameMode[] = [
       'wordle', 'multiple_choice', 'typing', 'matching', 'listening', 'sprint', 'sentence_building',
-      'fill_blank', 'true_false', 'word_chain',
+      'fill_blank', 'true_false', 'word_chain', 'grammar_sentence',
     ];
     if (!presetMode || !VALID_MODES.includes(presetMode)) return;
     const pool: PoolSource = presetPool === 'own' ? 'own' : 'general';
@@ -1683,6 +1763,59 @@ export default function GamePage() {
       const res = await gamesApi.submitAttempt(sessionId, {
         word_id: current.word_id ?? undefined,
         general_word_id: current.general_word_id ?? undefined,
+        is_correct: false,
+      });
+      setScore(res.session_score);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(() => {
+      loadNext(sessionId, true, poolSource);
+    }, 1600);
+  };
+
+  // ── Gramer Pratiği (grammar_sentence) cevap kontrolü — cümle karşılaştırması
+  // büyük/küçük harf, noktalama ve fazladan boşluk farklarını tolere eder
+  // (serbest metin girişi olduğu için typing modundaki tek-kelime
+  // normalizasyonundan farklı, bkz. normalizeTypedAnswer). ──
+  const normalizeSentenceAnswer = (s: string): string =>
+    s
+      .trim()
+      .toLocaleLowerCase()
+      .replace(/[.,!?;:"'’‘“”()]/g, '')
+      .replace(/\s+/g, ' ');
+
+  const handleGrammarSentenceSubmit = async () => {
+    if (grammarSentenceResult || !current || !sessionId || !grammarSentenceInput.trim()) return;
+    const candidates = [current.correct_sentence ?? '', ...(current.acceptable_answers ?? [])];
+    const normalizedInput = normalizeSentenceAnswer(grammarSentenceInput);
+    const isCorrect = candidates.some((c) => normalizeSentenceAnswer(c) === normalizedInput);
+    setGrammarSentenceResult(isCorrect ? 'correct' : 'wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        grammar_sentence_id: current.grammar_sentence_id ?? undefined,
+        is_correct: isCorrect,
+      });
+      setScore(res.session_score);
+      setXpEarned((x) => x + res.xp_awarded);
+      if (res.leveled_up) setLevelUp(res.new_level);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(
+      () => {
+        loadNext(sessionId, true, poolSource);
+      },
+      isCorrect ? 900 : 1600
+    );
+  };
+
+  const handleGrammarSentenceSkip = async () => {
+    if (grammarSentenceResult || !current || !sessionId) return;
+    setGrammarSentenceResult('wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        grammar_sentence_id: current.grammar_sentence_id ?? undefined,
         is_correct: false,
       });
       setScore(res.session_score);
@@ -2195,6 +2328,21 @@ export default function GamePage() {
                     <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.poolOwnDesc}</p>
                   </button>
                 )}
+                {/* 23 Ekim 2026, Behçet'in kullanıcı isteği — Cümle Kurma'da
+                    Genel Havuz'a ek, tüm gramer konularını kapsayan serbest-
+                    metin seçeneği ("Tense" yerine genel bir isim: Gramer
+                    Pratiği). Ayrı bir GameMode olduğu için start() farklı
+                    mode ile çağrılır; pool parametresi backend'de bu mod
+                    için yok sayılır (bkz. games.py next_word branch). */}
+                {gameMode === 'sentence_building' && (
+                  <button
+                    onClick={() => start('grammar_sentence', 'general', direction)}
+                    className="w-full text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+                  >
+                    <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeGrammarLabel}</p>
+                    <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeGrammarDesc}</p>
+                  </button>
+                )}
               </div>
               <button
                 onClick={() => setStage(gameMode === 'multiple_choice' ? 'direction' : gameMode === 'fill_blank' ? 'fillvariant' : 'mode')}
@@ -2400,6 +2548,7 @@ export default function GamePage() {
   const isListening = gameMode === 'listening';
   const isSprint = gameMode === 'sprint';
   const isSentence = gameMode === 'sentence_building';
+  const isGrammarSentence = gameMode === 'grammar_sentence';
   const isMultipleChoice = gameMode === 'multiple_choice';
   const isFillBlank = gameMode === 'fill_blank';
   // Seçenekli varyantta backend seçenek göndermediyse (olağan dışı) yazma
@@ -3055,6 +3204,89 @@ export default function GamePage() {
               {sentenceResult === 'correct'
                 ? t.correctLabel
                 : `${t.wrongLabel} — ${(current.sentence_tokens ?? []).join(' ')}`}
+            </p>
+          )}
+        </>
+      )}
+
+      {isGrammarSentence && (
+        <>
+          <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-8 text-center">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-3">
+              {t.grammarPromptLabel}
+            </p>
+            <p className="text-lg font-semibold text-gray-900 dark:text-slate-100 leading-relaxed">
+              {current.prompt_sentence}
+            </p>
+            {current.word_hints && current.word_hints.length > 0 && (
+              <div className="mt-4 flex flex-wrap justify-center gap-1.5">
+                {current.word_hints.map((hint, i) => (
+                  <span
+                    key={i}
+                    className="text-xs bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 rounded-lg px-2 py-1"
+                    title={hint.translation}
+                  >
+                    {hint.phrase} <span className="text-gray-400 dark:text-slate-500">— {hint.translation}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="w-full flex flex-col gap-3">
+            <textarea
+              value={grammarSentenceInput}
+              onChange={(e) => setGrammarSentenceInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleGrammarSentenceSubmit();
+                }
+              }}
+              disabled={grammarSentenceResult !== null}
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={t.grammarInputPlaceholder}
+              rows={2}
+              className={`w-full border-2 rounded-xl px-4 py-3.5 text-base leading-relaxed transition-all outline-none resize-none ${
+                grammarSentenceResult === 'correct'
+                  ? 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]'
+                  : grammarSentenceResult === 'wrong'
+                    ? 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                    : 'border-gray-200 dark:border-slate-700 focus:border-[#378ADD]'
+              }`}
+            />
+
+            {grammarSentenceResult === null && (
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleGrammarSentenceSubmit}
+                  disabled={!grammarSentenceInput.trim()}
+                  className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
+                >
+                  {t.typingCheckBtn}
+                </button>
+                <button
+                  onClick={handleGrammarSentenceSkip}
+                  className="w-full text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 rounded-xl py-2 text-sm font-medium transition-colors"
+                >
+                  {t.typingSkipBtn}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {grammarSentenceResult !== null && (
+            <p
+              className={`text-sm font-semibold text-center ${
+                grammarSentenceResult === 'correct' ? 'text-[#3B6D11]' : 'text-red-500 dark:text-red-400'
+              }`}
+            >
+              {grammarSentenceResult === 'correct'
+                ? t.correctLabel
+                : `${t.wrongLabel} — ${t.grammarCorrectSentenceTpl.replace('{sentence}', current.correct_sentence ?? '')}`}
             </p>
           )}
         </>

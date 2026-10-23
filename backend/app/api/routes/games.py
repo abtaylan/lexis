@@ -70,6 +70,26 @@ isteği: "yeni oyun önerisi bekliyorum senden" — üç yeni mod):
   is_correct istemci tarafında hesaplanır) — zincir kısıtı sadece HANGİ
   kelimenin sorulacağını etkiler, doğruluk kontrolünü değil.
 
+"Gramer Cümle Kurma" (23 Ekim 2026, Behçet'in kullanıcı isteği):
+- "grammar_sentence" -> sentence_building/typing'le AYNI next-word/attempt
+  akışı, ama pool_source'a (own/general) BAĞLI DEĞİL -- words/general_word_pool
+  yerine her zaman AYRI bir tablodan (game_grammar_sentences) beslenir, bu
+  yüzden next_word()'de own/general dallanmasının TAMAMEN DIŞINDA ele alınır
+  ve create_session'da pool_source için özel bir doğrulama/kısıtlama YOK
+  (istemci ne gönderirse göndersin kabul edilir). Her satır bir
+  native_sentence/target_sentence çifti + question_type ("tr_en"/"en_tr")
+  taşır; hangisinin "soru" hangisinin "doğru cevap" olduğu SUNUCUDA
+  hesaplanır (bkz. NextWordResponse.prompt_sentence/correct_sentence) --
+  istemci yöne göre dallanmaz, hep prompt_sentence'ı gösterip
+  acceptable_answers'a karşı serbest-metin kontrolü yapar (typing/fill_blank
+  ile AYNI güven modeli). game_attempts'te word_id/general_word_id'nin
+  ÜÇÜNCÜ, birbirini dışlayan alternatifi olan grammar_sentence_id kullanılır
+  (bkz. 092_topic_translation_practice.sql). Aynı içerik şekli (native/target
+  sentence, question_type, grammar_note, acceptable_answers, word_hints),
+  Gramer Rehberi'nin "Pratik yap" ekranında topic_tag'e göre hedefli çalışma
+  için AYRI bir tablodan (topic_translation_questions, bkz. exams.py) da
+  sunulur -- ikisi aynı şekli paylaşır ama bağımsız tablolardır.
+
 XP KURALI ("İlk Doğru Deneme", 4 Eylül 2026): /attempt endpoint'i, bir kelime
 için XP vermeden önce bu session'da o kelime için DAHA ÖNCE kaydedilmiş bir
 deneme olup olmadığını kontrol eder (bkz. _prior_attempt_count). Varsa —
@@ -409,6 +429,43 @@ def _choose_sentence_word(learning_lang: str, native_lang: str, attempted: list[
     return random.choice(candidates)
 
 
+def _choose_grammar_sentence(attempted: list[str]) -> dict | None:
+    """"Gramer Cümle Kurma" modu (23 Ekim 2026, bkz. GameMode.grammar_sentence
+    yorumu) için game_grammar_sentences'tan rastgele bir satır seçer.
+    _choose_sentence_word'daki (bkz. yukarısı) AYNI "rastgele ofsetli
+    pencere" deseni -- konuya (topic_tag) ya da pool_source'a BAĞLI
+    DEĞİL, sadece status='published' olan bütün havuzdan seçilir."""
+    query = (
+        supabase_admin.table("game_grammar_sentences")
+        .select(
+            "id, topic_tag, level, question_type, native_sentence, "
+            "target_sentence, acceptable_answers, word_hints"
+        )
+        .eq("status", "published")
+    )
+    if attempted:
+        query = query.not_.in_("id", attempted)
+
+    count_query = (
+        supabase_admin.table("game_grammar_sentences")
+        .select("id", count="exact")
+        .eq("status", "published")
+    )
+    if attempted:
+        count_query = count_query.not_.in_("id", attempted)
+    total = count_query.limit(1).execute().count or 0
+    if total == 0:
+        return None
+
+    offset = random.randint(0, max(0, total - CANDIDATE_FETCH_LIMIT))
+    rows = (
+        query.order("id").range(offset, offset + CANDIDATE_FETCH_LIMIT - 1).execute().data
+    ) or []
+    if not rows:
+        return None
+    return random.choice(rows)
+
+
 def _choose_general_word(
     user_id: str,
     learning_lang: str,
@@ -445,7 +502,10 @@ def _choose_general_word(
 
 
 def _prior_attempt_count(
-    session_id: str, word_id: str | None, general_word_id: str | None
+    session_id: str,
+    word_id: str | None,
+    general_word_id: str | None,
+    grammar_sentence_id: str | None = None,
 ) -> int:
     """Bu session'da bu kelime için DAHA ÖNCE kaydedilmiş deneme sayısı.
 
@@ -454,6 +514,9 @@ def _prior_attempt_count(
     İstemcinin gönderdiği `attempts_count` alanına KASITLI OLARAK güvenilmiyor
     (istemci taraflı sayaç manipülasyona açık) — gerçek sayı burada, sunucunun
     kendi `game_attempts` kayıtlarından sayılıyor. Bkz. LEXIS_XP_YENI_KURALLAR.md.
+
+    23 Ekim 2026 -- grammar_sentence_id, grammar_sentence modu için
+    word_id/general_word_id'nin ÜÇÜNCÜ, birbirini dışlayan alternatifi.
     """
     # NOT: `count="exact"` yerine kasıtlı olarak `.select(...).execute()` +
     # `len(result.data)` kullanılıyor — bu dosyadaki `_attempted_ids` ile
@@ -464,8 +527,10 @@ def _prior_attempt_count(
     )
     if word_id:
         query = query.eq("word_id", word_id)
-    else:
+    elif general_word_id:
         query = query.eq("general_word_id", general_word_id)
+    else:
+        query = query.eq("grammar_sentence_id", grammar_sentence_id)
     result = query.execute()
     return len(result.data or [])
 
@@ -665,6 +730,29 @@ async def next_word(
         pool_source = session["pool_source"]
         mode = session["mode"]
         direction = session.get("direction", Direction.word_to_meaning.value)
+
+        # "Gramer Cümle Kurma" (23 Ekim 2026, Behçet'in kullanıcı isteği) --
+        # pool_source'a BAĞLI DEĞİL (create_session'da bu mod için özel bir
+        # doğrulama/dallanma YOK, bkz. GameMode.grammar_sentence yorumu),
+        # bu yüzden aşağıdaki own/general dallanmasının TAMAMEN DIŞINDA, en
+        # üstte ele alınır -- her zaman game_grammar_sentences'tan beslenir.
+        if mode == GameMode.grammar_sentence.value:
+            attempted = _attempted_ids(session_id, "grammar_sentence_id")
+            chosen = _choose_grammar_sentence(attempted)
+            if chosen is None:
+                return NextWordResponse(finished=True)
+            is_tr_en = chosen["question_type"] == "tr_en"
+            return NextWordResponse(
+                finished=False,
+                grammar_sentence_id=chosen["id"],
+                question_type=chosen["question_type"],
+                prompt_sentence=chosen["native_sentence"] if is_tr_en else chosen["target_sentence"],
+                correct_sentence=chosen["target_sentence"] if is_tr_en else chosen["native_sentence"],
+                acceptable_answers=chosen.get("acceptable_answers") or [],
+                word_hints=chosen.get("word_hints") or [],
+                topic_tag=chosen.get("topic_tag"),
+                level=chosen.get("level"),
+            )
 
         if pool_source == "own":
             attempted = _attempted_ids(session_id, "word_id")
@@ -961,8 +1049,13 @@ async def submit_attempt(
         if session.get("ended_at"):
             raise HTTPException(status_code=400, detail="Oturum zaten bitmiş.")
 
-        if not attempt_in.word_id and not attempt_in.general_word_id:
-            raise HTTPException(status_code=422, detail="word_id veya general_word_id gerekli.")
+        # 23 Ekim 2026 -- grammar_sentence_id, word_id/general_word_id'nin
+        # ÜÇÜNCÜ, birbirini dışlayan alternatifi (bkz. AttemptCreate yorumu).
+        if not attempt_in.word_id and not attempt_in.general_word_id and not attempt_in.grammar_sentence_id:
+            raise HTTPException(
+                status_code=422,
+                detail="word_id, general_word_id veya grammar_sentence_id gerekli.",
+            )
 
         xp_awarded = 0
         leveled_up = False
@@ -973,7 +1066,10 @@ async def submit_attempt(
         # sefer doğru bilinse bile XP verilmez — sadece skor/ilerleme için sayılır.
         # Detay ve gerekçe: LEXIS_XP_YENI_KURALLAR.md
         prior_attempts = _prior_attempt_count(
-            session_id, attempt_in.word_id, attempt_in.general_word_id
+            session_id,
+            attempt_in.word_id,
+            attempt_in.general_word_id,
+            attempt_in.grammar_sentence_id,
         )
         is_first_attempt = prior_attempts == 0
 
@@ -1002,6 +1098,7 @@ async def submit_attempt(
             "session_id": session_id,
             "word_id": attempt_in.word_id,
             "general_word_id": attempt_in.general_word_id,
+            "grammar_sentence_id": attempt_in.grammar_sentence_id,
             "is_correct": attempt_in.is_correct,
             "attempts_count": prior_attempts + 1,
             "time_taken_ms": attempt_in.time_taken_ms,
@@ -1012,9 +1109,15 @@ async def submit_attempt(
             raise HTTPException(status_code=500, detail="Deneme kaydedilemedi.")
 
         # Hazine/istatistik/spaced-repetition senkronizasyonu — bkz. yukarısı.
-        _sync_word_progress(
-            current_user.id, attempt_in.word_id, attempt_in.general_word_id, attempt_in.is_correct
-        )
+        # 23 Ekim 2026 -- grammar_sentence modunda word_id/general_word_id
+        # İKİSİ DE None olur (cümle game_grammar_sentences'tan gelir,
+        # words/general_word_pool'la hiç ilişkisi yok); _sync_word_progress
+        # general_word_id=None ile çağrılırsa .single() sorgusu patlar, bu
+        # yüzden bu modda ÇAĞRILMAZ.
+        if attempt_in.word_id or attempt_in.general_word_id:
+            _sync_word_progress(
+                current_user.id, attempt_in.word_id, attempt_in.general_word_id, attempt_in.is_correct
+            )
 
         # Seri (streak) güncelle — Bug (9 Eylül 2026): bu çağrı hiç yoktu, sadece
         # words.py'deki eski flashcard-review akışı update_streak() çağırıyordu.

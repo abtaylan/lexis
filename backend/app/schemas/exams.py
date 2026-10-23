@@ -298,6 +298,39 @@ class ExamPracticeQuestionItem(BaseModel):
     topic_tag: str | None = None
 
 
+class TopicTranslationQuestionItem(BaseModel):
+    """"Konu Bazli Ceviri Pratigi" (23 Ekim 2026, Behcet'in kullanici
+    istegi, bkz. supabase/migrations/092_topic_translation_practice.sql)
+    -- ExamPracticeQuestionsResult.translation_questions'in her ogesi.
+    prompt_sentence/correct_sentence, saklanan native_sentence/
+    target_sentence'dan question_type'a gore SUNUCUDA hesaplanir
+    (istemci yone gore dallanmaz, games.py::grammar_sentence modundaki
+    AYNI hesaplama -- bkz. NextWordResponse). Bu alan adlari games.py
+    tarafindaki agent ile paylasilan sozlesme -- DEGISTIRILMEMELI."""
+
+    id: str
+    model_number: int
+    level: str
+    question_type: str  # "tr_en" | "en_tr"
+    grammar_note: str | None
+    prompt_sentence: str
+    correct_sentence: str
+    acceptable_answers: list[str]
+    word_hints: list[dict]
+    topic_tag: str
+
+
+class TopicTranslationAttemptCreate(BaseModel):
+    """POST /exams/topics/{topic_tag}/translation-attempt govdesi (23 Ekim
+    2026) -- log_topic_practice_attempt (bkz. yukarisi, TopicPracticeAttemptCreate)
+    ile AYNI hafif desen: XP verilmez, exam_sessions/exam_attempts'e
+    DOKUNULMAZ, sadece topic_translation_attempts'e bir satir yazilir."""
+
+    question_id: str
+    submitted_text: str | None = None
+    is_correct: bool
+
+
 class ExamPracticeQuestionsResult(BaseModel):
     """GET /exams/topics/{topic_tag}/practice-questions cevabı — madde #3b.
     Bağımsız, oturumsuz mini pratik seti: XP verilmez, exam_sessions/
@@ -307,11 +340,20 @@ class ExamPracticeQuestionsResult(BaseModel):
     (POST /exams/topics/{topic_tag}/practice-attempt, bkz.
     TopicPracticeAttemptCreate) log atar — bu SADECE Görev Haritası'nın
     'grammar_topic' düğümlerini ölçebilmesi için, XP/session akışına
-    hiçbir etkisi yok."""
+    hiçbir etkisi yok.
+
+    23 Ekim 2026 (Behçet'in kullanıcı isteği) -- translation_questions:
+    aynı topic_tag için topic_translation_questions'tan gelen TR<->EN
+    çeviri soruları (bkz. TopicTranslationQuestionItem). AYRI bir uca
+    (POST /exams/topics/{topic_tag}/translation-attempt, bkz.
+    TopicTranslationAttemptCreate) loglanır -- questions/practice-attempt
+    akışına DOKUNMAZ, aynı _exam_area_enabled kapısını paylaşır (ikinci
+    bir kapı eklenmedi)."""
 
     topic_tag: str
     related_grammar_topic: RelatedGrammarTopic | None = None
     questions: list[ExamPracticeQuestionItem]
+    translation_questions: list[TopicTranslationQuestionItem] = []
 
 
 class TopicPracticeAttemptCreate(BaseModel):

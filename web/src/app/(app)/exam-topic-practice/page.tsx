@@ -13,7 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { examsApi, studyProgramApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
-import type { ExamPracticeQuestionItem } from '@/types';
+import type { ExamPracticeQuestionItem, TopicTranslationQuestionItem } from '@/types';
 
 const WEEKLY_QUIZ_TAG = 'weekly-quiz';
 
@@ -32,6 +32,17 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     doneTitle: 'Bu tur tamamlandı!',
     backToDashboardBtn: 'Panele Dön',
     defaultTitle: 'Konu Pratiği',
+    // 23 Ekim 2026, Behçet'in kullanıcı isteği — test sorularına ek olarak
+    // çeviri cümlesi kurma pratiği (kutudan tıklama yok, kullanıcı kendi
+    // yazar; bkz. backend TopicTranslationQuestionItem).
+    translationCounterTpl: 'Çeviri {current} / {total}',
+    grammarNoteLabel: 'Gramer Notu',
+    wordHintsLabel: 'Yardımcı Kelimeler',
+    translationInputPlaceholder: 'Çeviriyi buraya yaz…',
+    checkBtn: 'Kontrol Et',
+    modelAnswerLabel: 'Model Cevap',
+    translationCorrectLabel: 'Doğru!',
+    translationWrongLabel: 'Yanlış',
   },
   en: {
     back: 'Back',
@@ -47,6 +58,14 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     doneTitle: 'Round complete!',
     backToDashboardBtn: 'Back to Dashboard',
     defaultTitle: 'Topic Practice',
+    translationCounterTpl: 'Translation {current} / {total}',
+    grammarNoteLabel: 'Grammar Note',
+    wordHintsLabel: 'Helpful Words',
+    translationInputPlaceholder: 'Type your translation here…',
+    checkBtn: 'Check',
+    modelAnswerLabel: 'Model Answer',
+    translationCorrectLabel: 'Correct!',
+    translationWrongLabel: 'Wrong',
   },
 };
 
@@ -78,17 +97,67 @@ export default function ExamTopicPracticePage() {
   const [index, setIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [revealed, setRevealed] = useState(false);
+  // 23 Ekim 2026, Behçet'in kullanıcı isteği — test sorularından sonra EK
+  // olarak çeviri cümlesi pratiği fazı; ayrı index/duruma sahip, kutudan
+  // tıklama yok, kullanıcı cümleyi kendi yazar.
+  const [translationIndex, setTranslationIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [translationRevealed, setTranslationRevealed] = useState(false);
+  const [translationCorrect, setTranslationCorrect] = useState(false);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- yeni soru seti geldiğinde ilerlemeyi sıfırlama (fetch-on-effect) deseni; dashboard/page.tsx'teki aynı yaklaşım
     setIndex(0);
     setSelectedOption(null);
     setRevealed(false);
+    setTranslationIndex(0);
+    setUserAnswer('');
+    setTranslationRevealed(false);
+    setTranslationCorrect(false);
   }, [data]);
 
   const questions: ExamPracticeQuestionItem[] = data?.questions ?? [];
+  const translationQuestions: TopicTranslationQuestionItem[] = data?.translation_questions ?? [];
   const current = questions[index];
-  const done = questions.length > 0 && index >= questions.length;
+  const currentTranslation = translationQuestions[translationIndex];
+  const hasAnyQuestions = questions.length > 0 || translationQuestions.length > 0;
+  const mcqPhaseActive = questions.length > 0 && index < questions.length;
+  const translationPhaseActive =
+    !mcqPhaseActive && translationQuestions.length > 0 && translationIndex < translationQuestions.length;
+  const done = hasAnyQuestions && !mcqPhaseActive && !translationPhaseActive;
+
+  // Cümle karşılaştırması: büyük/küçük harf, noktalama ve fazladan boşluk
+  // farkları yüzünden doğru cevabı yanlış saymasın (kutudan seçim değil,
+  // serbest metin girişi olduğu için gerekli — 23 Ekim 2026 kullanıcı isteği).
+  function normalizeSentence(s: string): string {
+    return s
+      .trim()
+      .toLocaleLowerCase()
+      .replace(/[.,!?;:"'’‘“”()]/g, '')
+      .replace(/\s+/g, ' ');
+  }
+
+  function handleCheckTranslation() {
+    if (!currentTranslation || translationRevealed) return;
+    const normalizedUser = normalizeSentence(userAnswer);
+    const candidates = [currentTranslation.correct_sentence, ...(currentTranslation.acceptable_answers ?? [])];
+    const isCorrect = candidates.some((c) => normalizeSentence(c) === normalizedUser);
+    setTranslationCorrect(isCorrect);
+    setTranslationRevealed(true);
+    examsApi.logTopicTranslationAttempt(
+      currentTranslation.topic_tag ?? topicTag,
+      currentTranslation.id,
+      userAnswer,
+      isCorrect
+    );
+  }
+
+  function handleNextTranslation() {
+    setUserAnswer('');
+    setTranslationRevealed(false);
+    setTranslationCorrect(false);
+    setTranslationIndex((i) => i + 1);
+  }
 
   function handleSelect(optionId: string) {
     if (revealed) return;
@@ -127,7 +196,7 @@ export default function ExamTopicPracticePage() {
         </div>
       ) : isError ? (
         <p className="text-sm text-red-600 dark:text-red-400 mt-6">{t.error}</p>
-      ) : questions.length === 0 ? (
+      ) : !hasAnyQuestions ? (
         <p className="text-sm text-gray-400 dark:text-slate-500 mt-6">{t.noQuestionsYet}</p>
       ) : done ? (
         <div className="mt-8 flex flex-col items-center bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm py-10">
@@ -140,6 +209,92 @@ export default function ExamTopicPracticePage() {
             {t.backToDashboardBtn}
           </button>
         </div>
+      ) : translationPhaseActive && currentTranslation ? (
+        <>
+          <p className="text-sm font-semibold text-gray-500 dark:text-slate-400 mt-6">
+            {t.translationCounterTpl
+              .replace('{current}', String(translationIndex + 1))
+              .replace('{total}', String(translationQuestions.length))}
+          </p>
+
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5 mt-2">
+            {currentTranslation.grammar_note && (
+              <div className="mb-3 rounded-xl bg-[#FFF8E8] dark:bg-amber-500/10 border border-[#FDE9B8] dark:border-amber-500/20 px-3.5 py-2.5">
+                <p className="text-xs font-semibold text-[#8A6416] dark:text-amber-300">{t.grammarNoteLabel}</p>
+                <p className="text-xs text-[#8A6416] dark:text-amber-300 mt-1 leading-relaxed">{currentTranslation.grammar_note}</p>
+              </div>
+            )}
+            <p className="text-base font-semibold text-gray-800 dark:text-slate-200 leading-relaxed">
+              {currentTranslation.prompt_sentence}
+            </p>
+            {currentTranslation.word_hints.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {currentTranslation.word_hints.map((hint, i) => (
+                  <span
+                    key={i}
+                    className="text-xs bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 rounded-lg px-2 py-1"
+                    title={hint.translation}
+                  >
+                    {hint.phrase} <span className="text-gray-400 dark:text-slate-500">— {hint.translation}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3">
+            <textarea
+              value={userAnswer}
+              onChange={(e) => setUserAnswer(e.target.value)}
+              disabled={translationRevealed}
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder={t.translationInputPlaceholder}
+              rows={2}
+              className={`w-full border-2 rounded-xl px-4 py-3 text-sm leading-relaxed transition-all outline-none resize-none ${
+                translationRevealed
+                  ? translationCorrect
+                    ? 'border-[#3B6D11] bg-[#EAF3DE] text-[#3B6D11]'
+                    : 'border-red-400 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                  : 'border-gray-200 dark:border-slate-700 focus:border-[#378ADD] bg-white dark:bg-slate-900 text-gray-800 dark:text-slate-200'
+              }`}
+            />
+            {!translationRevealed && (
+              <button
+                onClick={handleCheckTranslation}
+                disabled={!userAnswer.trim()}
+                className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
+              >
+                {t.checkBtn}
+              </button>
+            )}
+          </div>
+
+          {translationRevealed && (
+            <div className="mt-5 flex flex-col gap-4">
+              <div
+                className="rounded-2xl p-4"
+                style={{ backgroundColor: translationCorrect ? '#EAF3DE' : '#FEE2E2' }}
+              >
+                <p className="text-sm font-semibold" style={{ color: translationCorrect ? '#3B6D11' : '#991B1B' }}>
+                  {translationCorrect ? t.translationCorrectLabel : t.translationWrongLabel}
+                </p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-slate-400 mt-3">{t.modelAnswerLabel}</p>
+                <p className="text-sm text-gray-700 dark:text-slate-300 mt-1 leading-relaxed">
+                  {currentTranslation.correct_sentence}
+                </p>
+              </div>
+              <button
+                onClick={handleNextTranslation}
+                className="w-full bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl py-3 text-sm font-medium transition-colors"
+              >
+                {translationIndex + 1 >= translationQuestions.length ? t.finishBtn : t.nextBtn}
+              </button>
+            </div>
+          )}
+        </>
       ) : (
         <>
           <p className="text-sm font-semibold text-gray-500 dark:text-slate-400 mt-6">

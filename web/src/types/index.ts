@@ -498,10 +498,34 @@ export interface ExamPracticeQuestionItem {
   topic_tag?: string | null;
 }
 
+// 23 Ekim 2026, Behçet'in kullanıcı isteği — "Pratik yap" ekranındaki test
+// sorularına EK olarak, çalışılan konuyu kendi cümlemizi yazarak çevirme
+// pratiği (bkz. backend TopicTranslationQuestionItem, exams.py). model_number
+// 1 = gramer notu gösterilir, 2 = gösterilmez; question_type'a göre
+// prompt_sentence/correct_sentence backend'de hesaplanmış geliyor.
+export interface TopicTranslationWordHint {
+  phrase: string;
+  translation: string;
+}
+
+export interface TopicTranslationQuestionItem {
+  id: string;
+  model_number: number;
+  level: string;
+  question_type: 'tr_en' | 'en_tr';
+  grammar_note: string | null;
+  prompt_sentence: string;
+  correct_sentence: string;
+  acceptable_answers: string[];
+  word_hints: TopicTranslationWordHint[];
+  topic_tag: string;
+}
+
 export interface ExamPracticeQuestionsResult {
   topic_tag: string;
   related_grammar_topic?: RelatedGrammarTopic | null;
   questions: ExamPracticeQuestionItem[];
+  translation_questions: TopicTranslationQuestionItem[];
 }
 
 export interface WeakTopicItem {

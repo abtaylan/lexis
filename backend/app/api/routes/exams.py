@@ -66,6 +66,8 @@ from app.schemas.exams import (
     QuestionReportResolveResponse,
     RelatedGrammarTopic,
     TopicPracticeAttemptCreate,
+    TopicTranslationAttemptCreate,
+    TopicTranslationQuestionItem,
     WeakTopicItem,
     WeakTopicsResult,
 )
@@ -1574,12 +1576,35 @@ async def generate_ai_questions(
 # kullanıcının az önce yanlış yaptığı konuyu pekiştirmesi için.
 
 
+def _translation_question_item(row: dict, topic_tag: str) -> TopicTranslationQuestionItem:
+    """topic_translation_questions/game_grammar_sentences satırını
+    TopicTranslationQuestionItem'a çevirir -- question_type'a göre
+    prompt_sentence/correct_sentence SUNUCUDA hesaplanır (23 Ekim 2026,
+    bkz. 092_topic_translation_practice.sql modül notu): istemci hiçbir
+    zaman yöne göre dallanmaz, hep prompt_sentence'ı gösterip
+    correct_sentence/acceptable_answers'a karşı kontrol eder."""
+    is_tr_en = row["question_type"] == "tr_en"
+    return TopicTranslationQuestionItem(
+        id=row["id"],
+        model_number=row["model_number"],
+        level=row["level"],
+        question_type=row["question_type"],
+        grammar_note=row.get("grammar_note"),
+        prompt_sentence=row["native_sentence"] if is_tr_en else row["target_sentence"],
+        correct_sentence=row["target_sentence"] if is_tr_en else row["native_sentence"],
+        acceptable_answers=row.get("acceptable_answers") or [],
+        word_hints=row.get("word_hints") or [],
+        topic_tag=topic_tag,
+    )
+
+
 @router.get("/topics/{topic_tag}/practice-questions", response_model=ExamPracticeQuestionsResult)
 async def practice_questions_by_topic(
     topic_tag: str,
     exam_type: ExamType | None = None,
     exclude_question_id: str | None = None,
     limit: int = 5,
+    translation_limit: int = 8,
     current_user=Depends(get_current_user),
 ):
     if not _exam_area_enabled(current_user.id):
@@ -1588,6 +1613,11 @@ async def practice_questions_by_topic(
             detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen kullanıcılar için kullanılabilir.",
         )
     limit = max(1, min(limit, 10))
+    # "Konu Bazlı Çeviri Pratiği" (23 Ekim 2026) -- bir konuda en fazla 40
+    # soru olabilir (bkz. migration notu); mobil ekranda tek seferde 40'ının
+    # TÜMÜNÜ göstermek yerine, `limit` (MCQ listesi) ile AYNI stilde bir
+    # sayfa/tur büyüklüğü -- varsayılan 8, 1-20 arası sınırlanır.
+    translation_limit = max(1, min(translation_limit, 20))
 
     _, practice_learning_lang = _profile_langs(current_user.id)
     query = (
@@ -1608,6 +1638,25 @@ async def practice_questions_by_topic(
 
     related_grammar_topic = _grammar_topics_for_tags([topic_tag]).get(topic_tag)
 
+    # sort_order'a gore limit'lemek HER ZAMAN ayni ilk N soruyu
+    # dondururdu (model1'in ilk seviyeleri) -- MCQ havuzuyla AYNI
+    # random.shuffle deseni (bkz. yukarisi, candidates/chosen) burada da
+    # uygulanarak her istekte konu icindeki 40 sorudan rastgele bir alt
+    # kume gosteriliyor (23 Ekim 2026).
+    translation_candidates = (
+        supabase_admin.table("topic_translation_questions")
+        .select(
+            "id, model_number, level, question_type, grammar_note, "
+            "native_sentence, target_sentence, acceptable_answers, word_hints"
+        )
+        .eq("topic_tag", topic_tag)
+        .eq("status", "published")
+        .execute()
+        .data
+    ) or []
+    random.shuffle(translation_candidates)
+    translation_rows = translation_candidates[:translation_limit]
+
     return ExamPracticeQuestionsResult(
         topic_tag=topic_tag,
         related_grammar_topic=related_grammar_topic,
@@ -1622,6 +1671,9 @@ async def practice_questions_by_topic(
                 topic_tag=topic_tag,
             )
             for q in chosen
+        ],
+        translation_questions=[
+            _translation_question_item(row, topic_tag) for row in translation_rows
         ],
     )
 
@@ -1643,6 +1695,27 @@ async def log_topic_practice_attempt(
         "is_correct": attempt_in.is_correct,
     }
     supabase_admin.table("topic_practice_attempts").insert(row).execute()
+    return {"message": "Kaydedildi"}
+
+
+@router.post("/topics/{topic_tag}/translation-attempt", status_code=201)
+async def log_topic_translation_attempt(
+    topic_tag: str,
+    attempt_in: TopicTranslationAttemptCreate,
+    current_user=Depends(get_current_user),
+):
+    """"Konu Bazlı Çeviri Pratiği" (23 Ekim 2026, Behçet'in kullanıcı
+    isteği) -- log_topic_practice_attempt (bkz. yukarısı) ile AYNI hafif
+    desen, sadece hedef tablo topic_translation_attempts. XP verilmez,
+    exam_sessions/exam_attempts'e DOKUNULMAZ, session/limit mantığı yok."""
+    row = {
+        "user_id": current_user.id,
+        "topic_tag": topic_tag,
+        "question_id": attempt_in.question_id,
+        "submitted_text": attempt_in.submitted_text,
+        "is_correct": attempt_in.is_correct,
+    }
+    supabase_admin.table("topic_translation_attempts").insert(row).execute()
     return {"message": "Kaydedildi"}
 
 

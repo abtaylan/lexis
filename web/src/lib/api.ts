@@ -861,12 +861,15 @@ export const examsApi = {
   // Madde #3b — yanlış cevaptan sonra aynı konudan ekstra pratik soru seti.
   practiceQuestionsByTopic: async (
     topicTag: string,
-    opts?: { examType?: ExamType; excludeQuestionId?: string; limit?: number }
+    opts?: { examType?: ExamType; excludeQuestionId?: string; limit?: number; translationLimit?: number }
   ): Promise<ExamPracticeQuestionsResult> => {
     const params: Record<string, string | number> = {};
     if (opts?.examType) params.exam_type = opts.examType;
     if (opts?.excludeQuestionId) params.exclude_question_id = opts.excludeQuestionId;
     if (opts?.limit) params.limit = opts.limit;
+    // 23 Ekim 2026, Behçet'in kullanıcı isteği — test sorularına ek olarak
+    // gösterilecek çeviri sorusu sayısı (bkz. backend translation_limit).
+    if (opts?.translationLimit) params.translation_limit = opts.translationLimit;
     const res = await api.get<ExamPracticeQuestionsResult>(
       `/exams/topics/${encodeURIComponent(topicTag)}/practice-questions`,
       { params }
@@ -885,6 +888,25 @@ export const examsApi = {
       });
     } catch {
       // sessizce yut -- sadece Görev Haritası ilerlemesi icin, kritik degil
+    }
+  },
+  // 23 Ekim 2026, Behçet'in kullanıcı isteği — çeviri pratiği sorusu
+  // cevaplandığında log (bkz. backend log_topic_translation_attempt).
+  // XP/session'a etkisi yok, test sorularıyla aynı mantık.
+  logTopicTranslationAttempt: async (
+    topicTag: string,
+    questionId: string,
+    submittedText: string,
+    isCorrect: boolean
+  ): Promise<void> => {
+    try {
+      await api.post(`/exams/topics/${encodeURIComponent(topicTag)}/translation-attempt`, {
+        question_id: questionId,
+        submitted_text: submittedText,
+        is_correct: isCorrect,
+      });
+    } catch {
+      // sessizce yut -- kritik degil
     }
   },
   // Madde #3c — haftalık/günlük zayıf konu özeti (dashboard widget'ı için).
@@ -1242,7 +1264,12 @@ export type GameMode =
   | 'sentence_building'
   | 'fill_blank'
   | 'true_false'
-  | 'word_chain';
+  | 'word_chain'
+  // 23 Ekim 2026, Behçet'in kullanıcı isteği — "Cümle Kurma" oyununda Genel
+  // Havuz'a ek, tüm gramer konularını kapsayan "Gramer Pratiği" seçeneği.
+  // Kutudan tıklayarak değil, kullanıcı cümleyi kendi yazıyor (bkz. games.py
+  // _choose_grammar_sentence). sentence_building'den bağımsız bir mod.
+  | 'grammar_sentence';
 export type PoolSource = 'own' | 'general';
 // multiple_choice modunda soru yönü. wordle modunda kullanılmaz (her zaman anlam
 // gösterilip kelime bulunur). "definition_to_word" (Faz 2, monolingual) sadece
@@ -1280,6 +1307,18 @@ export interface NextWordResult {
   max_wrong_guesses?: number | null;
   // ── sentence_building (cümle kurma) moduna özel alan ──
   sentence_tokens?: string[] | null;
+  // ── grammar_sentence (Gramer Pratiği) moduna özel alanlar — bkz. backend
+  // NextWordResponse. Serbest metin girişi: kullanıcı prompt_sentence'ı
+  // kendi yazarak çevirir, correct_sentence/acceptable_answers ile kontrol
+  // edilir (kutudan tıklama YOK, bkz. 23 Ekim 2026 kullanıcı isteği). ──
+  grammar_sentence_id?: string | null;
+  question_type?: 'tr_en' | 'en_tr' | null;
+  prompt_sentence?: string | null;
+  correct_sentence?: string | null;
+  acceptable_answers?: string[] | null;
+  word_hints?: { phrase: string; translation: string }[] | null;
+  topic_tag?: string | null;
+  level?: string | null;
 }
 
 export interface GameAttemptResult {
@@ -1338,6 +1377,10 @@ export const gamesApi = {
     data: {
       word_id?: string;
       general_word_id?: string;
+      // 23 Ekim 2026, Behçet'in kullanıcı isteği — grammar_sentence modu
+      // için üçüncü, birbirini dışlayan kimlik alanı (bkz. backend
+      // AttemptCreate).
+      grammar_sentence_id?: string;
       is_correct: boolean;
       attempts_count?: number;
       time_taken_ms?: number;
