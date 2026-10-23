@@ -1,9 +1,17 @@
 fastapi==0.115.0
 uvicorn[standard]==0.30.6
-pydantic==2.9.2
+pydantic==2.11.7
 pydantic-settings==2.5.2
 email-validator==2.2.0
-supabase==2.9.0
+
+# supabase 2.9.0 → 2.18.0: eski sürümün create_client() içindeki key-format
+# regex'i yalnızca legacy JWT anon/service_role key kabul ediyordu, yeni
+# Publishable/Secret key formatını ("sb_publishable_...", "sb_secret_...")
+# "Invalid API key" hatasıyla reddediyordu (23 Ekim 2026 Railway breach
+# sonrası key rotasyonunda production'ı kırmıştı). 2.18.0+ bu regex
+# kontrolünü kaldırdı, pydantic'in >=2.11.7 gerektirmesi nedeniyle
+# pydantic de yukarıda bu sürüme çekildi.
+supabase==2.18.0
 httpx==0.27.2
 beautifulsoup4==4.12.3
 python-dotenv==1.0.1
@@ -11,7 +19,7 @@ python-multipart==0.0.12
 Pillow==11.0.0
 
 # Mobil Apple/Google IAP doğrulaması (bkz. app/services/apple_appstore.py, google_play.py)
-PyJWT[crypto]==2.9.0
+PyJWT[crypto]==2.10.1
 google-auth==2.34.0
 requests==2.32.3
 
