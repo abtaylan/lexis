@@ -106,10 +106,27 @@ async def _main_async() -> dict:
     }
 
 
+# 23 Ekim 2026, Behçet'in kullanıcı isteği — "b resimdeki mail artık hiç
+# gönderilmesin, job varsa iptal edilsin": haftalık zayıf kategori özeti
+# e-postası kalıcı olarak durduruldu. GitHub Actions workflow'u zaten
+# silindi (.github/workflows/weekly-weak-categories-email.yml), ama bu
+# script'i tetikleyen cron.py endpoint'i (/internal/cron/weekly-weak-
+# categories-email) secret bilen biri tarafından elle de çağrılabildiği
+# için, main() burada da ikinci bir güvenlik katmanı olarak hiçbir şey
+# göndermeden hemen çıkıyor. Yeniden açmak istenirse bu early-return'ü
+# kaldırmak yeterli -- geri kalan mantık (profil tarama, zayıf kategori
+# hesaplama, e-posta gönderimi) olduğu gibi aşağıda duruyor.
 def main() -> dict:
-    result = asyncio.run(_main_async())
-    print(f"[{datetime.now(UTC).isoformat()}] Haftalik zayif kategori ozeti: {result}")
-    return result
+    print(
+        f"[{datetime.now(UTC).isoformat()}] Haftalik zayif kategori ozeti e-postasi "
+        "kalici olarak devre disi birakildi (23 Ekim 2026, kullanici istegi) -- hicbir "
+        "e-posta gonderilmeden cikiliyor."
+    )
+    return {"sent": 0, "failed": 0, "skipped_no_email": 0, "skipped_no_data": 0, "total_users": 0, "disabled": True}
+    # Yeniden açılırsa, yukarıdaki iki satırı silip yerine şunu koy:
+    #   result = asyncio.run(_main_async())
+    #   print(f"[{datetime.now(UTC).isoformat()}] Haftalik zayif kategori ozeti: {result}")
+    #   return result
 
 
 if __name__ == "__main__":

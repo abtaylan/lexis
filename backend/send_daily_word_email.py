@@ -60,22 +60,29 @@ istediklerinde telegram kanalına yönlensin"):
      atlıyor (sadece o 1 gün -- ertesi gün kohort sırasına normal devam
      eder, kimse kelime kaybetmez, sadece 1 gün ötelenir).
 
-  3) YDS/YÖKDİL SORUSU + TELEGRAM CTA: Seçilen günün kelimesiyle
-     exam_questions tablosunda (exam_type IN ('yds','yokdil'), status=
-     'approved', is_active=true) related_words[].word alanı eşleşen bir
-     soru aranır (bkz. _find_exam_question). EŞLEŞME YOKSA SORU UYDURULMUYOR
-     -- o günün e-postasına soru bölümü hiç eklenmiyor (kullanıcı isteği,
-     13 Ekim 2026 netleştirme: "mevcut sınav sorularından seç ... yoksa o
-     gün soru eklenmez"). Soru bulunduğunda şıklar (A/B/C/D) gösterilir ama
-     doğru cevap mailde YAZILMAZ -- kullanıcı cevabı/açıklamayı görmek
-     isterse Telegram kanalımıza (https://t.me/lexis_words, bkz.
-     email_service.py::_SOCIAL_LINKS) yönlendirilir (bkz.
-     email_service.py::send_daily_word_email yeni exam_question parametresi).
-     Mevcut soru havuzu (exam_questions.related_words) şu an çoğunlukla
-     dilbilgisi KONUSU etiketli (örn. "mothers-in-law (istisna)"), tek tek
-     kelime bazlı etiketlenmiş değil -- bu yüzden erken dönemde eşleşme
-     oranı düşük olabilir, zaman içinde soru havuzu büyüdükçe/etiketlendikçe
-     artar. Bu bilinen, kabul edilmiş bir sınırlama.
+  3) GÜNÜN SORUSU + TELEGRAM CTA (23 Ekim 2026 güncellemesi, kullanıcı
+     isteği: "günün kelimesi ile birlikte telegramda günün sorusu paylaşımı
+     oluyordu, günün kelimesi ile birlikte günün sorusu da mail içine
+     eklensin ... sorunun cevabına tıklayınca telegram kanalına
+     yönlendirecektik"): ÖNCEKİ yaklaşım (kelimeyle exam_questions.
+     related_words etiket eşleştirmesi, bkz. eski _find_exam_question)
+     neredeyse hiç eşleşme bulmuyordu çünkü soru havuzu kelime değil KONU
+     bazlı etiketli. Artık bunun yerine o gün Telegram kanalına GERÇEKTEN
+     paylaşılmış olan soru (post_daily_content.py::_post_question'ın
+     social_posts tablosuna yazdığı 'quiz' ya da 'exam_question' satırı)
+     doğrudan okunup maile ekleniyor (bkz. _todays_telegram_question) --
+     mailde görünen soru artık Telegram'da o gün paylaşılanla BİREBİR AYNI.
+     Bu sadece (native=tr, target=en) kullanıcıları için anlamlıdır (Telegram
+     kanalı hep bu dil çifti için paylaşım yapıyor, bkz. social_content.py);
+     diğer dil çiftlerine (ar->tr, es->tr, vb.) soru bölümü hiç eklenmez.
+     O gün için henüz Telegram'a bir şey paylaşılmadıysa (post-daily-content
+     cron'u bu mail cron'undan sonra çalıştıysa) da aynı şekilde soru bölümü
+     atlanır -- soru asla uydurulmaz. Soru bulunduğunda şıklar gösterilir ama
+     doğru cevap mailde YAZILMAZ -- kullanıcı cevabı görmek isterse Telegram
+     kanalımıza (bkz. email_service.py::_TELEGRAM_CHANNEL_URL) yönlendirilir;
+     orada soru Telegram'ın native poll'u olarak durduğu için cevabı
+     işaretleyince anında doğru/yanlış görür (bkz. social_publisher.py
+     post_quiz_to_telegram/post_exam_question_to_telegram).
 
 send_schedule_reminders.py / post_daily_content.py ile aynı desen: VPS'te
 gerçek internet erişimi olan bu backend'e Vercel Cron / GitHub Actions
@@ -188,35 +195,61 @@ def _today_cohort_index(cohort_count: int) -> int:
     return datetime.now(UTC).date().toordinal() % cohort_count
 
 
-def _find_exam_question(word: str, target_lang: str) -> dict | None:
-    """Günün kelimesiyle eşleşen YDS/YÖKDİL tarzı bir soru arar (bkz. dosya
-    başı not, madde 3). related_words[].word serbest metin olduğu için
-    sadece kaba bir alt-dize eşleşmesi yapılır. Eşleşme yoksa None döner --
-    bu durumda o günün e-postasına soru bölümü hiç eklenmez."""
+# Telegram kanalındaki günlük soru paylaşımı hep (native=tr, target=en)
+# dil çifti için yapılıyor (bkz. app/services/social_content.py
+# SOURCE_LANG/TARGET_LANG, DAILY_WORD_TARGET_LANG/NATIVE_LANG -- Telegram
+# kanalı Türkçe konuşan İngilizce öğrencilerine özel). Bu yüzden mail
+# tarafında da soru bölümü sadece bu çift için eklenir.
+_TELEGRAM_QUESTION_NATIVE_LANG = "tr"
+_TELEGRAM_QUESTION_TARGET_LANG = "en"
+
+
+def _todays_telegram_question() -> dict | None:
+    """23 Ekim 2026, Behçet'in kullanıcı isteği -- "günün kelimesi ile
+    birlikte telegramda günün sorusu paylaşımı oluyordu, günün kelimesi ile
+    birlikte günün sorusu da mail içine eklensin ... sorunun cevabına
+    tıklayınca telegram kanalına yönlendirecektik": önceki _find_exam_question
+    yaklaşımı (kelimeyle etiket eşleştirme) neredeyse hiç eşleşme bulmuyordu
+    (bkz. eski docstring madde 3). Bunun yerine artık bugün Telegram'a
+    (post_daily_content.py::_post_question tarafından) GERÇEKTEN paylaşılmış
+    olan AYNI soru social_posts tablosundan okunuyor -- böylece mailde
+    gösterilen soru, Telegram kanalında o gün paylaşılanla birebir aynı olur.
+    Henüz paylaşılmadıysa (örn. post-daily-content cron'u bu mail cron'undan
+    sonra çalıştıysa) None döner -- bu durumda eski davranışla aynı şekilde
+    o günün e-postasına soru bölümü hiç eklenmez.
+
+    social_posts.options hem 'quiz' hem 'exam_question' satırlarında DÜZ
+    METİN listesi olarak tutuluyor (bkz. social_content.py pick_quiz/
+    pick_exam_question) -- email_service.py::send_daily_word_email ise
+    exam_question['options']'ı {"text": ...} sözlük listesi bekliyor, bu
+    yüzden burada normalize ediliyor. Doğru cevap (correct_answer) BİLEREK
+    maile dahil edilmiyor -- kullanıcı cevabı görmek isterse Telegram
+    kanalındaki native poll'a yönlendiriliyor (bkz. email_service.py
+    _TELEGRAM_CHANNEL_URL + 'exam_cta').
+    """
     try:
         rows = (
-            supabase_admin.table("exam_questions")
-            .select("id, exam_type, question_text, options, correct_option, related_words")
-            .eq("status", "approved")
-            .eq("is_active", True)
-            .eq("learning_lang", target_lang)
-            .in_("exam_type", ["yds", "yokdil"])
-            .limit(300)
+            supabase_admin.table("social_posts")
+            .select("content_type, question_text, options, exam_type")
+            .eq("post_date", datetime.now(UTC).date().isoformat())
+            .in_("content_type", ["quiz", "exam_question"])
+            .limit(1)
             .execute()
         ).data or []
     except Exception as e:
-        print(f"DAILY WORD exam question lookup warning: {e}")
+        print(f"DAILY WORD telegram question lookup warning: {e}")
+        return None
+    if not rows:
         return None
 
-    needle = (word or "").strip().lower()
-    if not needle:
-        return None
-    for row in rows:
-        for rw in row.get("related_words") or []:
-            tag = str((rw or {}).get("word") or "").lower()
-            if tag and needle in tag:
-                return row
-    return None
+    row = rows[0]
+    raw_options = row.get("options") or []
+    options = [{"text": opt} if isinstance(opt, str) else opt for opt in raw_options]
+    return {
+        "question_text": row.get("question_text") or "",
+        "options": options,
+        "exam_type": row.get("exam_type"),
+    }
 
 
 def _pick_from_daily_word_content(target_lang: str, native_lang: str) -> dict | None:
@@ -320,6 +353,10 @@ def main() -> dict:
         f"(kullanıcı başına ~{cohort_count} günde 1 kelime), bugünün kohortu={today_cohort}."
     )
 
+    # Günün Telegram sorusu TÜM (tr->en) kullanıcılar için AYNI -- grup
+    # başına değil, tek sefer hesaplanır (bkz. _todays_telegram_question).
+    telegram_question = _todays_telegram_question()
+
     eligible_profiles = [
         p for p in profiles if _cohort_of(p["id"], cohort_count) == today_cohort
     ]
@@ -354,7 +391,11 @@ def main() -> dict:
             pair_results[pair_key] = {"sent": 0, "word": None, "skipped_no_content": len(user_ids)}
             continue
 
-        exam_question = _find_exam_question(word["word"], target_lang)
+        exam_question = (
+            telegram_question
+            if (native_lang, target_lang) == (_TELEGRAM_QUESTION_NATIVE_LANG, _TELEGRAM_QUESTION_TARGET_LANG)
+            else None
+        )
 
         sent = 0
         for user_id in user_ids:
