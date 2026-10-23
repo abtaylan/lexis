@@ -73,6 +73,18 @@ function normalizeTypedAnswer(s: string): string {
     .replace(ARABIC_TEH_VARIANTS_RE, 'ت');
 }
 
+// ── Gramer Pratiği (grammar_sentence) cevap kontrolü — serbest metin
+// girişi olduğu için typing modundaki tek-kelime normalizasyonundan farklı:
+// büyük/küçük harf, noktalama ve fazladan boşluk farkları tolere edilir
+// (bkz. web/game/page.tsx'teki aynı isimli fonksiyon). ──
+function normalizeSentenceAnswer(s: string): string {
+  return s
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[.,!?;:"'’‘“”()]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 // Boşluk Doldurma (28 Eylül 2026) -- örnek cümledeki hedef kelimeyi boşluğa
 // çevirir (büyük/küçük harf duyarsız, tam kelime sınırıyla). Eşleşme
 // bulunamazsa (ör. çekimli/farklı biçim) cümle olduğu gibi döner.
@@ -185,6 +197,14 @@ export default function GameScreen() {
   const [sentenceTiles, setSentenceTiles] = useState<{ uid: string; text: string; originalIndex: number }[]>([]);
   const [sentencePicked, setSentencePicked] = useState<string[]>([]);
   const [sentenceResult, setSentenceResult] = useState<'correct' | 'wrong' | null>(null);
+
+  // ── Gramer Pratiği (grammar_sentence) state — 23 Ekim 2026, Behçet'in
+  // kullanıcı isteği: "Cümleleri kurarken kelimeleri ben yazayım. kutu
+  // içinden kelimeleri tıklayarak olmasın." Serbest metin girişi, backend
+  // current.correct_sentence/acceptable_answers ile istemci tarafında
+  // karşılaştırılır (typing moduyla aynı güven modeli). ──
+  const [grammarSentenceInput, setGrammarSentenceInput] = useState('');
+  const [grammarSentenceResult, setGrammarSentenceResult] = useState<'correct' | 'wrong' | null>(null);
 
   // ── Boşluk Doldurma varyantları (12 Ekim 2026, kullanıcı isteği —
   // Duolingo tarzı): 'choice' = seçeneklerden kelime seç, 'letters' = karışık
@@ -303,6 +323,10 @@ export default function GameScreen() {
       );
       setSentencePicked([]);
       setSentenceResult(null);
+      // Gramer Pratiği (grammar_sentence) — her yeni cümlede serbest metin
+      // girişi ve sonucu sıfırlanır.
+      setGrammarSentenceInput('');
+      setGrammarSentenceResult(null);
       const fillChars =
         gameMode === 'fill_blank' && fillVariant === 'letters' && nw.word
           ? Array.from(nw.word.replace(/\s+/g, ''))
@@ -698,6 +722,46 @@ export default function GameScreen() {
     setTimeout(() => loadNext(sessionId, true, poolSource), 1600);
   };
 
+  // ── Gramer Pratiği (grammar_sentence) cevap gönderimi — kullanıcının
+  // yazdığı cümle current.correct_sentence/acceptable_answers'tan biriyle
+  // (normalize edilerek) eşleşiyor mu diye bakılır. ──
+  const handleGrammarSentenceSubmit = async () => {
+    if (grammarSentenceResult || !current || !sessionId || !grammarSentenceInput.trim()) return;
+    const candidates = [current.correct_sentence ?? '', ...(current.acceptable_answers ?? [])];
+    const normalizedInput = normalizeSentenceAnswer(grammarSentenceInput);
+    const isCorrect = candidates.some((cand) => normalizeSentenceAnswer(cand) === normalizedInput);
+    setGrammarSentenceResult(isCorrect ? 'correct' : 'wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        grammar_sentence_id: current.grammar_sentence_id ?? undefined,
+        is_correct: isCorrect,
+      });
+      setScore(res.session_score);
+      setXpEarned((x) => x + res.xp_awarded);
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
+      if (res.leveled_up) setLevelUp(res.new_level);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(() => loadNext(sessionId, true, poolSource), isCorrect ? 900 : 1600);
+  };
+
+  const handleGrammarSentenceSkip = async () => {
+    if (grammarSentenceResult || !current || !sessionId) return;
+    setGrammarSentenceResult('wrong');
+    try {
+      const res = await gamesApi.submitAttempt(sessionId, {
+        grammar_sentence_id: current.grammar_sentence_id ?? undefined,
+        is_correct: false,
+      });
+      setScore(res.session_score);
+    } catch {
+      /* sessiz */
+    }
+    setTimeout(() => loadNext(sessionId, true, poolSource), 1600);
+  };
+
   // ── dinleme (listening) — kelimeyi expo-speech ile sesli okur. KULLANICI
   // GERİ BİLDİRİMİ (7 Eylül 2026): "kelimeyi okumuyor ki bu" — dil kodu hiç
   // verilmiyordu, cihazın varsayılan (genelde TR/EN) TTS sesi Arapça metni
@@ -1028,6 +1092,19 @@ export default function GameScreen() {
             {direction !== 'definition_to_word' && gameMode !== 'sentence_building' && (
               <OptionButton title={gt.poolOwnLabel} desc={gt.poolOwnDesc} onPress={() => start(gameMode, 'own', direction)} />
             )}
+            {/* 23 Ekim 2026, Behçet'in kullanıcı isteği — Cümle Kurma'da Genel
+                Havuz'a ek, tüm gramer konularını kapsayan serbest-metin
+                seçeneği ("Tense" yerine genel bir isim: Gramer Pratiği).
+                Ayrı bir GameMode olduğu için start() farklı mode ile çağrılır;
+                pool parametresi backend'de bu mod için yok sayılır (bkz.
+                games.py next_word branch). */}
+            {gameMode === 'sentence_building' && (
+              <OptionButton
+                title={gt.modeGrammarLabel}
+                desc={gt.modeGrammarDesc}
+                onPress={() => start('grammar_sentence', 'general', direction)}
+              />
+            )}
             <BackLink label={gt.backBtn} onPress={() => setStage(gameMode === 'multiple_choice' ? 'direction' : gameMode === 'fill_blank' ? 'fillvariant' : 'mode')} />
           </>
         )}
@@ -1163,6 +1240,7 @@ export default function GameScreen() {
   const isListening = gameMode === 'listening';
   const isSprint = gameMode === 'sprint';
   const isSentence = gameMode === 'sentence_building';
+  const isGrammarSentence = gameMode === 'grammar_sentence';
   const isMultipleChoice = gameMode === 'multiple_choice';
   const isFillBlank = gameMode === 'fill_blank';
   // Seçenekli varyantta backend seçenek göndermediyse (olağan dışı) yazma
@@ -1785,6 +1863,76 @@ export default function GameScreen() {
               {sentenceResult === 'correct'
                 ? gt.correctLabel
                 : `${gt.wrongLabel} — ${(current.sentence_tokens ?? []).join(' ')}`}
+            </Text>
+          )}
+        </>
+      )}
+
+      {isGrammarSentence && (
+        <>
+          <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.sm, textTransform: 'uppercase' }}>
+              {gt.grammarPromptLabel}
+            </Text>
+            <Text style={{ color: c.text, fontSize: 18, fontWeight: '700', textAlign: 'center', lineHeight: 24 }}>
+              {current.prompt_sentence}
+            </Text>
+            {current.word_hints && current.word_hints.length > 0 && (
+              <View style={{ marginTop: spacing.sm, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
+                {current.word_hints.map((hint, i) => (
+                  <View key={i} style={{ backgroundColor: c.border, borderRadius: radius.sm, paddingVertical: 4, paddingHorizontal: 8 }}>
+                    <Text style={{ color: c.textMuted, fontSize: 12 }}>
+                      {hint.phrase} <Text style={{ color: c.textMuted }}>— {hint.translation}</Text>
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Card>
+
+          <TextInput
+            value={grammarSentenceInput}
+            onChangeText={setGrammarSentenceInput}
+            onSubmitEditing={handleGrammarSentenceSubmit}
+            editable={grammarSentenceResult === null}
+            autoFocus
+            autoCapitalize="none"
+            autoCorrect={false}
+            spellCheck={false}
+            multiline
+            placeholder={gt.grammarInputPlaceholder}
+            placeholderTextColor={c.textMuted}
+            style={[
+              styles.typingInput,
+              {
+                textAlign: 'left',
+                minHeight: 72,
+                borderColor: grammarSentenceResult === 'correct' ? c.success : grammarSentenceResult === 'wrong' ? c.danger : c.border,
+                backgroundColor: grammarSentenceResult === 'correct' ? c.successSoft : grammarSentenceResult === 'wrong' ? c.dangerSoft : c.surface,
+                color: grammarSentenceResult === 'correct' ? c.success : grammarSentenceResult === 'wrong' ? c.danger : c.text,
+              },
+            ]}
+          />
+
+          {grammarSentenceResult === null && (
+            <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
+              <Button title={gt.typingCheckBtn} onPress={handleGrammarSentenceSubmit} disabled={!grammarSentenceInput.trim()} />
+              <Button title={gt.typingSkipBtn} onPress={handleGrammarSentenceSkip} variant="ghost" />
+            </View>
+          )}
+
+          {grammarSentenceResult !== null && (
+            <Text
+              style={{
+                color: grammarSentenceResult === 'correct' ? c.success : c.danger,
+                fontWeight: '700',
+                textAlign: 'center',
+                marginTop: spacing.md,
+              }}
+            >
+              {grammarSentenceResult === 'correct'
+                ? gt.correctLabel
+                : `${gt.wrongLabel} — ${gt.grammarCorrectSentenceTpl.replace('{sentence}', current.correct_sentence ?? '')}`}
             </Text>
           )}
         </>

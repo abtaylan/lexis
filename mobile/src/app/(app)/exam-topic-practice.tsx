@@ -7,6 +7,12 @@
 // konuyu hızlıca pekiştirmek. topic_tag parametresi ya exam-prep.tsx'teki
 // "Bu konudan pratik yap" butonundan (cevap sonrası) ya da
 // exam-grammar-detail.tsx'teki "Bu Konuyu Pratik Et" CTA'sından gelir.
+//
+// 23 Ekim 2026, Behçet'in kullanıcı isteği — test sorularına (MCQ) ek olarak
+// EK bir faz: çeviri cümlesi kurma pratiği. Kutudan tıklama YOK, kullanıcı
+// cümleyi kendi yazar, "Kontrol Et" ile kendi kontrol eder. Web ile birebir
+// aynı mantık (bkz. web/src/app/(app)/exam-topic-practice/page.tsx) --
+// backend TopicTranslationQuestionItem/translation_questions.
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -15,16 +21,29 @@ import { CheckCircle2, Flag, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { examsApi } from '@/api/exams';
 import { studyProgramApi } from '@/api/studyProgram';
-import type { ExamPracticeQuestionItem } from '@/api/types';
+import type { ExamPracticeQuestionItem, TopicTranslationQuestionItem } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { TextField } from '@/components/ui/TextField';
 import { ReportQuestionModal } from '@/components/ReportQuestionModal';
 
 const WEEKLY_QUIZ_TAG = 'weekly-quiz';
+
+// Cümle karşılaştırması: büyük/küçük harf, noktalama ve fazladan boşluk
+// farkları yüzünden doğru cevabı yanlış saymasın (kutudan seçim değil,
+// serbest metin girişi olduğu için gerekli — web'deki normalizeSentence ile
+// birebir aynı).
+function normalizeSentence(s: string): string {
+  return s
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[.,!?;:"'’‘“”()]/g, '')
+    .replace(/\s+/g, ' ');
+}
 
 export default function ExamTopicPracticeScreen() {
   const { topic_tag: topicTagParam, exclude_question_id: excludeParam, limit: limitParam } = useLocalSearchParams<{
@@ -60,16 +79,32 @@ export default function ExamTopicPracticeScreen() {
   const [revealed, setRevealed] = useState(false);
   // "Hata bildirimi" butonu -- 16 Ekim 2026
   const [reportModalOpen, setReportModalOpen] = useState(false);
+  // 23 Ekim 2026 — MCQ fazından sonra gelen EK çeviri cümlesi pratiği fazı;
+  // ayrı index/duruma sahip, kutudan tıklama yok, kullanıcı cümleyi kendi yazar.
+  const [translationIndex, setTranslationIndex] = useState(0);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [translationRevealed, setTranslationRevealed] = useState(false);
+  const [translationCorrect, setTranslationCorrect] = useState(false);
 
   useEffect(() => {
     setIndex(0);
     setSelectedOption(null);
     setRevealed(false);
+    setTranslationIndex(0);
+    setUserAnswer('');
+    setTranslationRevealed(false);
+    setTranslationCorrect(false);
   }, [data]);
 
   const questions: ExamPracticeQuestionItem[] = data?.questions ?? [];
+  const translationQuestions: TopicTranslationQuestionItem[] = data?.translation_questions ?? [];
   const current = questions[index];
-  const done = questions.length > 0 && index >= questions.length;
+  const currentTranslation = translationQuestions[translationIndex];
+  const hasAnyQuestions = questions.length > 0 || translationQuestions.length > 0;
+  const mcqPhaseActive = questions.length > 0 && index < questions.length;
+  const translationPhaseActive =
+    !mcqPhaseActive && translationQuestions.length > 0 && translationIndex < translationQuestions.length;
+  const done = hasAnyQuestions && !mcqPhaseActive && !translationPhaseActive;
 
   function handleSelect(optionId: string) {
     if (revealed) return;
@@ -84,6 +119,28 @@ export default function ExamTopicPracticeScreen() {
     setSelectedOption(null);
     setRevealed(false);
     setIndex((i) => i + 1);
+  }
+
+  function handleCheckTranslation() {
+    if (!currentTranslation || translationRevealed) return;
+    const normalizedUser = normalizeSentence(userAnswer);
+    const candidates = [currentTranslation.correct_sentence, ...(currentTranslation.acceptable_answers ?? [])];
+    const isCorrect = candidates.some((cand) => normalizeSentence(cand) === normalizedUser);
+    setTranslationCorrect(isCorrect);
+    setTranslationRevealed(true);
+    examsApi.logTopicTranslationAttempt(
+      currentTranslation.topic_tag ?? topicTag,
+      currentTranslation.id,
+      userAnswer,
+      isCorrect
+    );
+  }
+
+  function handleNextTranslation() {
+    setUserAnswer('');
+    setTranslationRevealed(false);
+    setTranslationCorrect(false);
+    setTranslationIndex((i) => i + 1);
   }
 
   return (
@@ -103,7 +160,7 @@ export default function ExamTopicPracticeScreen() {
         </View>
       ) : isError ? (
         <Text style={{ color: c.danger, marginTop: spacing.lg }}>{et.genericError}</Text>
-      ) : questions.length === 0 ? (
+      ) : !hasAnyQuestions ? (
         <Text style={{ color: c.textMuted, marginTop: spacing.lg }}>{et.grammarNoQuestionsYet}</Text>
       ) : done ? (
         <Card style={styles.centerCard}>
@@ -113,6 +170,78 @@ export default function ExamTopicPracticeScreen() {
             <Button title={et.backToDashboardBtn} onPress={() => router.back()} />
           </View>
         </Card>
+      ) : translationPhaseActive && currentTranslation ? (
+        <>
+          <Text style={{ color: c.textMuted, fontWeight: '600', marginTop: spacing.lg }}>
+            {et.translationCounterTpl
+              .replace('{current}', String(translationIndex + 1))
+              .replace('{total}', String(translationQuestions.length))}
+          </Text>
+
+          <Card style={{ marginTop: spacing.sm }}>
+            {currentTranslation.grammar_note && (
+              <View style={{ backgroundColor: c.warningSoft, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
+                <Text style={{ color: c.warning, fontSize: 12, fontWeight: '600' }}>{et.grammarNoteLabel}</Text>
+                <Text style={{ color: c.warning, fontSize: 12, marginTop: 4, lineHeight: 17 }}>{currentTranslation.grammar_note}</Text>
+              </View>
+            )}
+            <Text style={[styles.bodyText, { color: c.text, fontWeight: '600' }]}>{currentTranslation.prompt_sentence}</Text>
+            {currentTranslation.word_hints.length > 0 && (
+              <View style={{ marginTop: spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                {currentTranslation.word_hints.map((hint, i) => (
+                  <View key={i} style={{ backgroundColor: c.border, borderRadius: radius.sm, paddingVertical: 4, paddingHorizontal: 8 }}>
+                    <Text style={{ color: c.textMuted, fontSize: 12 }}>
+                      {hint.phrase} <Text style={{ color: c.textMuted }}>— {hint.translation}</Text>
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </Card>
+
+          <View style={{ marginTop: spacing.md }}>
+            <TextField
+              value={userAnswer}
+              onChangeText={setUserAnswer}
+              editable={!translationRevealed}
+              autoFocus
+              autoCapitalize="none"
+              autoCorrect={false}
+              spellCheck={false}
+              multiline
+              placeholder={et.translationInputPlaceholder}
+              style={
+                translationRevealed
+                  ? {
+                      borderColor: translationCorrect ? c.success : c.danger,
+                      backgroundColor: translationCorrect ? c.successSoft : c.dangerSoft,
+                      color: translationCorrect ? c.success : c.danger,
+                    }
+                  : undefined
+              }
+            />
+          </View>
+
+          {!translationRevealed && (
+            <Button title={et.checkBtn} onPress={handleCheckTranslation} disabled={!userAnswer.trim()} />
+          )}
+
+          {translationRevealed && (
+            <View style={{ marginTop: spacing.sm, gap: spacing.md }}>
+              <Card style={{ backgroundColor: translationCorrect ? c.successSoft : c.dangerSoft, borderColor: 'transparent' }}>
+                <Text style={{ color: translationCorrect ? c.success : c.danger, fontWeight: '600' }}>
+                  {translationCorrect ? et.translationCorrectLabel : et.translationWrongLabel}
+                </Text>
+                <Text style={{ color: c.textMuted, fontWeight: '600', marginTop: spacing.sm, fontSize: 12 }}>{et.modelAnswerLabel}</Text>
+                <Text style={{ color: c.textSecondary, marginTop: 4 }}>{currentTranslation.correct_sentence}</Text>
+              </Card>
+              <Button
+                title={translationIndex + 1 >= translationQuestions.length ? et.finishBtn : et.nextBtn}
+                onPress={handleNextTranslation}
+              />
+            </View>
+          )}
+        </>
       ) : (
         <>
           <Text style={{ color: c.textMuted, fontWeight: '600', marginTop: spacing.lg }}>

@@ -63,12 +63,14 @@ export const examsApi = {
   // Madde #3b — yanlış cevaptan sonra aynı konudan ekstra pratik soru seti.
   practiceQuestionsByTopic: async (
     topicTag: string,
-    opts?: { examType?: ExamType; excludeQuestionId?: string; limit?: number }
+    opts?: { examType?: ExamType; excludeQuestionId?: string; limit?: number; translationLimit?: number }
   ): Promise<ExamPracticeQuestionsResult> => {
     const params: Record<string, string | number> = {};
     if (opts?.examType) params.exam_type = opts.examType;
     if (opts?.excludeQuestionId) params.exclude_question_id = opts.excludeQuestionId;
     if (opts?.limit) params.limit = opts.limit;
+    // 23 Ekim 2026 -- test sorularına ek çeviri sorusu sayısı (bkz. backend translation_limit).
+    if (opts?.translationLimit) params.translation_limit = opts.translationLimit;
     const res = await api.get<ExamPracticeQuestionsResult>(
       `/exams/topics/${encodeURIComponent(topicTag)}/practice-questions`,
       { params }
@@ -87,6 +89,25 @@ export const examsApi = {
       });
     } catch {
       // sessizce yut -- sadece Görev Haritası ilerlemesi icin, kritik degil
+    }
+  },
+  // 23 Ekim 2026 -- çeviri cümlesi pratiği (serbest metin) için hafif log --
+  // XP verilmez, exam_sessions/exam_attempts'e DOKUNULMAZ (bkz. web/src/lib/api.ts
+  // içindeki aynı fonksiyon).
+  logTopicTranslationAttempt: async (
+    topicTag: string,
+    questionId: string,
+    submittedText: string,
+    isCorrect: boolean
+  ): Promise<void> => {
+    try {
+      await api.post(`/exams/topics/${encodeURIComponent(topicTag)}/translation-attempt`, {
+        question_id: questionId,
+        submitted_text: submittedText,
+        is_correct: isCorrect,
+      });
+    } catch {
+      // sessizce yut -- kritik degil
     }
   },
   // Madde #3c — haftalık/günlük zayıf konu özeti (dashboard widget'ı için).

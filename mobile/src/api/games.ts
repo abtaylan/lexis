@@ -22,7 +22,14 @@ export const gamesApi = {
   },
   submitAttempt: async (
     sessionId: string,
-    data: { word_id?: string; general_word_id?: string; is_correct: boolean; attempts_count?: number; time_taken_ms?: number }
+    data: {
+      word_id?: string;
+      general_word_id?: string;
+      grammar_sentence_id?: string;
+      is_correct: boolean;
+      attempts_count?: number;
+      time_taken_ms?: number;
+    }
   ): Promise<GameAttemptResult> => {
     const res = await api.post<GameAttemptResult>(`/games/sessions/${sessionId}/attempt`, data);
     return res.data;

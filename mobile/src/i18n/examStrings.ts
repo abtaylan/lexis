@@ -104,6 +104,16 @@ export type ExamStrings = {
   // uygulama girisinde zorunlu yonlendirme (bkz. dashboard.tsx).
   placementDoneTitle: string;
   placementLevelResultTpl: string;
+  // 23 Ekim 2026 -- çeviri cümlesi kurma pratiği (kutudan tıklama yok,
+  // kullanıcı kendi yazar; bkz. web/exam-topic-practice/page.tsx aynı anahtarlar).
+  translationCounterTpl: string;
+  grammarNoteLabel: string;
+  wordHintsLabel: string;
+  translationInputPlaceholder: string;
+  checkBtn: string;
+  modelAnswerLabel: string;
+  translationCorrectLabel: string;
+  translationWrongLabel: string;
 };
 
 export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
@@ -199,6 +209,14 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     weakTopicsPracticeBtn: 'Pratik Yap',
     placementDoneTitle: 'Seviye Tespit Sınavı Tamamlandı!',
     placementLevelResultTpl: 'Tahmini seviyen: {level}',
+    translationCounterTpl: 'Çeviri {current} / {total}',
+    grammarNoteLabel: 'Gramer Notu',
+    wordHintsLabel: 'Yardımcı Kelimeler',
+    translationInputPlaceholder: 'Çeviriyi buraya yaz…',
+    checkBtn: 'Kontrol Et',
+    modelAnswerLabel: 'Model Cevap',
+    translationCorrectLabel: 'Doğru!',
+    translationWrongLabel: 'Yanlış',
   },
   en: {
     entryLabel: 'Exam Prep',
@@ -292,5 +310,13 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     weakTopicsPracticeBtn: 'Practice',
     placementDoneTitle: 'Placement Exam Completed!',
     placementLevelResultTpl: 'Your estimated level: {level}',
+    translationCounterTpl: 'Translation {current} / {total}',
+    grammarNoteLabel: 'Grammar Note',
+    wordHintsLabel: 'Helpful Words',
+    translationInputPlaceholder: 'Type your translation here…',
+    checkBtn: 'Check',
+    modelAnswerLabel: 'Model Answer',
+    translationCorrectLabel: 'Correct!',
+    translationWrongLabel: 'Wrong',
   },
 };

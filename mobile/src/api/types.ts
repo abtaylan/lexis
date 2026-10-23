@@ -652,7 +652,10 @@ export type GameMode =
   // kullanıcı isteği: "yeni oyun önerisi bekliyorum senden" -- üç yeni mod).
   | 'fill_blank'
   | 'true_false'
-  | 'word_chain';
+  | 'word_chain'
+  // Gramer Pratiği (23 Ekim 2026): Cümle Kurma modunun yanına eklenen,
+  // 91 gramer konusundan rastgele seçilen serbest metin çeviri havuzu.
+  | 'grammar_sentence';
 export type PoolSource = 'own' | 'general';
 export type Direction = 'word_to_meaning' | 'meaning_to_word' | 'definition_to_word';
 
@@ -686,6 +689,15 @@ export interface NextWordResult {
   max_wrong_guesses?: number | null;
   // ── sentence_building (cümle kurma) moduna özel alan ──
   sentence_tokens?: string[] | null;
+  // ── grammar_sentence (Gramer Pratiği) moduna özel alanlar ──
+  grammar_sentence_id?: string | null;
+  question_type?: 'tr_en' | 'en_tr' | null;
+  prompt_sentence?: string | null;
+  correct_sentence?: string | null;
+  acceptable_answers?: string[] | null;
+  word_hints?: { phrase: string; translation: string }[] | null;
+  topic_tag?: string | null;
+  level?: string | null;
 }
 
 export interface GameAttemptResult {
@@ -806,10 +818,31 @@ export interface ExamPracticeQuestionItem {
   topic_tag?: string | null;
 }
 
+// "Konu Bazlı Çeviri Pratiği" (23 Ekim 2026, Behçet'in kullanıcı isteği) --
+// web/src/types/index.ts::TopicTranslationQuestionItem ile birebir aynı.
+export interface TopicTranslationWordHint {
+  phrase: string;
+  translation: string;
+}
+
+export interface TopicTranslationQuestionItem {
+  id: string;
+  model_number: number;
+  level: string;
+  question_type: 'tr_en' | 'en_tr';
+  grammar_note: string | null;
+  prompt_sentence: string;
+  correct_sentence: string;
+  acceptable_answers: string[];
+  word_hints: TopicTranslationWordHint[];
+  topic_tag: string;
+}
+
 export interface ExamPracticeQuestionsResult {
   topic_tag: string;
   related_grammar_topic?: RelatedGrammarTopic | null;
   questions: ExamPracticeQuestionItem[];
+  translation_questions: TopicTranslationQuestionItem[];
 }
 
 export interface WeakTopicItem {
