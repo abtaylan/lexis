@@ -253,22 +253,42 @@ def _todays_telegram_question() -> dict | None:
 
 
 def _pick_from_daily_word_content(target_lang: str, native_lang: str) -> dict | None:
-    base = (
-        supabase_admin.table("daily_word_content")
-        .select("*")
-        .eq("is_active", True)
-        .eq("target_lang", target_lang)
-        .eq("native_lang", native_lang)
-    )
+    # 25 EKİM 2026 BUG DÜZELTMESİ (kullanıcı raporu: "Günün kelimesi dashboard'da
+    # uzun süredir değişmiyor" -- kök neden burada bulundu): supabase-py/
+    # postgrest'te her filtre/sıralama çağrısı (eq/is_/order/...) builder'ı
+    # YERİNDE (in-place) değiştirip (self.request.params = ...add(...)) kendini
+    # döndürüyor -- yani aynı `base` nesnesini iki ayrı sorgu için zincirlemek,
+    # İKİNCİ sorguya da BİRİNCİ sorgunun filtresini sessizce taşıyordu. Burada
+    # "never_sent" sorgusunun `is_("last_sent_at", "null")` filtresi, onu takip
+    # eden "oldest_sent" sorgusuna da sızıyordu -- yani bu dil çiftindeki TÜM
+    # kayıtlar en az bir kez gönderilip never_sent sorgusu boş döndüğü anda,
+    # "oldest_sent" sorgusu da hâlâ last_sent_at IS NULL arıyor olduğu için HER
+    # ZAMAN boş dönüyor, fonksiyon yanlışlıkla None dönüp cron'u
+    # general_word_pool'a düşürüyordu -- daily_word_content'teki (özenle
+    # hazırlanmış) kayıtlar bir kez tüketildikten sonra BİR DAHA HİÇ tekrar
+    # kullanılmıyordu. Canlıda tam olarak bu yaşanmıştı: en->tr çifti 22
+    # Ekim'de tükendi, 23 Ekim'den beri sessizce general_word_pool'a geçmişti
+    # (dashboard'ın hâlâ 22 Ekim'in son kaydını göstermesinin de sebebi --
+    # bkz. word_of_the_day_service.py'deki eşlik eden düzeltme). Çözüm: her
+    # sorgu için AYRI, taze bir builder (`_base()`) oluşturuluyor, bir sorgunun
+    # filtresi asla bir sonrakine sızmıyor.
+    def _base():
+        return (
+            supabase_admin.table("daily_word_content")
+            .select("*")
+            .eq("is_active", True)
+            .eq("target_lang", target_lang)
+            .eq("native_lang", native_lang)
+        )
 
     never_sent = (
-        base.is_("last_sent_at", "null").order("created_at", desc=False).limit(1).execute()
+        _base().is_("last_sent_at", "null").order("created_at", desc=False).limit(1).execute()
     ).data or []
     if never_sent:
         return never_sent[0]
 
     oldest_sent = (
-        base.order("last_sent_at", desc=False).limit(1).execute()
+        _base().order("last_sent_at", desc=False).limit(1).execute()
     ).data or []
     return oldest_sent[0] if oldest_sent else None
 
@@ -277,21 +297,28 @@ def _pick_from_general_pool(target_lang: str, native_lang: str) -> dict | None:
     # general_word_pool.source_lang = kelimenin kendi dili (= öğrenilen dil),
     # general_word_pool.target_lang = çeviri dili (= ana dil) — daily_word_content
     # ile isimlendirme yönü ters olduğu için burada eşlemeye dikkat.
-    base = (
-        supabase_admin.table("general_word_pool")
-        .select("*")
-        .eq("is_active", True)
-        .eq("source_lang", target_lang)
-        .eq("target_lang", native_lang)
-    )
+    #
+    # 25 Ekim 2026: _pick_from_daily_word_content'teki builder-mutation bug'ı
+    # (yukarıdaki uzun not) burada da aynen vardı -- general_word_pool bu
+    # çift için henüz tükenmediği için (havuz çok daha büyük, 303 kelime/çift)
+    # canlıda gözlemlenmedi, ama aynı kusuru taşıyordu ve havuz tükendiğinde
+    # aynı şekilde kırılacaktı. Aynı düzeltme: her sorgu için taze bir builder.
+    def _base():
+        return (
+            supabase_admin.table("general_word_pool")
+            .select("*")
+            .eq("is_active", True)
+            .eq("source_lang", target_lang)
+            .eq("target_lang", native_lang)
+        )
 
     never_sent = (
-        base.is_("last_sent_at", "null").order("created_at", desc=False).limit(1).execute()
+        _base().is_("last_sent_at", "null").order("created_at", desc=False).limit(1).execute()
     ).data or []
     row = never_sent[0] if never_sent else None
     if not row:
         oldest_sent = (
-            base.order("last_sent_at", desc=False).limit(1).execute()
+            _base().order("last_sent_at", desc=False).limit(1).execute()
         ).data or []
         row = oldest_sent[0] if oldest_sent else None
     if not row:
