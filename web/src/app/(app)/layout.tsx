@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { useAuth } from '@/store/auth';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { BackHomeBar } from '@/components/layout/BackHomeBar';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
+import { markAppNavReset, markAppNavStep } from '@/lib/navBack';
 
 // Kullanıcı geri bildirimi (24 Eylül 2026): Dashboard zaten ana ekran
 // olduğu için Geri/Ana Menü'ye hiç gerek yok; Görev Haritası da kendi tam
@@ -28,6 +29,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       router.replace('/login');
     }
   }, [isAuthenticated, isLoading, router]);
+
+  // Kullanıcı raporu (25 Ekim 2026) — bkz. lib/navBack.ts. Bu layout, (app)
+  // rota grubundaki sayfalar arasında SPA geçişlerinde remount OLMUYOR
+  // (Next.js App Router layout'larının doğası), sadece gerçek bir tam sayfa
+  // yüklemesinde (ilk giriş, F5, doğrudan link) yeniden mount oluyor — bu
+  // yüzden uygulama-içi gezinme derinliğini tek noktadan burada izlemek için
+  // doğru yer. Mount'ta sayaç sıfırlanır (henüz geri gidilecek bir uygulama
+  // sayfası yok), her pathname değişiminde (gerçek bir SPA geçişi) bir artar.
+  const prevPathnameRef = useRef<string | null>(null);
+  useEffect(() => {
+    markAppNavReset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- sadece mount'ta bir kez
+  }, []);
+  useEffect(() => {
+    if (prevPathnameRef.current !== null && prevPathnameRef.current !== pathname) {
+      markAppNavStep();
+    }
+    prevPathnameRef.current = pathname;
+  }, [pathname]);
 
   // 4 Ekim 2026: auth durumu yüklenirken eski sade spinner yerine, mobil
   // uygulamadaki açılış animasyonuyla aynı konsepti (Yıldız Tozu + Shimmer

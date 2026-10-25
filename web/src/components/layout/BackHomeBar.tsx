@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Home } from 'lucide-react';
 import { useLocale } from '@/lib/i18n';
+import { safeBack } from '@/lib/navBack';
 
 export function BackHomeBar() {
   const router = useRouter();
@@ -32,7 +33,11 @@ export function BackHomeBar() {
     <div className="flex items-center justify-center gap-3 px-6 py-5 mt-6 border-t border-slate-200 dark:border-slate-800">
       <button
         type="button"
-        onClick={() => router.back()}
+        // Kullanıcı raporu (25 Ekim 2026, bkz. lib/navBack.ts): sayfa doğrudan
+        // bir linkten/yeni sekmede açıldığında düz router.back() hiçbir şey
+        // yapmıyordu (ya da uygulama dışına çıkıyordu) — artık geri gidilecek
+        // uygulama-içi sayfa yoksa Ana Menü'ye düşüyor.
+        onClick={() => safeBack(router, '/dashboard')}
         className="flex items-center gap-1.5 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
       >
         <ArrowLeft size={16} />

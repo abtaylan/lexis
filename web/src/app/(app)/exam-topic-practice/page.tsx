@@ -13,6 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { examsApi, studyProgramApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
+import { safeBack } from '@/lib/navBack';
 import type { ExamPracticeQuestionItem, TopicTranslationQuestionItem } from '@/types';
 
 const WEEKLY_QUIZ_TAG = 'weekly-quiz';
@@ -178,7 +179,12 @@ export default function ExamTopicPracticePage() {
   return (
     <div className="p-6 max-w-xl mx-auto">
       <button
-        onClick={() => router.back()}
+        // Kullanıcı raporu (25 Ekim 2026, bkz. lib/navBack.ts): sayfa
+        // doğrudan bir linkten/yeni sekmede açıldığında düz router.back()
+        // hiçbir şey yapmıyordu — artık geri gidilecek uygulama-içi sayfa
+        // yoksa Sınav Hazırlık ana sayfasına (buraya her zaman oradan veya
+        // bir gramer konusundan girilir) düşüyor.
+        onClick={() => safeBack(router, '/exam-prep')}
         className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 mb-4"
       >
         <ArrowLeft className="w-4 h-4" />
@@ -203,7 +209,9 @@ export default function ExamTopicPracticePage() {
           <CheckCircle2 className="w-9 h-9" style={{ color: '#3B6D11' }} />
           <p className="text-lg font-bold text-gray-900 dark:text-slate-100 mt-3">{t.doneTitle}</p>
           <button
-            onClick={() => router.back()}
+            // "Panele Dön" etiketiyle tutarlı olsun diye fallback doğrudan
+            // /dashboard (bkz. yukarıdaki üst "Geri" butonundaki not).
+            onClick={() => safeBack(router, '/dashboard')}
             className="mt-6 bg-[#378ADD] hover:bg-[#2d73c4] text-white rounded-xl py-2.5 px-6 text-sm font-medium transition-colors"
           >
             {t.backToDashboardBtn}
