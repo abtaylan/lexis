@@ -2,9 +2,21 @@
 
 // app/(app)/study-notes/page.tsx — "Çalışma Notlarım" sayfası (15 Ekim 2026
 // kullanıcı isteği): Takvimde bir gün "Yapıldı" olarak işaretlenince burada
-// o günün tarihiyle bir kart oluşur. Karta girince o günün konusuna göre
-// hazırlanmış Gemini/NotebookLM talimatları + kullanıcının yapıştırdığı
-// özetler görünür (bkz. study-notes/[date]/page.tsx).
+// o günün tarihiyle bir kart oluşur. Karta girince o günün konuları
+// listelenir (bkz. study-notes/[date]/page.tsx'teki TopicSwitcher), bir
+// konuya tıklanınca da o konu için Gemini/NotebookLM talimatları ve
+// kullanıcının yapıştırdığı özetler açılır (aynı sayfada, TopicSwitcher
+// altında).
+//
+// GÜNCELLEME (25 Ekim 2026, kullanıcı isteği): her gün kartı kendi tüm
+// konu başlıklarını (ana + "+N konu" yerine tek tek yazılan ilgili
+// konular) tek tek burada, liste sayfasında gösteriyordu — "Yapıldı"
+// işaretlenen gün sayısı arttıkça bu sayfa hızla çok kalabalık/uzun hale
+// geliyordu. Artık her gün kartı sadece tarih + kaç konu çalışıldığı
+// (sayı) + hangi kaynaklardan not girildiği gösteriyor; konu başlıklarının
+// kendisi artık SADECE güne tıklayınca açılan [date] sayfasındaki
+// TopicSwitcher'da görünüyor (zaten o sayfa "konuya tıkla → o konunun not
+// giriş ekranı açılsın" akışını karşılıyor).
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CalendarX2, ChevronRight, Loader2 } from 'lucide-react';
@@ -42,8 +54,9 @@ export default function StudyNotesPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Çalışma Notlarım</h1>
         <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5 max-w-2xl">
-          Takvimde &quot;Yapıldı&quot; olarak işaretlediğin her gün burada listelenir — o günün konusuna göre
-          hazırlanmış Gemini/NotebookLM talimatlarını kullanıp aldığın özetleri buraya kaydedebilirsin.
+          Takvimde &quot;Yapıldı&quot; olarak işaretlediğin her gün burada listelenir. Bir güne tıklayınca o gün
+          çalıştığın konular listelenir; bir konuya tıklayınca da Gemini/NotebookLM talimatlarını kullanıp aldığın
+          özetleri kaydettiğin ekran açılır.
         </p>
       </div>
 
@@ -71,47 +84,44 @@ export default function StudyNotesPage() {
       )}
 
       {!loading && !error && days.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {days.map((day) => (
-            <Link
-              key={day.date}
-              href={`/study-notes/${day.date}`}
-              className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 hover:border-[#378ADD]/40 transition-colors flex items-center justify-between gap-3"
-            >
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-gray-400 dark:text-slate-500">{formatDateTr(day.date)}</p>
-                <p className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate mt-0.5">
-                  {day.topic_number ? `${day.topic_number}. ` : ''}
-                  {day.topic_title || day.activities[0] || 'Genel Çalışma Programı'}
-                </p>
-                {/* 16 Ekim 2026, kullanıcı isteği: "+4 konu" rozeti yerine o
-                    güne bağlı diğer konuların başlıkları tek tek yazılsın. */}
-                {day.related_topics && day.related_topics.length > 0 && (
-                  <div className="mt-1 space-y-0.5">
-                    {day.related_topics.map((rt) => (
-                      <p key={rt.slug} className="text-xs text-gray-500 dark:text-slate-400 truncate">
-                        {rt.topic_number ? `${rt.topic_number}. ` : ''}
-                        {rt.title}
-                      </p>
-                    ))}
-                  </div>
-                )}
-                {day.note_sources.length > 0 && (
-                  <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                    {day.note_sources.map((s) => (
-                      <span
-                        key={s}
-                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#E1F5EE] text-[#0F6E56]"
-                      >
-                        {SOURCE_LABEL[s] || s} ✓
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <ChevronRight className="w-4 h-4 text-gray-300 dark:text-slate-600 shrink-0" />
-            </Link>
-          ))}
+        <div className="flex flex-col gap-2">
+          {days.map((day) => {
+            // Ana konu her zaman bir satır sayılır (topic_title boşsa bile
+            // activities[0]/"Genel Çalışma Programı" ile aynı satırda
+            // gösteriliyordu) + ona bağlı ilgili konular.
+            const topicCount = 1 + (day.related_topics?.length ?? 0);
+            return (
+              <Link
+                key={day.date}
+                href={`/study-notes/${day.date}`}
+                className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm px-4 py-3 hover:border-[#378ADD]/40 transition-colors flex items-center justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">
+                    {formatDateTr(day.date)}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
+                    {topicCount} konu çalışıldı
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {day.note_sources.length > 0 && (
+                    <div className="hidden sm:flex items-center gap-1.5">
+                      {day.note_sources.map((s) => (
+                        <span
+                          key={s}
+                          className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-[#E1F5EE] text-[#0F6E56]"
+                        >
+                          {SOURCE_LABEL[s] || s} ✓
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-gray-300 dark:text-slate-600" />
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>
