@@ -5,7 +5,7 @@ import * as Application from 'expo-application';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Gift, Mail, ShieldCheck, Info, Globe, Sun, Moon, Smartphone, LogOut, Trash2, Languages as LanguagesIcon, Crown, ChevronRight } from 'lucide-react-native';
+import { Gift, Mail, ShieldCheck, Info, Globe, Sun, Moon, Smartphone, LogOut, Trash2, RotateCcw, Languages as LanguagesIcon, Crown, ChevronRight } from 'lucide-react-native';
 import { useLocale, LOCALE_META } from '@/i18n';
 import { authApi } from '@/api/auth';
 import { languagesApi, userLanguagesApi } from '@/api/languages';
@@ -85,6 +85,18 @@ export default function ProfileScreen() {
     onError: (e) => Alert.alert('', getErrorMessage(e, mt('genericErrorMsg'))),
   });
 
+  // İlerleme sıfırlama (3 Kasım 2026 kullanıcı isteği): hesabı SİLMEZ
+  // (deleteAccountMutation'dan farklı olarak logout yok), sadece backend
+  // reset-progress çağrılıp ilgili query'ler (stats/xp/study-program/words)
+  // geçersiz kılınarak ekranların tazelenmesi sağlanıyor.
+  const resetProgressMutation = useMutation({
+    mutationFn: () => authApi.resetProgress(),
+    onSuccess: () => {
+      qc.invalidateQueries();
+    },
+    onError: (e) => Alert.alert('', getErrorMessage(e, mt('genericErrorMsg'))),
+  });
+
   // Hesap silme (Google Play Data Safety / Apple hesap silme politikası
   // gereği): geri alınamaz olduğu için tek bir Alert.alert ile ama net bir
   // uyarı metniyle onay alınıyor (aynı destructive-confirm deseni,
@@ -103,6 +115,17 @@ export default function ProfileScreen() {
     Alert.alert(mt('logoutConfirmMsg'), '', [
       { text: t('cancelBtn'), style: 'cancel' },
       { text: mt('logoutConfirmYes'), style: 'destructive', onPress: () => logout() },
+    ]);
+  };
+
+  const handleResetProgress = () => {
+    Alert.alert(mt('resetProgressBtn'), mt('resetProgressConfirmMsg'), [
+      { text: t('cancelBtn'), style: 'cancel' },
+      {
+        text: mt('confirmYesDestructive'),
+        style: 'destructive',
+        onPress: () => resetProgressMutation.mutate(),
+      },
     ]);
   };
 
@@ -364,6 +387,14 @@ export default function ProfileScreen() {
           <Text style={{ color: c.danger, fontWeight: '700', fontSize: 14, flex: 1, marginLeft: spacing.sm }}>{t('logout')}</Text>
         </Pressable>
         <Pressable
+          onPress={handleResetProgress}
+          disabled={resetProgressMutation.isPending}
+          style={[styles.dangerRow, { borderColor: c.dangerSoft, opacity: resetProgressMutation.isPending ? 0.6 : 1 }]}
+        >
+          <RotateCcw color={c.danger} size={16} />
+          <Text style={{ color: c.danger, fontWeight: '700', fontSize: 14, flex: 1, marginLeft: spacing.sm }}>{mt('resetProgressBtn')}</Text>
+        </Pressable>
+                <Pressable
           onPress={handleDeleteAccount}
           disabled={deleteAccountMutation.isPending}
           style={[styles.dangerRow, { borderColor: c.dangerSoft, opacity: deleteAccountMutation.isPending ? 0.6 : 1 }]}

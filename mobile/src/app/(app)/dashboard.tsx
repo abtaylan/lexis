@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2, MessagesSquare, NotebookPen } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import type { Locale } from '@/i18n/locales';
@@ -14,6 +14,7 @@ import { statsApi } from '@/api/stats';
 import { scheduleApi } from '@/api/schedule';
 import { examsApi } from '@/api/exams';
 import { studyProgramApi } from '@/api/studyProgram';
+import { levelGoalApi } from '@/api/levelGoal';
 import { wordsApi } from '@/api/words';
 import { gamesApi } from '@/api/games';
 import type { WeakTopicItem, WeakWordTypeItem } from '@/api/types';
@@ -24,6 +25,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { Card } from '@/components/ui/Card';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { StudyProgramCard } from '@/components/StudyProgramCard';
+import { LevelGoalCard } from '@/components/LevelGoalCard';
 import { DailyWordCard } from '@/components/DailyWordCard';
 import { ReferralPromoCard } from '@/components/ReferralPromoCard';
 import { MascotGreeting } from '@/components/MascotGreeting';
@@ -162,6 +164,24 @@ export default function DashboardScreen() {
     queryKey: ['exam-weak-topics'],
     queryFn: () => examsApi.weakTopics(7, 3),
   });
+
+  // Kullanıcı isteği (3 Kasım 2026) — hedef seviyeye ilerleme kartı.
+  const qc = useQueryClient();
+  const { data: levelGoal } = useQuery({
+    queryKey: ['level-goal'],
+    queryFn: levelGoalApi.get,
+  });
+  const [settingLevelGoal, setSettingLevelGoal] = useState(false);
+  const handleSetLevelGoalTarget = (target: string) => {
+    setSettingLevelGoal(true);
+    levelGoalApi
+      .setTarget(target)
+      .then(() => qc.invalidateQueries({ queryKey: ['level-goal'] }))
+      .catch(() => {
+        /* sessizce yoksay -- kart eski durumda kalır, kullanıcı tekrar deneyebilir */
+      })
+      .finally(() => setSettingLevelGoal(false));
+  };
 
   // Adaptif Öğrenme Motoru Madde 2 — haftalık çalışma programı kartı.
   const { data: studyProgram } = useQuery({
@@ -418,6 +438,18 @@ export default function DashboardScreen() {
               </View>
             </View>
           </Card>
+        )}
+
+        {/* Kullanıcı isteği (3 Kasım 2026): ana seviye -> hedef seviye
+            ilerleme kartı. Program kartından ÖNCE -- "nereye gidiyorum"
+            sorusu "bu hafta ne çalışacağım"dan önce gelir. */}
+        {!!levelGoal?.available && (
+          <LevelGoalCard
+            goal={levelGoal}
+            locale={locale}
+            settingTarget={settingLevelGoal}
+            onSetTarget={handleSetLevelGoalTarget}
+          />
         )}
 
         {/* Adaptif Öğrenme Motoru Madde 2: haftalık program kartı. Zayıf

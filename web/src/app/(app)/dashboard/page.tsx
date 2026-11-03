@@ -7,8 +7,10 @@ import {
   BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, MessageCircle, Sun, Moon,
   GraduationCap, ChevronRight,
 } from 'lucide-react';
-import { statsApi, wordsApi, gamesApi, languagesApi, userLanguagesApi, notificationsApi, socialApi, examsApi, studyProgramApi } from '@/lib/api';
+import { statsApi, wordsApi, gamesApi, languagesApi, userLanguagesApi, notificationsApi, socialApi, examsApi, studyProgramApi, levelGoalApi } from '@/lib/api';
+import type { LevelGoal } from '@/lib/api';
 import { StudyProgramCard } from '@/components/study/StudyProgramCard';
+import { LevelGoalCard } from '@/components/study/LevelGoalCard';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useThemeMode } from '@/store/theme';
 import { XPBar } from '@/components/layout/XPBar';
@@ -249,6 +251,10 @@ export default function DashboardPage() {
   const [weakTopics, setWeakTopics] = useState<WeakTopicItem[]>([]);
   // Adaptif Öğrenme Motoru Madde 2 — haftalık çalışma programı kartı.
   const [studyProgram, setStudyProgram] = useState<StudyProgram | null>(null);
+  // Kullanıcı isteği (3 Kasım 2026) — hedef seviyeye ilerleme kartı.
+  const [levelGoal, setLevelGoal] = useState<LevelGoal | null>(null);
+  const [settingLevelGoal, setSettingLevelGoal] = useState(false);
+  const [showLevelGoalPicker, setShowLevelGoalPicker] = useState(false);
   // V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan widget'lari.
   const [weakWordTypes, setWeakWordTypes] = useState<WeakWordTypeItem[]>([]);
   const [weakDifficulty, setWeakDifficulty] = useState<WeakDifficultyItem[]>([]);
@@ -257,6 +263,12 @@ export default function DashboardPage() {
     studyProgramApi
       .current()
       .then(setStudyProgram)
+      .catch(() => {
+        /* soft-disable: hata durumunda kart gösterilmez */
+      });
+    levelGoalApi
+      .get()
+      .then(setLevelGoal)
       .catch(() => {
         /* soft-disable: hata durumunda kart gösterilmez */
       });
@@ -785,6 +797,32 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Kullanıcı isteği (3 Kasım 2026): ana seviye -> hedef seviye ilerleme
+          kartı. Program kartından ÖNCE gösteriliyor -- "nereye gidiyorum"
+          sorusu "bu hafta ne çalışacağım"dan önce gelir. */}
+      {levelGoal?.available && (
+        <LevelGoalCard
+          goal={levelGoal}
+          locale={locale}
+          settingTarget={settingLevelGoal}
+          forceShowPicker={showLevelGoalPicker}
+          onRequestChangeTarget={() => setShowLevelGoalPicker(true)}
+          onSetTarget={(target) => {
+            setSettingLevelGoal(true);
+            levelGoalApi
+              .setTarget(target)
+              .then((updated) => {
+                setLevelGoal(updated);
+                setShowLevelGoalPicker(false);
+              })
+              .catch(() => {
+                /* sessizce yoksay -- kart eski durumda kalır, kullanıcı tekrar deneyebilir */
+              })
+              .finally(() => setSettingLevelGoal(false));
+          }}
+        />
       )}
 
       {/* Adaptif Öğrenme Motoru Madde 2: haftalık program kartı. Zayıf konuları

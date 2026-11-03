@@ -94,4 +94,13 @@ export const authApi = {
   deleteAccount: async (): Promise<void> => {
     await api.delete('/auth/account');
   },
+
+  // Kullanıcı isteği (3 Kasım 2026): "Tüm Verilerimi Sıfırla" — hesabı
+  // SİLMEZ, sadece ilerleme verilerini sıfırlar (bkz. backend/app/api/
+  // routes/auth.py reset_progress, web/src/lib/api.ts authApi.resetProgress
+  // ile AYNI uç nokta).
+  resetProgress: async (): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>('/auth/reset-progress');
+    return res.data;
+  },
 };

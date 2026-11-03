@@ -463,10 +463,52 @@ async def get_roadmap(current_user=Depends(get_current_user)):
         elif today > weeks[-1]["end_date"]:
             current_week_number = weeks[-1]["week_number"]
 
+    # Kullanıcı isteği (3 Kasım 2026): "çalışma programımızda ilerleme
+    # durumunu da görmemiz lazım" -- Program Haritası (20 hafta) şimdiye
+    # kadar hiçbir ilerleme/yüzde göstermiyordu, oysa veri zaten vardı
+    # (schedule_day_completions -- Takvim'deki "Yapıldı" anahtarı, bkz.
+    # set_day_completion/list_day_completions). Burada programın TÜM
+    # haftalarındaki GERÇEK tarihli günler (schedule_items[].date) ile
+    # kullanıcının "Yapıldı" işaretlediği tarihlerin kesişimi alınıp hem
+    # haftalık hem genel bir özet hesaplanıyor -- tek yerde hesaplanıp hem
+    # web hem mobil roadmap ekranına aynı değer gidiyor.
+    planned_dates_by_week: dict[int, set[str]] = {}
+    all_planned_dates: set[str] = set()
+    for w in weeks:
+        wn = w["week_number"]
+        for item in w.get("schedule_items") or []:
+            d = item.get("date")
+            if d:
+                planned_dates_by_week.setdefault(wn, set()).add(d)
+                all_planned_dates.add(d)
+
+    completion_rows = (
+        supabase_admin.table("schedule_day_completions")
+        .select("date, is_done")
+        .eq("user_id", current_user.id)
+        .execute()
+        .data
+    ) or []
+    done_dates = {c["date"] for c in completion_rows if c.get("is_done")}
+
+    for w in weeks:
+        wn = w["week_number"]
+        week_dates = planned_dates_by_week.get(wn, set())
+        w["total_days"] = len(week_dates)
+        w["completed_days"] = len(week_dates & done_dates)
+
+    total_days = len(all_planned_dates)
+    completed_days = len(all_planned_dates & done_dates)
+
     return {
         "today": today,
         "current_week_number": current_week_number,
         "weeks": weeks,
+        "progress": {
+            "total_days": total_days,
+            "completed_days": completed_days,
+            "percent": round(100 * completed_days / total_days) if total_days else 0,
+        },
     }
 
 

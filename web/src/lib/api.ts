@@ -268,6 +268,15 @@ export const authApi = {
     await api.delete('/auth/account');
   },
 
+  // Kullanıcı isteği (3 Kasım 2026): "Tüm Verilerimi Sıfırla" — hesabı
+  // SİLMEZ, sadece kelime havuzu/seviye/çalışma programı/çalışma
+  // notları gibi ilerleme verilerini sıfırlar (bkz. backend/app/api/
+  // routes/auth.py reset_progress).
+  resetProgress: async (): Promise<{ message: string }> => {
+    const res = await api.post<{ message: string }>('/auth/reset-progress');
+    return res.data;
+  },
+
   // Apple ile Giriş (web) — Apple JS SDK'dan (usePopup) alınan id_token,
   // mobil ile AYNI backend ucuna gönderiliyor (bkz. AppleSignInButton.tsx).
   // full_name sadece kullanıcının Apple hesabıyla İLK yetkilendirmesinde
@@ -1855,6 +1864,46 @@ export const studyProgramApi = {
   },
   weeklyQuiz: async (): Promise<ExamPracticeQuestionsResult> => {
     const res = await api.get<ExamPracticeQuestionsResult>('/study-program/weekly-quiz');
+    return res.data;
+  },
+};
+
+// ── Ana sayfa hedef seviye ilerlemesi (3 Kasım 2026) ────────────────────
+// backend/app/api/routes/level_goal.py / app/services/level_goal_service.py
+export interface LevelGoalBreakdown {
+  exam_accuracy_pct: number;
+  exam_attempts: number;
+  game_score_pct: number;
+  game_xp_30d: number;
+  study_program_pct: number;
+  study_program_topics_completed: number | null;
+  study_program_topics_total: number | null;
+}
+
+export interface LevelGoal {
+  available: boolean;
+  reason?: 'no_placement';
+  needs_target?: boolean;
+  learning_lang: string;
+  placement_level?: string;
+  current_level?: string;
+  current_level_name?: string;
+  target_level?: string | null;
+  target_level_name?: string;
+  suggested_target_level?: string;
+  percent?: number;
+  completed_steps?: number;
+  total_steps?: number;
+  breakdown?: LevelGoalBreakdown;
+}
+
+export const levelGoalApi = {
+  get: async (): Promise<LevelGoal> => {
+    const res = await api.get<LevelGoal>('/me/level-goal');
+    return res.data;
+  },
+  setTarget: async (target_level: string): Promise<LevelGoal> => {
+    const res = await api.patch<LevelGoal>('/me/level-goal', { target_level });
     return res.data;
   },
 };

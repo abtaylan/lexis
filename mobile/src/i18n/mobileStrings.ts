@@ -50,6 +50,8 @@ export interface MobileStrings {
   // Hesap silme (Google Play / Apple hesap silme politikası — bkz. profile.tsx)
   deleteAccountBtn: string;
   deleteAccountConfirmMsg: string;
+  resetProgressBtn: string;
+  resetProgressConfirmMsg: string;
   deleteAccountSuccessMsg: string;
 
   registerStepAccount: string;
@@ -122,6 +124,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'Evet, Sil',
     deleteAccountBtn: 'Hesabımı Sil',
     deleteAccountConfirmMsg: 'Bu işlem geri alınamaz. Hesabın ve tüm verilerin (kelimeler, ilerleme, mesajlar) kalıcı olarak silinecek.',
+    resetProgressBtn: 'Tüm Verilerimi Sıfırla',
+    resetProgressConfirmMsg: 'Kelime havuzun, seviyen, çalışma programın ve çalışma notların kalıcı olarak silinecek. Hesabın silinmeyecek ama bu işlem geri alınamaz.',
     deleteAccountSuccessMsg: 'Hesabın silindi.',
     registerStepAccount: 'Hesap Bilgileri',
     registerStepLanguage: 'Dil Seçimi',
@@ -183,6 +187,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'Yes, Delete',
     deleteAccountBtn: 'Delete My Account',
     deleteAccountConfirmMsg: 'This action cannot be undone. Your account and all your data (words, progress, messages) will be permanently deleted.',
+    resetProgressBtn: 'Reset All My Data',
+    resetProgressConfirmMsg: 'Your word pool, level, study program and study notes will be permanently deleted. Your account will not be deleted, but this cannot be undone.',
     deleteAccountSuccessMsg: 'Your account has been deleted.',
     registerStepAccount: 'Account Info',
     registerStepLanguage: 'Language Selection',
@@ -244,6 +250,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'نعم، احذف',
     deleteAccountBtn: 'حذف حسابي',
     deleteAccountConfirmMsg: 'لا يمكن التراجع عن هذا الإجراء. سيتم حذف حسابك وجميع بياناتك (الكلمات، التقدم، الرسائل) نهائيًا.',
+    resetProgressBtn: 'إعادة تعيين جميع بياناتي',
+    resetProgressConfirmMsg: 'سيتم حذف مخزون كلماتك ومستواك وبرنامج دراستك وملاحظات دراستك نهائيًا. لن يتم حذف حسابك، لكن لا يمكن التراجع عن هذا.',
     deleteAccountSuccessMsg: 'تم حذف حسابك.',
     registerStepAccount: 'معلومات الحساب',
     registerStepLanguage: 'اختيار اللغة',
@@ -305,6 +313,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'Да, удалить',
     deleteAccountBtn: 'Удалить аккаунт',
     deleteAccountConfirmMsg: 'Это действие нельзя отменить. Ваш аккаунт и все данные (слова, прогресс, сообщения) будут удалены безвозвратно.',
+    resetProgressBtn: 'Сбросить все мои данные',
+    resetProgressConfirmMsg: 'Ваш словарный запас, уровень, программа обучения и учебные заметки будут безвозвратно удалены. Аккаунт удалён не будет, но это действие необратимо.',
     deleteAccountSuccessMsg: 'Ваш аккаунт удалён.',
     registerStepAccount: 'Данные аккаунта',
     registerStepLanguage: 'Выбор языка',
@@ -366,6 +376,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'Ja, löschen',
     deleteAccountBtn: 'Konto löschen',
     deleteAccountConfirmMsg: 'Diese Aktion kann nicht rückgängig gemacht werden. Dein Konto und alle deine Daten (Wörter, Fortschritt, Nachrichten) werden dauerhaft gelöscht.',
+    resetProgressBtn: 'Alle meine Daten zurücksetzen',
+    resetProgressConfirmMsg: 'Dein Wortpool, Niveau, Lernplan und deine Lernnotizen werden dauerhaft gelöscht. Dein Konto wird nicht gelöscht, aber dies kann nicht rückgängig gemacht werden.',
     deleteAccountSuccessMsg: 'Dein Konto wurde gelöscht.',
     registerStepAccount: 'Kontodaten',
     registerStepLanguage: 'Sprachauswahl',
@@ -427,6 +439,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'Oui, supprimer',
     deleteAccountBtn: 'Supprimer mon compte',
     deleteAccountConfirmMsg: 'Cette action est irréversible. Ton compte et toutes tes données (mots, progression, messages) seront définitivement supprimés.',
+    resetProgressBtn: 'Réinitialiser toutes mes données',
+    resetProgressConfirmMsg: "Ta liste de mots, ton niveau, ton programme et tes notes d'étude seront définitivement supprimés. Ton compte ne sera pas supprimé, mais cette action est irréversible.",
     deleteAccountSuccessMsg: 'Ton compte a été supprimé.',
     registerStepAccount: 'Infos du compte',
     registerStepLanguage: 'Choix de la langue',
@@ -488,6 +502,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'Sí, eliminar',
     deleteAccountBtn: 'Eliminar mi cuenta',
     deleteAccountConfirmMsg: 'Esta acción no se puede deshacer. Tu cuenta y todos tus datos (palabras, progreso, mensajes) se eliminarán permanentemente.',
+    resetProgressBtn: 'Restablecer todos mis datos',
+    resetProgressConfirmMsg: 'Tu lista de palabras, nivel, programa y notas de estudio se eliminarán permanentemente. Tu cuenta no se eliminará, pero esto no se puede deshacer.',
     deleteAccountSuccessMsg: 'Tu cuenta ha sido eliminada.',
     registerStepAccount: 'Datos de la cuenta',
     registerStepLanguage: 'Selección de idioma',
@@ -549,6 +565,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'Sì, elimina',
     deleteAccountBtn: 'Elimina il mio account',
     deleteAccountConfirmMsg: 'Questa azione non può essere annullata. Il tuo account e tutti i tuoi dati (parole, progressi, messaggi) verranno eliminati permanentemente.',
+    resetProgressBtn: 'Ripristina tutti i miei dati',
+    resetProgressConfirmMsg: 'Il tuo elenco parole, livello, programma e note di studio verranno eliminati permanentemente. Il tuo account non verrà eliminato, ma questa azione non può essere annullata.',
     deleteAccountSuccessMsg: 'Il tuo account è stato eliminato.',
     registerStepAccount: 'Dati account',
     registerStepLanguage: 'Selezione lingua',
@@ -610,6 +628,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'はい、削除します',
     deleteAccountBtn: 'アカウントを削除',
     deleteAccountConfirmMsg: 'この操作は取り消せません。アカウントとすべてのデータ(単語、進捗、メッセージ)が完全に削除されます。',
+    resetProgressBtn: 'すべてのデータをリセット',
+    resetProgressConfirmMsg: '単語プール、レベル、学習プログラム、学習メモが完全に削除されます。アカウントは削除されませんが、この操作は取り消せません。',
     deleteAccountSuccessMsg: 'アカウントが削除されました。',
     registerStepAccount: 'アカウント情報',
     registerStepLanguage: '言語選択',
@@ -671,6 +691,8 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     confirmYesDestructive: 'Sim, eliminar',
     deleteAccountBtn: 'Eliminar a Minha Conta',
     deleteAccountConfirmMsg: 'Esta ação não pode ser desfeita. A tua conta e todos os teus dados (palavras, progresso, mensagens) serão eliminados permanentemente.',
+    resetProgressBtn: 'Repor Todos os Meus Dados',
+    resetProgressConfirmMsg: 'A tua lista de palavras, nível, programa e notas de estudo serão eliminados permanentemente. A tua conta não será eliminada, mas isto não pode ser desfeito.',
     deleteAccountSuccessMsg: 'A tua conta foi eliminada.',
     registerStepAccount: 'Dados da Conta',
     registerStepLanguage: 'Escolha de Idioma',

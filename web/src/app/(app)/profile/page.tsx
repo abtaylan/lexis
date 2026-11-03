@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AxiosError } from 'axios';
-import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus, Ban, Trash2, Gift, Copy, Check } from 'lucide-react';
+import { User, Save, CheckCircle, Lock, Mail, AtSign, Eye, EyeOff, Globe, GraduationCap, Plus, Ban, Trash2, RotateCcw, Gift, Copy, Check } from 'lucide-react';
 import { authApi, languagesApi, userLanguagesApi, socialApi, referralsApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { useLocale, LOCALE_META, type Locale } from '@/lib/i18n';
@@ -236,6 +236,25 @@ const REFERRAL_LABELS: Record<
   },
 };
 
+// İlerleme sıfırlama (3 Kasım 2026 kullanıcı isteği) — DELETE_ACCOUNT_LABELS
+// ile AYNI yerel-i18n deseni, ayrı bir "tehlikeli bölge" kutusu (hesabı
+// SİLMEZ, sadece ilerlemeyi sıfırlar, bkz. backend reset_progress).
+const RESET_PROGRESS_LABELS: Record<
+  Locale,
+  { title: string; desc: string; button: string; confirm: string; error: string; success: string }
+> = {
+  tr: { title: 'İlerlemeyi Sıfırla', desc: 'Kelime havuzunu, seviyeni, çalışma programını ve çalışma notlarını baştan başlat. Hesabın, aboneliğin ve arkadaşların silinmez — bu işlem geri alınamaz.', button: 'Tüm Verilerimi Sıfırla', confirm: 'Kelime havuzun, seviyen, çalışma programın ve çalışma notların kalıcı olarak silinecek. Hesabın silinmeyecek ama bu işlem GERİ ALINAMAZ. Devam etmek istiyor musun?', error: 'Sıfırlama işlemi tamamlanamadı, lütfen tekrar dene.', success: 'Tüm ilerleme verilerin sıfırlandı.' },
+  en: { title: 'Reset Progress', desc: 'Start your word pool, level, study program and study notes from scratch. Your account, subscription and friends are kept — this cannot be undone.', button: 'Reset All My Data', confirm: 'Your word pool, level, study program and study notes will be permanently deleted. Your account will NOT be deleted, but this cannot be undone. Continue?', error: 'Could not reset your progress, please try again.', success: 'All your progress has been reset.' },
+  de: { title: 'Fortschritt zurücksetzen', desc: 'Setze deinen Wortpool, dein Niveau, deinen Lernplan und deine Lernnotizen zurück. Konto, Abo und Freunde bleiben erhalten — dies kann nicht rückgängig gemacht werden.', button: 'Alle meine Daten zurücksetzen', confirm: 'Dein Wortpool, Niveau, Lernplan und deine Lernnotizen werden dauerhaft gelöscht. Dein Konto wird NICHT gelöscht, aber dies kann nicht rückgängig gemacht werden. Fortfahren?', error: 'Fortschritt konnte nicht zurückgesetzt werden, bitte versuche es erneut.', success: 'Dein gesamter Fortschritt wurde zurückgesetzt.' },
+  fr: { title: 'Réinitialiser la progression', desc: 'Repars de zéro pour ta liste de mots, ton niveau, ton programme d\'étude et tes notes d\'étude. Ton compte, ton abonnement et tes amis sont conservés — cette action est irréversible.', button: 'Réinitialiser toutes mes données', confirm: 'Ta liste de mots, ton niveau, ton programme et tes notes d\'étude seront définitivement supprimés. Ton compte ne sera PAS supprimé, mais cette action est irréversible. Continuer ?', error: 'Impossible de réinitialiser la progression, réessaie.', success: 'Toute ta progression a été réinitialisée.' },
+  es: { title: 'Restablecer progreso', desc: 'Empieza de cero tu lista de palabras, tu nivel, tu programa de estudio y tus notas de estudio. Tu cuenta, suscripción y amigos se mantienen — esta acción no se puede deshacer.', button: 'Restablecer todos mis datos', confirm: 'Tu lista de palabras, nivel, programa y notas de estudio se eliminarán permanentemente. Tu cuenta NO se eliminará, pero esto no se puede deshacer. ¿Continuar?', error: 'No se pudo restablecer el progreso, inténtalo de nuevo.', success: 'Se ha restablecido todo tu progreso.' },
+  it: { title: 'Ripristina progressi', desc: 'Ricomincia da zero il tuo elenco parole, livello, programma di studio e note di studio. Account, abbonamento e amici vengono mantenuti — questa azione è irreversibile.', button: 'Ripristina tutti i miei dati', confirm: 'Il tuo elenco parole, livello, programma e note di studio verranno eliminati permanentemente. Il tuo account NON verrà eliminato, ma questa azione non può essere annullata. Continuare?', error: 'Impossibile ripristinare i progressi, riprova.', success: 'Tutti i tuoi progressi sono stati ripristinati.' },
+  ar: { title: 'إعادة تعيين التقدم', desc: 'ابدأ من جديد في مخزون الكلمات ومستواك وبرنامج دراستك وملاحظات دراستك. يتم الاحتفاظ بحسابك واشتراكك وأصدقائك — لا يمكن التراجع عن هذا الإجراء.', button: 'إعادة تعيين جميع بياناتي', confirm: 'سيتم حذف مخزون كلماتك ومستواك وبرنامج دراستك وملاحظات دراستك نهائيًا. لن يتم حذف حسابك، لكن لا يمكن التراجع عن هذا. هل تريد المتابعة؟', error: 'تعذرت إعادة تعيين التقدم، حاول مرة أخرى.', success: 'تمت إعادة تعيين كل تقدمك.' },
+  ru: { title: 'Сбросить прогресс', desc: 'Начни заново свой словарный запас, уровень, программу обучения и учебные заметки. Аккаунт, подписка и друзья сохраняются — это действие необратимо.', button: 'Сбросить все мои данные', confirm: 'Твой словарный запас, уровень, программа обучения и учебные заметки будут безвозвратно удалены. Аккаунт удалён НЕ будет, но это действие необратимо. Продолжить?', error: 'Не удалось сбросить прогресс, попробуйте снова.', success: 'Весь твой прогресс сброшен.' },
+  ja: { title: '進捗をリセット', desc: '単語プール、レベル、学習プログラム、学習メモを最初からやり直します。アカウント、サブスクリプション、友達は保持されます — この操作は取り消せません。', button: 'すべてのデータをリセット', confirm: '単語プール、レベル、学習プログラム、学習メモが完全に削除されます。アカウントは削除されませんが、この操作は取り消せません。続けますか?', error: '進捗をリセットできませんでした。もう一度お試しください。', success: 'すべての進捗がリセットされました。' },
+  pt: { title: 'Repor Progresso', desc: 'Recomeça do zero a tua lista de palavras, nível, programa de estudo e notas de estudo. A tua conta, subscrição e amigos são mantidos — esta ação não pode ser desfeita.', button: 'Repor Todos os Meus Dados', confirm: 'A tua lista de palavras, nível, programa e notas de estudo serão eliminados permanentemente. A tua conta NÃO será eliminada, mas isto não pode ser desfeito. Continuar?', error: 'Não foi possível repor o progresso, tenta novamente.', success: 'Todo o teu progresso foi reposto.' },
+};
+
 // Hesap silme (Google Play Data Safety / Apple hesap silme politikası) —
 // BLOCK_LABELS'teki aynı yerel-i18n deseni (merkezi i18n.tsx'e dokunmadan).
 const DELETE_ACCOUNT_LABELS: Record<
@@ -258,11 +277,15 @@ export default function ProfilePage() {
   const { t, locale } = useLocale();
   const bt = BLOCK_LABELS[locale] ?? BLOCK_LABELS.en;
   const dt = DELETE_ACCOUNT_LABELS[locale] ?? DELETE_ACCOUNT_LABELS.en;
+  const rpt = RESET_PROGRESS_LABELS[locale] ?? RESET_PROGRESS_LABELS.en;
   const rt = REFERRAL_LABELS[locale] ?? REFERRAL_LABELS.en;
   const router = useRouter();
   const { updateUser, logout } = useAuth();
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState('');
+  const [resettingProgress, setResettingProgress] = useState(false);
+  const [resetProgressError, setResetProgressError] = useState('');
+  const [resetProgressDone, setResetProgressDone] = useState(false);
   const [user, setUser] = useState<UserType | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [username, setUsername] = useState('');
@@ -385,6 +408,24 @@ export default function ProfilePage() {
       setBlockedActionError(errorDetail(err) || bt.error);
     } finally {
       setUnblockBusyId(null);
+    }
+  };
+
+  // İlerleme sıfırlama — hesap SİLİNMİYOR (handleDeleteAccount'tan farklı
+  // olarak logout/yönlendirme yok), sadece backend reset-progress çağrılıp
+  // sayfa reload edilerek tüm sorgu cache'leri (XP/CEFR/kelime havuzu vb.)
+  // tazeleniyor.
+  const handleResetProgress = async () => {
+    if (!window.confirm(rpt.confirm)) return;
+    setResettingProgress(true);
+    setResetProgressError('');
+    try {
+      await authApi.resetProgress();
+      setResetProgressDone(true);
+      setTimeout(() => window.location.reload(), 1200);
+    } catch (err) {
+      setResetProgressError(errorDetail(err) || rpt.error);
+      setResettingProgress(false);
     }
   };
 
@@ -834,6 +875,22 @@ export default function ProfilePage() {
           <div><p className="text-gray-400 text-xs">{t('roleLabel')}</p><p className="font-medium text-gray-700 capitalize">{user?.role ?? '—'}</p></div>
           <div><p className="text-gray-400 text-xs">{t('memberSinceLabel')}</p><p className="font-medium text-gray-700">{user?.created_at ? new Date(user.created_at).toLocaleDateString(locale) : '—'}</p></div>
         </div>
+      </div>
+
+      <div className="bg-amber-50 rounded-2xl border border-amber-100 p-5 space-y-3">
+        <h2 className="text-xs font-semibold text-amber-600 uppercase tracking-wide">{rpt.title}</h2>
+        <p className="text-sm text-amber-700">{rpt.desc}</p>
+        {resetProgressError && <p className="text-xs text-red-600">{resetProgressError}</p>}
+        {resetProgressDone && <p className="text-xs text-amber-700">{rpt.success}</p>}
+        <button
+          type="button"
+          disabled={resettingProgress}
+          onClick={handleResetProgress}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 rounded-xl px-4 py-2"
+        >
+          <RotateCcw className="w-4 h-4" />
+          {rpt.button}
+        </button>
       </div>
 
       <div className="bg-red-50 rounded-2xl border border-red-100 p-5 space-y-3">

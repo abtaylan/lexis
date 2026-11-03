@@ -334,6 +334,9 @@ export interface RoadmapWeek {
   focus_note: string | null; // Faz 3 haftalarında konu başlığı yerine açıklama
   schedule_items: ScheduleTemplateItem[];
   created_at: string;
+  // Kullanıcı isteği (3 Kasım 2026) -- bkz. backend GET /schedule/roadmap.
+  total_days?: number;
+  completed_days?: number;
 }
 
 // 15 Ekim 2026 -- Takvim gün tamamlama takibi (bkz. backend
@@ -343,10 +346,17 @@ export interface DayCompletion {
   is_done: boolean;
 }
 
+export interface RoadmapProgress {
+  total_days: number;
+  completed_days: number;
+  percent: number;
+}
+
 export interface RoadmapResponse {
   today: string; // YYYY-MM-DD
   current_week_number: number | null;
   weeks: RoadmapWeek[];
+  progress: RoadmapProgress;
 }
 
 // 15 Ekim 2026 -- "Çalışma Notlarım" sayfası: bir gün Takvimde Yapıldı

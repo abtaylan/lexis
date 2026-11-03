@@ -12,6 +12,11 @@ from app.core.config import settings
 from app.core.database import supabase_admin
 from app.services import learning_languages, login_events_service, otp_service
 from app.services.auth_users import list_all_auth_users
+from app.api.routes.study_notes import (
+    STUDY_DAY_VIDEO_BUCKET,
+    STUDY_NOTES_IMAGE_BUCKET,
+    _extract_storage_path,
+)
 
 router = APIRouter()
 
@@ -749,6 +754,137 @@ async def delete_account(current_user=Depends(get_current_user)):
         raise HTTPException(
             status_code=500,
             detail="Hesap silinemedi, lütfen tekrar deneyin ya da destek ile iletişime geçin.",
+        )
+
+
+@router.post("/reset-progress", status_code=200)
+async def reset_progress(current_user=Depends(get_current_user)):
+    """
+    Kullanici istegi (3 Kasim 2026): Profil sayfasindan "Tum Verilerimi
+    Sifirla" -- hesabi SILMEZ (delete_account'un aksine), sadece ogrenme
+    ilerlemesini varsayilana dondurur: kelime havuzu (words), seviye
+    (user_learning_languages.current_level/placement_level/target_level +
+    user_level_history + profiles.total_xp/level), calisma programi
+    (study_programs + study_roadmap_weeks + schedule_day_completions +
+    topic_practice_attempts), calisma notlari (study_notes + gorselleri +
+    study_day_videos + videolari) ve bunlarin dayandigi oyun/sinav gecmisi
+    (game_sessions/game_attempts/user_badges/xp_events/exam_sessions/
+    exam_attempts).
+
+    KORUNUR: kimlik (display_name/username/email), hangi dilleri
+    ogrendigi/aktif dili (user_learning_languages SATIRLARI silinmiyor,
+    sadece seviye alanlari sifirlaniyor), abonelik (subscriptions/
+    is_premium), sosyal veriler (arkadaslik/takip/engel/mesaj),
+    bildirimler, push token'lari -- bunlar "ilerleme" degil, hesabin
+    kendisiyle ilgili.
+
+    Silme SIRASI delete_account/admin.py::_purge_user_dependent_rows ile
+    AYNI gerekce: game_attempts (session_id/word_id FK, NO ACTION) once,
+    sonra game_sessions/words.
+    """
+    uid = current_user.id
+    try:
+        # 1) Oyun gecmisi + rozetler + XP olaylari (kelime havuzu VE
+        #    seviyenin dayandigi veri -- bkz. level_assessment_service.py)
+        session_ids = [
+            r["id"]
+            for r in (
+                supabase_admin.table("game_sessions").select("id").eq("user_id", uid).execute().data or []
+            )
+        ]
+        word_ids = [
+            r["id"]
+            for r in (
+                supabase_admin.table("words").select("id").eq("user_id", uid).execute().data or []
+            )
+        ]
+        if session_ids:
+            supabase_admin.table("game_attempts").delete().in_("session_id", session_ids).execute()
+            supabase_admin.table("challenges").delete().in_("challenger_session_id", session_ids).execute()
+            supabase_admin.table("challenges").delete().in_("challenged_session_id", session_ids).execute()
+        if word_ids:
+            supabase_admin.table("game_attempts").delete().in_("word_id", word_ids).execute()
+        supabase_admin.table("challenges").delete().eq("challenger_id", uid).execute()
+        supabase_admin.table("challenges").delete().eq("challenged_id", uid).execute()
+        supabase_admin.table("game_sessions").delete().eq("user_id", uid).execute()
+        supabase_admin.table("user_badges").delete().eq("user_id", uid).execute()
+        supabase_admin.table("xp_events").delete().eq("user_id", uid).execute()
+
+        # 2) Kelime havuzu (kisisel SRS kelime listesi)
+        supabase_admin.table("words").delete().eq("user_id", uid).execute()
+
+        # 3) Seviye (CEFR baseline/su anki/hedef) -- user_learning_languages
+        #    SATIRLARI korunur (ogrenilen diller/aktif dil degismesin),
+        #    sadece seviye alanlari sifirlanir.
+        supabase_admin.table("user_learning_languages").update(
+            {
+                "current_level": None,
+                "placement_level": None,
+                "placement_completed_at": None,
+                "level_last_assessed_at": None,
+                "target_level": None,
+                "target_level_set_at": None,
+            }
+        ).eq("user_id", uid).execute()
+        supabase_admin.table("user_level_history").delete().eq("user_id", uid).execute()
+
+        # 4) Oyunlastirma seviyesi (profiles.total_xp/level -- CEFR'den
+        #    AYRI bir "seviye" kavrami, bkz. xp_service.py)
+        supabase_admin.table("profiles").update({"total_xp": 0, "level": 1}).eq("id", uid).execute()
+
+        # 5) Calisma programi -- hem yeni rolling program (study_program_
+        #    service.py) hem Program Haritasi (schedule.py)
+        supabase_admin.table("study_programs").delete().eq("user_id", uid).execute()
+        supabase_admin.table("study_roadmap_weeks").delete().eq("user_id", uid).execute()
+        supabase_admin.table("schedule_day_completions").delete().eq("user_id", uid).execute()
+        supabase_admin.table("topic_practice_attempts").delete().eq("user_id", uid).execute()
+
+        # 6) Calisma notlari -- once storage'daki gorsel/video dosyalari
+        #    (satirlar silinmeden ONCE, URL'lere satirdan erisiliyor)
+        note_rows = (
+            supabase_admin.table("study_notes").select("image_urls").eq("user_id", uid).execute().data or []
+        )
+        for row in note_rows:
+            for url in row.get("image_urls") or []:
+                path = _extract_storage_path(url, STUDY_NOTES_IMAGE_BUCKET)
+                if path:
+                    try:
+                        supabase_admin.storage.from_(STUDY_NOTES_IMAGE_BUCKET).remove([path])
+                    except Exception as e:
+                        print(f"RESET_PROGRESS_STUDY_NOTE_IMAGE_DELETE WARNING: {e}")
+        supabase_admin.table("study_notes").delete().eq("user_id", uid).execute()
+
+        video_rows = (
+            supabase_admin.table("study_day_videos").select("video_url").eq("user_id", uid).execute().data or []
+        )
+        for row in video_rows:
+            path = _extract_storage_path(row["video_url"], STUDY_DAY_VIDEO_BUCKET)
+            if path:
+                try:
+                    supabase_admin.storage.from_(STUDY_DAY_VIDEO_BUCKET).remove([path])
+                except Exception as e:
+                    print(f"RESET_PROGRESS_STUDY_DAY_VIDEO_DELETE WARNING: {e}")
+        supabase_admin.table("study_day_videos").delete().eq("user_id", uid).execute()
+
+        # 7) Sinav gecmisi (seviye tespit + konu pratigi denemeleri) --
+        #    "seviyemiz" sifirlaninca bagli sinav gecmisinin kalmasi
+        #    tutarsiz olurdu (yeniden seviye tespit sinavina girebilsin).
+        exam_session_ids = [
+            r["id"]
+            for r in (
+                supabase_admin.table("exam_sessions").select("id").eq("user_id", uid).execute().data or []
+            )
+        ]
+        if exam_session_ids:
+            supabase_admin.table("exam_attempts").delete().in_("session_id", exam_session_ids).execute()
+        supabase_admin.table("exam_sessions").delete().eq("user_id", uid).execute()
+
+        return {"message": "Tüm ilerleme verilerin sıfırlandı."}
+    except Exception as e:
+        print(f"RESET_PROGRESS ERROR (user={uid}): {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Sıfırlama işlemi tamamlanamadı, lütfen tekrar deneyin.",
         )
 
 

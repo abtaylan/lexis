@@ -127,7 +127,14 @@ function WeekCard({
                 {week.topic_title_tr ?? week.focus_note ?? `Hafta ${week.week_number}`}
                 {week.topic_slugs && week.topic_slugs.length > 1 ? `  (${week.topic_slugs.length} konu)` : ''}
               </Text>
-              <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2 }}>{fmtRange(week.start_date, week.end_date)}</Text>
+              <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2 }}>
+                {fmtRange(week.start_date, week.end_date)}
+                {!!week.total_days && (
+                  <Text style={{ color: week.completed_days === week.total_days ? c.success : c.textMuted, fontWeight: '700' }}>
+                    {' · '}{week.completed_days ?? 0}/{week.total_days} gün
+                  </Text>
+                )}
+              </Text>
             </View>
           </View>
           {expanded ? <ChevronUp color={c.textMuted} size={16} /> : <ChevronDown color={c.textMuted} size={16} />}
@@ -270,6 +277,32 @@ export default function RoadmapScreen() {
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
           showsVerticalScrollIndicator={false}
         >
+          {!!data?.progress && data.progress.total_days > 0 && (
+            <Card style={{ marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>Program İlerlemesi</Text>
+                  <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2 }}>
+                    {data.progress.completed_days}/{data.progress.total_days} gün tamamlandı
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: data.progress.percent >= 100 ? c.success : c.primary }}>
+                  %{data.progress.percent}
+                </Text>
+              </View>
+              <View style={{ marginTop: spacing.sm, height: 8, borderRadius: 999, backgroundColor: c.border, overflow: 'hidden' }}>
+                <View
+                  style={{
+                    height: '100%',
+                    width: `${Math.min(100, data.progress.percent)}%`,
+                    borderRadius: 999,
+                    backgroundColor: data.progress.percent >= 100 ? c.success : c.primary,
+                  }}
+                />
+              </View>
+            </Card>
+          )}
+
           {weeks.map((week) => (
             <WeekCard
               key={week.id}

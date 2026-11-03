@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { scheduleApi } from '@/lib/api';
 import { getErrorMessage } from '@/lib/errors';
-import type { RoadmapWeek } from '@/types';
+import type { RoadmapWeek, RoadmapProgress } from '@/types';
 
 const PHASE_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   'Faz 1': { bg: 'bg-[#E6F1FB]', text: 'text-[#185FA5]', dot: 'bg-[#185FA5]' },
@@ -125,7 +125,14 @@ function WeekCard({
                 </span>
               )}
             </p>
-            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">{fmtRange(week.start_date, week.end_date)}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+              {fmtRange(week.start_date, week.end_date)}
+              {!!week.total_days && (
+                <span className={`ml-1.5 font-semibold ${week.completed_days === week.total_days ? 'text-[#3B6D11]' : 'text-gray-400 dark:text-slate-500'}`}>
+                  · {week.completed_days ?? 0}/{week.total_days} gün
+                </span>
+              )}
+            </p>
           </div>
         </div>
         {expanded ? <ChevronUp className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}
@@ -195,6 +202,7 @@ export default function RoadmapPage() {
   const [weeks, setWeeks] = useState<RoadmapWeek[]>([]);
   const [todayIso, setTodayIso] = useState('');
   const [currentWeekNumber, setCurrentWeekNumber] = useState<number | null>(null);
+  const [progress, setProgress] = useState<RoadmapProgress | null>(null);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -208,6 +216,7 @@ export default function RoadmapPage() {
       setWeeks(res.weeks);
       setTodayIso(res.today);
       setCurrentWeekNumber(res.current_week_number);
+      setProgress(res.progress);
       setExpandedWeek((prev) => prev ?? res.current_week_number);
     } catch (e) {
       // 15 Ekim 2026 kullanıcı geri bildirimi: backend 405/500 gibi genel
@@ -256,6 +265,28 @@ export default function RoadmapPage() {
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />Yenile
         </button>
       </div>
+
+      {!!progress && progress.total_days > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-slate-100">Program İlerlemesi</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                {progress.completed_days}/{progress.total_days} gün tamamlandı
+              </p>
+            </div>
+            <span className="text-xl font-extrabold shrink-0" style={{ color: progress.percent >= 100 ? '#3B6D11' : '#378ADD' }}>
+              %{progress.percent}
+            </span>
+          </div>
+          <div className="mt-3 h-2 w-full rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${Math.min(100, progress.percent)}%`, backgroundColor: progress.percent >= 100 ? '#3B6D11' : '#378ADD' }}
+            />
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-12 flex items-center justify-center">
