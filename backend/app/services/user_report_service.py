@@ -331,8 +331,23 @@ async def get_user_report(user_id: str, period: Period = "week") -> dict[str, An
         .eq("user_id", user_id)
         .execute()
     ).data or []
-    topic_current = _bucket(topic_attempts, current_start, now)
-    topic_previous = _bucket(topic_attempts, previous_start, current_start)
+    # BUG FIX (3 Kasim 2026, kullanici bildirimi -- "Raporum sayfasinda
+    # 'Rapor yuklenemedi' hatasi"): _bucket() helper'i r["started_at"]
+    # okuyor, ama topic_practice_attempts tablosunda "started_at" diye bir
+    # sutun YOK -- sadece "created_at" var (bkz. tablo semasi). Bu yuzden
+    # asagidaki satir, kullanicinin EN AZ 1 konu denemesi oldugu her
+    # durumda KeyError firlatip raporun tamamini 500'e ceviriyordu. _bucket
+    # yerine, dosyanin basindaki new_words_current/_previous ile ayni
+    # desende ("created_at" alanini .get ile guvenli okuyan) yerel bir
+    # filtre kullaniliyor.
+    topic_current = [
+        t for t in topic_attempts
+        if current_start.isoformat() <= (t.get("created_at") or "") < now.isoformat()
+    ]
+    topic_previous = [
+        t for t in topic_attempts
+        if previous_start.isoformat() <= (t.get("created_at") or "") < current_start.isoformat()
+    ]
     accuracy_current = (
         round(sum(1 for t in topic_current if t["is_correct"]) / len(topic_current) * 100)
         if topic_current
@@ -533,7 +548,11 @@ async def get_user_growth_report(
     total_words = len(words)
     learned_words = sum(1 for w in words if w["status"] == "learned")
     learned_pct = round((learned_words / total_words) * 100) if total_words else 0
-    new_words_in_range = sum(1 for w in words if start_iso <= w["created_at"] < end_iso)
+    # Sertlestirme: get_user_report() ile ayni NULL-guvenligi (bkz. yukarida
+    # "words.created_at DB'de NULL OLABILIR" notu) -- su an canli veride
+    # NULL yok ama tek bir eksik satirin tum gelisim raporunu cokertmesini
+    # onlemek icin burada da .get(...) or "" kullaniliyor.
+    new_words_in_range = sum(1 for w in words if start_iso <= (w.get("created_at") or "") < end_iso)
 
     # Gunluk trend grafigi (kullanici istegi, 18 Eylul 2026 -- "bu tablo daha
     # da genislemeli ... grafik vs falan da ekle"). Zaten cekilmis olan

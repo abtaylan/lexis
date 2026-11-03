@@ -124,6 +124,7 @@ from app.schemas.games import (
     WeakDifficultyItem,
     WeakDifficultyResult,
 )
+from app.services.dictionary_providers.pos_labels import localize_pos
 from app.services.spaced_repetition import calculate_next_review
 from app.services.streak import update_streak
 from app.services.weak_categories_service import get_weak_difficulty_levels
@@ -615,7 +616,15 @@ def _sync_word_progress(
     else:
         pool_row = (
             supabase_admin.table("general_word_pool")
-            .select("word, meaning, example, definition, source_lang, target_lang")
+            # BUG FIX (3 Kasim 2026, kullanici bildirimi -- "Kelime Turune
+            # Gore Ogrenme Orani grafigi duzgun degil gibi"): part_of_speech
+            # burada SECILMIYORDU, bu yuzden oyun icinden (quiz/duello vb.)
+            # havuzdan kullaniciya eklenen HER kelime word_type'siz (NULL)
+            # kaliyordu -- havuzun cogu kelimesi boylece "Diger" kovasina
+            # dusup tur bazli istatistik grafigini anlamsiz hale getiriyordu
+            # (bkz. stats.py::get_analytics type_breakdown). part_of_speech
+            # artik secilip asagida words.word_type'a kopyalaniyor.
+            .select("word, meaning, example, definition, source_lang, target_lang, part_of_speech")
             .eq("id", general_word_id)
             .single()
             .execute()
@@ -645,6 +654,13 @@ def _sync_word_progress(
                 "source_lang": pool_row["source_lang"],
                 "target_lang": pool_row["target_lang"],
             }
+            pos = pool_row.get("part_of_speech")
+            if pos:
+                # target_lang burada kullanicinin ANA dili (source_lang=
+                # ogrenilen, target_lang=ana dil -- dosyanin basindaki
+                # pool_source aciklamasiyla ayni konvansiyon).
+                insert_row["word_type"] = pos
+                insert_row["word_type_native"] = localize_pos(pos, pool_row["target_lang"])
             insert_row.update(calculate_next_review(insert_row, True))
             supabase_admin.table("words").insert(insert_row).execute()
             return
