@@ -592,6 +592,33 @@ export default function DashboardPage() {
           render edilmez. */}
       <DailyWordCard />
 
+      {/* Kullanıcı isteği (3 Kasım 2026): ana seviye -> hedef seviye ilerleme
+          kartı. Kullanıcı isteğiyle (aynı gün) Seviye/XP ve Günlük Kelime Avı
+          kartlarının HEMEN ALTINA taşındı. */}
+      {levelGoal?.available && (
+        <LevelGoalCard
+          goal={levelGoal}
+          locale={locale}
+          settingTarget={settingLevelGoal}
+          forceShowPicker={showLevelGoalPicker}
+          onRequestChangeTarget={() => setShowLevelGoalPicker(true)}
+          onSetTarget={(target) => {
+            setSettingLevelGoal(true);
+            levelGoalApi
+              .setTarget(target)
+              .then((updated) => {
+                setLevelGoal(updated);
+                setShowLevelGoalPicker(false);
+              })
+              .catch(() => {
+                /* sessizce yoksay -- kart eski durumda kalır, kullanıcı tekrar deneyebilir */
+              })
+              .finally(() => setSettingLevelGoal(false));
+          }}
+        />
+      )}
+
+
       {/* Günün Kelimesi (Madde 5, 24 Eylül 2026) — DailyWordCard ile
           KARIŞTIRILMASIN: o "Günlük Kelime Avı" (Wordle tarzı oyun), bu ise
           salt okunur, e-postayla gelen günlük kelime içeriğinin dashboard'a
@@ -797,32 +824,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Kullanıcı isteği (3 Kasım 2026): ana seviye -> hedef seviye ilerleme
-          kartı. Program kartından ÖNCE gösteriliyor -- "nereye gidiyorum"
-          sorusu "bu hafta ne çalışacağım"dan önce gelir. */}
-      {levelGoal?.available && (
-        <LevelGoalCard
-          goal={levelGoal}
-          locale={locale}
-          settingTarget={settingLevelGoal}
-          forceShowPicker={showLevelGoalPicker}
-          onRequestChangeTarget={() => setShowLevelGoalPicker(true)}
-          onSetTarget={(target) => {
-            setSettingLevelGoal(true);
-            levelGoalApi
-              .setTarget(target)
-              .then((updated) => {
-                setLevelGoal(updated);
-                setShowLevelGoalPicker(false);
-              })
-              .catch(() => {
-                /* sessizce yoksay -- kart eski durumda kalır, kullanıcı tekrar deneyebilir */
-              })
-              .finally(() => setSettingLevelGoal(false));
-          }}
-        />
       )}
 
       {/* Adaptif Öğrenme Motoru Madde 2: haftalık program kartı. Zayıf konuları

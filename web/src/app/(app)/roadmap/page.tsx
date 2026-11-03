@@ -258,7 +258,7 @@ export default function RoadmapPage() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-slate-100">Program Haritası</h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
-            20 haftalık YÖKDİL hazırlık programının tamamı — Gramer Rehberi'nin sırasına göre, her hafta tek bir konu.
+            YÖKDİL hazırlık programının tamamı — Gramer Rehberi sırasına göre haftalık birden çok konu, okuma ve kelime tekrarıyla.
           </p>
         </div>
         <button onClick={load} disabled={loading} className="flex items-center gap-2 bg-[#EEEDFE] hover:bg-[#e0ddfc] text-[#534AB7] rounded-xl px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50">
@@ -298,7 +298,7 @@ export default function RoadmapPage() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-12 flex flex-col items-center justify-center gap-3 text-center">
           <div className="w-14 h-14 rounded-2xl bg-[#EEEDFE] flex items-center justify-center"><Sparkles className="w-7 h-7 text-[#534AB7]" /></div>
           <p className="text-sm font-medium text-gray-700 dark:text-slate-300">Henüz bir yol haritan yok.</p>
-          <p className="text-xs text-gray-400 dark:text-slate-500 max-w-xs">Programını oluşturduğunda 20 haftalık yol haritan burada görünecek.</p>
+          <p className="text-xs text-gray-400 dark:text-slate-500 max-w-xs">Programını oluşturduğunda yol haritan burada görünecek.</p>
         </div>
       ) : (
         <div className="space-y-3">

@@ -240,7 +240,7 @@ export default function RoadmapScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={{ color: c.text, fontSize: 18, fontWeight: '800' }}>Program Haritası</Text>
-            <Text style={{ color: c.textMuted, fontSize: 11 }}>20 haftalık YÖKDİL programının tamamı, Gramer Rehberi sırasına göre</Text>
+            <Text style={{ color: c.textMuted, fontSize: 11 }}>YÖKDİL hazırlık programının tamamı, Gramer Rehberi sırasına göre</Text>
           </View>
         </View>
       </View>
@@ -268,7 +268,7 @@ export default function RoadmapScreen() {
         </View>
       ) : weeks.length === 0 ? (
         <View style={{ padding: spacing.lg }}>
-          <EmptyState title="Henüz bir yol haritan yok" subtitle="Programını oluşturduğunda 20 haftalık yol haritan burada görünecek." />
+          <EmptyState title="Henüz bir yol haritan yok" subtitle="Programını oluşturduğunda yol haritan burada görünecek." />
         </View>
       ) : (
         <ScrollView

@@ -118,9 +118,46 @@ def _game_score_component(user_id: str) -> tuple[float, int]:
 
 
 def _study_program_component(user_id: str, learning_lang: str) -> tuple[float, dict[str, Any] | None]:
-    """Bu haftanin rolling calisma programinda tamamlanan odak konu orani
-    -- (0..1 oran, build_progress ciktisi [varsa, UI'da da gosterilebilsin
-    diye])."""
+    """Calisma programi bileseni.
+
+    3 Kasim 2026 kullanici geri bildirimi: kullanici artik kendi uyguladigi
+    kapsamli YOKDIL programini (study_roadmap_weeks -- Takvim + Program
+    Haritasi) kullaniyor ve o programdaki gunleri "Yapildi" isaretliyor,
+    ama bu bilesen hala eski, ayri/otomatik "rolling" odak-konu sistemini
+    (study_program_service.py) kullandigi icin kullanicinin gercek
+    ilerlemesini yansitmiyordu (0% takilip kaliyordu). Artik ONCELIKLE
+    study_roadmap_weeks'teki (varsa) gercek-tarihli gunlerin
+    schedule_day_completions'a gore tamamlanma oranini kullaniyoruz; roadmap
+    hic kurulmamissa (kullanici hala sadece eski rolling sisteme
+    guveniyorsa) eski sps bilesenine geri dusuyoruz."""
+    roadmap_rows = (
+        supabase_admin.table("study_roadmap_weeks")
+        .select("schedule_items")
+        .eq("user_id", user_id)
+        .execute()
+        .data
+    ) or []
+    if roadmap_rows:
+        planned_dates: set[str] = set()
+        for w in roadmap_rows:
+            for item in w.get("schedule_items") or []:
+                d = item.get("date")
+                if d:
+                    planned_dates.add(d)
+        if planned_dates:
+            completion_rows = (
+                supabase_admin.table("schedule_day_completions")
+                .select("date, is_done")
+                .eq("user_id", user_id)
+                .execute()
+                .data
+            ) or []
+            done_dates = {c["date"] for c in completion_rows if c.get("is_done")}
+            total = len(planned_dates)
+            completed = len(planned_dates & done_dates)
+            ratio = (completed / total) if total else 0.0
+            return ratio, {"completed_topics": completed, "focus_topics": [None] * total}
+
     try:
         program = sps.get_or_create_program(user_id, learning_lang)
         progress = sps.build_progress(user_id, learning_lang, program)

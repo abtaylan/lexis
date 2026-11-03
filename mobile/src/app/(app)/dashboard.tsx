@@ -440,18 +440,6 @@ export default function DashboardScreen() {
           </Card>
         )}
 
-        {/* Kullanıcı isteği (3 Kasım 2026): ana seviye -> hedef seviye
-            ilerleme kartı. Program kartından ÖNCE -- "nereye gidiyorum"
-            sorusu "bu hafta ne çalışacağım"dan önce gelir. */}
-        {!!levelGoal?.available && (
-          <LevelGoalCard
-            goal={levelGoal}
-            locale={locale}
-            settingTarget={settingLevelGoal}
-            onSetTarget={handleSetLevelGoalTarget}
-          />
-        )}
-
         {/* Adaptif Öğrenme Motoru Madde 2: haftalık program kartı. Zayıf
             konuları zaten içerdiği için gösterildiğinde eski "Zayıf Konuların"
             kartı gizlenir. */}
@@ -463,6 +451,19 @@ export default function DashboardScreen() {
             kendi yapan soft-disable kart, bugünün kelimesi yoksa hiç render
             edilmez. */}
         <DailyWordCard />
+
+        {/* Kullanıcı isteği (3 Kasım 2026): ana seviye -> hedef seviye
+            ilerleme kartı. Kullanıcı isteğiyle (aynı gün) DashboardHeader
+            (Seviye durumu) ve Günlük Kelime Avı kartının HEMEN ALTINA taşındı. */}
+        {!!levelGoal?.available && (
+          <LevelGoalCard
+            goal={levelGoal}
+            locale={locale}
+            settingTarget={settingLevelGoal}
+            onSetTarget={handleSetLevelGoalTarget}
+          />
+        )}
+
 
         {/* Günün Kelimesi (salt okunur, e-postayla gelen günlük kelime
             içeriği) kartı kaldırıldı — kullanıcı isteği (25 Eylül 2026):
