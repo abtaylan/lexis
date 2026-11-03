@@ -166,8 +166,20 @@ export function CalendarView({ items }: { items: ScheduleItem[] }) {
 
   const todayIso = isoOf(new Date());
 
+  // BUG FIX (3 Kasim 2026, kullanici bildirimi -- "Takvimde onceki gunler
+  // hep kirmizi gozukuyor"): study_schedule HAFTALIK TEKRARLI bir sablon
+  // oldugundan (gercek bir baslangic tarihi yoktu), gecmisteki HER
+  // day_of_week eslesmesi -- programin o tarihte var olup olmadigina
+  // bakilmaksizin -- "Calisilmadi" (kirmizi) sayiliyordu. page.tsx'teki
+  // liste gorunumuyle AYNI alanı (program_start_date, backend'de artik
+  // roadmap yoksa aktif sablonun olusturulma tarihine düşüyor -- bkz.
+  // schedule.py::get_schedule) kullanarak bu tarihten ONCEKI gunleri
+  // "Program yok" (none) sayiyoruz, "Calisilmadi" degil.
+  const programStartDate = items.find((it) => it.program_start_date)?.program_start_date ?? null;
+
   function statusForDate(d: Date): DayStatus {
     const iso = isoOf(d);
+    if (programStartDate && iso < programStartDate) return 'none';
     const dayItems = itemsForDate(d);
     if (dayItems.length === 0) return 'none';
     if (completions[iso]) return 'done';

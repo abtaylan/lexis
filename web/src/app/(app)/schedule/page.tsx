@@ -7,15 +7,13 @@ import {
   GraduationCap, Save, Star, User as UserIcon, Bell, CalendarClock, FileText, CalendarPlus,
   AlertTriangle, CheckCircle2,
 } from 'lucide-react';
-import { scheduleApi, examReminderApi, levelGoalApi, type LevelGoal } from '@/lib/api';
+import { scheduleApi, examReminderApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/lib/errors';
 import { ScheduleExportModal } from '@/components/schedule/ScheduleExportModal';
 import { CalendarView } from '@/components/schedule/CalendarView';
-import { XPBar } from '@/components/layout/XPBar';
-import { LevelGoalCard } from '@/components/study/LevelGoalCard';
-import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem, ExamReminder, ScheduleMiss } from '@/types';
+import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem, ExamReminder, ScheduleMiss, ScheduleProgress } from '@/types';
 
 // Haftanın günlerini index'lemek için (0=Pazar…6=Cumartesi) — weekdays[i]
 // çevirisiyle birlikte kullanılıyor, bkz. `grouped` aşağıda.
@@ -677,7 +675,7 @@ function MissedThisWeekCard({ refreshToken }: { refreshToken: number }) {
 }
 
 export default function SchedulePage() {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const { user } = useAuth();
   const weekdays = t('weekdayLabels').split(',');
   const [items, setItems] = useState<ScheduleItem[]>([]);
@@ -708,17 +706,16 @@ export default function SchedulePage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
   useEffect(() => { load(); }, []);
 
-  // Kullanıcı isteği (3 Kasım 2026): "çalışma programımda ilerleme
-  // durumumu göremedim" -- Dashboard'daki Seviye/XP + "Hedefine Giden
-  // Yol" kartlarının AYNISI, bu sayfada da (Program) gösteriliyor.
-  // Veri çekme deseni Dashboard ile birebir aynı (bkz. dashboard/page.tsx).
-  const [levelGoal, setLevelGoal] = useState<LevelGoal | null>(null);
-  const [settingLevelGoal, setSettingLevelGoal] = useState(false);
-  const [showLevelGoalPicker, setShowLevelGoalPicker] = useState(false);
+  // Kullanıcı isteği (3 Kasım 2026): "burada sadece seçtiğim çalışma
+  // programımın ilerleme yüzde grafiğini görmeliyim" -- Seviye/XP ve
+  // "Hedefine Giden Yol" kartları Dashboard'da zaten var, burada SADECE bu
+  // sayfanın kendi haftalık programının ilerleme yüzdesi gösteriliyor
+  // (bkz. backend schedule.py::get_schedule progress bloğu).
+  const [progress, setProgress] = useState<ScheduleProgress | null>(null);
   useEffect(() => {
-    levelGoalApi
-      .get()
-      .then(setLevelGoal)
+    scheduleApi
+      .getProgress()
+      .then(setProgress)
       .catch(() => {
         /* soft-disable: hata durumunda kart gösterilmez */
       });
@@ -852,30 +849,31 @@ export default function SchedulePage() {
         </div>
       </div>
 
-      {/* Kullanıcı isteği (3 Kasım 2026): Seviye/XP + "Hedefine Giden Yol"
-          kartı -- Dashboard'daki ile AYNI, Seviye alanının hemen altında. */}
-      <XPBar />
-      {levelGoal?.available && (
-        <LevelGoalCard
-          goal={levelGoal}
-          locale={locale}
-          settingTarget={settingLevelGoal}
-          forceShowPicker={showLevelGoalPicker}
-          onRequestChangeTarget={() => setShowLevelGoalPicker(true)}
-          onSetTarget={(target) => {
-            setSettingLevelGoal(true);
-            levelGoalApi
-              .setTarget(target)
-              .then((updated) => {
-                setLevelGoal(updated);
-                setShowLevelGoalPicker(false);
-              })
-              .catch(() => {
-                /* sessizce yoksay -- kart eski durumda kalır, kullanıcı tekrar deneyebilir */
-              })
-              .finally(() => setSettingLevelGoal(false));
-          }}
-        />
+      {/* Kullanıcı isteği (3 Kasım 2026): "burada sadece seçtiğim çalışma
+          programımın ilerleme yüzde grafiğini görmeliyim" -- Seviye/XP ve
+          Hedefine Giden Yol kartları Dashboard'da gösteriliyor, burada
+          sadece BU programın kendi ilerleme yüzdesi var (bkz. Program
+          Haritası'ndaki "Program İlerlemesi" kartıyla AYNI görsel dil). */}
+      {!!progress && progress.total_days > 0 && (
+        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-slate-100">Çalışma Programı İlerlemesi</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+                {progress.done_days}/{progress.total_days} gün tamamlandı
+              </p>
+            </div>
+            <span className="text-xl font-extrabold shrink-0" style={{ color: progress.percent >= 100 ? '#3B6D11' : '#378ADD' }}>
+              %{progress.percent}
+            </span>
+          </div>
+          <div className="mt-3 h-2 w-full rounded-full bg-gray-100 dark:bg-slate-800 overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${Math.min(100, progress.percent)}%`, backgroundColor: progress.percent >= 100 ? '#3B6D11' : '#378ADD' }}
+            />
+          </div>
+        </div>
       )}
 
       <ExamRemindersCard />

@@ -160,8 +160,16 @@ export function CalendarView({ items }: { items: ScheduleItem[] }) {
 
   const todayIso = isoOf(new Date());
 
+  // BUG FIX (3 Kasim 2026, kullanici bildirimi -- "Takvimde onceki gunler
+  // hep kirmizi gozukuyor"): web/components/schedule/CalendarView.tsx ile
+  // AYNI duzeltme -- bkz. oradaki yorum. program_start_date roadmap yoksa
+  // artik backend'de aktif sablonun olusturulma tarihine dusuyor (bkz.
+  // schedule.py::get_schedule).
+  const programStartDate = items.find((it) => it.program_start_date)?.program_start_date ?? null;
+
   function statusForDate(d: Date): DayStatus {
     const iso = isoOf(d);
+    if (programStartDate && iso < programStartDate) return 'none';
     const dayItems = itemsForDate(d);
     if (dayItems.length === 0) return 'none';
     if (completions[iso]) return 'done';

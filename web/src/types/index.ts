@@ -210,6 +210,16 @@ export interface RelatedTopic {
   topic_number?: number | null;
 }
 
+// Kullanıcı isteği (3 Kasım 2026): "çalışma programımın ilerleme yüzde
+// grafiğini görmeliyim" -- GET /schedule'ın döndürdüğü progress bloğu
+// (bkz. backend schedule.py::get_schedule). RoadmapProgress ile AYNI şekil,
+// sadece alan adları farklı (done_days vs completed_days).
+export interface ScheduleProgress {
+  total_days: number;
+  done_days: number;
+  percent: number;
+}
+
 export interface ScheduleItem {
   id: string;
   user_id: string;

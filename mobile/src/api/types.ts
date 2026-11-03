@@ -152,6 +152,14 @@ export interface RelatedTopic {
   topic_number?: number | null;
 }
 
+// Kullanıcı isteği (3 Kasım 2026): web/src/types/index.ts::ScheduleProgress
+// ile AYNI şekil.
+export interface ScheduleProgress {
+  total_days: number;
+  done_days: number;
+  percent: number;
+}
+
 export interface ScheduleItem {
   id: string;
   user_id: string;

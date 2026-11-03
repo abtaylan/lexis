@@ -24,9 +24,6 @@ import { Button } from '@/components/ui/Button';
 import { ChipSelect } from '@/components/ui/ChipSelect';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CalendarView } from '@/components/schedule/CalendarView';
-import { XPBar } from '@/components/XPBar';
-import { LevelGoalCard } from '@/components/LevelGoalCard';
-import { levelGoalApi } from '@/api/levelGoal';
 
 // Pazartesi'den başlayan görüntüleme sırası — day_of_week 0=Pazar..6=Cumartesi
 // (bkz. web/src/lib/scheduleTemplates.ts yorumu ve backend study_schedule şeması).
@@ -394,29 +391,19 @@ function ExamRemindersCard() {
 }
 
 export default function ScheduleScreen() {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const c = useThemeColors();
   const qc = useQueryClient();
 
-  // Kullanıcı isteği (3 Kasım 2026): "çalışma programımda ilerleme
-  // durumumu göremedim" -- Dashboard'daki Seviye/XP + "Hedefine Giden
-  // Yol" kartlarının AYNISI, bu ekranda da (Program) gösteriliyor.
-  // Veri çekme deseni Dashboard ile birebir aynı (bkz. dashboard.tsx).
-  const { data: levelGoal } = useQuery({
-    queryKey: ['level-goal'],
-    queryFn: levelGoalApi.get,
+  // Kullanıcı isteği (3 Kasım 2026): "burada sadece seçtiğim çalışma
+  // programımın ilerleme yüzde grafiğini görmeliyim" -- Seviye/XP ve
+  // Hedefine Giden Yol kartları Dashboard'da zaten var, burada SADECE bu
+  // ekranın kendi haftalık programının ilerleme yüzdesi gösteriliyor
+  // (bkz. backend schedule.py::get_schedule progress bloğu).
+  const { data: progress } = useQuery({
+    queryKey: ['schedule-progress'],
+    queryFn: scheduleApi.getProgress,
   });
-  const [settingLevelGoal, setSettingLevelGoal] = useState(false);
-  const handleSetLevelGoalTarget = (target: string) => {
-    setSettingLevelGoal(true);
-    levelGoalApi
-      .setTarget(target)
-      .then(() => qc.invalidateQueries({ queryKey: ['level-goal'] }))
-      .catch(() => {
-        /* sessizce yoksay -- kart eski durumda kalır, kullanıcı tekrar deneyebilir */
-      })
-      .finally(() => setSettingLevelGoal(false));
-  };
   const [modalOpen, setModalOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   // 15 Ekim 2026 kullanıcı isteği: mevcut gün listesine EK olarak
@@ -623,17 +610,34 @@ export default function ScheduleScreen() {
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Kullanıcı isteği (3 Kasım 2026): Seviye/XP + "Hedefine Giden
-            Yol" kartı -- Dashboard'daki ile AYNI, Seviye alanının hemen
-            altında. */}
-        <XPBar />
-        {!!levelGoal?.available && (
-          <LevelGoalCard
-            goal={levelGoal}
-            locale={locale}
-            settingTarget={settingLevelGoal}
-            onSetTarget={handleSetLevelGoalTarget}
-          />
+        {/* Kullanıcı isteği (3 Kasım 2026): "burada sadece seçtiğim çalışma
+            programımın ilerleme yüzde grafiğini görmeliyim" -- roadmap.tsx'teki
+            "Program İlerlemesi" kartıyla AYNI görsel dil, bu ekranın kendi
+            haftalık programı için. */}
+        {!!progress && progress.total_days > 0 && (
+          <Card style={{ marginBottom: spacing.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.text, fontWeight: '700', fontSize: 14 }}>Çalışma Programı İlerlemesi</Text>
+                <Text style={{ color: c.textMuted, fontSize: 11, marginTop: 2 }}>
+                  {progress.done_days}/{progress.total_days} gün tamamlandı
+                </Text>
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: progress.percent >= 100 ? c.success : c.primary }}>
+                %{progress.percent}
+              </Text>
+            </View>
+            <View style={{ marginTop: spacing.sm, height: 8, borderRadius: 999, backgroundColor: c.border, overflow: 'hidden' }}>
+              <View
+                style={{
+                  height: '100%',
+                  width: `${Math.min(100, progress.percent)}%`,
+                  borderRadius: 999,
+                  backgroundColor: progress.percent >= 100 ? c.success : c.primary,
+                }}
+              />
+            </View>
+          </Card>
         )}
 
         <ExamRemindersCard />

@@ -1,10 +1,16 @@
 import { api } from './client';
-import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ScheduleTemplateCreate, ScheduleMiss, RoadmapResponse, DayCompletion } from './types';
+import type { ScheduleCreate, ScheduleItem, ScheduleTemplate, ScheduleTemplateCreate, ScheduleMiss, RoadmapResponse, DayCompletion, ScheduleProgress } from './types';
 
 export const scheduleApi = {
   getAll: async (): Promise<ScheduleItem[]> => {
     const res = await api.get('/schedule');
     return res.data.items;
+  },
+  // Kullanıcı isteği (3 Kasım 2026): web/src/lib/api.ts::scheduleApi.getProgress
+  // ile AYNI.
+  getProgress: async (): Promise<ScheduleProgress> => {
+    const res = await api.get('/schedule');
+    return res.data.progress;
   },
   create: async (data: ScheduleCreate): Promise<ScheduleItem> => {
     const res = await api.post<ScheduleItem>('/schedule', data);

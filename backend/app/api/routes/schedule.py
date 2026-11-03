@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -364,6 +364,26 @@ async def get_schedule(current_user=Depends(get_current_user)):
     except Exception as e:
         print(f"GET_SCHEDULE program_start_date ERROR: {e}")
 
+    # BUG FIX (3 Kasim 2026, kullanici bildirimi -- "Takvimde onceki gunler
+    # hep kirmizi gozukuyor, onceki gunleri sifirla, bugunden itibaren
+    # basliyormus gibi ayarla"): program_start_date yukarida SADECE
+    # study_roadmap_weeks varsa doluyordu -- Program Haritasi'ni hic
+    # kullanmayan (bu kullanici dahil) herkes icin None kaliyordu, bu da
+    # hem liste gorunumundeki hem (CalendarView.tsx'teki, bu oturumda
+    # eklenen) "programdan once" kontrolunun devre disi kalmasina yol
+    # aciyordu -- sonuc: gecmiste, programin daha var bile olmadigi HER
+    # gun yanlislikla "Calisilmadi" (kirmizi) gosteriliyordu. Roadmap
+    # yoksa, kullanicinin SU AN AKTIF olan haftalik tekrarli sablonunun
+    # en erken olusturulma tarihini (study_schedule.created_at) "programin
+    # gercek baslangici" olarak kullaniyoruz -- bir sablon uygulandiginda
+    # (POST /schedule/templates/{id}/apply -> eski maddeler silinip
+    # yenileri olusturuluyor) bu otomatik olarak "bugun"e sifirlanmis
+    # olur, ayrica yeni bir alan/migration GEREKMEZ.
+    if program_start_date is None and items:
+        created_dates = [i["created_at"][:10] for i in items if i.get("created_at")]
+        if created_dates:
+            program_start_date = min(created_dates)
+
     for item in items:
         item["program_start_date"] = program_start_date
         roadmap_slot = _resolve_roadmap_slot(item.get("activity_key"), current_user.id)
@@ -395,7 +415,46 @@ async def get_schedule(current_user=Depends(get_current_user)):
             # kayıtlı sabit link_url'e düş (geriye dönük uyumluluk).
             item["resolved_link_url"] = item.get("link_url")
             item["resolved_resource_title"] = None
-    return {"items": items, "program_start_date": program_start_date}
+    # Kullanıcı isteği (3 Kasım 2026): "sadece seçtiğim çalışma programımın
+    # ilerleme yüzde grafiğini görmeliyim" -- bu haftalık tekrarlı programın
+    # GERÇEK başlangıcından (program_start_date, yukarıda hesaplandı) bugüne
+    # kadar, aktif günlerin (day_of_week'leri olan) kaçının "Yapıldı"
+    # işaretlendiğini yüzdesel olarak hesaplıyoruz -- Program Haritası'ndaki
+    # "Program İlerlemesi" ile AYNI fikir, ama roadmap yerine bu sayfanın
+    # kendi haftalık tekrarlı şablonu için.
+    progress = {"total_days": 0, "done_days": 0, "percent": 0}
+    if program_start_date and items:
+        active_dows = {i["day_of_week"] for i in items}
+        start_d = date.fromisoformat(program_start_date)
+        today_d = datetime.now(timezone.utc).date()
+        if active_dows and start_d <= today_d:
+            completion_rows = (
+                supabase_admin.table("schedule_day_completions")
+                .select("date, is_done")
+                .eq("user_id", current_user.id)
+                .gte("date", program_start_date)
+                .execute()
+            ).data or []
+            done_dates = {c["date"] for c in completion_rows if c.get("is_done")}
+            total_days = 0
+            done_days = 0
+            cursor = start_d
+            while cursor <= today_d:
+                # JS Date.getDay() ile ayni konvansiyon (0=Pazar..6=Cumartesi)
+                # -- bkz. web/mobil DAYS/day_of_week kullanimi.
+                js_dow = (cursor.weekday() + 1) % 7
+                if js_dow in active_dows:
+                    total_days += 1
+                    if cursor.isoformat() in done_dates:
+                        done_days += 1
+                cursor += timedelta(days=1)
+            progress = {
+                "total_days": total_days,
+                "done_days": done_days,
+                "percent": round(100 * done_days / total_days) if total_days else 0,
+            }
+
+    return {"items": items, "program_start_date": program_start_date, "progress": progress}
 
 @router.post("", status_code=201)
 async def create_schedule_item(item: ScheduleItem, current_user=Depends(get_current_user)):

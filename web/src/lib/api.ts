@@ -17,6 +17,7 @@ import type {
   Stats,
   DailyProgress,
   ScheduleItem,
+  ScheduleProgress,
   ScheduleCreate,
   ScheduleTemplate,
   ScheduleTemplateCreate,
@@ -668,6 +669,13 @@ export const scheduleApi = {
   getAll: async (): Promise<ScheduleItem[]> => {
     const res = await api.get('/schedule');
     return res.data.items;
+  },
+  // Kullanıcı isteği (3 Kasım 2026): "sadece seçtiğim çalışma programımın
+  // ilerleme yüzde grafiğini görmeliyim" -- getAll() yalnızca items'ı
+  // döndürdüğü için (geri uyumluluk) progress bloğu için ayrı bir metod.
+  getProgress: async (): Promise<ScheduleProgress> => {
+    const res = await api.get('/schedule');
+    return res.data.progress;
   },
   create: async (data: ScheduleCreate): Promise<ScheduleItem> => {
     const res = await api.post<ScheduleItem>('/schedule', data);
