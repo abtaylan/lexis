@@ -7,12 +7,14 @@ import {
   GraduationCap, Save, Star, User as UserIcon, Bell, CalendarClock, FileText, CalendarPlus,
   AlertTriangle, CheckCircle2,
 } from 'lucide-react';
-import { scheduleApi, examReminderApi } from '@/lib/api';
+import { scheduleApi, examReminderApi, levelGoalApi, type LevelGoal } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
 import { useAuth } from '@/store/auth';
 import { getErrorMessage } from '@/lib/errors';
 import { ScheduleExportModal } from '@/components/schedule/ScheduleExportModal';
 import { CalendarView } from '@/components/schedule/CalendarView';
+import { XPBar } from '@/components/layout/XPBar';
+import { LevelGoalCard } from '@/components/study/LevelGoalCard';
 import type { ScheduleItem, ScheduleCreate, ScheduleTemplate, ScheduleTemplateItem, ExamReminder, ScheduleMiss } from '@/types';
 
 // Haftanın günlerini index'lemek için (0=Pazar…6=Cumartesi) — weekdays[i]
@@ -675,7 +677,7 @@ function MissedThisWeekCard({ refreshToken }: { refreshToken: number }) {
 }
 
 export default function SchedulePage() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const { user } = useAuth();
   const weekdays = t('weekdayLabels').split(',');
   const [items, setItems] = useState<ScheduleItem[]>([]);
@@ -705,6 +707,22 @@ export default function SchedulePage() {
   };
   // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi
   useEffect(() => { load(); }, []);
+
+  // Kullanıcı isteği (3 Kasım 2026): "çalışma programımda ilerleme
+  // durumumu göremedim" -- Dashboard'daki Seviye/XP + "Hedefine Giden
+  // Yol" kartlarının AYNISI, bu sayfada da (Program) gösteriliyor.
+  // Veri çekme deseni Dashboard ile birebir aynı (bkz. dashboard/page.tsx).
+  const [levelGoal, setLevelGoal] = useState<LevelGoal | null>(null);
+  const [settingLevelGoal, setSettingLevelGoal] = useState(false);
+  const [showLevelGoalPicker, setShowLevelGoalPicker] = useState(false);
+  useEffect(() => {
+    levelGoalApi
+      .get()
+      .then(setLevelGoal)
+      .catch(() => {
+        /* soft-disable: hata durumunda kart gösterilmez */
+      });
+  }, []);
 
   const handleCreate = async (data: ScheduleCreate) => { await scheduleApi.create(data); load(); };
   const handleDelete = async (id: string) => {
@@ -833,6 +851,32 @@ export default function SchedulePage() {
           </button>
         </div>
       </div>
+
+      {/* Kullanıcı isteği (3 Kasım 2026): Seviye/XP + "Hedefine Giden Yol"
+          kartı -- Dashboard'daki ile AYNI, Seviye alanının hemen altında. */}
+      <XPBar />
+      {levelGoal?.available && (
+        <LevelGoalCard
+          goal={levelGoal}
+          locale={locale}
+          settingTarget={settingLevelGoal}
+          forceShowPicker={showLevelGoalPicker}
+          onRequestChangeTarget={() => setShowLevelGoalPicker(true)}
+          onSetTarget={(target) => {
+            setSettingLevelGoal(true);
+            levelGoalApi
+              .setTarget(target)
+              .then((updated) => {
+                setLevelGoal(updated);
+                setShowLevelGoalPicker(false);
+              })
+              .catch(() => {
+                /* sessizce yoksay -- kart eski durumda kalır, kullanıcı tekrar deneyebilir */
+              })
+              .finally(() => setSettingLevelGoal(false));
+          }}
+        />
+      )}
 
       <ExamRemindersCard />
       <MissedThisWeekCard refreshToken={missedRefresh} />

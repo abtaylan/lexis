@@ -24,6 +24,9 @@ import { Button } from '@/components/ui/Button';
 import { ChipSelect } from '@/components/ui/ChipSelect';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { CalendarView } from '@/components/schedule/CalendarView';
+import { XPBar } from '@/components/XPBar';
+import { LevelGoalCard } from '@/components/LevelGoalCard';
+import { levelGoalApi } from '@/api/levelGoal';
 
 // Pazartesi'den başlayan görüntüleme sırası — day_of_week 0=Pazar..6=Cumartesi
 // (bkz. web/src/lib/scheduleTemplates.ts yorumu ve backend study_schedule şeması).
@@ -391,9 +394,29 @@ function ExamRemindersCard() {
 }
 
 export default function ScheduleScreen() {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const c = useThemeColors();
   const qc = useQueryClient();
+
+  // Kullanıcı isteği (3 Kasım 2026): "çalışma programımda ilerleme
+  // durumumu göremedim" -- Dashboard'daki Seviye/XP + "Hedefine Giden
+  // Yol" kartlarının AYNISI, bu ekranda da (Program) gösteriliyor.
+  // Veri çekme deseni Dashboard ile birebir aynı (bkz. dashboard.tsx).
+  const { data: levelGoal } = useQuery({
+    queryKey: ['level-goal'],
+    queryFn: levelGoalApi.get,
+  });
+  const [settingLevelGoal, setSettingLevelGoal] = useState(false);
+  const handleSetLevelGoalTarget = (target: string) => {
+    setSettingLevelGoal(true);
+    levelGoalApi
+      .setTarget(target)
+      .then(() => qc.invalidateQueries({ queryKey: ['level-goal'] }))
+      .catch(() => {
+        /* sessizce yoksay -- kart eski durumda kalır, kullanıcı tekrar deneyebilir */
+      })
+      .finally(() => setSettingLevelGoal(false));
+  };
   const [modalOpen, setModalOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   // 15 Ekim 2026 kullanıcı isteği: mevcut gün listesine EK olarak
@@ -600,6 +623,19 @@ export default function ScheduleScreen() {
         refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
         showsVerticalScrollIndicator={false}
       >
+        {/* Kullanıcı isteği (3 Kasım 2026): Seviye/XP + "Hedefine Giden
+            Yol" kartı -- Dashboard'daki ile AYNI, Seviye alanının hemen
+            altında. */}
+        <XPBar />
+        {!!levelGoal?.available && (
+          <LevelGoalCard
+            goal={levelGoal}
+            locale={locale}
+            settingTarget={settingLevelGoal}
+            onSetTarget={handleSetLevelGoalTarget}
+          />
+        )}
+
         <ExamRemindersCard />
         <MissedThisWeekCard />
 
