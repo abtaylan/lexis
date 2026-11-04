@@ -141,7 +141,7 @@ emailInvalidError: 'Geçerli bir e-posta gir.', usernameMinError: 'En az 3 karak
 sameLangError: 'Öğrenmek istediğin dil ana dilinden farklı olmalı.',
 registerFailedGeneric: 'Kayıt başarısız. Bu e-posta zaten kullanılıyor olabilir.',
 createAccountBtn: 'Hesap Oluştur', haveAccountQuestion: 'Zaten hesabın var mı?', loginLinkText: 'Giriş yap', forgotPasswordLink: 'Şifremi unuttum?', sessionExpiredNotice: 'Oturumunuz sona ermiş görünüyor.', backToPageBtn: 'Kaldığınız sayfaya dön',
-typeNoun: 'İsim', typeVerb: 'Fiil', typeAdjective: 'Sıfat', typeAdverb: 'Zarf', typePhrasalVerb: 'Fiil (öbük)', typeIdiom: 'Deyim', typePhrase: 'İfade', typeOther: 'Diğer',
+typeNoun: 'İsim', typeVerb: 'Fiil', typeAdjective: 'Sıfat', typeAdverb: 'Zarf', typePhrasalVerb: 'Öbekli Fiil', typeIdiom: 'Deyim', typePhrase: 'İfade', typeOther: 'Diğer',
 statsLoadError: 'İstatistikler yüklenemedi.', statsPageTitle: 'İstatistikler', statsPageSubtitle: 'Öğrenme yolculuğun bir bakışta',
 noDataYet: 'Henüz veri yok', noDataYetSub: 'Kelime ekleyip çalışmaya başlayınca grafikler burada canlanacak.',
 longestStreak: 'En Uzun Seri', streakDaysAbbrTpl: '{n}g', statusDistribution: 'Durum Dağılımı', statusDistributionSub: 'Kelimelerin öğrenilme durumu',
