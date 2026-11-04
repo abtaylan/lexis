@@ -322,6 +322,34 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Kullanıcı geri bildirimi (4 Kasım 2026): "oyun puanım arttı ama Hedefine
+  // Giden Yol'da ilerleme görünmedi" -- kök neden bug değildi, backend
+  // hesaplaması doğruydu (canlıda doğrulandı); levelGoal SADECE sayfa ilk
+  // açıldığında bir kez çekiliyordu (useEffect([]) -- yukarıdaki blok), bu
+  // yüzden sekme uzun süre açık kalıp arka planda oyun oynanınca kart bayat
+  // kalıyordu. Artık sekme tekrar görünür/odaklı hale geldiğinde (kullanıcı
+  // başka bir sekmeden/sayfadan -- ya da mobil uygulamadan oyun oynayıp
+  // geri döndüğünde) levelGoal otomatik tazeleniyor.
+  useEffect(() => {
+    const refreshLevelGoal = () => {
+      levelGoalApi
+        .get()
+        .then(setLevelGoal)
+        .catch(() => {
+          /* soft-disable: hata durumunda mevcut kart verisi korunur */
+        });
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') refreshLevelGoal();
+    };
+    window.addEventListener('focus', refreshLevelGoal);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('focus', refreshLevelGoal);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('lexis_user');

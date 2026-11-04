@@ -274,10 +274,17 @@ export default function DashboardScreen() {
   // dönüşte bu ekran odağı tekrar kazandığında hiçbir şey bu veriyi tazelemiyordu.
   // useFocusEffect ile sekme her odaklandığında (geri dönüldüğünde) istatistikleri
   // yeniden çekiyoruz — artık uygulamayı kapatıp açmaya gerek kalmıyor.
+  // Kullanıcı geri bildirimi (4 Kasım 2026): "oyun puanım arttı ama Hedefine
+  // Giden Yol'da ilerleme görünmedi" -- kök neden bug değildi, backend
+  // hesaplaması doğruydu (canlıda doğrulandı); levelGoal React Query ile
+  // çekiliyor ama bu ekran odağa her geldiğinde yeniden doğrulanmıyordu
+  // (sadece hedef değiştirilince invalidate ediliyordu). Artık stats ile
+  // AYNI odaklanma anında level-goal de invalidate edilip tazeleniyor.
   useFocusEffect(
     useCallback(() => {
       refetch();
-    }, [refetch])
+      qc.invalidateQueries({ queryKey: ['level-goal'] });
+    }, [refetch, qc])
   );
 
   useEffect(() => {
