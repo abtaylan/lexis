@@ -80,7 +80,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Çalışma notlarına görsel eklemek için fotoğraflarına erişim izni gerekiyor."
+          "photosPermission": "Çalışma notlarına görsel eklemek için fotoğraflarına erişim izni gerekiyor.",
+          "cameraPermission": "Görsel Tara özelliğiyle bir metni fotoğraflayıp çevirmek için kameraya erişim izni gerekiyor."
         }
       ],
       "./plugins/withStripAudioBackgroundMode.js"

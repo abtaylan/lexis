@@ -8,7 +8,7 @@ import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
   Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award, FileBarChart2,
-  Building2, MessagesSquare, Route, NotebookPen,
+  Building2, MessagesSquare, Route, NotebookPen, ScanText,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { organizationsApi } from '@/lib/api';
@@ -136,6 +136,23 @@ const EXAM_PREP_LABEL: Record<Locale, string> = {
   ja: 'Sınav Hazırlık', pt: 'Sınav Hazırlık',
 };
 
+// Görsel Tara — premium özellik (10 Kasım 2026 kullanıcı isteği): bir
+// görseldeki metni okur, çevirir ve kelime listesi çıkarır (bkz.
+// app/(app)/image-scan/page.tsx, backend image_scan.py). Aynı yerel çeviri
+// deseni (STUDY_NOTES_LABEL ile aynı).
+const IMAGE_SCAN_LABEL: Record<Locale, string> = {
+  tr: 'Görsel Tara',
+  en: 'Scan Image',
+  ar: 'مسح الصورة',
+  ru: 'Сканировать изображение',
+  de: 'Bild scannen',
+  fr: 'Scanner une image',
+  es: 'Escanear imagen',
+  it: 'Scansiona immagine',
+  ja: '画像をスキャン',
+  pt: 'Escanear Imagem',
+};
+
 // Açık/koyu tema seçici etiketi — aynı yerel çeviri deseni (bkz. yukarısı).
 const THEME_LABEL: Record<Locale, string> = {
   tr: 'Tema',
@@ -196,6 +213,7 @@ export function Sidebar() {
     { href: '/schedule', label: t('schedule'), icon: CalendarDays },
     { href: '/roadmap', label: ROADMAP_LABEL[locale], icon: Route },
     { href: '/study-notes', label: STUDY_NOTES_LABEL[locale], icon: NotebookPen },
+    { href: '/image-scan', label: IMAGE_SCAN_LABEL[locale], icon: ScanText },
     // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası
     // mobildeki dashboard davranışıyla tutarlı: her zaman görünür, sayfanın
     // kendisi (exam-prep/page.tsx) uygun olmayan dil çiftleri için nazik bir

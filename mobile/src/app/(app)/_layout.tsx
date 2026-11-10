@@ -196,6 +196,10 @@ export default function AppTabsLayout() {
           kısayol grid'inden açılıyor (bkz. dashboard.tsx). */}
       <Tabs.Screen name="study-notes" options={{ href: null, headerShown: false }} />
       <Tabs.Screen name="study-notes-detail" options={{ href: null, headerShown: false }} />
+      {/* "Görsel Tara" — premium özellik (10 Kasım 2026 kullanıcı isteği) —
+          study-notes ile AYNI desen: kendi sekmesi yok, dashboard'daki
+          "Sosyal & Rekabet" kısayol grid'inden açılıyor (bkz. dashboard.tsx). */}
+      <Tabs.Screen name="image-scan" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

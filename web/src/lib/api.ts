@@ -122,6 +122,7 @@ import type {
   CustomLeagueInviteItem,
   CustomLeagueInvitesListResponse,
   ReferralsSummary,
+  ImageScanResult,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -2012,6 +2013,22 @@ export const roleplayApi = {
   },
   finishSession: async (sessionId: string): Promise<RoleplayFinishResponse> => {
     const res = await api.post<RoleplayFinishResponse>(`/roleplay/sessions/${sessionId}/finish`);
+    return res.data;
+  },
+};
+
+// ── Görsel Tara — premium özellik (10 Kasım 2026 kullanıcı isteği:
+// "bir resim çektiğimizde içindeki metni çözecek, hem metnin çevirisini
+// yapacak, hem de metindeki kelimeleri liste halinde yazacak") ──
+// Backend 403 döndürürse (premium değilse) çağıran taraf getErrorMessage
+// ile mesajı gösterip /premium'a yönlendirmeli.
+export const imageScanApi = {
+  scan: async (file: File): Promise<ImageScanResult> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await api.post<ImageScanResult>('/image-scan', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
     return res.data;
   },
 };

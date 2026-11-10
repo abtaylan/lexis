@@ -98,3 +98,33 @@ async def get_current_admin_full(current_user=Depends(get_current_user)):
             detail="Bu işlem için tam admin yetkisi gerekli (salt-okunur admin yetersiz)."
         )
     return current_user
+
+
+def _is_premium(user_id: str) -> bool:
+    profile = (
+        supabase_admin.table("profiles")
+        .select("is_premium")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    return bool((profile.data or {}).get("is_premium"))
+
+
+# 10 Kasım 2026 kullanıcı isteği — "Premium özellik olarak bu yazdığımı
+# sisteme ekleyelim" (görsel metin tarama/çeviri/kelime listesi özelliği).
+# is_premium'a göre bir app FEATURE'ını kilitleyen İLK dependency — şu ana
+# kadar is_premium sadece reklam gösterme/analitik için kullanılıyordu
+# (bkz. profiles.is_premium / subscriptions, migration 003_subscriptions.sql).
+# get_current_admin ile AYNI desen: get_current_user'ı sarmalayıp ek bir
+# yetki kontrolü ekliyor.
+async def get_current_premium_user(current_user=Depends(get_current_user)):
+    """Sadece premium (profiles.is_premium=true) kullanıcıları kabul eder.
+    Premium olmayan kullanıcı 403 alır — frontend bu durumda kullanıcıyı
+    /premium sayfasına yönlendirmeli."""
+    if not _is_premium(current_user.id):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu özellik premium üyelere özel."
+        )
+    return current_user

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2, MessagesSquare, NotebookPen } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2, MessagesSquare, NotebookPen, ScanText } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import type { Locale } from '@/i18n/locales';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
@@ -636,6 +636,19 @@ export default function DashboardScreen() {
               onPress={() => router.push('/(app)/study-notes')}
               bg={c.accentSoft}
               fg={c.accent}
+            />
+            {/* "Görsel Tara" — premium özellik (10 Kasım 2026 kullanıcı
+                isteği, Behçet): bir görseldeki metni okur, çevirir, kelime
+                listesi çıkarır. Çalışma Notlarım ile AYNI desen: kendi
+                sekmesi yok, buradan açılıyor (bkz. image-scan.tsx). Premium
+                kilidi ekranın kendisinde (is_premium=false ise upsell kartı
+                gösteriliyor) — tile'ın kendisi her zaman görünür. */}
+            <ActionTile
+              icon={ScanText}
+              label={locale === 'tr' ? 'Görsel Tara' : 'Scan Image'}
+              onPress={() => router.push('/(app)/image-scan')}
+              bg={c.warningSoft}
+              fg={c.warning}
             />
           </View>
         </View>

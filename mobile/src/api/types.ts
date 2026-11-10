@@ -1374,3 +1374,21 @@ export interface RoleplayFinishResponse {
   turn_count: number;
   xp_awarded: number;
 }
+
+// ── Görsel Tara — premium özellik (10 Kasım 2026 kullanıcı isteği) ──
+// Bir görseldeki metni okuyup çevirir + öğrenilmeye değer kelimeleri
+// çıkarır (bkz. backend image_scan.py / image_scan_service.py).
+export interface ScannedWord {
+  word: string;
+  meaning: string;
+  word_type?: string | null;
+  example?: string | null;
+}
+
+export interface ImageScanResult {
+  detected_text: string;
+  detected_lang?: string | null;
+  translation: string;
+  target_lang: string;
+  words: ScannedWord[];
+}

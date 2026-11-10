@@ -16,6 +16,7 @@ from app.api.routes import (
     exams,
     games,
     grammar,
+    image_scan,
     languages,
     leagues,
     level_goal,
@@ -102,6 +103,9 @@ app.include_router(roleplay.router, prefix="/api/v1/roleplay", tags=["Roleplay"]
 app.include_router(study_program.router, prefix="/api/v1/study-program", tags=["Study Program"])
 app.include_router(level_goal.router, prefix="/api/v1/me/level-goal", tags=["Level Goal"])
 app.include_router(study_notes.router, prefix="/api/v1/study-notes", tags=["Study Notes"])
+# Premium özellik (10 Kasım 2026 kullanıcı isteği) — görsel metin tarama:
+# OCR + çeviri + kelime listesi (bkz. image_scan.py modül docstring'i).
+app.include_router(image_scan.router, prefix="/api/v1/image-scan", tags=["Image Scan"])
 # Vercel Cron / GitHub Actions'tan secret-korumalı tetikleme — bkz. app/api/routes/cron.py
 app.include_router(cron.router, prefix="/internal/cron", tags=["Internal Cron"])
 
