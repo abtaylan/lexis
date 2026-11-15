@@ -1,5 +1,5 @@
 import secrets
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from typing import Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -426,7 +426,7 @@ async def get_schedule(current_user=Depends(get_current_user)):
     if program_start_date and items:
         active_dows = {i["day_of_week"] for i in items}
         start_d = date.fromisoformat(program_start_date)
-        today_d = datetime.now(timezone.utc).date()
+        today_d = datetime.now(UTC).date()
         if active_dows and start_d <= today_d:
             completion_rows = (
                 supabase_admin.table("schedule_day_completions")
@@ -692,7 +692,7 @@ async def list_missed(current_user=Depends(get_current_user)):
 async def resolve_missed(miss_id: str, current_user=Depends(get_current_user)):
     result = (
         supabase_admin.table("schedule_misses")
-        .update({"resolved_at": datetime.now(timezone.utc).isoformat()})
+        .update({"resolved_at": datetime.now(UTC).isoformat()})
         .eq("id", miss_id)
         .eq("user_id", current_user.id)
         .execute()
@@ -720,7 +720,7 @@ async def set_day_completion(data: DayCompletionRequest, current_user=Depends(ge
         "user_id": current_user.id,
         "date": data.date,
         "is_done": data.is_done,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
     }
     result = (
         supabase_admin.table("schedule_day_completions")
@@ -789,7 +789,7 @@ def _get_or_create_calendar_token(user_id: str) -> str:
 def _build_ics(items: list[dict], tz_name: str | None) -> str:
     tz = _cal_safe_zone(tz_name)
     today_local = datetime.now(tz).date()
-    now_utc = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    now_utc = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     tzid = tz_name or _CAL_DEFAULT_TIMEZONE
 
     lines = [

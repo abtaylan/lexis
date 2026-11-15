@@ -42,7 +42,7 @@ anlaşılır.
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
 from app.core.database import supabase_admin
@@ -63,7 +63,7 @@ def _pct_change(current: float, previous: float) -> float | None:
 def _period_bounds(period: Period) -> tuple[datetime, datetime, datetime]:
     """(previous_start, current_start, now) — current dönem [current_start, now),
     previous dönem [previous_start, current_start)."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     days = 30 if period == "month" else 7
     current_start = now - timedelta(days=days)
     previous_start = now - timedelta(days=2 * days)
@@ -510,7 +510,7 @@ async def get_user_growth_report(
     gosterir, geriye donuk bir yuzdelik dilim hesaplanmaz (o veri
     saklanmiyor).
     """
-    end = end or datetime.now(timezone.utc)
+    end = end or datetime.now(UTC)
     profile = _get_profile(user_id)
     active_lang = profile.get("learning_lang", "en")
     start_iso = start.isoformat()

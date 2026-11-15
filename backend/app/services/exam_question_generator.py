@@ -449,7 +449,7 @@ def _fetch_grammar_context(learning_lang: str, limit: int = 40) -> str:
             .limit(limit)
             .execute()
         )
-    except Exception as exc:  # noqa: BLE001 -- baglam opsiyonel, sorgu basarisiz olursa sessizce atla
+    except Exception as exc:
         print(f"_fetch_grammar_context warning: {type(exc).__name__}: {exc}")
         return ""
 

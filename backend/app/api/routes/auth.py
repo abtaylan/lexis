@@ -7,16 +7,16 @@ from pydantic import BaseModel, EmailStr
 from supabase import create_client
 from supabase.lib.client_options import ClientOptions
 
-from app.core.auth import get_current_user
-from app.core.config import settings
-from app.core.database import supabase_admin
-from app.services import learning_languages, login_events_service, otp_service
-from app.services.auth_users import list_all_auth_users
 from app.api.routes.study_notes import (
     STUDY_DAY_VIDEO_BUCKET,
     STUDY_NOTES_IMAGE_BUCKET,
     _extract_storage_path,
 )
+from app.core.auth import get_current_user
+from app.core.config import settings
+from app.core.database import supabase_admin
+from app.services import learning_languages, login_events_service, otp_service
+from app.services.auth_users import list_all_auth_users
 
 router = APIRouter()
 
@@ -569,8 +569,8 @@ async def forgot_password(req: ForgotPasswordRequest):
         except Exception as e:
             print(f"FORGOT_PASSWORD lookup error (attempt {attempt + 1}/2): {e}")
             if attempt == 0:
-                import time as _time
-                _time.sleep(0.6)
+                import asyncio as _asyncio
+                await _asyncio.sleep(0.6)
 
     if user is not None:
         try:

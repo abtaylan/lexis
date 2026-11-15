@@ -45,7 +45,7 @@ Bkz. migration 087_study_notes.sql, 088_study_notes_images.sql,
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -330,7 +330,7 @@ async def upsert_study_note(data: StudyNoteUpsert, current_user=Depends(get_curr
         "topic_slug": data.topic_slug,
         "topic_title": (data.topic_title or "").strip()[:200] or None,
         "content": data.content,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
     }
     try:
         result = (
@@ -407,7 +407,7 @@ async def upload_study_note_images(
         "content": (existing_row.get("content") if existing_row else None) or "",
         "topic_title": existing_row.get("topic_title") if existing_row else None,
         "image_urls": merged_images,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
     }
     try:
         result = (
@@ -452,7 +452,7 @@ async def delete_study_note_image(
 
     result = (
         supabase_admin.table("study_notes")
-        .update({"image_urls": remaining, "updated_at": datetime.now(timezone.utc).isoformat()})
+        .update({"image_urls": remaining, "updated_at": datetime.now(UTC).isoformat()})
         .eq("user_id", current_user.id)
         .eq("date", date)
         .eq("source", source)
@@ -511,7 +511,7 @@ async def upload_study_day_video(
         "user_id": current_user.id,
         "date": date,
         "video_url": video_url,
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
     }
     try:
         result = (

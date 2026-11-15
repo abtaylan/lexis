@@ -14,7 +14,7 @@ Premium kullanicilar reklam gormedigi icin bu ucu kullanmaz; yine de
 cagirirlarsa reddedilmez (zararsiz), ayni sinirlar uygulanir.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -35,7 +35,7 @@ async def reward_status(current_user=Depends(get_current_user)):
 
 
 def _today_events(user_id: str):
-    start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    start = datetime.now(UTC).replace(hour=0, minute=0, second=0, microsecond=0)
     return (
         supabase_admin.table("xp_events")
         .select("created_at")
@@ -59,8 +59,8 @@ async def claim_reward(current_user=Depends(get_current_user)):
     if len(events) >= DAILY_LIMIT:
         raise HTTPException(status_code=429, detail="Daily ad reward limit reached")
     if events:
-        last = datetime.fromisoformat(events[0]["created_at"].replace("Z", "+00:00"))
-        if datetime.now(timezone.utc) - last < timedelta(seconds=MIN_INTERVAL_SECONDS):
+        last = datetime.fromisoformat(events[0]["created_at"])
+        if datetime.now(UTC) - last < timedelta(seconds=MIN_INTERVAL_SECONDS):
             raise HTTPException(status_code=429, detail="Too many requests")
     result = await award_xp(user_id=current_user.id, source_type="ad_reward")
     return {

@@ -27,7 +27,7 @@ admin API çağrısına geçilmeli (bkz. Supabase GoTrue admin API'sinin daha
 yeni sürümlerinde email filtresi olabilir, kontrol edilmedi).
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
@@ -48,9 +48,13 @@ from app.schemas.organizations import (
     OrganizationMembersResponse,
 )
 from app.services.auth_users import list_all_auth_users
-from app.services.organization_report_service import get_organization_report
-from app.services.report_export_service import build_org_report_document, render, SUPPORTED_FORMATS
 from app.services.email_service import send_report_export_email
+from app.services.organization_report_service import get_organization_report
+from app.services.report_export_service import (
+    SUPPORTED_FORMATS,
+    build_org_report_document,
+    render,
+)
 
 router = APIRouter()
 
@@ -95,8 +99,8 @@ def _is_expired(expires_at_raw: str | None) -> bool:
     tekrar hesaplanmıyor (React purity kuralı, bkz. [orgId]/page.tsx)."""
     if not expires_at_raw:
         return False
-    expires_at = datetime.fromisoformat(str(expires_at_raw).replace("Z", "+00:00"))
-    return expires_at < datetime.now(timezone.utc)
+    expires_at = datetime.fromisoformat(str(expires_at_raw))
+    return expires_at < datetime.now(UTC)
 
 
 @router.post("", response_model=OrganizationItem, status_code=201)
@@ -531,7 +535,7 @@ async def set_report_consent(
     current_user=Depends(get_current_user),
 ):
     _get_membership_or_403(org_id, current_user.id)  # üye mi kontrolü — rol şartı yok, herkes kendi onayını yönetir
-    new_value = datetime.now(timezone.utc).isoformat() if body.consent else None
+    new_value = datetime.now(UTC).isoformat() if body.consent else None
     result = (
         supabase_admin.table("organization_members")
         .update({"report_consent_at": new_value})
@@ -588,7 +592,7 @@ async def export_organization_report_route(
         .execute()
     ).data or {}
     lang = profile.get("native_lang") or "tr"
-    generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+    generated_at = (datetime.now(UTC) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
     doc = build_org_report_document(report, generated_at=generated_at, lang=lang)
     body, media_type = render(doc, format, lang=lang)
     filename = f"lexis-kurum-rapor-{period}.{format}"
@@ -626,7 +630,7 @@ async def send_organization_report_email_route(
         .execute()
     ).data or {}
     lang = profile.get("native_lang") or "tr"
-    generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+    generated_at = (datetime.now(UTC) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
     doc = build_org_report_document(report, generated_at=generated_at, lang=lang)
     body, media_type = render(doc, format, lang=lang)
     filename = f"lexis-kurum-rapor-{period}.{format}"

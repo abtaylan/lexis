@@ -68,6 +68,7 @@ from openpyxl.styles import Font as XlsxFont
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -78,7 +79,6 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
-from reportlab.lib.styles import ParagraphStyle
 
 _FONTS_DIR = Path(__file__).resolve().parent.parent / "assets" / "fonts"
 _FONT_REGISTERED = False
@@ -647,11 +647,11 @@ def _get_labels(lang: str) -> dict[str, str]:
     return _L.get(lang, _L["en"])
 
 
-def _fmt_num(value: int | float | None, suffix: str = "") -> str:
+def _fmt_num(value: float | None, suffix: str = "") -> str:
     return "—" if value is None else f"{value}{suffix}"
 
 
-def _fmt_change(value: int | float | None, new_label: str) -> str:
+def _fmt_change(value: float | None, new_label: str) -> str:
     if value is None:
         return new_label
     sign = "+" if value >= 0 else ""

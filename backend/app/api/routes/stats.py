@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
@@ -7,10 +7,14 @@ from fastapi.responses import Response
 from app.core.auth import get_current_user
 from app.core.database import supabase_admin
 from app.services.badge_service import get_badges_catalog, get_user_badges
-from app.services.leaderboard_service import get_leaderboard
-from app.services.user_report_service import get_user_growth_report, get_user_report
-from app.services.report_export_service import build_user_report_document, render, SUPPORTED_FORMATS
 from app.services.email_service import send_report_export_email
+from app.services.leaderboard_service import get_leaderboard
+from app.services.report_export_service import (
+    SUPPORTED_FORMATS,
+    build_user_report_document,
+    render,
+)
+from app.services.user_report_service import get_user_growth_report, get_user_report
 from app.services.xp_service import get_xp_summary
 
 router = APIRouter()
@@ -180,9 +184,9 @@ async def get_user_growth_report_route(
             dt = datetime.fromisoformat(value)
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Geçersiz {field} tarihi.")
-        return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
+        return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
-    end_dt = _parse(end, "end") or datetime.now(timezone.utc)
+    end_dt = _parse(end, "end") or datetime.now(UTC)
     start_dt = _parse(start, "start")
     if start_dt is None:
         profile = (
@@ -221,7 +225,7 @@ async def export_user_report_route(
     ).data or {}
     username = profile.get("username") or current_user.email or "Kullanıcı"
     lang = profile.get("native_lang") or "tr"
-    generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+    generated_at = (datetime.now(UTC) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
 
     doc = build_user_report_document(report, username=username, generated_at=generated_at, lang=lang)
     body, media_type = render(doc, format, lang=lang)
@@ -258,7 +262,7 @@ async def send_user_report_email_route(
     ).data or {}
     username = profile.get("username") or current_user.email or "Kullanıcı"
     lang = profile.get("native_lang") or "tr"
-    generated_at = (datetime.now(timezone.utc) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
+    generated_at = (datetime.now(UTC) + timedelta(hours=3)).strftime("%d.%m.%Y %H:%M")
 
     doc = build_user_report_document(report, username=username, generated_at=generated_at, lang=lang)
     body, media_type = render(doc, format, lang=lang)

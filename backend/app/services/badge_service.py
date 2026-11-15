@@ -156,6 +156,6 @@ def _earned_at_sort_key(earned_at: str | None) -> float:
     try:
         from datetime import datetime
 
-        return datetime.fromisoformat(earned_at.replace("Z", "+00:00")).timestamp()
+        return datetime.fromisoformat(earned_at).timestamp()
     except ValueError:
         return 0

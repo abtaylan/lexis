@@ -71,9 +71,17 @@ from app.services.content_flag_service import (
     scan_content_flags,
     update_content_flag,
 )
-from app.services.platform_snapshot_service import capture_daily_snapshot, get_snapshot_benchmark, get_snapshots
-from app.services.report_export_service import build_platform_snapshots_document, render, SUPPORTED_FORMATS
 from app.services.organization_report_service import get_organization_report
+from app.services.platform_snapshot_service import (
+    capture_daily_snapshot,
+    get_snapshot_benchmark,
+    get_snapshots,
+)
+from app.services.report_export_service import (
+    SUPPORTED_FORMATS,
+    build_platform_snapshots_document,
+    render,
+)
 from app.services.subscription_segment_service import get_subscription_segments
 from app.services.user_report_service import get_user_growth_report, get_user_report
 

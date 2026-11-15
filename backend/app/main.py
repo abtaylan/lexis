@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import (
     admin,
     admin_platform,
+    ads,
     auth,
     cron,
     custom_leagues,
@@ -25,7 +26,6 @@ from app.api.routes import (
     push_tokens,
     quests,
     referrals,
-    ads,
     roleplay,
     schedule,
     social,

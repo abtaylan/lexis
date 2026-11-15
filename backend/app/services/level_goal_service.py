@@ -43,10 +43,10 @@ from typing import Any
 from app.core.database import supabase_admin
 from app.services import study_program_service as sps
 from app.services.level_assessment_service import (
+    LEVEL_TO_BAND,
     REASSESS_WINDOW_DAYS,
     ROLLING_WINDOW_ATTEMPTS,
     UPGRADE_ACCURACY_THRESHOLD,
-    LEVEL_TO_BAND,
     _band_accuracy,
 )
 
