@@ -72,7 +72,7 @@ export default function AppTabsLayout() {
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as
-        | { type?: string; duelId?: string }
+        | { type?: string; duelId?: string; route?: string }
         | undefined;
       if (data?.type === 'duel_invite') {
         // Davet edilen kisi: bekleyen davetler listesi Düello ekraninda.
@@ -81,6 +81,12 @@ export default function AppTabsLayout() {
         // Daveti gonderen kisi: arkadasi kabul etti, oda hazir -- direkt
         // odaya gotur.
         router.push({ pathname: '/(app)/duel-room', params: { id: data.duelId } });
+      } else if (data?.type === 'feature_announcement' && data.route) {
+        // Genel ozellik duyurusu bildirimi (10 Kasim 2026, "Gorsel Tara"
+        // duyurusuyla eklendi) -- backend'in gonderdigi data.route'a
+        // dogrudan yonlendiriyor, ilerideki her yeni duyuru icin tekrar
+        // kullanilabilir (bkz. send_feature_image_scan_notification.py).
+        router.push(data.route as Parameters<typeof router.push>[0]);
       }
     });
     return () => sub.remove();

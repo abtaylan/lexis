@@ -1,0 +1,27 @@
+name: Lexis - Gorsel Tara ozellik duyurusu (tek seferlik)
+
+# BILINCLI OLARAK otomatik (push/schedule) DEGIL -- tum kullanicilara tek
+# seferlik bir "Gorsel Tara" (premium, OCR+ceviri+kelime listesi) ozellik
+# duyurusu push'u, iOS/Android 1.0.4 (build 25/18) surumu magaza
+# incelemesinden gecip CANLIYA CIKINCA elle (workflow_dispatch) tetiklenir.
+# Erken tetiklenirse bildirime dokunan kullanicilar henuz guncellemedigi
+# bir surumde olmayan bir ekrana yonlendirilebilir (bkz. script docstring'i).
+on:
+  workflow_dispatch: {}
+
+jobs:
+  trigger-feature-image-scan-notification:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /internal/cron/send-feature-image-scan-notification
+        run: |
+          set -e
+          http_code=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -X POST "${{ secrets.LEXIS_BACKEND_URL }}/internal/cron/send-feature-image-scan-notification" \
+            -H "X-Cron-Secret: ${{ secrets.LEXIS_CRON_SECRET }}")
+          echo "HTTP $http_code"
+          cat /tmp/response.json
+          if [ "$http_code" -ge 300 ]; then
+            echo "Istek basarisiz (HTTP $http_code)"
+            exit 1
+          fi

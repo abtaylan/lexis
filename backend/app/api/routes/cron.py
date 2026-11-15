@@ -301,6 +301,30 @@ async def run_weekly_weak_categories_email(
     return {"status": "ok", "result": result}
 
 
+# Kullanici istegi (10 Kasim 2026) -- "Gorsel Tara" premium ozelligi mobilde
+# (App Store/Play Console) yayina girdiginde TUM kayitli push token'lara
+# (platform filtresi YOK) tek seferlik ozellik duyurusu. send_app_reopen_
+# notification.py ile AYNI desen -- GitHub Actions'tan workflow_dispatch ile
+# SADECE elle tetiklenir, already_ran_today korumasi YOK. Script: backend/
+# send_feature_image_scan_notification.py.
+@router.post("/send-feature-image-scan-notification")
+async def run_send_feature_image_scan_notification(
+    x_cron_secret: str | None = Header(default=None, alias="X-Cron-Secret"),
+):
+    _check_secret(x_cron_secret)
+
+    def _run() -> dict:
+        import send_feature_image_scan_notification
+
+        with job_run("send_feature_image_scan_notification") as run:
+            result = send_feature_image_scan_notification.main()
+            run.detail = result
+        return result
+
+    result = await run_in_threadpool(_run)
+    return {"status": "ok", "result": result}
+
+
 # Kullanici istegi (18 Eylul 2026) -- iOS App Store'da 1.0.2 (acilis cokmesi
 # duzeltmesi) yayina girdiginde tum kayitli iOS push token'larina tek seferlik
 # "yeni surum yayinda, hemen guncelleyin" bildirimi. Yukaridaki job'larla ayni
