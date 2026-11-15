@@ -29,6 +29,33 @@ import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 
+// Telefon kamerasiyla cekilen fotograflar (ozellikle bir kitap/metin sayfasi gibi
+// genis kadrajlar) ImagePicker'in quality:0.8 ayarina ragmen kolayca 6-15MB'a
+// cikabiliyor ve backend'in 5MB sinirina takiliyordu (bkz. kullanici raporu,
+// 16 Kasim 2026 -- "Gorsel 5MB sinirini asiyor" hatasi, Ekle degil TARAMA
+// adiminda). Metin okumak icin 1600px genislik fazlasiyla yeterli oldugundan,
+// taramaya gondermeden once burada hem boyut hem sikistirma uygulaniyor.
+async function compressImageForScan(a: {
+  uri: string;
+  mimeType?: string;
+  width?: number;
+}): Promise<{ uri: string; type: string }> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- bkz. ImagePicker lazy require deseni
+    const ImageManipulator = require('expo-image-manipulator');
+    const actions = a.width && a.width > 1600 ? [{ resize: { width: 1600 } }] : [];
+    const result = await ImageManipulator.manipulateAsync(a.uri, actions, {
+      compress: 0.6,
+      format: ImageManipulator.SaveFormat.JPEG,
+    });
+    return { uri: result.uri, type: 'image/jpeg' };
+  } catch {
+    // Manipulator yuklenemezse/basarisiz olursa orijinal gorseli oldugu gibi
+    // gonder -- backend zaten 5MB ustunu reddedip net bir mesaj gosteriyor.
+    return { uri: a.uri, type: a.mimeType || 'image/jpeg' };
+  }
+}
+
 async function pickFromCamera(): Promise<PickedScanImage | null> {
   let ImagePicker: typeof import('expo-image-picker');
   try {
@@ -46,7 +73,8 @@ async function pickFromCamera(): Promise<PickedScanImage | null> {
   const result = await ImagePicker.launchCameraAsync({ quality: 0.8 });
   if (result.canceled || !result.assets?.length) return null;
   const a = result.assets[0];
-  return { uri: a.uri, name: a.fileName || 'tarama.jpg', type: a.mimeType || 'image/jpeg' };
+  const { uri, type } = await compressImageForScan(a);
+  return { uri, name: a.fileName || 'tarama.jpg', type };
 }
 
 async function pickFromGallery(): Promise<PickedScanImage | null> {
@@ -66,7 +94,8 @@ async function pickFromGallery(): Promise<PickedScanImage | null> {
   const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
   if (result.canceled || !result.assets?.length) return null;
   const a = result.assets[0];
-  return { uri: a.uri, name: a.fileName || 'tarama.jpg', type: a.mimeType || 'image/jpeg' };
+  const { uri, type } = await compressImageForScan(a);
+  return { uri, name: a.fileName || 'tarama.jpg', type };
 }
 
 function WordRow({ item }: { item: ScannedWord }) {
