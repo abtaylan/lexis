@@ -9,6 +9,7 @@ from app.api.routes import (
     ads,
     auth,
     cron,
+    crossword,
     custom_leagues,
     daily_challenge,
     dictionary,
@@ -73,6 +74,7 @@ app.include_router(admin.router, prefix="/api/v1/admin", tags=["Admin"])
 app.include_router(admin_platform.router, prefix="/api/v1/admin", tags=["Admin Platform"])
 app.include_router(languages.router, prefix="/api/v1/languages", tags=["Languages"])
 app.include_router(games.router, prefix="/api/v1/games", tags=["Games"])
+app.include_router(crossword.router, prefix="/api/v1/crossword", tags=["Crossword"])
 app.include_router(
     daily_challenge.router, prefix="/api/v1/daily-challenge", tags=["Daily Challenge"]
 )

@@ -91,6 +91,15 @@ XPSourceType = Literal[
     "roleplay_session",
     # Odullu reklam (13 Ekim 2026) -- api/routes/ads.py.
     "ad_reward",
+    # Cengel Bulmaca (18 Kasim 2026, kullanici istegi) -- crossword_service.py
+    # / api/routes/crossword.py'den cagrilir. "_word": bulmacadaki bir kelime
+    # ilk kez dogru tamamlaninca (puzzle_id+word_id basina TEK SEFER,
+    # user_crossword_sessions.solved_word_ids ile korunur). "_complete": TUM
+    # bulmaca bitince EK bonus -- miktar her zaman tier'a gore acikca
+    # gecilir (exam_mock_complete/streak_milestone emsaliyle ayni, asagidaki
+    # deger sadece eksik-amount savunmasi).
+    "game_crossword_word",
+    "game_crossword_complete",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -178,6 +187,13 @@ XP_AMOUNTS: dict[str, int] = {
     "roleplay_session": 20,
     # Odullu reklam izleme bonusu -- kucuk (gunde en fazla 5 kez, bkz. ads.py).
     "ad_reward": 10,
+    # Cengel Bulmaca -- game_typing (8) ile ayni serbest-yazma mekanigi ama
+    # kesisen harfler zaten dolu geldigi icin biraz daha kolay; game_matching
+    # (6) ile ayni bantta tutuldu. "_complete" burada sadece varsayilan --
+    # gercek miktar her zaman tier'a gore crossword_service.py'de hesaplanip
+    # acikca gecilir (bkz. yukaridaki Literal yorum notu).
+    "game_crossword_word": 6,
+    "game_crossword_complete": 20,
 }
 
 LEVEL_BASE = 50
