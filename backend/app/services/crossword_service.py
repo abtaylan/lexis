@@ -52,8 +52,15 @@ def tier_for_level(level: int) -> TierInfo:
     for upper, band, name, bonus, completion_xp in _TIER_TABLE:
         if level <= upper:
             word_count = min(5 + (level - 1) // 25 + bonus, 18)
-            grid_width = min(word_count + 4, 14)
-            grid_height = min(word_count + 6, 16)
+            # Grid 4/6 yerine 6/9 pay birakiyor -- 18 Kasim 2026 _fits()
+            # sikilastirmasi (bitisiklik kontrolu) daha az kesisim kabul
+            # ediyor, bu da izole-satir yedegine daha sik dusulmesine yol
+            # aciyordu; daha genis grid bu yedegin basarisizlik oranini
+            # (hucre tukenmesiyle kelimenin sessizce atlanmasi) belirgin
+            # dusuruyor (bkz. /tmp/test_crossword_fits.py simulasyonu:
+            # 5 kelimelik en kucuk kademede TAM yerlesim orani ~58%->~84%).
+            grid_width = min(word_count + 6, 16)
+            grid_height = min(word_count + 9, 19)
             return TierInfo(name, band, word_count, grid_width, grid_height, completion_xp)
     raise AssertionError("unreachable")
 
@@ -106,14 +113,45 @@ class _Grid:
         self._next_isolated_row = 0
 
     def _fits(self, word: str, row: int, col: int, direction: str) -> bool:
+        """Harf celismesinin yani sira -- KULLANICI GERI BILDIRIMI (18 Kasim
+        2026): "Mutlu kelimesinin karsiligi HAPPY ama ustteki satirda R
+        harfi vardi, mantiken yanlis oluyor" -- iki kural daha kontrol eder:
+        (1) kelimenin hemen oncesi/sonrasi (kendi yonunde) bos olmali, baska
+        bir kelimeye bitisik baslamasin/bitmesin; (2) kelimenin KESISIM
+        OLMAYAN her hucresinde, dik komsu hucreler de bos olmali -- aksi
+        halde alakasiz iki kelime yan yana/ust uste "bitisik" gorunur (ortak
+        harfli GERCEK bir kesisim degil, sadece tesaduf). Eskiden sadece
+        "ayni hucrede FARKLI harf var mi" kontrol ediliyordu, bu da iki
+        kelimenin hic kesismeden teget gecmesine izin veriyordu."""
+        n = len(word)
+        before = (row - 1, col) if direction == "down" else (row, col - 1)
+        after = (row + n, col) if direction == "down" else (row, col + n)
+        if self.cells.get(before) is not None:
+            return False
+        if self.cells.get(after) is not None:
+            return False
         for i, ch in enumerate(word):
             r = row + (i if direction == "down" else 0)
             c = col + (i if direction == "across" else 0)
             if r < 0 or c < 0 or r >= self.max_height or c >= self.max_width:
                 return False
             existing = self.cells.get((r, c))
-            if existing is not None and existing != ch:
-                return False
+            if existing is not None:
+                if existing != ch:
+                    return False
+                # Gercek kesisim hucresi -- dik komsu kontrolu burada
+                # ISTENEREK atlanir (kesisen diger kelime zaten bu hucreden
+                # dik yonde geciyor, bu beklenen/istenen durum).
+                continue
+            # Bos hucre: bu, baska bir kelimeyle GERCEK bir kesisim degil --
+            # o zaman dik komsulari da bos olmali, yoksa alakasiz bir
+            # kelimenin hucresine sessizce bitisik yerlesmis oluruz.
+            if direction == "across":
+                if self.cells.get((r - 1, c)) is not None or self.cells.get((r + 1, c)) is not None:
+                    return False
+            else:
+                if self.cells.get((r, c - 1)) is not None or self.cells.get((r, c + 1)) is not None:
+                    return False
         return True
 
     def _commit(self, word_row: dict, row: int, col: int, direction: str, answer: str):
