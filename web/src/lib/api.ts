@@ -123,6 +123,9 @@ import type {
   CustomLeagueInvitesListResponse,
   ReferralsSummary,
   ImageScanResult,
+  CrosswordLevelsResponse,
+  CrosswordLevelResponse,
+  CrosswordAttemptResult,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -2029,6 +2032,23 @@ export const imageScanApi = {
     const res = await api.post<ImageScanResult>('/image-scan', form, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
+    return res.data;
+  },
+};
+
+// ── Çengel Bulmaca (crossword) — 18 Kasım 2026 kullanıcı isteği ──
+// mobile/src/api/crossword.ts ile AYNI desen.
+export const crosswordApi = {
+  levels: async (): Promise<CrosswordLevelsResponse> => {
+    const res = await api.get<CrosswordLevelsResponse>('/crossword/levels');
+    return res.data;
+  },
+  level: async (level: number): Promise<CrosswordLevelResponse> => {
+    const res = await api.get<CrosswordLevelResponse>(`/crossword/levels/${level}`);
+    return res.data;
+  },
+  attemptWord: async (level: number, wordId: string, answer: string): Promise<CrosswordAttemptResult> => {
+    const res = await api.post<CrosswordAttemptResult>(`/crossword/levels/${level}/words/${wordId}/attempt`, { answer });
     return res.data;
   },
 };

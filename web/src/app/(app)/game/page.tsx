@@ -26,6 +26,7 @@ import {
   PencilLine,
   Scale,
   Link2,
+  Grid3x3,
 } from 'lucide-react';
 import {
   gamesApi,
@@ -127,6 +128,8 @@ type Strings = {
   modeTrueFalseDesc: string;
   modeChainLabel: string;
   modeChainDesc: string;
+  modeCrosswordLabel: string;
+  modeCrosswordDesc: string;
   fillBlankPromptLabel: string;
   chainPromptLabel: string;
   chainPrevWordTpl: string;
@@ -234,6 +237,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: 'Kelime ve anlam eşleşmesi doğru mu, çabuk karar ver',
     modeChainLabel: 'Kelime Zinciri',
     modeChainDesc: 'Önceki kelimenin son harfiyle başlayan kelimeyi yaz',
+    modeCrosswordLabel: 'Çengel Bulmaca',
+    modeCrosswordDesc: 'İpuçlarına bakarak bulmacayı tamamla',
     fillBlankPromptLabel: 'Boşluğu doldur',
     chainPromptLabel: 'Bu anlama gelen kelimeyi yaz',
     chainPrevWordTpl: 'Önceki kelime: {word} (son harf: {letter})',
@@ -335,6 +340,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: 'Decide quickly whether the word-meaning match is correct',
     modeChainLabel: 'Word Chain',
     modeChainDesc: "Type a word starting with the previous word's last letter",
+    modeCrosswordLabel: 'Hook Crossword',
+    modeCrosswordDesc: 'Solve the puzzle using the clues',
     fillBlankPromptLabel: 'Fill in the blank',
     chainPromptLabel: 'Type the word that matches this meaning',
     chainPrevWordTpl: 'Previous word: {word} (last letter: {letter})',
@@ -436,6 +443,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: 'قرر بسرعة إن كانت مطابقة الكلمة والمعنى صحيحة',
     modeChainLabel: 'سلسلة الكلمات',
     modeChainDesc: 'اكتب كلمة تبدأ بآخر حرف من الكلمة السابقة',
+    modeCrosswordLabel: 'الكلمات المتقاطعة',
+    modeCrosswordDesc: 'أكمل الكلمات المتقاطعة باستخدام الأدلة',
     fillBlankPromptLabel: 'أكمل الفراغ',
     chainPromptLabel: 'اكتب الكلمة التي تطابق هذا المعنى',
     chainPrevWordTpl: 'الكلمة السابقة: {word} (آخر حرف: {letter})',
@@ -537,6 +546,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: 'Быстро реши, верно ли соответствие слова и значения',
     modeChainLabel: 'Цепочка слов',
     modeChainDesc: 'Напиши слово, начинающееся на последнюю букву предыдущего',
+    modeCrosswordLabel: 'Кроссворд',
+    modeCrosswordDesc: 'Реши кроссворд, используя подсказки',
     fillBlankPromptLabel: 'Заполни пропуск',
     chainPromptLabel: 'Напиши слово, соответствующее этому значению',
     chainPrevWordTpl: 'Предыдущее слово: {word} (последняя буква: {letter})',
@@ -638,6 +649,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: 'Entscheide schnell, ob die Wort-Bedeutungs-Zuordnung stimmt',
     modeChainLabel: 'Wortkette',
     modeChainDesc: 'Schreibe ein Wort, das mit dem letzten Buchstaben des vorigen beginnt',
+    modeCrosswordLabel: 'Kreuzworträtsel',
+    modeCrosswordDesc: 'Löse das Rätsel mithilfe der Hinweise',
     fillBlankPromptLabel: 'Fülle die Lücke',
     chainPromptLabel: 'Schreibe das Wort, das zu dieser Bedeutung passt',
     chainPrevWordTpl: 'Vorheriges Wort: {word} (letzter Buchstabe: {letter})',
@@ -739,6 +752,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: "Décide rapidement si l'association mot-sens est correcte",
     modeChainLabel: 'Chaîne de mots',
     modeChainDesc: 'Écris un mot commençant par la dernière lettre du précédent',
+    modeCrosswordLabel: 'Mots Croisés',
+    modeCrosswordDesc: 'Résous la grille à l’aide des indices',
     fillBlankPromptLabel: 'Complète le trou',
     chainPromptLabel: 'Écris le mot qui correspond à ce sens',
     chainPrevWordTpl: 'Mot précédent : {word} (dernière lettre : {letter})',
@@ -840,6 +855,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: 'Decide rápido si la relación palabra-significado es correcta',
     modeChainLabel: 'Cadena de Palabras',
     modeChainDesc: 'Escribe una palabra que empiece con la última letra de la anterior',
+    modeCrosswordLabel: 'Crucigrama',
+    modeCrosswordDesc: 'Resuelve el crucigrama usando las pistas',
     fillBlankPromptLabel: 'Completa el hueco',
     chainPromptLabel: 'Escribe la palabra que corresponde a este significado',
     chainPrevWordTpl: 'Palabra anterior: {word} (última letra: {letter})',
@@ -941,6 +958,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: 'Decidi rapidamente se la corrispondenza parola-significato è corretta',
     modeChainLabel: 'Catena di Parole',
     modeChainDesc: "Scrivi una parola che inizia con l'ultima lettera della precedente",
+    modeCrosswordLabel: 'Cruciverba',
+    modeCrosswordDesc: 'Risolvi il cruciverba usando gli indizi',
     fillBlankPromptLabel: 'Completa lo spazio',
     chainPromptLabel: 'Scrivi la parola che corrisponde a questo significato',
     chainPrevWordTpl: 'Parola precedente: {word} (ultima lettera: {letter})',
@@ -1042,6 +1061,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: '単語と意味の組み合わせが正しいか素早く判断しよう',
     modeChainLabel: '単語しりとり',
     modeChainDesc: '前の単語の最後の文字で始まる単語を入力しよう',
+    modeCrosswordLabel: 'クロスワード',
+    modeCrosswordDesc: 'ヒントを見てクロスワードを完成させよう',
     fillBlankPromptLabel: '空欄を埋めてください',
     chainPromptLabel: 'この意味に合う単語を入力してください',
     chainPrevWordTpl: '前の単語: {word}(最後の文字: {letter})',
@@ -1143,6 +1164,8 @@ const STRINGS: Record<Locale, Strings> = {
     modeTrueFalseDesc: 'Decide rapidamente se a relação palavra-significado está correta',
     modeChainLabel: 'Cadeia de Palavras',
     modeChainDesc: 'Escreve uma palavra que comece com a última letra da anterior',
+    modeCrosswordLabel: 'Palavras Cruzadas',
+    modeCrosswordDesc: 'Resolve as palavras cruzadas usando as dicas',
     fillBlankPromptLabel: 'Preenche a lacuna',
     chainPromptLabel: 'Escreve a palavra que corresponde a este significado',
     chainPrevWordTpl: 'Palavra anterior: {word} (última letra: {letter})',
@@ -2185,6 +2208,22 @@ export default function GamePage() {
               <div>
                 <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeChainLabel}</p>
                 <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeChainDesc}</p>
+              </div>
+            </button>
+            {/* "Çengel Bulmaca" (18 Kasım 2026 kullanıcı isteği) -- diğer 10
+                moddan FARKLI: generic next-word/direction/havuz akışına
+                girmiyor, kendi 200 seviyeli sayfasına (/crossword) direkt
+                yönlendiriyor -- mobile/src/app/(app)/game.tsx'teki AYNI not. */}
+            <button
+              onClick={() => router.push('/crossword')}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-[#FFF1D6] flex items-center justify-center">
+                <Grid3x3 className="w-4 h-4 text-[#9A6400]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeCrosswordLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeCrosswordDesc}</p>
               </div>
             </button>
           </div>

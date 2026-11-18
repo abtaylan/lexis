@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2 } from 'lucide-react-native';
+import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2, Grid3x3 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
@@ -1038,6 +1038,17 @@ export default function GameScreen() {
               setDirection('word_to_meaning');
               setStage('setup');
             }}
+          />
+          {/* "Çengel Bulmaca" (18 Kasım 2026 kullanıcı isteği) -- diğer 10
+              moddan FARKLI: generic next-word/direction/havuz akışına
+              girmiyor, kendi 200 seviyeli ekranına (crossword.tsx) direkt
+              yönlendiriyor (bkz. o dosya + crossword-puzzle.tsx). */}
+          <ModeCard
+            title={gt.modeCrosswordLabel}
+            icon={Grid3x3}
+            bg={c.accentSoft}
+            fg={c.accent}
+            onPress={() => router.push('/(app)/crossword')}
           />
         </View>
         </View>

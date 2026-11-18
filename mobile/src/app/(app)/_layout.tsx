@@ -206,6 +206,13 @@ export default function AppTabsLayout() {
           study-notes ile AYNI desen: kendi sekmesi yok, dashboard'daki
           "Sosyal & Rekabet" kısayol grid'inden açılıyor (bkz. dashboard.tsx). */}
       <Tabs.Screen name="image-scan" options={{ href: null, headerShown: false }} />
+      {/* "Çengel Bulmaca" (18 Kasım 2026 kullanıcı isteği) — image-scan ile
+          AYNI desen: kendi sekmesi yok, dashboard'daki kısayoldan açılıyor
+          (bkz. dashboard.tsx). exam-topic-practice'teki 11 Eylül 2026
+          düzeltmesinin AYNI uyarısı geçerli -- burada listelenmezse Expo
+          Router sekme çubuğuna varsayılan ikonlu, istenmeyen bir sekme ekler. */}
+      <Tabs.Screen name="crossword" options={{ href: null, headerShown: false }} />
+      <Tabs.Screen name="crossword-puzzle" options={{ href: null, headerShown: false }} />
     </Tabs>
   );
 }

@@ -85,6 +85,7 @@ export type GameStrings = {
   modeTrueFalseLabel: string;
   modeTrueFalseDesc: string;
   modeChainLabel: string;
+  modeCrosswordLabel: string;
   modeChainDesc: string;
   fillBlankPromptLabel: string;
   chainPromptLabel: string;
@@ -120,6 +121,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: 'Doğru mu Yanlış mı',
     modeTrueFalseDesc: 'Kelime ve anlam eşleşmesi doğru mu, çabuk karar ver',
     modeChainLabel: 'Kelime Zinciri',
+    modeCrosswordLabel: 'Çengel Bulmaca',
     modeChainDesc: 'Önceki kelimenin son harfiyle başlayan kelimeyi yaz',
     fillBlankPromptLabel: 'Boşluğu doldur',
     chainPromptLabel: 'Bu anlama gelen kelimeyi yaz',
@@ -210,6 +212,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: 'True or False',
     modeTrueFalseDesc: 'Decide quickly whether the word-meaning match is correct',
     modeChainLabel: 'Word Chain',
+    modeCrosswordLabel: 'Hook Crossword',
     modeChainDesc: 'Type a word starting with the previous word\'s last letter',
     fillBlankPromptLabel: 'Fill in the blank',
     chainPromptLabel: 'Type the word that matches this meaning',
@@ -300,6 +303,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: 'صح أم خطأ',
     modeTrueFalseDesc: 'قرر بسرعة إن كانت مطابقة الكلمة والمعنى صحيحة',
     modeChainLabel: 'سلسلة الكلمات',
+    modeCrosswordLabel: 'الكلمات المتقاطعة',
     modeChainDesc: 'اكتب كلمة تبدأ بآخر حرف من الكلمة السابقة',
     fillBlankPromptLabel: 'أكمل الفراغ',
     chainPromptLabel: 'اكتب الكلمة التي تطابق هذا المعنى',
@@ -390,6 +394,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: 'Правда или ложь',
     modeTrueFalseDesc: 'Быстро реши, верно ли соответствие слова и значения',
     modeChainLabel: 'Цепочка слов',
+    modeCrosswordLabel: 'Кроссворд',
     modeChainDesc: 'Напиши слово, начинающееся на последнюю букву предыдущего',
     fillBlankPromptLabel: 'Заполни пропуск',
     chainPromptLabel: 'Напиши слово, соответствующее этому значению',
@@ -480,6 +485,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: 'Wahr oder Falsch',
     modeTrueFalseDesc: 'Entscheide schnell, ob die Wort-Bedeutungs-Zuordnung stimmt',
     modeChainLabel: 'Wortkette',
+    modeCrosswordLabel: 'Kreuzworträtsel',
     modeChainDesc: 'Schreibe ein Wort, das mit dem letzten Buchstaben des vorigen beginnt',
     fillBlankPromptLabel: 'Fülle die Lücke',
     chainPromptLabel: 'Schreibe das Wort, das zu dieser Bedeutung passt',
@@ -570,6 +576,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: 'Vrai ou Faux',
     modeTrueFalseDesc: 'Décide rapidement si l\'association mot-sens est correcte',
     modeChainLabel: 'Chaîne de mots',
+    modeCrosswordLabel: 'Mots Croisés',
     modeChainDesc: 'Écris un mot commençant par la dernière lettre du précédent',
     fillBlankPromptLabel: 'Complète le trou',
     chainPromptLabel: 'Écris le mot qui correspond à ce sens',
@@ -660,6 +667,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: 'Verdadero o Falso',
     modeTrueFalseDesc: 'Decide rápido si la relación palabra-significado es correcta',
     modeChainLabel: 'Cadena de Palabras',
+    modeCrosswordLabel: 'Crucigrama',
     modeChainDesc: 'Escribe una palabra que empiece con la última letra de la anterior',
     fillBlankPromptLabel: 'Completa el hueco',
     chainPromptLabel: 'Escribe la palabra que corresponde a este significado',
@@ -750,6 +758,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: 'Vero o Falso',
     modeTrueFalseDesc: 'Decidi rapidamente se la corrispondenza parola-significato è corretta',
     modeChainLabel: 'Catena di Parole',
+    modeCrosswordLabel: 'Cruciverba',
     modeChainDesc: 'Scrivi una parola che inizia con l\'ultima lettera della precedente',
     fillBlankPromptLabel: 'Completa lo spazio',
     chainPromptLabel: 'Scrivi la parola che corrisponde a questo significato',
@@ -840,6 +849,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: '正誤問題',
     modeTrueFalseDesc: '単語と意味の組み合わせが正しいか素早く判断しよう',
     modeChainLabel: '単語しりとり',
+    modeCrosswordLabel: 'クロスワード',
     modeChainDesc: '前の単語の最後の文字で始まる単語を入力しよう',
     fillBlankPromptLabel: '空欄を埋めてください',
     chainPromptLabel: 'この意味に合う単語を入力してください',
@@ -930,6 +940,7 @@ export const GAME_STRINGS: Record<Locale, GameStrings> = {
     modeTrueFalseLabel: 'Verdadeiro ou Falso',
     modeTrueFalseDesc: 'Decide rapidamente se a relação palavra-significado está correta',
     modeChainLabel: 'Cadeia de Palavras',
+    modeCrosswordLabel: 'Palavras Cruzadas',
     modeChainDesc: 'Escreve uma palavra que comece com a última letra da anterior',
     fillBlankPromptLabel: 'Preenche a lacuna',
     chainPromptLabel: 'Escreve a palavra que corresponde a este significado',
