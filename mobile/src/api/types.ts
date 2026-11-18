@@ -1392,3 +1392,56 @@ export interface ImageScanResult {
   target_lang: string;
   words: ScannedWord[];
 }
+
+// ── Çengel Bulmaca (crossword) — 18 Kasım 2026 kullanıcı isteği ──
+// bkz. backend/app/services/crossword_service.py + api/routes/crossword.py.
+// 200 sabit seviye, (learning_lang, native_lang) başına paylaşılan katalog;
+// ilerleme kullanıcının genel kelime seviyesinden bağımsız, her zaman 1'den
+// başlar (user_crossword_progress).
+export interface CrosswordTierSummary {
+  name: string;
+  band: string;
+  level_from: number;
+  level_to: number;
+  completion_xp: number;
+}
+
+export interface CrosswordLevelsResponse {
+  current_level: number;
+  max_level: number;
+  tiers: CrosswordTierSummary[];
+}
+
+export interface CrosswordWord {
+  word_id: string;
+  clue_text: string;
+  row_start: number;
+  col_start: number;
+  direction: 'across' | 'down';
+  answer_length: number;
+  // Sadece bu kelime zaten cozulmusse dolu gelir (bkz. backend crossword.py
+  // _public_words) -- yarim birakilan bir seviyeye geri donuldugunde
+  // cozulmus kelimeleri BOS degil DOLU gostermek icin.
+  answer?: string;
+}
+
+export interface CrosswordLevelResponse {
+  level: number;
+  tier_name: string;
+  puzzle_id: string;
+  grid_width: number;
+  grid_height: number;
+  words: CrosswordWord[];
+  solved_word_ids: string[];
+  completed: boolean;
+}
+
+export interface CrosswordAttemptResult {
+  correct: boolean;
+  already_solved: boolean;
+  solved_word_ids: string[];
+  puzzle_complete: boolean;
+  word_xp_awarded: number;
+  completion_xp_awarded: number;
+  next_level: number | null;
+}

@@ -7,8 +7,14 @@ HTTP katmani + XP/ilerleme baglama.
 
 Guvenlik notu: get_or_create_puzzle() DB satirinda dogru cevaplar (answer)
 duz metin olarak duruyor (general_word_pool emsaliyle tutarli, bkz.
-migration 095 yorum notu) ama bu router istemciye asla answer alanini
-GONDERMEZ -- dogruluk kontrolu her zaman sunucu tarafinda yapilir.
+migration 095 yorum notu) ama bu router istemciye SADECE ZATEN COZULMUS
+kelimeler icin answer alanini doner (bkz. _public_words) -- henuz
+cozulmemis kelimeler icin asla gonderilmez, dogruluk kontrolu her zaman
+sunucu tarafinda yapilir. Bu, mobil tarafin bir seviyeye yarim birakilip
+geri donulduğunde cozulmus kelimeleri BOS degil DOLU gostermesini saglar
+(aksi halde istemcinin hangi harflerin dogru oldugunu bilmesinin tek yolu
+kullanicinin o oturumda yazdigi metin olurdu, ki uygulama yeniden
+acildiginda bu kaybolur).
 """
 
 from __future__ import annotations
@@ -71,12 +77,16 @@ def _get_or_create_session(user_id: str, puzzle_id: str) -> dict:
     return inserted[0]
 
 
-def _public_words(puzzle: dict) -> list[dict]:
-    """crossword_puzzle_words satirlarindan answer HARIC, istemciye gidecek
-    alanlari cikarir."""
+def _public_words(puzzle: dict, solved_word_ids: set[str] | None = None) -> list[dict]:
+    """crossword_puzzle_words satirlarindan istemciye gidecek alanlari
+    cikarir. answer SADECE solved_word_ids icindeki kelimeler icin eklenir
+    (kullanici zaten dogru bildigi icin artik gizli degil) -- henuz
+    cozulmemis kelimelerde answer alani hic yok."""
+    solved_word_ids = solved_word_ids or set()
     words = puzzle.get("crossword_puzzle_words") or []
-    return [
-        {
+    out = []
+    for w in words:
+        row = {
             "word_id": w["id"],
             "clue_text": w["clue_text"],
             "row_start": w["row_start"],
@@ -84,8 +94,10 @@ def _public_words(puzzle: dict) -> list[dict]:
             "direction": w["direction"],
             "answer_length": w["answer_length"],
         }
-        for w in words
-    ]
+        if w["id"] in solved_word_ids:
+            row["answer"] = w["answer"]
+        out.append(row)
+    return out
 
 
 @router.get("/levels/{level}")
@@ -100,14 +112,15 @@ async def get_level(level: int, current_user=Depends(get_current_user)):
 
     session = _get_or_create_session(current_user.id, puzzle["id"])
     tier = crossword_service.tier_for_level(level)
+    solved_ids = session.get("solved_word_ids") or []
     return {
         "level": level,
         "tier_name": tier.name,
         "puzzle_id": puzzle["id"],
         "grid_width": puzzle["grid_width"],
         "grid_height": puzzle["grid_height"],
-        "words": _public_words(puzzle),
-        "solved_word_ids": session.get("solved_word_ids") or [],
+        "words": _public_words(puzzle, set(solved_ids)),
+        "solved_word_ids": solved_ids,
         "completed": session.get("completed_at") is not None,
     }
 
