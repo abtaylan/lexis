@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient } from '@tanstack/react-query';
@@ -10,6 +10,8 @@ import { StatusBar } from 'expo-status-bar';
 import Animated, { FadeOut } from 'react-native-reanimated';
 import { StyleSheet } from 'react-native';
 import { initAds } from '@/lib/adsInit';
+import { getAgeGateAnswer } from '@/lib/ageGate';
+import { AgeGateScreen } from '@/components/AgeGateScreen';
 import { useOtaUpdates } from '@/lib/useOtaUpdates';
 import { AuthProvider, useAuth } from '@/store/auth';
 import { LocaleProvider } from '@/i18n';
@@ -19,15 +21,14 @@ import { AnimatedSplash } from '@/components/AnimatedSplash';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
-// AdMob SDK'sı uygulama açılışında bir kere initialize edilir (bkz.
-// components/ads/AdBanner.tsx). Gerçek initialize kodu src/lib/adsInit.ts'te
-// (native) — web'de adsInit.web.ts'e (no-op) düşer, çünkü
-// react-native-google-mobile-ads native/codegen bir modül ve web bundle'ına
-// (örn. `expo export --platform web`) hiç girmemeli. Native modül
-// gerektirdiği için sadece EAS/dev-client build'lerde bir şey yapar —
-// Expo Go'da zaten proje başka native modüller (expo-iap vb.) nedeniyle de
-// kullanılamıyor, olası bir hata sessizce yutulur.
-initAds();
+// 18 Kasım 2026 — AdMob SDK'sının initialize edilmesi artık burada,
+// uygulama açılışında KOŞULSUZ çağrılmıyor. Google Play Aile Politikası
+// uyumu için (bkz. lib/ageGate.ts + components/AgeGateScreen.tsx + lib/
+// adsInit.ts'teki aynı tarihli notlar) önce nötr yaş ekranının cevabı
+// (daha önce cevaplanmışsa AsyncStorage'dan, değilse kullanıcıya bir kere
+// sorularak) öğrenilmeli — reklam SDK'si o cevaba göre (çocuk-yönelimli ya
+// da normal) başlatılıyor. Gerçek initAds(isChild) çağrısı aşağıdaki
+// RootLayout'ta, yaş ekranı cevaplandığı anda yapılıyor.
 
 // Offline mod / onbellekleme (24 Eylul 2026, V2 oncelik #11): sorgu
 // onbellegi AsyncStorage'a yaziliyor, boylece uygulama internetsiz
@@ -60,6 +61,47 @@ export default function RootLayout() {
   // gerektirmez, sadece JS tarafinda calisir.
   useOtaUpdates();
 
+  // 18 Kasım 2026 — nötr yaş ekranı akışı (bkz. dosya başındaki not).
+  // 'checking': AsyncStorage'dan önceki cevap okunuyor (ekrana hiçbir şey
+  // çizilmez, native splash zaten görünür durumda). 'needed': daha önce
+  // cevaplanmamış, AgeGateScreen gösteriliyor. 'resolved': cevap biliniyor,
+  // initAds(isChild) çağrıldı, normal uygulama akışına geçilebilir.
+  const [ageGateStatus, setAgeGateStatus] = useState<'checking' | 'needed' | 'resolved'>('checking');
+  const adsInitedRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getAgeGateAnswer().then((answer) => {
+      if (cancelled) return;
+      if (answer) {
+        if (!adsInitedRef.current) {
+          adsInitedRef.current = true;
+          initAds(answer.isChild);
+        }
+        setAgeGateStatus('resolved');
+      } else {
+        // Yaş ekranı gösterilecek -- RootNavigator henüz mount olmadığı
+        // için (bkz. asağıdaki render) native splash'i burada kapatmazsak
+        // AgeGateScreen hiç görünmez, kullanıcı native splash'te takılı
+        // kalır (RootNavigator'ın kendi hideAsync çağrısı sadece
+        // 'resolved' durumunda mount olduğu için çalışmaz).
+        SplashScreen.hideAsync().catch(() => {});
+        setAgeGateStatus('needed');
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleAgeGateAnswered = (isChild: boolean) => {
+    if (!adsInitedRef.current) {
+      adsInitedRef.current = true;
+      initAds(isChild);
+    }
+    setAgeGateStatus('resolved');
+  };
+
   return (
     // 11 Eylül 2026: en dışa AppErrorBoundary eklendi -- gerçek cihaz
     // crash log'unda görülen "JS hatası -> React Native'in New Architecture
@@ -78,7 +120,11 @@ export default function RootLayout() {
           <ThemeProvider>
             <LocaleProvider>
               <AuthProvider>
-                <RootNavigator />
+                {ageGateStatus === 'needed' ? (
+                  <AgeGateScreen onAnswered={handleAgeGateAnswered} />
+                ) : ageGateStatus === 'resolved' ? (
+                  <RootNavigator />
+                ) : null}
               </AuthProvider>
             </LocaleProvider>
           </ThemeProvider>

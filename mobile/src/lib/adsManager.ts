@@ -2,6 +2,14 @@
 // Banner için bkz. components/ads/AdBanner.tsx. Native modül linklenmemiş bir
 // build'de (bkz. adsInit.ts'teki açıklama) require() try/catch içinde — modül
 // yoksa tüm fonksiyonlar sessizce no-op döner, uygulama çökmez.
+//
+// 18 Kasım 2026 — Aile Politikası uyumu (bkz. adsInit.ts'teki aynı tarihli
+// not): çocuk olarak işaretli kullanıcılarda (adsInit.ts'in setChildFlag ile
+// bildirdiği bayrak) interstitial/rewarded istekleri ek güvence olarak
+// requestNonPersonalizedAdsOnly: true ile açılıyor. setRequestConfiguration
+// (adsInit.ts) zaten SDK genelinde tagForChildDirectedTreatment uyguluyor;
+// bu, Google'ın "mixed audience" rehberliğinde önerilen çift katmanlı
+// (defense-in-depth) yaklaşım.
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
@@ -13,6 +21,18 @@ try {
   ads = require('react-native-google-mobile-ads');
 } catch {
   ads = null;
+}
+
+let isChildFlag = false;
+
+/** adsInit.ts tarafından, nötr yaş ekranı cevabı bilindiğinde bir kere çağrılır. */
+export function setAdsChildFlag(isChild: boolean) {
+  isChildFlag = isChild;
+}
+
+/** AdBanner.tsx'in requestOptions için okuduğu anlık bayrak. */
+export function getAdsChildFlag(): boolean {
+  return isChildFlag;
 }
 
 type AdMobExtra = {
@@ -54,7 +74,9 @@ function loadInterstitial() {
   if (!id) return;
   try {
     interstitialLoaded = false;
-    interstitial = ads.InterstitialAd.createForAdRequest(id);
+    interstitial = ads.InterstitialAd.createForAdRequest(id, {
+      requestNonPersonalizedAdsOnly: isChildFlag,
+    });
     interstitial.addAdEventListener(ads.AdEventType.LOADED, () => {
       interstitialLoaded = true;
     });
@@ -103,7 +125,9 @@ function loadRewarded() {
   if (!id) return;
   try {
     rewardedLoaded = false;
-    rewarded = ads.RewardedAd.createForAdRequest(id);
+    rewarded = ads.RewardedAd.createForAdRequest(id, {
+      requestNonPersonalizedAdsOnly: isChildFlag,
+    });
     rewarded.addAdEventListener(ads.RewardedAdEventType.LOADED, () => {
       rewardedLoaded = true;
     });

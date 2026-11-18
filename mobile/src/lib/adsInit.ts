@@ -54,46 +54,111 @@
 // gösterilmez), uygulamanın geri kalanı normal çalışmaya devam eder.
 // Native modül linklenmiş bir build'de (app.json plugin kaydı zaten
 // doğru) davranış değişmiyor.
+//
+// 18 Kasım 2026 — Aile Politikası / COPPA uyumu (bkz. src/lib/ageGate.ts +
+// src/components/AgeGateScreen.tsx): Google Play'de Lexis'in hedef yaş
+// grubu sadece "18 yaş ve üstü" idi ve "küçükleri kısıtla" seçeneği
+// işaretliydi -- bu da Türkiye dahil her ülkede 18 yaşından küçük (veya
+// Google tarafından küçük olarak işaretlenmiş) hesapların uygulamayı Play
+// Store'da aramasını/indirmesini TAMAMEN engelliyordu. Hedef kitleyi 9-12
+// yaş dahil tüm yaşlara açmak için önce bu dosyanın çocuklara uygun reklam
+// davranışı sunması gerekiyor (Google Play Aile Politikası: çocuklara
+// sadece sertifikalı/çocuğa uygun, kişiselleştirilmemiş reklamlar
+// gösterilebilir, ATT/IDFA izni gibi takip akışları çocuklara hiç
+// gösterilmemeli). `initAds` artık kök layout'taki nötr yaş ekranının
+// (AgeGateScreen) cevabına göre bir `isChild` parametresi alıyor:
+//  - isChild === true: ATT izni ve UMP onay formu (AdsConsent) HİÇ
+//    gösterilmez (çocuklara bu akışlar gösterilmemeli); initialize'dan
+//    ÖNCE setRequestConfiguration ile tagForChildDirectedTreatment: true,
+//    tagForUnderAgeOfConsent: true ve maxAdContentRating: 'G' ayarlanır
+//    (Google'ın resmi "mixed audience" rehberliğiyle birebir aynı desen).
+//    Bu ayar global (SDK genelinde) olduğu için banner/interstitial/
+//    rewarded her reklam isteğine otomatik uygulanır -- ayrıca
+//    adsManager.ts'te interstitial/rewarded istekleri de ek güvence
+//    olarak requestNonPersonalizedAdsOnly: true ile açılıyor (bkz. o
+//    dosya).
+//  - isChild === false: davranış öncekiyle birebir aynı (ATT + UMP onay
+//    akışı + kişiselleştirilmiş reklam).
 import { requestTrackingPermissionsAsync } from 'expo-tracking-transparency';
 
-type MobileAdsFactory = () => { initialize: () => Promise<unknown> };
+type RequestConfiguration = {
+  maxAdContentRating?: string;
+  tagForChildDirectedTreatment?: boolean;
+  tagForUnderAgeOfConsent?: boolean;
+};
+
+type MobileAdsInstance = {
+  initialize: () => Promise<unknown>;
+  setRequestConfiguration: (config: RequestConfiguration) => Promise<unknown>;
+};
+
+type MobileAdsFactory = () => MobileAdsInstance;
 
 let mobileAds: MobileAdsFactory | null = null;
 let adsConsent: { gatherConsent: () => Promise<unknown> } | null = null;
+let maxAdContentRatingG = 'G';
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const mod = require('react-native-google-mobile-ads');
   mobileAds = mod.default;
   adsConsent = mod.AdsConsent ?? null;
+  maxAdContentRatingG = mod.MaxAdContentRating?.G ?? 'G';
 } catch {
   mobileAds = null;
   adsConsent = null;
 }
 
-export function initAds() {
+/**
+ * @param isChild Nötr yaş ekranının (AgeGateScreen) cevabına göre: kullanıcı
+ * 13 yaşından küçükse true. bkz. dosya başındaki 18 Kasım 2026 notu.
+ */
+export function initAds(isChild: boolean) {
   if (!mobileAds) return;
-  requestTrackingPermissionsAsync()
-    .catch(() => {
-      // İzin diyaloğu herhangi bir nedenle başarısız olursa sessizce yut —
-      // reklamlar yine de kişiselleştirilmemiş modda initialize edilecek.
-    })
-    .then(async () => {
-      // 13 Ekim 2026: Google UMP onay akışı (AB/EEA ve ABD eyalet
-      // düzenlemeleri). AdMob > Gizlilik ve mesajlaşma'da bir mesaj
-      // yayınlanmamışsa form gösterilmez, çağrı sessizce biter.
-      try {
-        await adsConsent?.gatherConsent();
-      } catch {
-        /* sessiz */
-      }
-    })
-    .finally(() => {
-      mobileAds!()
-        .initialize()
-        .then(() => {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          require('./adsManager').preloadAds();
-        })
-        .catch(() => {});
-    });
+
+  const finishInit = () => {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const adsManager = require('./adsManager');
+    adsManager.setAdsChildFlag(isChild);
+    mobileAds!()
+      .initialize()
+      .then(() => {
+        adsManager.preloadAds();
+      })
+      .catch(() => {});
+  };
+
+  const configureRequest = (child: boolean) =>
+    mobileAds!()
+      .setRequestConfiguration({
+        maxAdContentRating: child ? maxAdContentRatingG : undefined,
+        tagForChildDirectedTreatment: child,
+        tagForUnderAgeOfConsent: child,
+      })
+      .catch(() => {});
+
+  if (isChild) {
+    // Çocuk olarak işaretli kullanıcıya ATT izni / UMP onay formu hiç
+    // gösterilmez -- doğrudan çocuğa-yönelik yapılandırmayla initialize.
+    configureRequest(true).finally(finishInit);
+    return;
+  }
+
+  configureRequest(false).finally(() => {
+    requestTrackingPermissionsAsync()
+      .catch(() => {
+        // İzin diyaloğu herhangi bir nedenle başarısız olursa sessizce yut —
+        // reklamlar yine de kişiselleştirilmemiş modda initialize edilecek.
+      })
+      .then(async () => {
+        // 13 Ekim 2026: Google UMP onay akışı (AB/EEA ve ABD eyalet
+        // düzenlemeleri). AdMob > Gizlilik ve mesajlaşma'da bir mesaj
+        // yayınlanmamışsa form gösterilmez, çağrı sessizce biter.
+        try {
+          await adsConsent?.gatherConsent();
+        } catch {
+          /* sessiz */
+        }
+      })
+      .finally(finishInit);
+  });
 }

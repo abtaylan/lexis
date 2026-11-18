@@ -86,6 +86,12 @@ export interface MobileStrings {
   referralCodeFieldLabel: string;
   referralCodeFieldPlaceholder: string;
   referralCodeAppliedHint: string;
+
+  ageGateTitle: string;
+  ageGateDesc: string;
+  ageGateYearLabel: string;
+  ageGateYearPlaceholder: string;
+  ageGateInvalidYear: string;
 }
 
 export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
@@ -151,6 +157,11 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: 'Davet Kodu (opsiyonel)',
     referralCodeFieldPlaceholder: 'Örn. A1B2C3D4',
     referralCodeAppliedHint: 'Bir arkadaşının davetiyle katılıyorsun 🎉',
+    ageGateTitle: 'Kaç yaşındasın?',
+    ageGateDesc: 'Reklam ve içerik deneyimini yaşına uygun hale getirebilmemiz için doğum yılını öğrenmemiz gerekiyor.',
+    ageGateYearLabel: 'Doğum yılın',
+    ageGateYearPlaceholder: 'Örn. 2010',
+    ageGateInvalidYear: 'Lütfen geçerli bir doğum yılı gir.',
   },
   en: {
     otpTitle: 'Verification Code',
@@ -214,6 +225,11 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: 'Invite Code (optional)',
     referralCodeFieldPlaceholder: 'e.g. A1B2C3D4',
     referralCodeAppliedHint: "You're joining via a friend's invite 🎉",
+    ageGateTitle: 'How old are you?',
+    ageGateDesc: 'We need your birth year so we can tailor ads and content to your age.',
+    ageGateYearLabel: 'Birth year',
+    ageGateYearPlaceholder: 'e.g. 2010',
+    ageGateInvalidYear: 'Please enter a valid birth year.',
   },
   ar: {
     otpTitle: 'رمز التحقق',
@@ -277,6 +293,11 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: 'رمز الدعوة (اختياري)',
     referralCodeFieldPlaceholder: 'مثال A1B2C3D4',
     referralCodeAppliedHint: 'أنت تنضم عبر دعوة صديق 🎉',
+    ageGateTitle: 'كم عمرك؟',
+    ageGateDesc: 'نحتاج إلى سنة ميلادك لتخصيص الإعلانات والمحتوى بما يناسب عمرك.',
+    ageGateYearLabel: 'سنة الميلاد',
+    ageGateYearPlaceholder: 'مثال 2010',
+    ageGateInvalidYear: 'يرجى إدخال سنة ميلاد صحيحة.',
   },
   ru: {
     otpTitle: 'Код подтверждения',
@@ -340,6 +361,11 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: 'Код приглашения (необязательно)',
     referralCodeFieldPlaceholder: 'напр. A1B2C3D4',
     referralCodeAppliedHint: 'Вы присоединяетесь по приглашению друга 🎉',
+    ageGateTitle: 'Сколько тебе лет?',
+    ageGateDesc: 'Нам нужен год твоего рождения, чтобы показывать подходящую по возрасту рекламу и контент.',
+    ageGateYearLabel: 'Год рождения',
+    ageGateYearPlaceholder: 'напр. 2010',
+    ageGateInvalidYear: 'Пожалуйста, введите корректный год рождения.',
   },
   de: {
     otpTitle: 'Bestätigungscode',
@@ -403,6 +429,11 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: 'Einladungscode (optional)',
     referralCodeFieldPlaceholder: 'z. B. A1B2C3D4',
     referralCodeAppliedHint: 'Du trittst über die Einladung eines Freundes bei 🎉',
+    ageGateTitle: 'Wie alt bist du?',
+    ageGateDesc: 'Wir benötigen dein Geburtsjahr, um Werbung und Inhalte altersgerecht anzuzeigen.',
+    ageGateYearLabel: 'Geburtsjahr',
+    ageGateYearPlaceholder: 'z. B. 2010',
+    ageGateInvalidYear: 'Bitte gib ein gültiges Geburtsjahr ein.',
   },
   fr: {
     otpTitle: 'Code de vérification',
@@ -466,6 +497,11 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: "Code d'invitation (optionnel)",
     referralCodeFieldPlaceholder: 'ex. A1B2C3D4',
     referralCodeAppliedHint: "Tu rejoins via l'invitation d'un ami 🎉",
+    ageGateTitle: 'Quel âge as-tu ?',
+    ageGateDesc: 'Nous avons besoin de ton année de naissance pour adapter les publicités et le contenu à ton âge.',
+    ageGateYearLabel: 'Année de naissance',
+    ageGateYearPlaceholder: 'ex. 2010',
+    ageGateInvalidYear: "Merci d'indiquer une année de naissance valide.",
   },
   es: {
     otpTitle: 'Código de verificación',
@@ -529,6 +565,11 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: 'Código de invitación (opcional)',
     referralCodeFieldPlaceholder: 'ej. A1B2C3D4',
     referralCodeAppliedHint: 'Te unes mediante la invitación de un amigo 🎉',
+    ageGateTitle: '¿Qué edad tienes?',
+    ageGateDesc: 'Necesitamos tu año de nacimiento para adaptar los anuncios y el contenido a tu edad.',
+    ageGateYearLabel: 'Año de nacimiento',
+    ageGateYearPlaceholder: 'ej. 2010',
+    ageGateInvalidYear: 'Introduce un año de nacimiento válido.',
   },
   it: {
     otpTitle: 'Codice di verifica',
@@ -592,6 +633,11 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: 'Codice invito (opzionale)',
     referralCodeFieldPlaceholder: 'es. A1B2C3D4',
     referralCodeAppliedHint: "Ti stai unendo tramite l'invito di un amico 🎉",
+    ageGateTitle: 'Quanti anni hai?',
+    ageGateDesc: 'Ci serve il tuo anno di nascita per mostrarti annunci e contenuti adatti alla tua età.',
+    ageGateYearLabel: 'Anno di nascita',
+    ageGateYearPlaceholder: 'es. 2010',
+    ageGateInvalidYear: 'Inserisci un anno di nascita valido.',
   },
   ja: {
     otpTitle: '確認コード',
@@ -655,6 +701,11 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: '招待コード(任意)',
     referralCodeFieldPlaceholder: '例: A1B2C3D4',
     referralCodeAppliedHint: '友達の招待から参加しています 🎉',
+    ageGateTitle: '年齢を教えてください',
+    ageGateDesc: '年齢に適した広告とコンテンツを表示するため、生まれた年を教えてください。',
+    ageGateYearLabel: '生まれた年',
+    ageGateYearPlaceholder: '例: 2010',
+    ageGateInvalidYear: '正しい生まれた年を入力してください。',
   },
   pt: {
     otpTitle: 'Código de Verificação',
@@ -718,5 +769,10 @@ export const MOBILE_STRINGS: Record<Locale, MobileStrings> = {
     referralCodeFieldLabel: 'Código de convite (opcional)',
     referralCodeFieldPlaceholder: 'ex. A1B2C3D4',
     referralCodeAppliedHint: 'Estás a juntar-te através do convite de um amigo 🎉',
+    ageGateTitle: 'Que idade tens?',
+    ageGateDesc: 'Precisamos do teu ano de nascimento para adaptar anúncios e conteúdos à tua idade.',
+    ageGateYearLabel: 'Ano de nascimento',
+    ageGateYearPlaceholder: 'ex. 2010',
+    ageGateInvalidYear: 'Introduz um ano de nascimento válido.',
   },
 };

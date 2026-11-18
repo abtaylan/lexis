@@ -28,6 +28,7 @@ import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import Constants from 'expo-constants';
 import { useAuth } from '@/store/auth';
+import { getAdsChildFlag } from '@/lib/adsManager';
 
 type GoogleMobileAdsModule = {
   BannerAd: typeof import('react-native-google-mobile-ads').BannerAd;
@@ -75,6 +76,12 @@ export function AdBanner({ style }: AdBannerProps) {
 
   const { BannerAd, BannerAdSize } = adsModule;
 
+  // 18 Kasım 2026 — Aile Politikası uyumu (bkz. lib/adsInit.ts'teki aynı
+  // tarihli not): setRequestConfiguration zaten SDK genelinde
+  // tagForChildDirectedTreatment uyguluyor; burada ek güvence olarak
+  // requestOptions ile de requestNonPersonalizedAdsOnly veriliyor.
+  const isChild = getAdsChildFlag();
+
   return (
     <View style={[styles.wrap, style]}>
       <BannerAd
@@ -86,6 +93,7 @@ export function AdBanner({ style }: AdBannerProps) {
         // her iki sürümde de var (yenisinde deprecated ama çalışıyor) — bilerek bu kullanıldı.
         size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
         // Kişiselleştirme artık UMP onayına bağlı (bkz. lib/adsInit.ts).
+        requestOptions={{ requestNonPersonalizedAdsOnly: isChild }}
         onAdFailedToLoad={() => {
           // Sessizce geç — reklam ağı henüz yapılandırılmamış/doldurulmamış
           // olabilir (gerçek AdMob hesabı açılana kadar beklenen durum).
