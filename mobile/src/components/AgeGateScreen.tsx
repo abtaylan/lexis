@@ -50,7 +50,19 @@ export function AgeGateScreen({ onAnswered }: AgeGateScreenProps) {
   };
 
   return (
-    <ScreenContainer scroll={false}>
+    // 20 Kasım 2026 -- KOK NEDEN BULUNDU: bu ekran kodda `padded={false}`
+    // OLMADAN `scroll={false}` kullanan TEK yerdi (leaderboard.tsx,
+    // profile.tsx, roadmap.tsx, schedule.tsx, words.tsx hepsi ikisini
+    // BİRLİKTE kullanıyor). Sonuç: ScreenContainer'ın kendi `padded` View'ı
+    // (flex YOK, içeriğe göre boyutlanıyor) ile bu bileşenin kendi
+    // `styles.wrap`'ındaki (flex:1, justifyContent/alignItems:'center')
+    // View iç içe geçince Yoga için belirsiz/döngüsel bir boyutlandırma
+    // durumu oluşuyordu -- başlık/açıklama/buton metni görünmüyor,
+    // justifyContent:'center' hiç etki etmiyor, içerik üstte sıkışık
+    // kalıyordu (test cihazında gözlemlenen tam olarak buydu). Fix:
+    // diğer tüm ekranlarla AYNI, kanıtlanmış deseni kullan --
+    // `padded={false}`, kendi flex:1/padding'ini `wrap` zaten yönetiyor.
+    <ScreenContainer scroll={false} padded={false}>
       <View style={styles.wrap}>
         <Text style={styles.emoji}>🎂</Text>
         <Text style={[styles.title, { color: c.text }]}>{mt('ageGateTitle')}</Text>

@@ -114,7 +114,13 @@ export default function RootLayout() {
     // ortamında doğrulandığında AGE_GATE_ENABLED tekrar true yapılacak --
     // watchdog/timeout altyapısı DEĞİŞMEDEN korunuyor ki o zaman da askıda
     // kalma riski olmasın.
-    const AGE_GATE_ENABLED = false;
+    const AGE_GATE_ENABLED = true;
+    // 20 Kasım 2026 -- TEKRAR AÇILDI: AgeGateScreen'deki asıl render hatası
+    // bulundu ve düzeltildi (bkz. AgeGateScreen.tsx -- scroll={false} +
+    // padded={false} eksikliği, diğer tüm ekranlarla uyumsuz tek yerdi).
+    // Kullanıcı test edip onayladığında bu satır kalıcı sayılacak; sorun
+    // geri gelirse tekrar false yapılıp anında (OTA ile, native build
+    // gerekmeden) devre dışı bırakılabilir.
 
     const resolveWithDefault = () => {
       if (!adsInitedRef.current) {
