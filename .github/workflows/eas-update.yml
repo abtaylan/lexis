@@ -1,13 +1,20 @@
-name: EAS OTA Update (production)
+name: EAS OTA Update (staging)
 
+# 20 Kasim 2026 -- ARTIK PRODUCTION'A DEGIL, "staging" KANALINA yayinliyor.
+# Kullanici talebi: bundan sonra her yeni gelistirme ONCE TestFlight'ta
+# (ve Play'in Dahili Test kanalinda) test edilecek, production'a ancak
+# onaydan sonra "promote-to-production.yml" ile tasinacak. Bu workflow'un
+# tek basina artik canli Store kullanicilarina HICBIR etkisi yok --
+# production kanalini sadece eas-promote-production.yml degistirir.
+#
 # Sadece JS/TS/asset degisikligi olan push'larda otomatik OTA update
 # gonderir -- native kod/bagimlilik degisikligi (app.json, package.json,
 # ios/android klasorleri) icin bu YETERLI DEGIL, ayri bir
-# eas-build-submit.yml calistirmasi (bkz. o dosya) gerekiyor, aksi
-# halde runtimeVersion uyusmazligindan cihazlar guncellemeyi hic almaz
-# (bkz. LEXIS_DEVIR_2026-09-10.md "10 Eylul 2026" notu -- iOS STORE
-# build #10 ile Android'deki tek production build ayni runtime'da
-# degildi).
+# eas-build-staging.yml (test icin) / eas-build-submit.yml (production
+# icin) calistirmasi gerekiyor, aksi halde runtimeVersion uyusmazligindan
+# cihazlar guncellemeyi hic almaz (bkz. LEXIS_DEVIR_2026-09-10.md
+# "10 Eylul 2026" notu -- iOS STORE build #10 ile Android'deki tek
+# production build ayni runtime'da degildi).
 on:
   push:
     branches: [main]
@@ -26,7 +33,7 @@ on:
 
 jobs:
   update:
-    name: Publish OTA update
+    name: Publish OTA update (staging)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -82,11 +89,11 @@ jobs:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           FIRST_LINE=$(printf '%s' "$COMMIT_MSG" | head -n1)
-          eas update --branch production --platform ios --message "CI: $FIRST_LINE" --non-interactive
+          eas update --branch staging --platform ios --message "CI: $FIRST_LINE" --non-interactive
 
       - name: Publish EAS update (Android)
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           FIRST_LINE=$(printf '%s' "$COMMIT_MSG" | head -n1)
-          eas update --branch production --platform android --message "CI: $FIRST_LINE" --non-interactive
+          eas update --branch staging --platform android --message "CI: $FIRST_LINE" --non-interactive

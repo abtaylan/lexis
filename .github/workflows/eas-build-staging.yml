@@ -1,0 +1,57 @@
+name: EAS Build + Submit (staging / TestFlight)
+
+# 20 Kasim 2026 -- YENI: TestFlight + Play "Dahili test" icin AYRI bir
+# native build + submit hatti. "production" profiliyle AYNI olmasinin
+# tek farki channel: "staging" (bkz. mobile/eas.json) -- bu sayede bu
+# build'i kullanan test cihazlari (TestFlight / Play Dahili Test), OTA
+# guncellemelerini "production" degil "staging" dalindan alir
+# (eas-update.yml artik SADECE staging'e yayinliyor). Yani: her YENI
+# NATIVE degisiklik (yeni izin, yeni native modul, ikon degisikligi vb.)
+# icin bunu calistir -- store'a/canli kullaniciya gitmez, sadece
+# TestFlight'a ve Play'in Dahili Test parcasina duser.
+#
+# Elle (workflow_dispatch) tetiklenir -- otomatik degil, cunku build+submit
+# yine de bir EAS build kotasi/suresi harcar.
+#
+# BIR KEREYE MAHSUS KURULUM GEREKIYOR (bu workflow'u ilk calistirmadan once):
+#   - Play Console'da "Test > Dahili test" parcasi yoksa olusturulmali ve
+#     test edici e-posta listesine eklenmeli (bu adim Play Console
+#     arayuzunden elle yapiliyor, bu repo/CI'dan yapilamiyor).
+#   - App Store Connect'te mevcut TestFlight dahili test grubu bu yeni
+#     build'leri otomatik alacak (ayni ascAppId/appleId kullaniliyor,
+#     ek bir kurulum gerekmiyor).
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Build + submit edilecek platform"
+        required: true
+        type: choice
+        options: [all, ios, android]
+        default: all
+
+jobs:
+  build_and_submit:
+    name: Build + submit staging (${{ inputs.platform }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+
+      - name: EAS build + auto-submit (staging profile)
+        run: eas build --platform ${{ inputs.platform }} --profile staging --non-interactive --auto-submit --no-wait

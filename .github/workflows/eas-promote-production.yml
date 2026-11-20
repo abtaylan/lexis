@@ -1,0 +1,59 @@
+name: EAS Promote staging -> production
+
+# 20 Kasim 2026 -- YENI: staging'de (TestFlight / Play Dahili Test)
+# test edilip ONAYLANMIS bir OTA guncellemesini, YENIDEN DERLEMEDEN /
+# YENIDEN BUNDLE ETMEDEN, AYNI JS paketini production kanalina "terfi
+# ettirir" (eas update:republish). Bu, test edilen ile canliya cikan
+# bit-bit AYNI kodun gitmesini garantiler -- ayri bir "production icin
+# yeniden yayinla" adimi olmasaydi, ayni commit'i iki kere publish etmek
+# gerekirdi ve bu da (teorik olarak) iki ayri bundle anlamina gelirdi.
+#
+# Group ID'leri Expo dashboard'undan alinir:
+#   https://expo.dev/accounts/ahmetbehcettaylan/projects/lexis/updates
+# staging kanalinda test edilen satirin "Update" sutunundaki grup ID'si
+# kopyalanir. ios ve android AYRI gruplar oldugu icin (eas-update.yml
+# ikisini ayri ayri yayinliyor), ikisi de ayri ayri verilmeli.
+on:
+  workflow_dispatch:
+    inputs:
+      ios_group_id:
+        description: "Production'a tasinacak iOS update group ID (staging'de test edilen) -- bos birakilirsa iOS atlanir"
+        required: false
+        type: string
+        default: ""
+      android_group_id:
+        description: "Production'a tasinacak Android update group ID (staging'de test edilen) -- bos birakilirsa Android atlanir"
+        required: false
+        type: string
+        default: ""
+
+jobs:
+  promote:
+    name: Promote staging groups to production
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+
+      - name: Promote iOS group to production
+        if: ${{ inputs.ios_group_id != '' }}
+        run: eas update:republish --group "${{ inputs.ios_group_id }}" --branch production --non-interactive
+
+      - name: Promote Android group to production
+        if: ${{ inputs.android_group_id != '' }}
+        run: eas update:republish --group "${{ inputs.android_group_id }}" --branch production --non-interactive

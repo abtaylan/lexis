@@ -1,40 +1,57 @@
 {
-    "cli": {
-          "version": ">= 13.0.0",
-          "appVersionSource": "remote"
-    },
-    "build": {
-          "development": {
+      "cli": {
+            "version": ">= 13.0.0",
+            "appVersionSource": "remote"
+      },
+      "build": {
+            "development": {
                   "developmentClient": true,
                   "distribution": "internal",
                   "android": {
-                            "buildType": "apk"
+                        "buildType": "apk"
                   }
-          },
-          "preview": {
+            },
+            "preview": {
                   "distribution": "internal",
                   "android": {
-                            "buildType": "apk"
+                        "buildType": "apk"
                   },
                   "ios": {
-                            "simulator": false
+                        "simulator": false
                   },
                   "channel": "preview"
-          },
-          "production": {
+            },
+            "staging": {
+                  "distribution": "store",
+                  "autoIncrement": true,
+                  "channel": "staging",
+                  "ios": {
+                        "simulator": false
+                  }
+            },
+            "production": {
                   "autoIncrement": true,
                   "channel": "production"
-          }
-    },
-    "submit": {
-          "production": {
+            }
+      },
+      "submit": {
+            "staging": {
                   "ios": {
-                            "appleId": "ahmetbehcettaylan@gmail.com",
-                            "ascAppId": "6806612758"
+                        "appleId": "ahmetbehcettaylan@gmail.com",
+                        "ascAppId": "6806612758"
                   },
                   "android": {
-                            "track": "production"
+                        "track": "internal"
                   }
-          }
-    }
+            },
+            "production": {
+                  "ios": {
+                        "appleId": "ahmetbehcettaylan@gmail.com",
+                        "ascAppId": "6806612758"
+                  },
+                  "android": {
+                        "track": "production"
+                  }
+            }
+      }
 }
