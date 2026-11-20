@@ -121,6 +121,10 @@ export default function RootLayout() {
     // Kullanıcı test edip onayladığında bu satır kalıcı sayılacak; sorun
     // geri gelirse tekrar false yapılıp anında (OTA ile, native build
     // gerekmeden) devre dışı bırakılabilir.
+    // 20 Kasım 2026 -- Bu duzeltme, canli build'lerle (runtime 1.0.6) AYNI
+    // anda, TestFlight'taki build 32'nin (runtime 1.0.7) de test
+    // edebilmesi icin app.json GECICI olarak 1.0.7'ye alinip ayrica
+    // yayinlandi -- publish sonrasi app.json tekrar 1.0.6'ya donecek.
 
     const resolveWithDefault = () => {
       if (!adsInitedRef.current) {
