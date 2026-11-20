@@ -71,26 +71,67 @@ export default function RootLayout() {
 
   useEffect(() => {
     let cancelled = false;
-    getAgeGateAnswer().then((answer) => {
-      if (cancelled) return;
-      if (answer) {
-        if (!adsInitedRef.current) {
-          adsInitedRef.current = true;
-          initAds(answer.isChild);
+    let settled = false;
+
+    // 20 Kasım 2026 -- KOK NEDEN BULUNDU (iOS + Android'de "uygulama hiç
+    // açılmıyor, boş/karanlık ekranda donuyor" şikayeti): getAgeGateAnswer()
+    // (AsyncStorage okuyor) HİÇ ÇÖZÜLMEZSE (native modül seviyesinde askıda
+    // kalma -- hata fırlatmıyor, sadece sonsuza kadar pending kalıyor) bu
+    // .then() callback'i ASLA çalışmıyordu. Sonuç: ageGateStatus sonsuza
+    // kadar 'checking' kalıyor, aşağıdaki render bloğu bu durumda `null`
+    // dönüyor VE native splash hiç kapatılmıyor (hideAsync'in TEK çağrıldığı
+    // yerler: bu .then()'in 'needed' dalı ile RootNavigator'ın kendi
+    // useEffect'i -- ikisi de 'checking' durumunda asla tetiklenmiyor).
+    // AppErrorBoundary bunu YAKALAYAMAZ çünkü ortada fırlatılan bir hata yok,
+    // sadece sonsuza kadar bekleyen bir promise var. Bu, platformdan bağımsız
+    // (saf JS/AsyncStorage seviyesinde) bir kilitlenme noktasıydı -- iOS'ta
+    // da Android'de de aynı şekilde tetiklenebilir.
+    //
+    // Fix: bir "watchdog" zamanlayıcısı -- AGE_GATE_TIMEOUT_MS içinde cevap
+    // gelmezse (ya da getAgeGateAnswer reddedilirse) güvenli tarafta kalıp
+    // yaş ekranını göster (initAds daha sonra kullanıcı cevapladığında normal
+    // akışla çağrılır) ve native splash'i kapat -- uygulama ASLA sonsuza
+    // kadar donmuyor.
+    const AGE_GATE_TIMEOUT_MS = 5000;
+
+    const proceedAsNeeded = () => {
+      if (cancelled || settled) return;
+      settled = true;
+      // Yaş ekranı gösterilecek -- RootNavigator henüz mount olmadığı
+      // için (bkz. asağıdaki render) native splash'i burada kapatmazsak
+      // AgeGateScreen hiç görünmez, kullanıcı native splash'te takılı
+      // kalır (RootNavigator'ın kendi hideAsync çağrısı sadece
+      // 'resolved' durumunda mount olduğu için çalışmaz).
+      SplashScreen.hideAsync().catch(() => {});
+      setAgeGateStatus('needed');
+    };
+
+    const watchdog = setTimeout(proceedAsNeeded, AGE_GATE_TIMEOUT_MS);
+
+    getAgeGateAnswer()
+      .then((answer) => {
+        if (cancelled || settled) return;
+        settled = true;
+        clearTimeout(watchdog);
+        if (answer) {
+          if (!adsInitedRef.current) {
+            adsInitedRef.current = true;
+            initAds(answer.isChild);
+          }
+          setAgeGateStatus('resolved');
+        } else {
+          SplashScreen.hideAsync().catch(() => {});
+          setAgeGateStatus('needed');
         }
-        setAgeGateStatus('resolved');
-      } else {
-        // Yaş ekranı gösterilecek -- RootNavigator henüz mount olmadığı
-        // için (bkz. asağıdaki render) native splash'i burada kapatmazsak
-        // AgeGateScreen hiç görünmez, kullanıcı native splash'te takılı
-        // kalır (RootNavigator'ın kendi hideAsync çağrısı sadece
-        // 'resolved' durumunda mount olduğu için çalışmaz).
-        SplashScreen.hideAsync().catch(() => {});
-        setAgeGateStatus('needed');
-      }
-    });
+      })
+      .catch(() => {
+        clearTimeout(watchdog);
+        proceedAsNeeded();
+      });
+
     return () => {
       cancelled = true;
+      clearTimeout(watchdog);
     };
   }, []);
 
