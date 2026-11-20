@@ -94,9 +94,43 @@ export default function RootLayout() {
     // kadar donmuyor.
     const AGE_GATE_TIMEOUT_MS = 5000;
 
+    // 20 Kasım 2026 -- ACİL GEÇİCİ KİLL-SWITCH: AgeGateScreen'de bağımsız
+    // bir render hatası bulundu (başlık/açıklama/buton metni hiç
+    // görünmüyor, kullanıcı yılı nereye yazacağını göremiyor, buton boş
+    // alanla deve dışı kaldığı için "hiçbir şey olmuyor" hissi veriyor).
+    // Bu, TestFlight'ta yeni (daha önce hiç cevaplanmamış) bir kurulumda
+    // yakalandı -- ama canlı Android (build 22) ve iOS (build 29) da AYNI
+    // runtime'da (1.0.6) ve bu ekranı aynı şekilde HİÇ CEVAPLANMAMIŞ her
+    // kullanıcıya göstermeye çalışıyor, yani bu ekran canlıda da aynı
+    // şekilde bozuk olabilir. Kullanıcı talebiyle (20 Kasım 2026): sorun
+    // test ortamında düzgünce çözülene kadar yaş ekranı TAMAMEN
+    // DEVREDE DIŞI -- önceki (bu özellik eklenmeden önceki) davranışa
+    // dönülüyor: daha önce cevaplanmışsa o cevap kullanılmaya devam
+    // ediyor, hiç cevaplanmamışsa güvenli varsayılanla (isChild: false,
+    // normal/kişiselleştirilmiş reklam) sessizce devam ediliyor, kullanıcı
+    // hiçbir ekran görmüyor. Google Play'deki 9-12 yaş hedef kitlesi
+    // genişletmesi zaten ayrı bir nedenle BEKLEMEDE olduğu için bu geçiş
+    // herhangi bir aktif politika taahhüdünü bozmuyor. Düzeltme test
+    // ortamında doğrulandığında AGE_GATE_ENABLED tekrar true yapılacak --
+    // watchdog/timeout altyapısı DEĞİŞMEDEN korunuyor ki o zaman da askıda
+    // kalma riski olmasın.
+    const AGE_GATE_ENABLED = false;
+
+    const resolveWithDefault = () => {
+      if (!adsInitedRef.current) {
+        adsInitedRef.current = true;
+        initAds(false);
+      }
+      setAgeGateStatus('resolved');
+    };
+
     const proceedAsNeeded = () => {
       if (cancelled || settled) return;
       settled = true;
+      if (!AGE_GATE_ENABLED) {
+        resolveWithDefault();
+        return;
+      }
       // Yaş ekranı gösterilecek -- RootNavigator henüz mount olmadığı
       // için (bkz. asağıdaki render) native splash'i burada kapatmazsak
       // AgeGateScreen hiç görünmez, kullanıcı native splash'te takılı
@@ -119,6 +153,8 @@ export default function RootLayout() {
             initAds(answer.isChild);
           }
           setAgeGateStatus('resolved');
+        } else if (!AGE_GATE_ENABLED) {
+          resolveWithDefault();
         } else {
           SplashScreen.hideAsync().catch(() => {});
           setAgeGateStatus('needed');
