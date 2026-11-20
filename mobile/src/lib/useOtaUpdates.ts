@@ -25,35 +25,86 @@ import { useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import * as Updates from 'expo-updates';
 
+// 20 Kasim 2026 -- KOK NEDEN BULUNDU: Android'de "build sonrasi uygulama
+// hic acilmiyor" sikayeti. CI (eas-update.yml) her mobile/src push'unda
+// otomatik OTA yayinliyor; bu hook soguk acilista (ilk mount) HEMEN
+// checkForUpdateAsync -> fetchUpdateAsync -> reloadAsync zincirini
+// calistiriyordu. reloadAsync() TUM JS baglamini yeniden baslatiyor --
+// indirilen update manifest/bundle'i yarim/gecikmeli senkronize olmus
+// Play Store CDN'i yuzunden (yeni yuklenen native build + hemen ardindan
+// tetiklenen ilk OTA kontrolu arasindaki yaris durumu) ya da baska bir
+// geçici sorun yuzunden duzgun yuklenemezse, AppErrorBoundary'nin bile
+// yakalayamayacagi sekilde (eski React agaci zaten yikilmis) karanlik/bos
+// bir ekranda SONSUZA KADAR takili kaliniyor -- native splash capture'inda
+// gorulen "sadece bir skeleton/progress cubugu, hicbir zaman ilerlemiyor"
+// deseniyle birebir uyusuyor.
+//
+// Fix: soguk acilista SADECE indir (prefetch) -- reloadAsync YOK, mevcut
+// (zaten native build'e gomulu) bundle ile devam et; yeni surum bir
+// sonraki ön plana geliste (uygulama zaten bir kere basariyla acilip
+// calistiktan SONRA) uygulanir. Boylece en kotu ihtimalle kullanici "bir
+// adim gecikmis" JS gorur, ama uygulama ASLA acilista kilitlenmez.
+const RELOAD_TIMEOUT_MS = 8000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('ota-timeout')), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
 export function useOtaUpdates() {
   const appState = useRef<AppStateStatus>(AppState.currentState);
   const checking = useRef(false);
+  const hasRenderedOnce = useRef(false);
 
   useEffect(() => {
-    const checkAndApply = async () => {
+    const checkAndApply = async (allowReload: boolean) => {
       if (checking.current || !Updates.isEnabled) return;
       checking.current = true;
       try {
-        const result = await Updates.checkForUpdateAsync();
+        const result = await withTimeout(Updates.checkForUpdateAsync(), RELOAD_TIMEOUT_MS);
         if (result.isAvailable) {
-          await Updates.fetchUpdateAsync();
-          await Updates.reloadAsync();
+          await withTimeout(Updates.fetchUpdateAsync(), RELOAD_TIMEOUT_MS);
+          // Soguk acilista reloadAsync() KASITLI OLARAK cagrilmiyor (bkz.
+          // dosya basindaki 20 Kasim 2026 notu) -- indirilen bundle bir
+          // sonraki soguk acilista zaten otomatik olarak aktif olacak
+          // (expo-updates'in varsayilan davranisi), ayrica bu oturum
+          // icinde bir sonraki on-plana-gelişte de uygulanmaya calisilir.
+          if (allowReload) {
+            await withTimeout(Updates.reloadAsync(), RELOAD_TIMEOUT_MS);
+          }
         }
       } catch {
-        // Ag hatasi / gecici sunucu sorunu: sessizce yut, bir sonraki
-        // firsatta (ornegin bir sonraki on plana gelişte) tekrar denenecek.
-        // Kullanicinin oturumunu/akisini kesintiye ugratmamak onemli.
+        // Ag hatasi / gecici sunucu sorunu / zaman asimi: sessizce yut,
+        // bir sonraki firsatta tekrar denenecek. Kullanicinin oturumunu/
+        // akisini kesintiye ugratmamak onemli.
       } finally {
         checking.current = false;
       }
     };
 
-    // Ilk mount'ta da bir kere dene (uygulama yeni acildiginda).
-    checkAndApply();
+    // Ilk mount'ta da bir kere dene (uygulama yeni acildiginda) -- AMA
+    // sadece indir, reloadAsync YOK (bkz. yukaridaki not).
+    checkAndApply(false);
+    hasRenderedOnce.current = true;
 
     const subscription = AppState.addEventListener('change', (nextState) => {
-      if (appState.current.match(/inactive|background/) && nextState === 'active') {
-        checkAndApply();
+      if (appState.current.match(/inactive|background/) && nextState === 'active' && hasRenderedOnce.current) {
+        // Uygulama bu oturumda zaten en az bir kere basariyla render oldu
+        // -- artik reloadAsync() cagirmak soguk acilistaki kadar riskli
+        // degil (AppErrorBoundary + mevcut calisir durum bir fallback
+        // olarak duruyor), bu yuzden burada reload'a izin veriliyor.
+        checkAndApply(true);
       }
       appState.current = nextState;
     });
