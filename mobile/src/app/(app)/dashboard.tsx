@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2, MessagesSquare, NotebookPen, ScanText, Puzzle } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2, MessagesSquare, NotebookPen, ScanText } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import type { Locale } from '@/i18n/locales';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
@@ -650,17 +650,10 @@ export default function DashboardScreen() {
               bg={c.warningSoft}
               fg={c.warning}
             />
-            {/* "Çengel Bulmaca" (18 Kasım 2026 kullanıcı isteği): 200 sabit
-                seviyeli, kademeli zorluklu çengel bulmaca oyun modu. Diğer
-                kısayollarla AYNI desen -- kendi sekmesi yok, buradan açılıyor
-                (bkz. crossword.tsx, crossword-puzzle.tsx). */}
-            <ActionTile
-              icon={Puzzle}
-              label={locale === 'tr' ? 'Çengel Bulmaca' : 'Hook Crossword'}
-              onPress={() => router.push('/(app)/crossword')}
-              bg={c.successSoft}
-              fg={c.success}
-            />
+            {/* "Çengel Bulmaca" dashboard kısayolu 20 Kasım 2026'da
+                kaldırıldı (kullanıcı isteği): ayrı bir özellikmiş gibi
+                burada durmamalı, sadece Oyunlar sekmesindeki 11. mod
+                olarak kalmalı (bkz. game.tsx). */}
           </View>
         </View>
 
