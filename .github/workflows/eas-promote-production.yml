@@ -52,8 +52,8 @@ jobs:
 
       - name: Promote iOS group to production
         if: ${{ inputs.ios_group_id != '' }}
-        run: eas update:republish --group "${{ inputs.ios_group_id }}" --destination-branch production --non-interactive
+        run: eas update:republish --group "${{ inputs.ios_group_id }}" --destination-branch production -m "Promote staging->production (iOS group ${{ inputs.ios_group_id }})" --non-interactive
 
       - name: Promote Android group to production
         if: ${{ inputs.android_group_id != '' }}
-        run: eas update:republish --group "${{ inputs.android_group_id }}" --destination-branch production --non-interactive
+        run: eas update:republish --group "${{ inputs.android_group_id }}" --destination-branch production -m "Promote staging->production (Android group ${{ inputs.android_group_id }})" --non-interactive
