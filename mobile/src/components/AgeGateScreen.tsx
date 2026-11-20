@@ -10,7 +10,7 @@
 // büyük müsünüz?" gibi doğru cevabı ima eden bir ifade yerine doğum yılı
 // soruluyor.
 import React, { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, StyleSheet, Text, View } from 'react-native';
 import { useLocale } from '@/i18n';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { spacing } from '@/constants/theme';
@@ -62,39 +62,52 @@ export function AgeGateScreen({ onAnswered }: AgeGateScreenProps) {
     // kalıyordu (test cihazında gözlemlenen tam olarak buydu). Fix:
     // diğer tüm ekranlarla AYNI, kanıtlanmış deseni kullan --
     // `padded={false}`, kendi flex:1/padding'ini `wrap` zaten yönetiyor.
+    // 20 Kasım 2026 -- klavye sayfayı kaplama fix'i: bu ekranda
+    // KeyboardAvoidingView YOKTU, scroll={false} olduğu için iOS'ta
+    // numara klavyesi açıldığında içerik hiç yukarı kaymıyor, merkezde
+    // duran "Devam Et" butonu klavyenin arkasında kalıp erişilemez hale
+    // geliyordu (Android'de windowSoftInputMode zaten resize yaptığı için
+    // sorun yoktu). Fix: içeriği KeyboardAvoidingView (behavior: 'padding'
+    // sadece iOS'ta) ile sarmaladık.
     <ScreenContainer scroll={false} padded={false}>
-      <View style={styles.wrap}>
-        <Text style={styles.emoji}>🎂</Text>
-        <Text style={[styles.title, { color: c.text }]}>{mt('ageGateTitle')}</Text>
-        <Text style={[styles.desc, { color: c.textSecondary }]}>{mt('ageGateDesc')}</Text>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.wrap}>
+          <Text style={styles.emoji}>🎂</Text>
+          <Text style={[styles.title, { color: c.text }]}>{mt('ageGateTitle')}</Text>
+          <Text style={[styles.desc, { color: c.textSecondary }]}>{mt('ageGateDesc')}</Text>
 
-        <View style={{ width: '100%', marginTop: spacing.xl }}>
-          <TextField
-            label={mt('ageGateYearLabel')}
-            placeholder={mt('ageGateYearPlaceholder')}
-            keyboardType="number-pad"
-            maxLength={4}
-            value={year}
-            onChangeText={(v) => {
-              setYear(v.replace(/[^0-9]/g, ''));
-              setError(false);
-            }}
-            error={error ? mt('ageGateInvalidYear') : undefined}
-            onSubmitEditing={handleSubmit}
-          />
-          <Button
-            title={mt('continueBtn')}
-            onPress={handleSubmit}
-            loading={submitting}
-            disabled={year.length === 0}
-          />
+          <View style={{ width: '100%', marginTop: spacing.xl }}>
+            <TextField
+              label={mt('ageGateYearLabel')}
+              placeholder={mt('ageGateYearPlaceholder')}
+              keyboardType="number-pad"
+              maxLength={4}
+              value={year}
+              onChangeText={(v) => {
+                setYear(v.replace(/[^0-9]/g, ''));
+                setError(false);
+              }}
+              error={error ? mt('ageGateInvalidYear') : undefined}
+              onSubmitEditing={handleSubmit}
+            />
+            <Button
+              title={mt('continueBtn')}
+              onPress={handleSubmit}
+              loading={submitting}
+              disabled={year.length === 0}
+            />
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: spacing.xxl, paddingHorizontal: spacing.lg },
   emoji: { fontSize: 56, marginBottom: spacing.lg },
   title: { fontSize: 20, fontWeight: '700', textAlign: 'center' },
