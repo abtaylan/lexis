@@ -44,6 +44,16 @@ import * as Updates from 'expo-updates';
 // sonraki ön plana geliste (uygulama zaten bir kere basariyla acilip
 // calistiktan SONRA) uygulanir. Boylece en kotu ihtimalle kullanici "bir
 // adim gecikmis" JS gorur, ama uygulama ASLA acilista kilitlenmez.
+// 20 Kasim 2026 (ek not) -- bu dosyadaki fix ilk pushta YANLIS runtime'a
+// (1.0.7) yayinlandi: app.json o sirada zaten iOS icin 1.0.7'ye yukseltilmisti,
+// ama CANLI TEK Android native build'i (build 22) hala runtime 1.0.6 --
+// EAS Update sadece BIREBIR ayni runtime'a yayinlanmis update'i cihaza
+// gonderir, bu yuzden 1.0.6 Android cihazlar bu fix'i hic ALMADI (eas-update.
+// yml'deki 10 Eylul notuyla AYNI desen: iOS/Android runtime'lari birbirinden
+// kopup OTA'nin bir platforma ulasmamasi). Bu commit, app.json'u GECICI olarak
+// 1.0.6'ya dondurup (bir sonraki commit'te tekrar 1.0.7'ye alinacak) bu
+// dosyayi (zaten pushlanmis fix icerigiyle) dogru runtime'a yeniden
+// yayinlamak icin.
 const RELOAD_TIMEOUT_MS = 8000;
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
