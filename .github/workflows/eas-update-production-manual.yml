@@ -1,0 +1,82 @@
+name: EAS OTA Update (production, elle - eski runtime)
+
+# 20 Kasim 2026 -- NEDEN BU WORKFLOW VAR: "EAS Promote staging -> production"
+# (eas-promote-production.yml) `eas update:republish` kullanir ve bu komut
+# KAYNAK grubun runtimeVersion'ini DEGISTIREMEZ -- yani staging'de test
+# edilen bir JS duzeltmesi staging runtime'inda (su an 1.0.8) yayinlanmissa,
+# production'a "promote" edilse bile YINE 1.0.8 olarak yayinlanir.
+#
+# Ama production'daki CANLI native build'ler henuz 1.0.8'e yukseltilmedi
+# (20 Kasim 2026 itibariyla: App Store'da canli surum 1.0.7, Play Store
+# Uretim kanalinda canli surum 1.0.6 -- staging sadece Apple'in ayni
+# versiyonu iki kere kabul etmemesi yuzunden 1.0.8'e atlamisti). EAS Update
+# bir OTA guncellemesini SADECE cihazin native build'indeki runtimeVersion
+# ile TAM ESLESIRSE gosterir -- yani normal "promote" workflow'u bu durumda
+# production kullanicilarina HICBIR SEY ULASTIRMAZ (bkz. LEXIS_DEVIR_2026-09-10.md
+# "10 Eylul 2026" notu -- ayni runtime uyusmazligi sorunu).
+#
+# Bu workflow, app.json'daki "version" alanini SADECE bu CI calismasi
+# icinde (repoya commit ETMEDEN) verilen runtime_version'a gecici olarak
+# degistirip, dogrudan "production" branch'ine o runtime icin yayinlar.
+# Boylece canli (henuz yeni native build almamis) kullanicilara da ayni
+# JS duzeltmesi ulasir. SADECE staging ile production native runtime'lari
+# birbirinden FARKLI oldugunda kullanilir -- normal akis hala once staging,
+# sonra (runtime'lar ESLESTIGINDE) eas-promote-production.yml'dir.
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: "Platform"
+        required: true
+        type: choice
+        options: [ios, android]
+      runtime_version:
+        description: "Production'daki CANLI native build'in runtimeVersion'i (orn. iOS icin 1.0.7, Android icin 1.0.6) -- app.json'daki version alaniyla AYNI formatta"
+        required: true
+        type: string
+      message:
+        description: "Update mesaji (EAS dashboard'unda gorunur)"
+        required: true
+        type: string
+
+jobs:
+  update:
+    name: Publish OTA update (production, runtime override)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: mobile/package-lock.json
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - run: npm ci
+
+      - name: Override app.json version for this run only (not committed)
+        env:
+          RUNTIME_VERSION: ${{ inputs.runtime_version }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = "app.json";
+            const j = JSON.parse(fs.readFileSync(p, "utf8"));
+            j.expo.version = process.env.RUNTIME_VERSION;
+            fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
+          '
+          grep '"version"' app.json
+
+      - name: Publish EAS update (production, overridden runtime)
+        env:
+          MSG: ${{ inputs.message }}
+        run: |
+          eas update --branch production --platform ${{ inputs.platform }} --message "$MSG" --non-interactive
