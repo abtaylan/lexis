@@ -39,6 +39,11 @@ export type Strings = {
   quizTpl: string;
   quizDone: string;
   quizCta: string;
+  // 23 Kasım 2026 -- "Haftalık Toplu Pratik"
+  bulkTitle: string;
+  bulkTpl: string;
+  bulkAllDoneTpl: string;
+  bulkCta: string;
 };
 
 export const STRINGS: Partial<Record<Locale, Strings>> = {
@@ -63,6 +68,10 @@ export const STRINGS: Partial<Record<Locale, Strings>> = {
     quizTpl: '{done}/{target} soru cevaplandı',
     quizDone: 'Bu haftanın quizi tamamlandı',
     quizCta: 'Başla',
+    bulkTitle: 'Haftalık toplu pratik',
+    bulkTpl: '{count} konudan geniş bir soru seti',
+    bulkAllDoneTpl: 'Konuları bitirdin — {count} konudan toplu pratik zamanı!',
+    bulkCta: 'Başla',
   },
   en: {
     title: "This Week's Plan",
@@ -85,6 +94,10 @@ export const STRINGS: Partial<Record<Locale, Strings>> = {
     quizTpl: '{done}/{target} questions answered',
     quizDone: "This week's quiz is done",
     quizCta: 'Start',
+    bulkTitle: 'Weekly bulk practice',
+    bulkTpl: 'A large question set from {count} topics',
+    bulkAllDoneTpl: "You've finished your topics — time for bulk practice on {count} topics!",
+    bulkCta: 'Start',
   },
 };
 
@@ -149,6 +162,7 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
   if (!program.available || program.focus_topics.length === 0) return null;
   const today = program.today;
   const quiz = program.weekend_quiz;
+  const bulk = program.bulk_practice;
 
   return (
     <Card style={{ marginTop: spacing.sm }}>
@@ -229,6 +243,26 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
               <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{s.quizCta}</Text>
             </Pressable>
           )}
+        </View>
+      )}
+
+      {/* 23 Kasım 2026 -- "Haftalık Toplu Pratik" (Behçet'in kullanıcı
+          isteği): weekend_quiz'den farklı olarak hafta sonunu beklemez,
+          odak konular belirlenir belirlenmez kullanılabilir. */}
+      {!!bulk && bulk.available && (
+        <View style={[styles.quizRow, { borderColor: c.border }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: c.text }}>{s.bulkTitle}</Text>
+            <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
+              {fill(bulk.all_topics_done ? s.bulkAllDoneTpl : s.bulkTpl, { count: bulk.topic_count })}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => router.push({ pathname: '/(app)/exam-topic-practice', params: { topic_tag: 'weekly-bulk-practice' } })}
+            style={[styles.quizCta, { backgroundColor: bulk.all_topics_done ? c.primary : c.textMuted }]}
+          >
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{s.bulkCta}</Text>
+          </Pressable>
         </View>
       )}
     </Card>

@@ -134,8 +134,26 @@ export default function ExamTopicPracticePage() {
     return s
       .trim()
       .toLocaleLowerCase()
-      .replace(/[.,!?;:"'’‘“”()]/g, '')
-      .replace(/\s+/g, ' ');
+      .replace(/[-–—]/g, ' ')
+      // 23 Kasım 2026 -- sadece nokta/virgül değil, tırnak, parantez,
+      // köşeli/süslü parantez, üç nokta ve eğik çizgi gibi diğer noktalama
+      // farkları da doğru cevabı yanlış saymasın.
+      .replace(/[.,!?;:"'’‘“”()[\]{}…/\\]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  // 23 Kasım 2026 -- word_hints içinde kopya/tekrar ifadeleri filtreler.
+  function dedupeWordHints<T extends { phrase: string }>(hints: T[]): T[] {
+    const seen = new Set<string>();
+    const result: T[] = [];
+    for (const hint of hints) {
+      const key = hint.phrase.trim().toLocaleLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(hint);
+    }
+    return result;
   }
 
   function handleCheckTranslation() {
@@ -235,9 +253,9 @@ export default function ExamTopicPracticePage() {
             <p className="text-base font-semibold text-gray-800 dark:text-slate-200 leading-relaxed">
               {currentTranslation.prompt_sentence}
             </p>
-            {currentTranslation.word_hints.length > 0 && (
+            {dedupeWordHints(currentTranslation.word_hints).length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
-                {currentTranslation.word_hints.map((hint, i) => (
+                {dedupeWordHints(currentTranslation.word_hints).map((hint, i) => (
                   <span
                     key={i}
                     className="text-xs bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 rounded-lg px-2 py-1"

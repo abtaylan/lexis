@@ -856,11 +856,26 @@ export interface TopicTranslationQuestionItem {
   topic_tag: string;
 }
 
+// "Sınav Taktikleri" (23 Kasım 2026, Behçet'in kullanıcı isteği) --
+// backend ExamTacticItem ile birebir aynı. topic_tag dolu ise gerçek bir
+// gramer konusuna bağlıdır (pratik ekranına yönlendirilir); boş ise bir
+// soru TİPİNE (çeviri/cümle tamamlama/paragraf tamamlama) ait genel bir
+// stratejidir, salt okunur gösterilir.
+export interface ExamTacticItem {
+  id: string;
+  topic_tag: string | null;
+  title_tr: string;
+  tactic_tr: string;
+  worked_example_tr: string | null;
+  related_grammar_topic?: RelatedGrammarTopic | null;
+}
+
 export interface ExamPracticeQuestionsResult {
   topic_tag: string;
   related_grammar_topic?: RelatedGrammarTopic | null;
   questions: ExamPracticeQuestionItem[];
   translation_questions: TopicTranslationQuestionItem[];
+  tactic?: ExamTacticItem | null;
 }
 
 export interface WeakTopicItem {
@@ -1304,6 +1319,8 @@ export interface StudyProgram {
   focus_topics: StudyProgramTopic[];
   today?: { new_words_today: number; new_word_goal: number; reviews_due: number } | null;
   weekend_quiz?: { available: boolean; answered_count: number; target_count: number; done: boolean } | null;
+  // 23 Kasım 2026 -- "Haftalık Toplu Pratik" (bkz. backend StudyProgramBulkPractice)
+  bulk_practice?: { available: boolean; topic_count: number; all_topics_done: boolean } | null;
   completed_topics: number;
 }
 

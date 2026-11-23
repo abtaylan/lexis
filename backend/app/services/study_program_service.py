@@ -52,6 +52,15 @@ TOPIC_TARGET_ATTEMPTS = 5
 TOPIC_DONE_ACCURACY = 0.60
 WEEKEND_QUIZ_SIZE = 10
 QUIZ_QUESTIONS_PER_TOPIC = 3
+# 23 Kasim 2026 -- Behcet'in kullanici istegi: "her hafta calistigimiz
+# konular bitince o konularla ilgili toplu soru cozmemiz lazim ...
+# mevcuttan daha fazla" -- weekend_quiz'den (10 soru, hafta SONUNA
+# kilitli) AYRI, haftanin HER GUNU kullanilabilen, cok daha genis bir
+# pratik turu. weekend_quiz'in davranisina DOKUNULMADI.
+BULK_PRACTICE_SIZE = 30
+BULK_PRACTICE_PER_TOPIC = 8
+BULK_TRANSLATION_SIZE = 10
+BULK_TRANSLATION_PER_TOPIC = 3
 DEFAULT_LEVEL = "a2"
 
 
@@ -420,6 +429,16 @@ def build_progress(user_id: str, learning_lang: str, program: dict[str, Any]) ->
             "target_count": WEEKEND_QUIZ_SIZE,
             "done": quiz_answered >= WEEKEND_QUIZ_SIZE,
         },
+        # 23 Kasim 2026 -- "Haftalik Toplu Pratik": weekend_quiz'den farkli
+        # olarak hafta sonunu beklemez, odak konular belirlenir belirlenmez
+        # kullanilabilir; all_topics_done sadece mobil tarafta "simdi tam
+        # zamani" vurgusu icin (bkz. StudyProgramBulkPractice), erisimi
+        # KISITLAMAZ.
+        "bulk_practice": {
+            "available": len(topics) > 0,
+            "topic_count": len(topics),
+            "all_topics_done": len(topics) > 0 and completed >= len(topics),
+        },
     }
 
 
@@ -447,3 +466,69 @@ def weekly_quiz_questions(learning_lang: str, focus_tags: list[str]) -> list[dic
         picked.extend(pool[:QUIZ_QUESTIONS_PER_TOPIC])
     random.shuffle(picked)
     return picked[:WEEKEND_QUIZ_SIZE]
+
+
+def weekly_bulk_practice_questions(learning_lang: str, focus_tags: list[str]) -> list[dict[str, Any]]:
+    """"Haftalik Toplu Pratik" (23 Kasim 2026) -- weekly_quiz_questions ile
+    AYNI havuzdan (exam_questions) ama konu basina ve toplamda cok daha
+    genis bir secim yapar (bkz. BULK_PRACTICE_PER_TOPIC/BULK_PRACTICE_SIZE).
+    weekly_quiz_questions'a hic DOKUNULMADI, bu TAMAMEN AYRI bir fonksiyon."""
+    if not focus_tags:
+        return []
+    rows = (
+        supabase_admin.table("exam_questions")
+        .select("id, exam_type, question_text, options, correct_option, explanation, topic_tag")
+        .eq("learning_lang", learning_lang)
+        .eq("is_active", True)
+        .eq("status", "approved")
+        .in_("topic_tag", focus_tags)
+        .limit(1000)
+        .execute()
+        .data
+    ) or []
+    by_tag: dict[str, list[dict[str, Any]]] = {}
+    for r in rows:
+        by_tag.setdefault(r["topic_tag"], []).append(r)
+    picked: list[dict[str, Any]] = []
+    for tag in focus_tags:
+        pool = by_tag.get(tag, [])
+        random.shuffle(pool)
+        picked.extend(pool[:BULK_PRACTICE_PER_TOPIC])
+    random.shuffle(picked)
+    return picked[:BULK_PRACTICE_SIZE]
+
+
+def weekly_bulk_translation_questions(focus_tags: list[str]) -> list[dict[str, Any]]:
+    """Haftalik Toplu Pratik'in ceviri fazi -- topic_translation_questions'tan
+    odak konularin HEPSINDEN birer grup alir, exams.py::practice_questions_by_topic
+    ile AYNI kolaydan-zora siralamasini (model_number, sonra CEFR_LEVEL_ORDER)
+    uygular."""
+    if not focus_tags:
+        return []
+    rows = (
+        supabase_admin.table("topic_translation_questions")
+        .select(
+            "id, model_number, level, question_type, grammar_note, "
+            "native_sentence, target_sentence, acceptable_answers, word_hints, topic_tag"
+        )
+        .in_("topic_tag", focus_tags)
+        .eq("status", "published")
+        .execute()
+        .data
+    ) or []
+    by_tag: dict[str, list[dict[str, Any]]] = {}
+    for r in rows:
+        by_tag.setdefault(r["topic_tag"], []).append(r)
+    picked: list[dict[str, Any]] = []
+    for tag in focus_tags:
+        pool = by_tag.get(tag, [])
+        random.shuffle(pool)
+        picked.extend(pool[:BULK_TRANSLATION_PER_TOPIC])
+    random.shuffle(picked)
+    picked.sort(
+        key=lambda row: (
+            row.get("model_number") or 1,
+            CEFR_LEVEL_ORDER.index(row["level"]) if row.get("level") in CEFR_LEVEL_ORDER else len(CEFR_LEVEL_ORDER),
+        )
+    )
+    return picked[:BULK_TRANSLATION_SIZE]

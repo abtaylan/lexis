@@ -6,6 +6,7 @@ import type {
   ExamFinishResult,
   ExamPracticeQuestionsResult,
   ExamQuestionSuggestionInput,
+  ExamTacticItem,
   ExamQuestionSuggestionResult,
   QuestionReportInput,
   QuestionReportResult,
@@ -21,6 +22,11 @@ import type {
 export const examsApi = {
   listExamTypes: async (): Promise<ExamTypeInfo[]> => {
     const res = await api.get<ExamTypeInfo[]>('/exams/exam-types');
+    return res.data;
+  },
+  // "Sınav Taktikleri" (23 Kasım 2026) -- liste ekranı için tüm taktikler.
+  listTactics: async (): Promise<ExamTacticItem[]> => {
+    const res = await api.get<ExamTacticItem[]>('/exams/tactics');
     return res.data;
   },
   createSession: async (

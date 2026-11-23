@@ -47,6 +47,7 @@ from app.schemas.exams import (
     ExamPracticeQuestionItem,
     ExamPracticeQuestionsResult,
     ExamQuestionModerationResponse,
+    ExamTacticItem,
     ExamQuestionOption,
     ExamQuestionSuggestionCreate,
     ExamQuestionSuggestionResponse,
@@ -1654,8 +1655,38 @@ async def practice_questions_by_topic(
         .execute()
         .data
     ) or []
+    # 23 Kasım 2026 -- Behçet'in isteği: çeviri cümleleri artık TAMAMEN
+    # rastgele değil, KOLAYDAN ZORA ilerliyor -- önce model_number=1
+    # (grammar_note'lu/ipuçlu, daha kolay), sonra model_number=2 (ipuçsuz,
+    # daha zor); her model_number grubu içinde de CEFR_LEVEL_ORDER'a göre
+    # (a1->c1) artan sırada. Aynı (model_number, level) grubu içindeki
+    # çeşitlilik için grup içi sıralama hâlâ rastgele karıştırılıyor.
     random.shuffle(translation_candidates)
+    translation_candidates.sort(
+        key=lambda row: (
+            row.get("model_number") or 1,
+            CEFR_LEVEL_ORDER.index(row["level"]) if row.get("level") in CEFR_LEVEL_ORDER else len(CEFR_LEVEL_ORDER),
+        )
+    )
     translation_rows = translation_candidates[:translation_limit]
+
+    # 23 Kasım 2026 -- "Sınav Taktikleri": bu konu için exam_tactics'te bir
+    # satır varsa (bkz. ExamTacticItem), soru havuzunun ÜSTÜNDE banner
+    # olarak gösterilmek üzere birlikte döndürülür -- ayrı bir uç/ekran
+    # gerekmez, mevcut pratik akışı zenginleştirilir.
+    tactic_row = (
+        supabase_admin.table("exam_tactics")
+        .select("id, topic_tag, title_tr, tactic_tr, worked_example_tr")
+        .eq("topic_tag", topic_tag)
+        .limit(1)
+        .execute()
+        .data
+    )
+    tactic = (
+        ExamTacticItem(**tactic_row[0], related_grammar_topic=related_grammar_topic)
+        if tactic_row
+        else None
+    )
 
     return ExamPracticeQuestionsResult(
         topic_tag=topic_tag,
@@ -1675,6 +1706,7 @@ async def practice_questions_by_topic(
         translation_questions=[
             _translation_question_item(row, topic_tag) for row in translation_rows
         ],
+        tactic=tactic,
     )
 
 
@@ -1717,6 +1749,43 @@ async def log_topic_translation_attempt(
     }
     supabase_admin.table("topic_translation_attempts").insert(row).execute()
     return {"message": "Kaydedildi"}
+
+
+@router.get("/tactics", response_model=list[ExamTacticItem])
+async def list_exam_tactics(current_user=Depends(get_current_user)):
+    """"Sınav Taktikleri" bölümünün liste ekranı (23 Kasım 2026, bkz.
+    097_exam_tactics.sql). topic_tag dolu olan satırlar gerçek bir gramer
+    konusuna bağlıdır (mobil/web bu satırlar için pratik ekranına,
+    /exams/topics/{topic_tag}/practice-questions'a yönlendirir -- bkz.
+    ExamPracticeQuestionsResult.tactic, AYNI satır orada da banner olarak
+    gösterilir); topic_tag boş olanlar soru TİPİNE ait genel stratejilerdir
+    (çeviri/cümle tamamlama/paragraf tamamlama), pratik havuzu yoktur,
+    sadece okunur. _exam_area_enabled ile AYNI kapıyı paylaşır."""
+    if not _exam_area_enabled(current_user.id):
+        raise HTTPException(
+            status_code=403,
+            detail="Sınav Hazırlık Alanı şu an sadece İngilizce öğrenen kullanıcılar için kullanılabilir.",
+        )
+    rows = (
+        supabase_admin.table("exam_tactics")
+        .select("id, topic_tag, title_tr, tactic_tr, worked_example_tr, sort_order")
+        .order("sort_order")
+        .execute()
+        .data
+    ) or []
+    topic_tags = [r["topic_tag"] for r in rows if r.get("topic_tag")]
+    topics_by_tag = _grammar_topics_for_tags(topic_tags)
+    return [
+        ExamTacticItem(
+            id=r["id"],
+            topic_tag=r["topic_tag"],
+            title_tr=r["title_tr"],
+            tactic_tr=r["tactic_tr"],
+            worked_example_tr=r.get("worked_example_tr"),
+            related_grammar_topic=topics_by_tag.get(r["topic_tag"]) if r.get("topic_tag") else None,
+        )
+        for r in rows
+    ]
 
 
 # ── Madde #3c: haftalık/günlük zayıf konu özeti ────────────────────────

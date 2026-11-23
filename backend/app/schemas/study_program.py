@@ -39,6 +39,16 @@ class StudyProgramWeekendQuiz(BaseModel):
     done: bool
 
 
+# 23 Kasim 2026 -- "Haftalik Toplu Pratik" (Behcet'in kullanici istegi):
+# weekend_quiz'den AYRI, haftanin her gunu kullanilabilen, cok daha genis
+# bir soru cozumu turu. all_topics_done erisimi kisitlamaz, sadece mobil
+# tarafta "simdi tam zamani" vurgusu icindir.
+class StudyProgramBulkPractice(BaseModel):
+    available: bool
+    topic_count: int
+    all_topics_done: bool
+
+
 class StudyProgramResponse(BaseModel):
     available: bool
     learning_lang: str
@@ -47,4 +57,5 @@ class StudyProgramResponse(BaseModel):
     focus_topics: list[StudyProgramTopic] = []
     today: StudyProgramToday | None = None
     weekend_quiz: StudyProgramWeekendQuiz | None = None
+    bulk_practice: StudyProgramBulkPractice | None = None
     completed_topics: int = 0

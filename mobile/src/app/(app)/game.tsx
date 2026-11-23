@@ -81,8 +81,27 @@ function normalizeSentenceAnswer(s: string): string {
   return s
     .trim()
     .toLocaleLowerCase()
-    .replace(/[.,!?;:"'’‘“”()]/g, '')
-    .replace(/\s+/g, ' ');
+    .replace(/[-–—]/g, ' ')
+    // 23 Kasım 2026 -- Behçet'in isteği: sadece nokta/virgül değil, tırnak,
+    // parantez, köşeli/süslü parantez, üç nokta ve eğik çizgi gibi diğer
+    // noktalama farkları da doğru cevabı yanlış saymasın.
+    .replace(/[.,!?;:"'’‘“”()[\]{}…/\\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// 23 Kasım 2026 -- word_hints içinde kopya/tekrar ifadeleri filtreler
+// (bkz. exam-topic-practice.tsx'teki aynı isimli yardımcı).
+function dedupeWordHints<T extends { phrase: string }>(hints: T[]): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const hint of hints) {
+    const key = hint.phrase.trim().toLocaleLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(hint);
+  }
+  return result;
 }
 
 // Boşluk Doldurma (28 Eylül 2026) -- örnek cümledeki hedef kelimeyi boşluğa
@@ -1888,9 +1907,9 @@ export default function GameScreen() {
             <Text style={{ color: c.text, fontSize: 18, fontWeight: '700', textAlign: 'center', lineHeight: 24 }}>
               {current.prompt_sentence}
             </Text>
-            {current.word_hints && current.word_hints.length > 0 && (
+            {current.word_hints && dedupeWordHints(current.word_hints).length > 0 && (
               <View style={{ marginTop: spacing.sm, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 }}>
-                {current.word_hints.map((hint, i) => (
+                {dedupeWordHints(current.word_hints).map((hint, i) => (
                   <View key={i} style={{ backgroundColor: c.border, borderRadius: radius.sm, paddingVertical: 4, paddingHorizontal: 8 }}>
                     <Text style={{ color: c.textMuted, fontSize: 12 }}>
                       {hint.phrase} <Text style={{ color: c.textMuted }}>— {hint.translation}</Text>

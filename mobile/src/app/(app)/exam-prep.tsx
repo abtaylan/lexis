@@ -283,6 +283,12 @@ export default function ExamPrepScreen() {
             <Text style={{ color: c.primary, fontWeight: '600', fontSize: 14 }}>{et.grammarEntryLabel}</Text>
           </Pressable>
         </Link>
+        {/* 23 Kasım 2026 -- "Sınav Taktikleri" (Behçet'in kullanıcı isteği) */}
+        <Link href="/exam-tactics" asChild>
+          <Pressable style={{ marginTop: spacing.md, alignSelf: 'center' }}>
+            <Text style={{ color: c.primary, fontWeight: '600', fontSize: 14 }}>{et.examTacticsEntryLabel}</Text>
+          </Pressable>
+        </Link>
         <Link href="/exam-suggest" asChild>
           <Pressable style={{ marginTop: spacing.lg, alignSelf: 'center' }}>
             <Text style={{ color: c.primary, fontWeight: '600', fontSize: 14 }}>{et.suggestEntryLabel}</Text>

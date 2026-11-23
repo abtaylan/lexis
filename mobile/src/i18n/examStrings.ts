@@ -93,6 +93,11 @@ export type ExamStrings = {
   topicPracticeSubtitle: string;
   weeklyQuizTitle: string;
   weeklyQuizSubtitle: string;
+  // 23 Kasım 2026 -- "Haftalık Toplu Pratik"
+  bulkPracticeTitle: string;
+  bulkPracticeSubtitle: string;
+  bulkPracticeEntryLabel: string;
+  bulkPracticeAllDoneHintLabel: string;
   topicPracticeDoneTitle: string;
   weakTopicsTitle: string;
   weakTopicsSubtitle: string;
@@ -114,6 +119,18 @@ export type ExamStrings = {
   modelAnswerLabel: string;
   translationCorrectLabel: string;
   translationWrongLabel: string;
+  // 23 Kasım 2026 -- çeviri kartında cümle zorluk bilgisi (level + model_number)
+  difficultyLevelLabel: string;
+  difficultyScaffoldedLabel: string;
+  difficultyFreeLabel: string;
+  // 23 Kasım 2026 -- "Sınav Taktikleri" banner'ı
+  tacticExampleLabel: string;
+  examTacticsEntryLabel: string;
+  examTacticsPageTitle: string;
+  examTacticsPageSubtitle: string;
+  examTacticsGeneralGroupLabel: string;
+  examTacticsTopicGroupLabel: string;
+  examTacticsPracticeBtn: string;
 };
 
 export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
@@ -200,6 +217,10 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     topicPracticeSubtitle: 'Bu konudan birkaç soru daha — XP verilmez, sadece pekiştirme içindir.',
     weeklyQuizTitle: 'Hafta Sonu Quizi',
     weeklyQuizSubtitle: 'Bu haftanın odak konularından karışık sorular.',
+    bulkPracticeTitle: 'Haftalık Toplu Pratik',
+    bulkPracticeSubtitle: 'Bu haftanın tüm odak konularından geniş kapsamlı bir soru seti -- taktikleri uygulama zamanı.',
+    bulkPracticeEntryLabel: 'Haftalık Toplu Pratik',
+    bulkPracticeAllDoneHintLabel: 'Bu haftanın konularını bitirdin — toplu pratik için tam zamanı!',
     topicPracticeDoneTitle: 'Bu tur tamamlandı!',
     weakTopicsTitle: 'Zayıf Konuların',
     weakTopicsSubtitle: 'Son dönemde en çok yanlış yaptığın konular',
@@ -217,6 +238,16 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     modelAnswerLabel: 'Model Cevap',
     translationCorrectLabel: 'Doğru!',
     translationWrongLabel: 'Yanlış',
+    difficultyLevelLabel: 'Seviye',
+    difficultyScaffoldedLabel: 'İpuçlu (kolay)',
+    difficultyFreeLabel: 'İpuçsuz (zor)',
+    tacticExampleLabel: 'Örnek',
+    examTacticsEntryLabel: 'Sınav Taktikleri',
+    examTacticsPageTitle: 'Sınav Taktikleri',
+    examTacticsPageSubtitle: 'YDS/YÖKDİL sorularını gramer veya kelime bilgisi olmadan da hızlıca çözmeni sağlayan pratik taktikler.',
+    examTacticsGeneralGroupLabel: 'Genel Stratejiler',
+    examTacticsTopicGroupLabel: 'Konu Bazlı Taktikler',
+    examTacticsPracticeBtn: 'Taktikle Pratik Yap',
   },
   en: {
     entryLabel: 'Exam Prep',
@@ -301,6 +332,10 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     topicPracticeSubtitle: 'A few more questions on this topic — no XP, just reinforcement.',
     weeklyQuizTitle: 'Weekend Quiz',
     weeklyQuizSubtitle: "Mixed questions from this week's focus topics.",
+    bulkPracticeTitle: 'Weekly Bulk Practice',
+    bulkPracticeSubtitle: "A large question set covering all of this week's focus topics -- time to apply the tactics.",
+    bulkPracticeEntryLabel: 'Weekly Bulk Practice',
+    bulkPracticeAllDoneHintLabel: "You've finished this week's topics — perfect time for bulk practice!",
     topicPracticeDoneTitle: 'Round complete!',
     weakTopicsTitle: 'Your Weak Topics',
     weakTopicsSubtitle: 'Topics you have missed most recently',
@@ -318,5 +353,15 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     modelAnswerLabel: 'Model Answer',
     translationCorrectLabel: 'Correct!',
     translationWrongLabel: 'Wrong',
+    difficultyLevelLabel: 'Level',
+    difficultyScaffoldedLabel: 'With hints (easy)',
+    difficultyFreeLabel: 'Without hints (hard)',
+    tacticExampleLabel: 'Example',
+    examTacticsEntryLabel: 'Exam Tactics',
+    examTacticsPageTitle: 'Exam Tactics',
+    examTacticsPageSubtitle: 'Practical tactics to solve YDS/YÖKDİL questions quickly, even without full grammar or vocabulary knowledge.',
+    examTacticsGeneralGroupLabel: 'General Strategies',
+    examTacticsTopicGroupLabel: 'Topic-Based Tactics',
+    examTacticsPracticeBtn: 'Practice With This Tactic',
   },
 };

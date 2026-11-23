@@ -331,6 +331,25 @@ class TopicTranslationAttemptCreate(BaseModel):
     is_correct: bool
 
 
+class ExamTacticItem(BaseModel):
+    """"Sınav Taktikleri" (23 Kasım 2026, Behçet'in kullanıcı isteği --
+    "YDS ve YÖKDİL'de sorular ... sınav taktikleri ile çözülebiliyor,
+    bu taktikleri çalıştığımız konuların bölümlerine eklememiz lazım").
+    exam_tactics tablosundan gelir (bkz. 097_exam_tactics.sql). topic_tag
+    DOLU ise bir GERÇEK gramer konusuna (grammar_topics.slug) bağlıdır ve
+    o konunun pratik ekranında (ExamPracticeQuestionsResult.tactic) banner
+    olarak gösterilir; topic_tag BOŞ ise bir SORU TİPİNE (çeviri, cümle
+    tamamlama, paragraf tamamlama...) ait genel bir stratejidir, "Sınav
+    Taktikleri" listesinde ayrı bir grupta salt okunur gösterilir."""
+
+    id: str
+    topic_tag: str | None
+    title_tr: str
+    tactic_tr: str
+    worked_example_tr: str | None
+    related_grammar_topic: RelatedGrammarTopic | None = None
+
+
 class ExamPracticeQuestionsResult(BaseModel):
     """GET /exams/topics/{topic_tag}/practice-questions cevabı — madde #3b.
     Bağımsız, oturumsuz mini pratik seti: XP verilmez, exam_sessions/
@@ -354,6 +373,10 @@ class ExamPracticeQuestionsResult(BaseModel):
     related_grammar_topic: RelatedGrammarTopic | None = None
     questions: list[ExamPracticeQuestionItem]
     translation_questions: list[TopicTranslationQuestionItem] = []
+    # 23 Kasım 2026 -- bu topic_tag icin exam_tactics'te bir satir varsa
+    # (bkz. ExamTacticItem), pratik ekraninda soru havuzunun USTUNDE
+    # taktik banner'i olarak gosterilir.
+    tactic: ExamTacticItem | None = None
 
 
 class TopicPracticeAttemptCreate(BaseModel):

@@ -1805,8 +1805,26 @@ export default function GamePage() {
     s
       .trim()
       .toLocaleLowerCase()
-      .replace(/[.,!?;:"'’‘“”()]/g, '')
-      .replace(/\s+/g, ' ');
+      .replace(/[-–—]/g, ' ')
+      // 23 Kasım 2026 -- sadece nokta/virgül değil, tırnak, parantez,
+      // köşeli/süslü parantez, üç nokta ve eğik çizgi gibi diğer noktalama
+      // farkları da doğru cevabı yanlış saymasın.
+      .replace(/[.,!?;:"'’‘“”()[\]{}…/\\]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  // 23 Kasım 2026 -- word_hints içinde kopya/tekrar ifadeleri filtreler.
+  const dedupeWordHints = <T extends { phrase: string }>(hints: T[]): T[] => {
+    const seen = new Set<string>();
+    const result: T[] = [];
+    for (const hint of hints) {
+      const key = hint.phrase.trim().toLocaleLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push(hint);
+    }
+    return result;
+  };
 
   const handleGrammarSentenceSubmit = async () => {
     if (grammarSentenceResult || !current || !sessionId || !grammarSentenceInput.trim()) return;
@@ -3257,9 +3275,9 @@ export default function GamePage() {
             <p className="text-lg font-semibold text-gray-900 dark:text-slate-100 leading-relaxed">
               {current.prompt_sentence}
             </p>
-            {current.word_hints && current.word_hints.length > 0 && (
+            {current.word_hints && dedupeWordHints(current.word_hints).length > 0 && (
               <div className="mt-4 flex flex-wrap justify-center gap-1.5">
-                {current.word_hints.map((hint, i) => (
+                {dedupeWordHints(current.word_hints).map((hint, i) => (
                   <span
                     key={i}
                     className="text-xs bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 rounded-lg px-2 py-1"

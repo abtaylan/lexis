@@ -17,7 +17,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Flag, XCircle } from 'lucide-react-native';
+import { CheckCircle2, Flag, Lightbulb, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { examsApi } from '@/api/exams';
 import { studyProgramApi } from '@/api/studyProgram';
@@ -32,6 +32,9 @@ import { TextField } from '@/components/ui/TextField';
 import { ReportQuestionModal } from '@/components/ReportQuestionModal';
 
 const WEEKLY_QUIZ_TAG = 'weekly-quiz';
+// 23 Kasım 2026 -- "Haftalık Toplu Pratik" (backend BULK_PRACTICE_TAG ile
+// AYNI değer) -- WEEKLY_QUIZ_TAG ile AYNI desen, AYRI bir sanal topic_tag.
+const BULK_PRACTICE_TAG = 'weekly-bulk-practice';
 
 // Cümle karşılaştırması: büyük/küçük harf, noktalama ve fazladan boşluk
 // farkları yüzünden doğru cevabı yanlış saymasın (kutudan seçim değil,
@@ -41,8 +44,29 @@ function normalizeSentence(s: string): string {
   return s
     .trim()
     .toLocaleLowerCase()
-    .replace(/[.,!?;:"'’‘“”()]/g, '')
-    .replace(/\s+/g, ' ');
+    // tire/çizgi farkını (well-known vs well known) boşluğa çevirip tolere et
+    .replace(/[-–—]/g, ' ')
+    // 23 Kasım 2026 -- Behçet'in isteği: sadece nokta/virgül değil, tırnak,
+    // parantez, köşeli/süslü parantez, üç nokta ve eğik çizgi gibi diğer
+    // noktalama farkları da doğru cevabı yanlış saymasın.
+    .replace(/[.,!?;:"'’‘“”()[\]{}…/\\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// 23 Kasım 2026 -- Behçet'in isteği: word_hints içinde aynı ifadenin
+// (büyük/küçük harf ve boşluk farkı gözetmeksizin) birden fazla kez
+// görünmesini (kopya/tekrar kelime) engeller.
+function dedupeWordHints<T extends { phrase: string }>(hints: T[]): T[] {
+  const seen = new Set<string>();
+  const result: T[] = [];
+  for (const hint of hints) {
+    const key = hint.phrase.trim().toLocaleLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(hint);
+  }
+  return result;
 }
 
 export default function ExamTopicPracticeScreen() {
@@ -65,12 +89,15 @@ export default function ExamTopicPracticeScreen() {
   // 24 Eylül 2026 — Adaptif Öğrenme Motoru Madde 2: topic_tag=weekly-quiz ise
   // haftalık programın odak konularından karışık hafta sonu quizi açılır.
   const isWeeklyQuiz = topicTag === WEEKLY_QUIZ_TAG;
+  const isBulkPractice = topicTag === BULK_PRACTICE_TAG;
   const { data, isLoading, isError } = useQuery({
     queryKey: ['exam-topic-practice', topicTag, excludeQuestionId, limit],
     queryFn: () =>
       isWeeklyQuiz
         ? studyProgramApi.weeklyQuiz()
-        : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
+        : isBulkPractice
+          ? studyProgramApi.weeklyBulkPractice()
+          : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
     enabled: !!topicTag,
   });
 
@@ -100,6 +127,12 @@ export default function ExamTopicPracticeScreen() {
   const translationQuestions: TopicTranslationQuestionItem[] = data?.translation_questions ?? [];
   const current = questions[index];
   const currentTranslation = translationQuestions[translationIndex];
+  const dedupedHints = currentTranslation ? dedupeWordHints(currentTranslation.word_hints) : [];
+  const difficultyLabel = currentTranslation
+    ? `${et.difficultyLevelLabel}: ${currentTranslation.level.toUpperCase()} · ${
+        currentTranslation.model_number === 1 ? et.difficultyScaffoldedLabel : et.difficultyFreeLabel
+      }`
+    : '';
   const hasAnyQuestions = questions.length > 0 || translationQuestions.length > 0;
   const mcqPhaseActive = questions.length > 0 && index < questions.length;
   const translationPhaseActive =
@@ -148,11 +181,35 @@ export default function ExamTopicPracticeScreen() {
       <ScreenNavBar />
 
       <Text style={{ fontSize: 20, fontWeight: '700', color: c.text }}>
-        {isWeeklyQuiz ? et.weeklyQuizTitle : data?.related_grammar_topic?.title_tr ?? et.topicPracticeTitle}
+        {isWeeklyQuiz
+          ? et.weeklyQuizTitle
+          : isBulkPractice
+            ? et.bulkPracticeTitle
+            : data?.related_grammar_topic?.title_tr ?? et.topicPracticeTitle}
       </Text>
       <Text style={{ fontSize: 13, color: c.textMuted, marginTop: 4 }}>
-        {isWeeklyQuiz ? et.weeklyQuizSubtitle : et.topicPracticeSubtitle}
+        {isWeeklyQuiz ? et.weeklyQuizSubtitle : isBulkPractice ? et.bulkPracticeSubtitle : et.topicPracticeSubtitle}
       </Text>
+
+      {/* 23 Kasım 2026 -- "Sınav Taktikleri": bu konu için exam_tactics'te
+          bir satır varsa, soru havuzunun ÜSTÜNDE banner olarak gösterilir
+          (bkz. backend ExamPracticeQuestionsResult.tactic). */}
+      {!isLoading && !isError && data?.tactic && (
+        <Card style={{ marginTop: spacing.md, backgroundColor: c.warningSoft, borderColor: 'transparent' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Lightbulb color={c.warning} size={16} />
+            <Text style={{ color: c.warning, fontSize: 13, fontWeight: '700' }}>{data.tactic.title_tr}</Text>
+          </View>
+          <Text style={{ color: c.warning, fontSize: 13, marginTop: spacing.xs, lineHeight: 19 }}>
+            {data.tactic.tactic_tr}
+          </Text>
+          {data.tactic.worked_example_tr && (
+            <Text style={{ color: c.warning, fontSize: 12, marginTop: spacing.sm, lineHeight: 18, fontStyle: 'italic' }}>
+              {et.tacticExampleLabel}: {data.tactic.worked_example_tr}
+            </Text>
+          )}
+        </Card>
+      )}
 
       {isLoading ? (
         <View style={{ marginTop: spacing.xxl, alignItems: 'center' }}>
@@ -179,6 +236,9 @@ export default function ExamTopicPracticeScreen() {
           </Text>
 
           <Card style={{ marginTop: spacing.sm }}>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: spacing.xs }}>
+              {difficultyLabel}
+            </Text>
             {currentTranslation.grammar_note && (
               <View style={{ backgroundColor: c.warningSoft, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
                 <Text style={{ color: c.warning, fontSize: 12, fontWeight: '600' }}>{et.grammarNoteLabel}</Text>
@@ -186,9 +246,9 @@ export default function ExamTopicPracticeScreen() {
               </View>
             )}
             <Text style={[styles.bodyText, { color: c.text, fontWeight: '600' }]}>{currentTranslation.prompt_sentence}</Text>
-            {currentTranslation.word_hints.length > 0 && (
+            {dedupedHints.length > 0 && (
               <View style={{ marginTop: spacing.sm, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-                {currentTranslation.word_hints.map((hint, i) => (
+                {dedupedHints.map((hint, i) => (
                   <View key={i} style={{ backgroundColor: c.border, borderRadius: radius.sm, paddingVertical: 4, paddingHorizontal: 8 }}>
                     <Text style={{ color: c.textMuted, fontSize: 12 }}>
                       {hint.phrase} <Text style={{ color: c.textMuted }}>— {hint.translation}</Text>
