@@ -15,11 +15,18 @@ geri donulduğunde cozulmus kelimeleri BOS degil DOLU gostermesini saglar
 (aksi halde istemcinin hangi harflerin dogru oldugunu bilmesinin tek yolu
 kullanicinin o oturumda yazdigi metin olurdu, ki uygulama yeniden
 acildiginda bu kaybolur).
-"""
+
+23 Kasim 2026: UC MOD eklendi (`mode` query parametresi, bkz.
+crossword_service.py modul docstring'i) -- standard (varsayilan, eskisi
+gibi), reverse (ogrenilen dil ipucu -> ana dil cevap), own_pool (kullanicinin
+kendi 'Kelimelerim' listesi, HER KULLANICIYA OZEL uretilir). own_pool
+icin get_or_create_puzzle'a current_user.id GECILIR -- bu sayede RLS'den
+BAGIMSIZ olarak (backend zaten supabase_admin/service-role kullaniyor)
+bir kullanicinin own_pool bulmacasi baskasina asla donulmez."""
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from app.core.auth import get_current_user
@@ -28,6 +35,12 @@ from app.services import crossword_service
 from app.services.xp_service import award_xp
 
 router = APIRouter()
+
+
+def _validate_mode(mode: str) -> str:
+    if mode not in crossword_service.VALID_MODES:
+        raise HTTPException(status_code=400, detail=f"Gecersiz mod: '{mode}'.")
+    return mode
 
 
 def _user_langs(user_id: str) -> tuple[str, str]:
@@ -47,10 +60,12 @@ class CrosswordAttemptIn(BaseModel):
 
 
 @router.get("/levels")
-async def list_levels(current_user=Depends(get_current_user)):
+async def list_levels(mode: str = Query("standard"), current_user=Depends(get_current_user)):
+    mode = _validate_mode(mode)
     learning_lang, _native_lang = _user_langs(current_user.id)
-    current_level = crossword_service.get_user_progress(current_user.id, learning_lang)
+    current_level = crossword_service.get_user_progress(current_user.id, learning_lang, mode)
     return {
+        "mode": mode,
         "current_level": current_level,
         "max_level": crossword_service.MAX_LEVEL,
         "tiers": crossword_service.all_tiers_summary(),
@@ -101,12 +116,14 @@ def _public_words(puzzle: dict, solved_word_ids: set[str] | None = None) -> list
 
 
 @router.get("/levels/{level}")
-async def get_level(level: int, current_user=Depends(get_current_user)):
+async def get_level(level: int, mode: str = Query("standard"), current_user=Depends(get_current_user)):
+    mode = _validate_mode(mode)
     if level < 1 or level > crossword_service.MAX_LEVEL:
         raise HTTPException(status_code=404, detail="Gecersiz seviye.")
     learning_lang, native_lang = _user_langs(current_user.id)
+    user_id_for_pool = current_user.id if mode == "own_pool" else None
     try:
-        puzzle = crossword_service.get_or_create_puzzle(learning_lang, native_lang, level)
+        puzzle = crossword_service.get_or_create_puzzle(mode, learning_lang, native_lang, level, user_id=user_id_for_pool)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -115,6 +132,7 @@ async def get_level(level: int, current_user=Depends(get_current_user)):
     solved_ids = session.get("solved_word_ids") or []
     return {
         "level": level,
+        "mode": mode,
         "tier_name": tier.name,
         "puzzle_id": puzzle["id"],
         "grid_width": puzzle["grid_width"],
@@ -130,11 +148,14 @@ async def attempt_word(
     level: int,
     word_id: str,
     attempt_in: CrosswordAttemptIn,
+    mode: str = Query("standard"),
     current_user=Depends(get_current_user),
 ):
+    mode = _validate_mode(mode)
     learning_lang, native_lang = _user_langs(current_user.id)
+    user_id_for_pool = current_user.id if mode == "own_pool" else None
     try:
-        puzzle = crossword_service.get_or_create_puzzle(learning_lang, native_lang, level)
+        puzzle = crossword_service.get_or_create_puzzle(mode, learning_lang, native_lang, level, user_id=user_id_for_pool)
     except LookupError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -183,7 +204,7 @@ async def attempt_word(
             source_id=puzzle["id"],
         )
         completion_xp_awarded = xp_result.amount_awarded
-        next_level = crossword_service.advance_user_progress(current_user.id, learning_lang, level)
+        next_level = crossword_service.advance_user_progress(current_user.id, learning_lang, level, mode)
 
     return {
         "correct": is_correct,

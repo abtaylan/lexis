@@ -1398,6 +1398,12 @@ export interface ImageScanResult {
 // 200 sabit seviye, (learning_lang, native_lang) başına paylaşılan katalog;
 // ilerleme kullanıcının genel kelime seviyesinden bağımsız, her zaman 1'den
 // başlar (user_crossword_progress).
+// 23 Kasim 2026 kullanici istegi: cengel bulmaca uc modda oynanabilir --
+// standard (eskisi gibi: ana dil ipucu -> ogrenilen dil cevap), reverse
+// (ogrenilen dil ipucu -> ana dil cevap), own_pool ('Kelimelerim'
+// listesinden, kullaniciya ozel). bkz. backend crossword_service.py.
+export type CrosswordMode = 'standard' | 'reverse' | 'own_pool';
+
 export interface CrosswordTierSummary {
   name: string;
   band: string;
@@ -1407,6 +1413,7 @@ export interface CrosswordTierSummary {
 }
 
 export interface CrosswordLevelsResponse {
+  mode: CrosswordMode;
   current_level: number;
   max_level: number;
   tiers: CrosswordTierSummary[];
@@ -1427,6 +1434,7 @@ export interface CrosswordWord {
 
 export interface CrosswordLevelResponse {
   level: number;
+  mode: CrosswordMode;
   tier_name: string;
   puzzle_id: string;
   grid_width: number;
