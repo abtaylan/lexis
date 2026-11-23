@@ -8,7 +8,7 @@ import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
   Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award, FileBarChart2,
-  Building2, MessagesSquare, Route, NotebookPen, ScanText, Puzzle,
+  Building2, MessagesSquare, Route, NotebookPen, ScanText,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { organizationsApi } from '@/lib/api';
@@ -153,22 +153,6 @@ const IMAGE_SCAN_LABEL: Record<Locale, string> = {
   pt: 'Escanear Imagem',
 };
 
-// "Çengel Bulmaca" (18 Kasım 2026 kullanıcı isteği): 200 sabit seviyeli,
-// kademeli zorluklu çengel bulmaca oyun modu. Aynı yerel çeviri deseni
-// (IMAGE_SCAN_LABEL ile aynı) -- sadece tr/en dolduruldu, diğer diller
-// useLocale'in L.tr! fallback'iyle sayfa tarafında zaten Türkçeye düşüyor.
-const CROSSWORD_LABEL: Record<Locale, string> = {
-  tr: 'Çengel Bulmaca',
-  en: 'Hook Crossword',
-  ar: 'Çengel Bulmaca',
-  ru: 'Çengel Bulmaca',
-  de: 'Çengel Bulmaca',
-  fr: 'Çengel Bulmaca',
-  es: 'Çengel Bulmaca',
-  it: 'Çengel Bulmaca',
-  ja: 'Çengel Bulmaca',
-  pt: 'Çengel Bulmaca',
-};
 
 // Açık/koyu tema seçici etiketi — aynı yerel çeviri deseni (bkz. yukarısı).
 const THEME_LABEL: Record<Locale, string> = {
@@ -231,7 +215,10 @@ export function Sidebar() {
     { href: '/roadmap', label: ROADMAP_LABEL[locale], icon: Route },
     { href: '/study-notes', label: STUDY_NOTES_LABEL[locale], icon: NotebookPen },
     { href: '/image-scan', label: IMAGE_SCAN_LABEL[locale], icon: ScanText },
-    { href: '/crossword', label: CROSSWORD_LABEL[locale], icon: Puzzle },
+    // 23 Kasım 2026 kullanıcı isteği: "Çengel Bulmaca" sol menüden kaldırıldı
+    // -- mobildeki ile aynı yerleşim, artık SADECE /game (Oyun) sayfasındaki
+    // "Çengel Bulmaca" kartından erişiliyor (bkz. app/(app)/game/page.tsx),
+    // ayrı bir üst-seviye menü maddesi değil.
     // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası
     // mobildeki dashboard davranışıyla tutarlı: her zaman görünür, sayfanın
     // kendisi (exam-prep/page.tsx) uygun olmayan dil çiftleri için nazik bir

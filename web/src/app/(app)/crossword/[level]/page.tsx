@@ -8,12 +8,12 @@
 // zaten çözülmüş kelimeler (bkz. backend crossword.py _public_words).
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { AxiosError } from 'axios';
 import { ArrowDown, ArrowLeft, ArrowRight, CheckCircle2, Loader2, Sparkles, Trophy } from 'lucide-react';
 import { crosswordApi } from '@/lib/api';
-import type { CrosswordLevelResponse, CrosswordWord } from '@/types';
+import type { CrosswordLevelResponse, CrosswordMode, CrosswordWord } from '@/types';
 import { useLocale, type Locale } from '@/lib/i18n';
 
 function errorDetail(err: unknown): string | undefined {
@@ -63,6 +63,12 @@ export default function CrosswordPuzzlePage() {
   const t = L[locale] ?? L.tr!;
   const params = useParams<{ level: string }>();
   const levelNum = Number(params.level) || 1;
+  // 23 Kasım 2026 kullanıcı isteği -- hangi moddan (standard/reverse/
+  // own_pool) geldiği ?mode= query param'ından okunur (bkz. crossword/page.tsx
+  // seviye linkleri), mobile/src/app/(app)/crossword-puzzle.tsx ile aynı desen.
+  const searchParams = useSearchParams();
+  const modeParam = searchParams.get('mode');
+  const mode: CrosswordMode = modeParam === 'reverse' || modeParam === 'own_pool' ? modeParam : 'standard';
 
   const [puzzle, setPuzzle] = useState<CrosswordLevelResponse | null>(null);
   const [error, setError] = useState('');
@@ -83,7 +89,7 @@ export default function CrosswordPuzzlePage() {
     setActiveWordId(null);
     setCompletion(null);
     crosswordApi
-      .level(levelNum)
+      .level(levelNum, mode)
       .then((res) => {
         setPuzzle(res);
         setSolvedWordIds(res.solved_word_ids);
@@ -102,7 +108,7 @@ export default function CrosswordPuzzlePage() {
       })
       .catch((err) => setError(errorDetail(err) || t.error));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelNum]);
+  }, [levelNum, mode]);
 
   const { cellMap, numberAt, wordsById, wordsSorted } = useMemo(() => {
     const cellMapLocal = new Map<string, string[]>();
@@ -136,7 +142,7 @@ export default function CrosswordPuzzlePage() {
     async (wordId: string, answer: string) => {
       setPending((p) => new Set(p).add(wordId));
       try {
-        const result = await crosswordApi.attemptWord(levelNum, wordId, answer);
+        const result = await crosswordApi.attemptWord(levelNum, wordId, answer, mode);
         if (result.correct) {
           setSolvedWordIds((prev) => (prev.includes(wordId) ? prev : [...prev, wordId]));
           if (result.word_xp_awarded > 0) {
@@ -173,7 +179,7 @@ export default function CrosswordPuzzlePage() {
         });
       }
     },
-    [levelNum, wordsById, cellMap, solvedWordIds, t.error]
+    [levelNum, mode, wordsById, cellMap, solvedWordIds, t.error]
   );
 
   useEffect(() => {
@@ -246,7 +252,7 @@ export default function CrosswordPuzzlePage() {
     <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-5 relative">
       <div className="flex items-center gap-3">
         <Link
-          href="/crossword"
+          href={`/crossword?mode=${mode}`}
           className="w-9 h-9 rounded-full flex items-center justify-center bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-slate-700"
         >
           <ArrowLeft className="w-4.5 h-4.5" />
@@ -270,7 +276,7 @@ export default function CrosswordPuzzlePage() {
           <div className="w-full flex flex-col gap-2 mt-3 max-w-xs">
             {completion.nextLevel ? (
               <Link
-                href={`/crossword/${completion.nextLevel}`}
+                href={`/crossword/${completion.nextLevel}?mode=${mode}`}
                 className="w-full text-center rounded-xl bg-[#378ADD] text-white text-sm font-semibold py-3 hover:bg-[#2F73B8] transition-colors"
               >
                 {t.nextLevelBtn}
@@ -279,7 +285,7 @@ export default function CrosswordPuzzlePage() {
               <p className="text-sm font-semibold text-[#3B6D11]">{t.allDoneTitle}</p>
             )}
             <Link
-              href="/crossword"
+              href={`/crossword?mode=${mode}`}
               className="w-full text-center rounded-xl bg-[#E6F1FB] text-[#378ADD] text-sm font-semibold py-3 hover:bg-[#d7e9f9] transition-colors"
             >
               {t.backToListBtn}

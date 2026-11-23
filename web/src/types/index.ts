@@ -1726,6 +1726,11 @@ export interface ImageScanResult {
 // bkz. backend/app/services/crossword_service.py + api/routes/crossword.py.
 // Mobile'daki (mobile/src/api/types.ts) AYNI tipler — web/mobile arasında
 // birebir tutarlılık için.
+// 23 Kasım 2026 kullanıcı isteği: üç mod -- standard (eskisi gibi), reverse
+// (öğrenilen dil ipucu -> ana dil cevap), own_pool (kullanıcının kendi
+// 'Kelimelerim' listesinden, kullanıcıya özel).
+export type CrosswordMode = 'standard' | 'reverse' | 'own_pool';
+
 export interface CrosswordTierSummary {
   name: string;
   band: string;
@@ -1735,6 +1740,7 @@ export interface CrosswordTierSummary {
 }
 
 export interface CrosswordLevelsResponse {
+  mode: CrosswordMode;
   current_level: number;
   max_level: number;
   tiers: CrosswordTierSummary[];
@@ -1755,6 +1761,7 @@ export interface CrosswordWord {
 
 export interface CrosswordLevelResponse {
   level: number;
+  mode: CrosswordMode;
   tier_name: string;
   puzzle_id: string;
   grid_width: number;

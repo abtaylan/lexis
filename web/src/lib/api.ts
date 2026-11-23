@@ -126,6 +126,7 @@ import type {
   ImageScanResult,
   CrosswordLevelsResponse,
   CrosswordLevelResponse,
+  CrosswordMode,
   CrosswordAttemptResult,
 } from '@/types';
 
@@ -2052,16 +2053,28 @@ export const imageScanApi = {
 // ── Çengel Bulmaca (crossword) — 18 Kasım 2026 kullanıcı isteği ──
 // mobile/src/api/crossword.ts ile AYNI desen.
 export const crosswordApi = {
-  levels: async (): Promise<CrosswordLevelsResponse> => {
-    const res = await api.get<CrosswordLevelsResponse>('/crossword/levels');
+  // 23 Kasım 2026 kullanıcı isteği -- her çağrıya opsiyonel `mode` parametresi
+  // (standard/reverse/own_pool, bkz. mobile/src/api/crossword.ts ile birebir
+  // aynı desen), backend'e query param olarak iletilir.
+  levels: async (mode: CrosswordMode = 'standard'): Promise<CrosswordLevelsResponse> => {
+    const res = await api.get<CrosswordLevelsResponse>('/crossword/levels', { params: { mode } });
     return res.data;
   },
-  level: async (level: number): Promise<CrosswordLevelResponse> => {
-    const res = await api.get<CrosswordLevelResponse>(`/crossword/levels/${level}`);
+  level: async (level: number, mode: CrosswordMode = 'standard'): Promise<CrosswordLevelResponse> => {
+    const res = await api.get<CrosswordLevelResponse>(`/crossword/levels/${level}`, { params: { mode } });
     return res.data;
   },
-  attemptWord: async (level: number, wordId: string, answer: string): Promise<CrosswordAttemptResult> => {
-    const res = await api.post<CrosswordAttemptResult>(`/crossword/levels/${level}/words/${wordId}/attempt`, { answer });
+  attemptWord: async (
+    level: number,
+    wordId: string,
+    answer: string,
+    mode: CrosswordMode = 'standard'
+  ): Promise<CrosswordAttemptResult> => {
+    const res = await api.post<CrosswordAttemptResult>(
+      `/crossword/levels/${level}/words/${wordId}/attempt`,
+      { answer },
+      { params: { mode } }
+    );
     return res.data;
   },
 };
