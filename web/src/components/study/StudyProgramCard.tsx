@@ -33,6 +33,10 @@ type Strings = {
   quizTpl: string;
   quizDone: string;
   quizCta: string;
+  bulkTitle: string;
+  bulkTpl: string;
+  bulkAllDoneTpl: string;
+  bulkCta: string;
 };
 
 const STRINGS: Partial<Record<Locale, Strings>> = {
@@ -56,6 +60,10 @@ const STRINGS: Partial<Record<Locale, Strings>> = {
     quizTpl: '{done}/{target} soru cevaplandı',
     quizDone: 'Bu haftanın quizi tamamlandı',
     quizCta: 'Başla',
+    bulkTitle: 'Haftalık toplu pratik',
+    bulkTpl: '{count} konudan geniş bir soru seti',
+    bulkAllDoneTpl: 'Konuları bitirdin — {count} konudan toplu pratik zamanı!',
+    bulkCta: 'Başla',
   },
   en: {
     title: "This Week's Plan",
@@ -77,6 +85,10 @@ const STRINGS: Partial<Record<Locale, Strings>> = {
     quizTpl: '{done}/{target} questions answered',
     quizDone: "This week's quiz is done",
     quizCta: 'Start',
+    bulkTitle: 'Weekly bulk practice',
+    bulkTpl: 'A large question set from {count} topics',
+    bulkAllDoneTpl: "You've finished your topics — time for bulk practice on {count} topics!",
+    bulkCta: 'Start',
   },
 };
 
@@ -99,6 +111,7 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
   if (!program.available || program.focus_topics.length === 0) return null;
   const today = program.today;
   const quiz = program.weekend_quiz;
+  const bulk = program.bulk_practice;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
@@ -212,6 +225,28 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
               {s.quizCta}
             </button>
           )}
+        </div>
+      )}
+
+      {/* 23 Kasım 2026 -- "Haftalık Toplu Pratik": hafta sonu quizinden
+          BAĞIMSIZ, her gün kullanılabilen, çok daha büyük bir soru seti
+          (bkz. backend StudyProgramBulkPractice, mobile aynı deseni
+          mobile/src/components/StudyProgramCard.tsx'te kullanıyor). */}
+      {!!bulk && bulk.available && (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-gray-100 dark:border-slate-800 p-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{s.bulkTitle}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+              {fill(bulk.all_topics_done ? s.bulkAllDoneTpl : s.bulkTpl, { count: bulk.topic_count })}
+            </p>
+          </div>
+          <button
+            onClick={() => router.push('/exam-topic-practice?topic_tag=weekly-bulk-practice')}
+            className="text-xs font-bold rounded-lg px-3 py-1.5 text-white shrink-0"
+            style={{ backgroundColor: bulk.all_topics_done ? '#378ADD' : '#9CA3AF' }}
+          >
+            {s.bulkCta}
+          </button>
         </div>
       )}
     </div>

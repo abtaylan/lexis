@@ -1885,6 +1885,12 @@ export const studyProgramApi = {
     const res = await api.get<ExamPracticeQuestionsResult>('/study-program/weekly-quiz');
     return res.data;
   },
+  // 23 Kasım 2026 -- "Haftalık Toplu Pratik": mobile/src/api/studyProgram.ts
+  // ile birebir aynı endpoint (bkz. backend GET /study-program/weekly-bulk-practice).
+  weeklyBulkPractice: async (): Promise<ExamPracticeQuestionsResult> => {
+    const res = await api.get<ExamPracticeQuestionsResult>('/study-program/weekly-bulk-practice');
+    return res.data;
+  },
 };
 
 // ── Ana sayfa hedef seviye ilerlemesi (3 Kasım 2026) ────────────────────

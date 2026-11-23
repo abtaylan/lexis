@@ -17,6 +17,7 @@ import { safeBack } from '@/lib/navBack';
 import type { ExamPracticeQuestionItem, TopicTranslationQuestionItem } from '@/types';
 
 const WEEKLY_QUIZ_TAG = 'weekly-quiz';
+const BULK_PRACTICE_TAG = 'weekly-bulk-practice';
 
 const L: Partial<Record<Locale, Record<string, string>>> = {
   tr: {
@@ -25,6 +26,8 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     subtitle: 'Bu konudan birkaç soru daha — XP verilmez, sadece pekiştirme içindir.',
     weeklyQuizTitle: 'Hafta Sonu Quizi',
     weeklyQuizSubtitle: 'Bu haftanın odak konularından karışık sorular.',
+    bulkPracticeTitle: 'Haftalık Toplu Pratik',
+    bulkPracticeSubtitle: 'Odak konularından geniş bir soru seti — istediğin gün çözebilirsin.',
     noQuestionsYet: 'Bu konu için henüz pratik sorusu eklenmedi.',
     explanationLabel: 'Açıklama',
     questionCounterTpl: 'Soru {current} / {total}',
@@ -52,6 +55,8 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     subtitle: 'A few more questions on this topic — no XP, just reinforcement.',
     weeklyQuizTitle: 'Weekend Quiz',
     weeklyQuizSubtitle: "Mixed questions from this week's focus topics.",
+    bulkPracticeTitle: 'Weekly Bulk Practice',
+    bulkPracticeSubtitle: 'A large question set from your focus topics — solve it any day you like.',
     noQuestionsYet: 'No practice questions for this topic yet.',
     explanationLabel: 'Explanation',
     questionCounterTpl: 'Question {current} / {total}',
@@ -88,12 +93,18 @@ export default function ExamTopicPracticePage() {
   // 24 Eylül 2026 — Adaptif Öğrenme Motoru Madde 2: topic_tag=weekly-quiz ise
   // haftalık programın odak konularından karışık hafta sonu quizi açılır.
   const isWeeklyQuiz = topicTag === WEEKLY_QUIZ_TAG;
+  // 23 Kasım 2026 -- "Haftalık Toplu Pratik": hafta sonu quizinden bağımsız,
+  // her gün kullanılabilen ayrı bir sanal topic_tag (bkz. backend
+  // study_program.py::BULK_PRACTICE_TAG).
+  const isBulkPractice = topicTag === BULK_PRACTICE_TAG;
   const { data, isLoading, isError } = useQuery({
     queryKey: ['exam-topic-practice', topicTag, excludeQuestionId, limit],
     queryFn: () =>
       isWeeklyQuiz
         ? studyProgramApi.weeklyQuiz()
-        : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
+        : isBulkPractice
+          ? studyProgramApi.weeklyBulkPractice()
+          : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
     enabled: !!topicTag,
   });
 
@@ -212,9 +223,15 @@ export default function ExamTopicPracticePage() {
       </button>
 
       <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">
-        {isWeeklyQuiz ? t.weeklyQuizTitle : data?.related_grammar_topic?.title_tr ?? t.defaultTitle}
+        {isWeeklyQuiz
+          ? t.weeklyQuizTitle
+          : isBulkPractice
+            ? t.bulkPracticeTitle
+            : data?.related_grammar_topic?.title_tr ?? t.defaultTitle}
       </h1>
-      <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{isWeeklyQuiz ? t.weeklyQuizSubtitle : t.subtitle}</p>
+      <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+        {isWeeklyQuiz ? t.weeklyQuizSubtitle : isBulkPractice ? t.bulkPracticeSubtitle : t.subtitle}
+      </p>
 
       {/* 23 Kasım 2026 -- "Sınav Taktikleri": bu konu için exam_tactics'te
           bir satır varsa, soru havuzunun ÜSTÜNDE banner olarak gösterilir

@@ -1698,6 +1698,9 @@ export interface StudyProgram {
   focus_topics: StudyProgramTopic[];
   today?: { new_words_today: number; new_word_goal: number; reviews_due: number } | null;
   weekend_quiz?: { available: boolean; answered_count: number; target_count: number; done: boolean } | null;
+  // 23 Kasım 2026 -- "Haftalık Toplu Pratik": mobile/src/api/types.ts ile
+  // birebir aynı alan (bkz. backend StudyProgramBulkPractice).
+  bulk_practice?: { available: boolean; topic_count: number; all_topics_done: boolean } | null;
   completed_topics: number;
 }
 
