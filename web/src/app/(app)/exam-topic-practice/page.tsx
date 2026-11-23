@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Lightbulb, Loader2, XCircle } from 'lucide-react';
 import { examsApi, studyProgramApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { safeBack } from '@/lib/navBack';
@@ -44,6 +44,7 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     modelAnswerLabel: 'Model Cevap',
     translationCorrectLabel: 'Doğru!',
     translationWrongLabel: 'Yanlış',
+    tacticExampleLabel: 'Örnek',
   },
   en: {
     back: 'Back',
@@ -67,6 +68,7 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     modelAnswerLabel: 'Model Answer',
     translationCorrectLabel: 'Correct!',
     translationWrongLabel: 'Wrong',
+    tacticExampleLabel: 'Example',
   },
 };
 
@@ -213,6 +215,29 @@ export default function ExamTopicPracticePage() {
         {isWeeklyQuiz ? t.weeklyQuizTitle : data?.related_grammar_topic?.title_tr ?? t.defaultTitle}
       </h1>
       <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">{isWeeklyQuiz ? t.weeklyQuizSubtitle : t.subtitle}</p>
+
+      {/* 23 Kasım 2026 -- "Sınav Taktikleri": bu konu için exam_tactics'te
+          bir satır varsa, soru havuzunun ÜSTÜNDE banner olarak gösterilir
+          (bkz. backend ExamPracticeQuestionsResult.tactic, mobile aynı deseni
+          mobile/src/app/(app)/exam-topic-practice.tsx'te kullanıyor). */}
+      {!isLoading && !isError && data?.tactic && (
+        <div className="mt-5 rounded-2xl border border-transparent p-4" style={{ backgroundColor: '#FAEEDA' }}>
+          <div className="flex items-center gap-1.5">
+            <Lightbulb className="w-4 h-4" style={{ color: '#854F0B' }} />
+            <span className="text-sm font-bold" style={{ color: '#854F0B' }}>
+              {data.tactic.title_tr}
+            </span>
+          </div>
+          <p className="text-sm mt-1.5 leading-relaxed" style={{ color: '#854F0B' }}>
+            {data.tactic.tactic_tr}
+          </p>
+          {data.tactic.worked_example_tr && (
+            <p className="text-xs italic mt-2 leading-relaxed" style={{ color: '#854F0B' }}>
+              {t.tacticExampleLabel}: {data.tactic.worked_example_tr}
+            </p>
+          )}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20 text-gray-400 dark:text-slate-500">

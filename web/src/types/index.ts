@@ -541,11 +541,23 @@ export interface TopicTranslationQuestionItem {
   topic_tag: string;
 }
 
+// 23 Kasım 2026 -- "Sınav Taktikleri": mobile/src/api/types.ts ile birebir
+// aynı alan eşleşmesi (bkz. backend ExamTacticItem, exam_tactics tablosu).
+export interface ExamTacticItem {
+  id: string;
+  topic_tag: string | null;
+  title_tr: string;
+  tactic_tr: string;
+  worked_example_tr: string | null;
+  related_grammar_topic?: RelatedGrammarTopic | null;
+}
+
 export interface ExamPracticeQuestionsResult {
   topic_tag: string;
   related_grammar_topic?: RelatedGrammarTopic | null;
   questions: ExamPracticeQuestionItem[];
   translation_questions: TopicTranslationQuestionItem[];
+  tactic?: ExamTacticItem | null;
 }
 
 export interface WeakTopicItem {

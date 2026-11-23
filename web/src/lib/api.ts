@@ -38,6 +38,7 @@ import type {
   NextQuestionResult,
   ExamAttemptResult,
   ExamPracticeQuestionsResult,
+  ExamTacticItem,
   WeakTopicsResult,
   StudyProgram,
   WeakWordTypesResult,
@@ -942,6 +943,12 @@ export const examsApi = {
   // çağırıp needs_placement=true ise exam-prep?examType=placement'a yönlendirir.
   placementStatus: async (): Promise<PlacementStatusResult> => {
     const res = await api.get<PlacementStatusResult>('/exams/placement/status');
+    return res.data;
+  },
+  // 23 Kasım 2026 -- "Sınav Taktikleri": mobile/src/api/exams.ts ile birebir
+  // aynı endpoint (bkz. backend list_exam_tactics, GET /exams/tactics).
+  listTactics: async (): Promise<ExamTacticItem[]> => {
+    const res = await api.get<ExamTacticItem[]>('/exams/tactics');
     return res.data;
   },
 };

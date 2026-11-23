@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
-  BookOpen, CheckCircle2, XCircle, Clock, Plus, Loader2, GraduationCap, ChevronLeft, Map, Lightbulb, ChevronRight,
+  BookOpen, CheckCircle2, XCircle, Clock, Plus, Loader2, GraduationCap, ChevronLeft, Map, Lightbulb, ChevronRight, Sparkles,
 } from 'lucide-react';
 import { examsApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
@@ -69,6 +69,8 @@ type ExamStrings = {
   suggestEntryDesc: string;
   grammarEntryLabel: string;
   grammarEntryDesc: string;
+  tacticsEntryLabel: string;
+  tacticsEntryDesc: string;
   reviewGrammarTopicTpl: string;
   practiceThisTopicBtn: string;
   moreResourcesLabel: string;
@@ -120,6 +122,8 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     suggestEntryDesc: 'Aklına takılan bir soruyu bize gönder',
     grammarEntryLabel: 'Gramer Rehberi',
     grammarEntryDesc: 'Konuları haritada keşfet',
+    tacticsEntryLabel: 'Sınav Taktikleri',
+    tacticsEntryDesc: 'Konu bazlı ve genel çözüm stratejileri',
     reviewGrammarTopicTpl: '"{topic}" Konusunu İncele',
     practiceThisTopicBtn: 'Bu Konudan Pratik Yap',
     moreResourcesLabel: 'Diğer Kaynaklar',
@@ -166,6 +170,8 @@ const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     suggestEntryDesc: 'Send us a question that comes to mind',
     grammarEntryLabel: 'Grammar Guide',
     grammarEntryDesc: 'Explore topics on the map',
+    tacticsEntryLabel: 'Exam Tactics',
+    tacticsEntryDesc: 'Topic-based and general solving strategies',
     reviewGrammarTopicTpl: 'Review "{topic}"',
     practiceThisTopicBtn: 'Practice This Topic',
     moreResourcesLabel: 'More Resources',
@@ -439,6 +445,21 @@ export default function ExamPrepPage() {
                 <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-slate-600" />
               </p>
               <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 leading-snug">{et.grammarEntryDesc}</p>
+            </div>
+          </button>
+          <button
+            onClick={() => router.push('/exam-tactics')}
+            className="flex flex-col items-start gap-3 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4 text-left transition-all hover:shadow-md hover:border-[#854F0B]/50"
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[#FAEEDA]">
+              <Sparkles className="w-5 h-5" style={{ color: '#854F0B' }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900 dark:text-slate-100 flex items-center gap-1">
+                {et.tacticsEntryLabel}
+                <ChevronRight className="w-3.5 h-3.5 text-gray-300 dark:text-slate-600" />
+              </p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5 leading-snug">{et.tacticsEntryDesc}</p>
             </div>
           </button>
           <button
