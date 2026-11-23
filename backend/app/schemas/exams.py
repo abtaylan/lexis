@@ -346,7 +346,10 @@ class ExamTacticItem(BaseModel):
     topic_tag: str | None
     title_tr: str
     tactic_tr: str
-    worked_example_tr: str | None
+    # 23 Kasim 2026 kullanici isteği ("ornekler cok olmali"): tek bir
+    # worked_example_tr yerine BIRDEN FAZLA ornek (bkz. migration 099) --
+    # her biri ayni "tirnak icinde cumle + aciklama" formatinda.
+    examples_tr: list[str] = []
     related_grammar_topic: RelatedGrammarTopic | None = None
 
 

@@ -1,0 +1,23 @@
+-- 098_crossword_own_pool_refresh.sql
+--
+-- Kullanici geri bildirimi (23 Kasim 2026): "Cengel bulmacalarda, kendi
+-- listemdeki kelimeler her gecen gun artacaktir, buna gore burasi yeni
+-- kelime geldikce guncellenmeli." own_pool modundaki bulmacalar eskiden
+-- SADECE ILK istekte uretilip sonsuza kadar cache'leniyordu (bkz.
+-- crossword_service.py::get_or_create_puzzle) -- kullanici "Kelimelerim"
+-- listesine yeni kelime ekledikce bu zaten uretilmis bulmacalar hic
+-- degismiyordu.
+--
+-- Bu alan, bulmaca uretildigi anda kullanicinin o dil ciftindeki kelime
+-- SAYISINI saklar (bkz. crossword_service.py::_maybe_refresh_own_pool).
+-- Sonraki her istekte guncel sayiyla karsilastirilir -- farkliysa VE
+-- kullanici o bulmacada henuz ilerleme kaydetmemisse (hic kelime
+-- cozmemisse), eski satir silinip (crossword_puzzle_words + ilgili
+-- user_crossword_sessions ON DELETE CASCADE ile birlikte gider) GUNCEL
+-- kelime havuzundan yeniden uretilir. Zaten cozulmeye baslanmis/tamamlanmis
+-- bir own_pool bulmacaya DOKUNULMAZ -- kullanicinin emegi kaybolmasin diye.
+--
+-- standard/reverse icin alakasiz (NULL kalir) -- onlar paylasilan, sabit
+-- bir katalog (general_word_pool), kullaniciya ozel degil.
+ALTER TABLE public.crossword_puzzles
+    ADD COLUMN IF NOT EXISTS source_word_count int;

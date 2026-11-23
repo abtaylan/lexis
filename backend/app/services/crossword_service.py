@@ -384,33 +384,29 @@ def _generate_puzzle_rows(
     }
 
 
-def get_or_create_puzzle(
-    mode: str, learning_lang: str, native_lang: str, level: int, user_id: str | None = None
-) -> dict:
-    """Var olan bulmacayi DB'den okur; yoksa uretir ve yazar. Donus: puzzle
-    satiri + kelime listesi (answer DAHIL -- bu fonksiyon SADECE backend ici
-    kullanim icindir, answer'i istemciye gondermeden once api/routes/
-    crossword.py filtrelemeli).
-
-    standard/reverse: PAYLASILAN satir (user_id NULL) -- herkes ayni
-    bulmacayi cozer (bkz. migration 096). own_pool: user_id ZORUNLU, her
-    kullaniciya ayri, kendi 'words' listesinden uretilmis bir satir."""
-    if mode == "own_pool" and not user_id:
-        raise ValueError("own_pool modu icin user_id sart")
-
-    query = (
-        supabase_admin.table("crossword_puzzles")
-        .select("*, crossword_puzzle_words(*)")
-        .eq("learning_lang", learning_lang)
-        .eq("native_lang", native_lang)
-        .eq("level", level)
-        .eq("mode", mode)
+def _own_pool_word_count(user_id: str, learning_lang: str, native_lang: str) -> int:
+    """Kullanicinin bu dil ciftindeki 'Kelimelerim' satir sayisi -- own_pool
+    bulmacasinin tazelenmesi gerekip gerekmedigini anlamak icin kullanilir
+    (bkz. _maybe_refresh_own_pool). _candidate_rows'taki gibi tek tek
+    gecerlilik regex'i uygulamiyoruz -- kaba bir sayim, kucuk bir fark bile
+    (ornegin yeni eklenen bir kelime) tazelemeyi tetiklemeli."""
+    res = (
+        supabase_admin.table("words")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .eq("source_lang", learning_lang)
+        .eq("target_lang", native_lang)
+        .execute()
     )
-    query = query.eq("user_id", user_id) if mode == "own_pool" else query.is_("user_id", "null")
-    existing = query.execute().data
-    if existing:
-        return existing[0]
+    return res.count or 0
 
+
+def _build_and_insert_puzzle(
+    mode: str, learning_lang: str, native_lang: str, level: int, user_id: str | None, source_word_count: int | None
+) -> dict:
+    """_generate_puzzle_rows ile bir bulmaca uretip crossword_puzzles +
+    crossword_puzzle_words'e yazar. get_or_create_puzzle (ilk uretim) ve
+    _maybe_refresh_own_pool (yeniden uretim) tarafindan ORTAK kullanilir."""
     built = _generate_puzzle_rows(mode, learning_lang, native_lang, level, user_id=user_id)
     tier = built["tier"]
     puzzle_insert = (
@@ -425,6 +421,7 @@ def get_or_create_puzzle(
             "grid_width": built["grid_width"],
             "grid_height": built["grid_height"],
             "word_count": len(built["placed"]),
+            "source_word_count": source_word_count,
         })
         .execute()
         .data
@@ -454,6 +451,88 @@ def get_or_create_puzzle(
     ) or []
     puzzle["crossword_puzzle_words"] = inserted_words
     return puzzle
+
+
+def _maybe_refresh_own_pool(
+    puzzle: dict, learning_lang: str, native_lang: str, level: int, user_id: str
+) -> dict:
+    """23 Kasim 2026 kullanici isteği: "Kendi listemdeki kelimeler her gecen
+    gun artacaktir, buna gore burasi yeni kelime geldikce guncellenmeli."
+    own_pool bulmacalari eskiden ILK uretimden sonra sonsuza kadar
+    cache'leniyordu (bkz. migration 098). Burada: kullanicinin GUNCEL kelime
+    sayisi, bulmaca uretildigi andaki sayidan (source_word_count) FARKLIYSA
+    VE kullanici bu bulmacada henuz hic ilerleme kaydetmediyse (ne kelime
+    cozmus ne tamamlamis), eski satir silinip (crossword_puzzle_words +
+    user_crossword_sessions ON DELETE CASCADE ile birlikte gider) GUNCEL
+    kelime havuzundan yeniden uretilir. Zaten cozulmeye baslanmis/
+    tamamlanmis bir own_pool bulmacaya ASLA dokunulmaz -- kullanicinin
+    emegi kaybolmasin diye."""
+    current_count = _own_pool_word_count(user_id, learning_lang, native_lang)
+    if current_count == (puzzle.get("source_word_count") or 0):
+        return puzzle
+
+    session = (
+        supabase_admin.table("user_crossword_sessions")
+        .select("solved_word_ids, completed_at")
+        .eq("user_id", user_id)
+        .eq("puzzle_id", puzzle["id"])
+        .execute()
+        .data
+    )
+    if session:
+        s = session[0]
+        if s.get("completed_at") or (s.get("solved_word_ids") or []):
+            return puzzle  # ilerleme var -- dokunma
+
+    try:
+        rebuilt = _build_and_insert_puzzle(
+            "own_pool", learning_lang, native_lang, level, user_id, current_count
+        )
+    except LookupError:
+        # Guncel havuzla yeniden uretim basarisiz olursa (ornegin kelime
+        # sayisi azaldi ve artik yeterli degil) -- eski bulmacayi koru,
+        # kullanici en azindan oynayabilsin.
+        return puzzle
+
+    supabase_admin.table("crossword_puzzles").delete().eq("id", puzzle["id"]).execute()
+    return rebuilt
+
+
+def get_or_create_puzzle(
+    mode: str, learning_lang: str, native_lang: str, level: int, user_id: str | None = None
+) -> dict:
+    """Var olan bulmacayi DB'den okur; yoksa uretir ve yazar. Donus: puzzle
+    satiri + kelime listesi (answer DAHIL -- bu fonksiyon SADECE backend ici
+    kullanim icindir, answer'i istemciye gondermeden once api/routes/
+    crossword.py filtrelemeli).
+
+    standard/reverse: PAYLASILAN satir (user_id NULL) -- herkes ayni
+    bulmacayi cozer (bkz. migration 096). own_pool: user_id ZORUNLU, her
+    kullaniciya ayri, kendi 'words' listesinden uretilmis bir satir --
+    kullanicinin kelime sayisi degistikce _maybe_refresh_own_pool ile
+    tazelenir (bkz. migration 098)."""
+    if mode == "own_pool" and not user_id:
+        raise ValueError("own_pool modu icin user_id sart")
+
+    query = (
+        supabase_admin.table("crossword_puzzles")
+        .select("*, crossword_puzzle_words(*)")
+        .eq("learning_lang", learning_lang)
+        .eq("native_lang", native_lang)
+        .eq("level", level)
+        .eq("mode", mode)
+    )
+    query = query.eq("user_id", user_id) if mode == "own_pool" else query.is_("user_id", "null")
+    existing = query.execute().data
+    if existing:
+        if mode == "own_pool":
+            return _maybe_refresh_own_pool(existing[0], learning_lang, native_lang, level, user_id)
+        return existing[0]
+
+    source_word_count = (
+        _own_pool_word_count(user_id, learning_lang, native_lang) if mode == "own_pool" else None
+    )
+    return _build_and_insert_puzzle(mode, learning_lang, native_lang, level, user_id, source_word_count)
 
 
 def get_user_progress(user_id: str, learning_lang: str, mode: str = "standard") -> int:
