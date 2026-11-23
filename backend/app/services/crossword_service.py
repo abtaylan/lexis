@@ -13,6 +13,32 @@ Zorluk kademesi general_word_pool.difficulty_level (beginner/intermediate/
 advanced -- 3 bant) uzerinden; Ileri (101-150) ve Advance (151-200) ayni
 DB bandini (advanced) kullanir, Advance'i daha zor yapan sey daha fazla
 kelime + daha buyuk grid (bkz. _tier_for_level).
+
+23 Kasim 2026 kullanici isteği ("her kelime bir biri ile bağlantılı olur,
+hiç ayrık olmaması lazım"): _Grid.place_connected ARTIK izole (baska hicbir
+kelimeyle kesismeyen) yerlestirmeyi tamamen yasakliyor -- kesisim bulamayan
+kelime yerlestirilmeden elenir, _generate_puzzle_rows de elenenlerin yerine
+daha genis bir aday havuzundan (word_count*_POOL_MULTIPLIER) digerlerini
+deneyerek (_MAX_GRID_ATTEMPTS kez) hedef kelime sayisina ulasmaya calisir.
+Sonuc: uretilen her bulmaca TEK bir bagli bilesendir (bkz. o fonksiyonlarin
+docstring'leri).
+
+23 Kasim 2026 -- UC MOD (bkz. migration 096_crossword_puzzle_modes.sql):
+  standard  -> (eskisi gibi) ana dildeki ipucu -> ogrenilen dildeki kelime,
+               general_word_pool'dan, (learning_lang, native_lang, level)
+               basina PAYLASILAN tek bulmaca (user_id NULL).
+  reverse   -> ogrenilen dildeki kelimenin KENDISI ipucu -> ana dildeki
+               karsiligi bulunur; yine general_word_pool'dan ama 'answer'
+               artik meaning alaninin ILK (virgulle ayrilmis) tek kelimelik
+               parcasi -- meaning coklu es anlamli bir ifade oldugunda
+               (orn. "aile, soy") digerleri atilir, ilk parca _WORD_RE'den
+               gecmezse (bosluklu/cok uzun bir ifadeyse) o kelime tamamen
+               elenir. Yine PAYLASILAN (user_id NULL).
+  own_pool  -> kullanicinin KENDI 'words' (Kelimelerim) listesinden --
+               genel havuzdan FARKLI olarak HER KULLANICIYA OZEL uretilip
+               saklanir (user_id dolu); difficulty_level bandi yok (words
+               tablosunda bu alan yok), kullanicinin o dil ciftindeki TUM
+               kelimeleri aday havuzu olur.
 """
 
 from __future__ import annotations
@@ -24,6 +50,9 @@ from dataclasses import dataclass
 from app.core.database import supabase_admin
 
 MAX_LEVEL = 200
+
+# 23 Kasim 2026: uc bulmaca modu (bkz. modul docstring'i).
+VALID_MODES = ("standard", "reverse", "own_pool")
 
 # (ust_sinir_level, db_band, tier_adi_tr, tier_kelime_bonusu, tamamlama_bonus_xp)
 _TIER_TABLE: list[tuple[int, str, str, int, int]] = [
@@ -81,7 +110,49 @@ def all_tiers_summary() -> list[dict]:
     return out
 
 
-def _candidate_words(learning_lang: str, native_lang: str, band: str, limit: int) -> list[dict]:
+def _candidate_rows(
+    mode: str, learning_lang: str, native_lang: str, band: str, limit: int, user_id: str | None = None
+) -> list[dict]:
+    """Moda gore aday kelime satirlarini getirir, HEPSINI ayni normalize
+    sekle (source_table, source_id, clue_text, answer) cevirir -- boylece
+    _Grid ve _generate_puzzle_rows kaynaktan BAGIMSIZ calisabilir.
+
+    - standard: general_word_pool, answer=word (ogrenilen dil), clue=meaning
+      (ana dil).
+    - reverse: general_word_pool, answer=meaning'in ILK virgul-oncesi parcasi
+      (ana dil, TEK kelime olmali), clue=word (ogrenilen dil). meaning coklu
+      es anlamli bir ifadeyse ilk parca disindakiler atilir; ilk parca da
+      _WORD_RE'den gecmezse (bosluklu/cok uzun) o kelime tamamen elenir.
+    - own_pool: kullanicinin 'words' (Kelimelerim) tablosu, answer=word,
+      clue=meaning -- difficulty band FILTRESI YOK (words tablosunda yok),
+      SADECE o kullanicinin o dil ciftindeki kelimeleri.
+    """
+    if mode == "own_pool":
+        assert user_id is not None, "own_pool modu icin user_id sart"
+        rows = (
+            supabase_admin.table("words")
+            .select("id, word, meaning")
+            .eq("user_id", user_id)
+            .eq("source_lang", learning_lang)
+            .eq("target_lang", native_lang)
+            .limit(limit * 6)
+            .execute()
+            .data
+        ) or []
+        out = []
+        for r in rows:
+            word = (r.get("word") or "").strip()
+            if not word or not _WORD_RE.match(word):
+                continue
+            out.append({
+                "source_table": "words",
+                "source_id": r["id"],
+                "clue_text": (r.get("meaning") or "").strip(),
+                "answer": word.upper(),
+            })
+        random.shuffle(out)
+        return out[:limit]
+
     rows = (
         supabase_admin.table("general_word_pool")
         .select("id, word, meaning")
@@ -93,24 +164,60 @@ def _candidate_words(learning_lang: str, native_lang: str, band: str, limit: int
         .execute()
         .data
     ) or []
-    clean = [r for r in rows if r.get("word") and _WORD_RE.match(r["word"].strip())]
-    random.shuffle(clean)
-    return clean[:limit]
+    out = []
+    for r in rows:
+        word = (r.get("word") or "").strip()
+        meaning = (r.get("meaning") or "").strip()
+        if mode == "reverse":
+            answer = meaning.split(",")[0].strip()
+            clue_text = word
+        else:
+            answer = word
+            clue_text = meaning
+        if not answer or not _WORD_RE.match(answer):
+            continue
+        out.append({
+            "source_table": "general_word_pool",
+            "source_id": r["id"],
+            "clue_text": clue_text,
+            "answer": answer.upper(),
+        })
+    random.shuffle(out)
+    return out[:limit]
+
+
+# 23 Kasim 2026 kullanici isteği: "Cengel bulmacada her kelime birbiri ile
+# baglantili olur, hic ayrik olmamasi lazim" -- asagidaki _Grid.place_connected
+# artik izole-satir yedegine HICBIR ZAMAN dusmuyor (bkz. o fonksiyonun
+# docstring'i). Bunun bedeli, havuzda kesisim bulamayan kelimelerin
+# yerlestirilmeden ELENMESI -- bu yuzden burada hedeflenenden COK DAHA GENIS
+# bir aday havuzu cekip (_candidate_rows / _generate_puzzle_rows), elenen
+# kelimelerin yerine havuzdaki digerleriyle degistirilebilmesini sagliyoruz.
+_POOL_MULTIPLIER = 6
+_MAX_GRID_ATTEMPTS = 40
 
 
 class _Grid:
-    """Basit kesisme-tabanli bulmaca yerlestirici (backtracking degil,
-    acgozlu/greedy -- her kelime icin ilk uygun kesisimi kabul eder, yoksa
-    izole bir satira duser. Uretim bir kez yapilip DB'ye yazildigi icin
-    mukemmel paketleme yerine HIZLI ve HER ZAMAN BASARILI olmasi tercih
-    edildi)."""
+    """Kesisme-tabanli bulmaca yerlestirici (backtracking degil, acgozlu/
+    greedy -- her kelime icin rastgele sirali kesisim adaylarindan ilk
+    UYGUN olani kabul eder).
+
+    23 Kasim 2026 kullanici isteği: eskiden kesisim bulunamayan kelime
+    "izole", kendi satirina ayri yatay bir kelime olarak yerlestirilirdi
+    (hicbir baska kelimeyle kesismeden) -- kullanici bunun yanlis oldugunu
+    bildirdi: "her kelime bir biri ile bağlantılı olur, hiç ayrık olmaması
+    lazım". Artik place_connected() kesisim bulamadigi kelimeyi YERLESTIRMEZ
+    (False doner) -- izole fallback tamamen kaldirildi. Cagiran taraf
+    (_generate_puzzle_rows) elenen kelimelerin yerine havuzdaki digerleriyle
+    bos yer doldurmaya calisir; boylece uretilen bulmaca HER ZAMAN tek bir
+    bagli bilesen olur (ilk kelime haric her kelime zaten yerlesmis bir
+    hucreyle kesisir)."""
 
     def __init__(self, max_width: int, max_height: int):
         self.max_width = max_width
         self.max_height = max_height
         self.cells: dict[tuple[int, int], str] = {}
         self.placed: list[dict] = []
-        self._next_isolated_row = 0
 
     def _fits(self, word: str, row: int, col: int, direction: str) -> bool:
         """Harf celismesinin yani sira -- KULLANICI GERI BILDIRIMI (18 Kasim
@@ -160,17 +267,23 @@ class _Grid:
             c = col + (i if direction == "across" else 0)
             self.cells[(r, c)] = ch
         self.placed.append({**word_row, "row_start": row, "col_start": col, "direction": direction, "answer": answer})
-        self._next_isolated_row = max(self._next_isolated_row, row + (len(answer) if direction == "down" else 1) + 1)
 
-    def place(self, word_row: dict):
-        answer = word_row["word"].strip().upper()
+    def place_connected(self, word_row: dict) -> bool:
+        """Kelimeyi SADECE kesisimle yerlestirir (ilk kelime haric); kesisim
+        bulunamazsa hicbir sey yapmadan False doner -- izole fallback YOK
+        (bkz. sinif docstring'i). Basariysa True doner."""
+        # word_row artik _candidate_rows tarafindan ONCEDEN normalize edilmis
+        # geliyor ("answer" alani zaten buyuk harfe cevrilmis) -- kaynak
+        # tablo (general_word_pool / words) farketmeksizin.
+        answer = word_row["answer"]
         if not self.placed:
             # ilk kelime: yatay, ustten/soldan biraz pay birakarak ortaya yakin
             row = self.max_height // 2
             col = max(0, (self.max_width - len(answer)) // 2)
             if self._fits(answer, row, col, "across"):
                 self._commit(word_row, row, col, "across", answer)
-                return
+                return True
+            return False
         # kesisim ara: mevcut hucrelerden ayni harfi paylasan bir yerlesim bul
         candidates: list[tuple[int, int, str]] = []
         for i, ch in enumerate(answer):
@@ -183,15 +296,8 @@ class _Grid:
         for row, col, direction in candidates:
             if self._fits(answer, row, col, direction):
                 self._commit(word_row, row, col, direction, answer)
-                return
-        # kesisim bulunamadi: izole, kendi satirina yatay yerlestir (garanti basari)
-        row = min(self._next_isolated_row, self.max_height - 1)
-        col = 0
-        if self._fits(answer, row, col, "across"):
-            self._commit(word_row, row, col, "across", answer)
-        # (son care basarisizsa -- grid cok kucukse -- kelime sessizce atlanir;
-        # cagiran taraf word_count'un gercek len(placed) ile hafif farkli
-        # olabilecegini hesaba katmali)
+                return True
+        return False
 
     def normalize(self) -> tuple[int, int]:
         """Koordinatlari 0'a hizalar, gercek bounding box genislik/yukseklik dondurur."""
@@ -210,49 +316,102 @@ class _Grid:
         return (max_col + 1, max_row + 1)
 
 
-def _generate_puzzle_rows(learning_lang: str, native_lang: str, level: int) -> dict:
+def _generate_puzzle_rows(
+    mode: str, learning_lang: str, native_lang: str, level: int, user_id: str | None = None
+) -> dict:
     tier = tier_for_level(level)
-    words = _candidate_words(learning_lang, native_lang, tier.band, tier.word_count)
-    if len(words) < 3:
-        # Bu dil/seviye kombinasyonu icin havuzda yeterli kelime yok.
+    # 23 Kasim 2026: hedeften COK DAHA GENIS bir aday havuzu cekiyoruz --
+    # kesisim bulamayan kelimeler artik izole yerlestirilmek yerine ELENIYOR
+    # (bkz. _Grid.place_connected), o yuzden yerlerine koyacak yedeklerimiz
+    # olmasi lazim.
+    pool = _candidate_rows(mode, learning_lang, native_lang, tier.band, tier.word_count * _POOL_MULTIPLIER, user_id=user_id)
+    if len(pool) < 3:
+        if mode == "own_pool":
+            # own_pool'da sebep HER ZAMAN "yeterli kelime eklenmemis" --
+            # kullaniciya aksiyon alinabilir bir mesaj verelim.
+            raise LookupError(
+                "Bu bulmaca modu icin 'Kelimelerim' listende bu dil ciftinde "
+                f"en az 3 kelime olmali (su an {len(pool)} tane var)."
+            )
         raise LookupError(
             f"'{learning_lang}->{native_lang}' icin '{tier.band}' bandinda yeterli kelime yok "
-            f"({len(words)} bulundu, en az 3 gerekiyor)."
+            f"({len(pool)} bulundu, en az 3 gerekiyor)."
         )
-    # uzun kelimeleri once yerlestirmek kesisim basarisini artirir (klasik kural)
-    words.sort(key=lambda w: len(w["word"].strip()), reverse=True)
 
-    grid = _Grid(tier.grid_width, tier.grid_height)
-    for w in words:
-        grid.place(w)
+    # Her denemede: uzun kelimeleri once yerlestirmek kesisim basarisini
+    # artirir (klasik kural), ama kesisim adaylari da rastgele siralandigi
+    # icin (bkz. place_connected) farkli denemeler farkli yerlesimler verir
+    # -- en iyisini (en cok kelime yerlestireni) tutuyoruz. Hedefe (
+    # tier.word_count) ulasan ilk denemede erken cikiyoruz.
+    best: _Grid | None = None
+    for _attempt in range(_MAX_GRID_ATTEMPTS):
+        candidates = list(pool)
+        random.shuffle(candidates)
+        candidates.sort(key=lambda w: len(w["answer"]), reverse=True)
 
-    grid_width, grid_height = grid.normalize()
+        grid = _Grid(tier.grid_width, tier.grid_height)
+        for w in candidates:
+            if len(grid.placed) >= tier.word_count:
+                break
+            grid.place_connected(w)
+
+        if best is None or len(grid.placed) > len(best.placed):
+            best = grid
+        if len(best.placed) >= tier.word_count:
+            break
+
+    assert best is not None
+    if len(best.placed) > tier.word_count:
+        # Guvenlik: yukaridaki ic donguler zaten word_count'ta durduruyor,
+        # ama olur da asarsa -- yerlestirme SIRASINI koruyarak kirp (her
+        # kelime SADECE o ana kadar yerlesmis hucrelerle kesistigi icin
+        # bastan kirpmak bagliligi asla bozmaz).
+        best.placed = best.placed[: tier.word_count]
+    if len(best.placed) < 3:
+        detail = (
+            "Kelimelerin arasinda yeterince ortak harf yok"
+            if mode == "own_pool"
+            else f"'{learning_lang}->{native_lang}' icin '{tier.band}' bandindaki kelimeler birbiriyle yeterince kesismiyor"
+        )
+        raise LookupError(f"{detail} (sadece {len(best.placed)} kelime baglanabildi, en az 3 gerekiyor).")
+
+    grid_width, grid_height = best.normalize()
     return {
         "tier": tier,
         "grid_width": grid_width,
         "grid_height": grid_height,
-        "placed": grid.placed,
+        "placed": best.placed,
     }
 
 
-def get_or_create_puzzle(learning_lang: str, native_lang: str, level: int) -> dict:
+def get_or_create_puzzle(
+    mode: str, learning_lang: str, native_lang: str, level: int, user_id: str | None = None
+) -> dict:
     """Var olan bulmacayi DB'den okur; yoksa uretir ve yazar. Donus: puzzle
     satiri + kelime listesi (answer DAHIL -- bu fonksiyon SADECE backend ici
     kullanim icindir, answer'i istemciye gondermeden once api/routes/
-    crossword.py filtrelemeli)."""
-    existing = (
+    crossword.py filtrelemeli).
+
+    standard/reverse: PAYLASILAN satir (user_id NULL) -- herkes ayni
+    bulmacayi cozer (bkz. migration 096). own_pool: user_id ZORUNLU, her
+    kullaniciya ayri, kendi 'words' listesinden uretilmis bir satir."""
+    if mode == "own_pool" and not user_id:
+        raise ValueError("own_pool modu icin user_id sart")
+
+    query = (
         supabase_admin.table("crossword_puzzles")
         .select("*, crossword_puzzle_words(*)")
         .eq("learning_lang", learning_lang)
         .eq("native_lang", native_lang)
         .eq("level", level)
-        .execute()
-        .data
+        .eq("mode", mode)
     )
+    query = query.eq("user_id", user_id) if mode == "own_pool" else query.is_("user_id", "null")
+    existing = query.execute().data
     if existing:
         return existing[0]
 
-    built = _generate_puzzle_rows(learning_lang, native_lang, level)
+    built = _generate_puzzle_rows(mode, learning_lang, native_lang, level, user_id=user_id)
     tier = built["tier"]
     puzzle_insert = (
         supabase_admin.table("crossword_puzzles")
@@ -260,6 +419,8 @@ def get_or_create_puzzle(learning_lang: str, native_lang: str, level: int) -> di
             "learning_lang": learning_lang,
             "native_lang": native_lang,
             "level": level,
+            "mode": mode,
+            "user_id": user_id if mode == "own_pool" else None,
             "tier": tier.band,
             "grid_width": built["grid_width"],
             "grid_height": built["grid_height"],
@@ -270,19 +431,24 @@ def get_or_create_puzzle(learning_lang: str, native_lang: str, level: int) -> di
     )
     puzzle = puzzle_insert[0]
 
-    word_rows = [
-        {
+    word_rows = []
+    for p in built["placed"]:
+        row = {
             "puzzle_id": puzzle["id"],
-            "general_word_id": p["id"],
-            "clue_text": p["meaning"],
+            "clue_text": p["clue_text"],
             "answer": p["answer"],
             "row_start": p["row_start"],
             "col_start": p["col_start"],
             "direction": p["direction"],
             "answer_length": len(p["answer"]),
         }
-        for p in built["placed"]
-    ]
+        # Kaynak tabloya gore tam olarak BIRI dolu olmali (bkz. migration 096
+        # crossword_puzzle_words_exactly_one_source CHECK'i).
+        if p["source_table"] == "words":
+            row["user_word_id"] = p["source_id"]
+        else:
+            row["general_word_id"] = p["source_id"]
+        word_rows.append(row)
     inserted_words = (
         supabase_admin.table("crossword_puzzle_words").insert(word_rows).execute().data
     ) or []
@@ -290,30 +456,34 @@ def get_or_create_puzzle(learning_lang: str, native_lang: str, level: int) -> di
     return puzzle
 
 
-def get_user_progress(user_id: str, learning_lang: str) -> int:
+def get_user_progress(user_id: str, learning_lang: str, mode: str = "standard") -> int:
     rows = (
         supabase_admin.table("user_crossword_progress")
         .select("current_level")
         .eq("user_id", user_id)
         .eq("learning_lang", learning_lang)
+        .eq("mode", mode)
         .execute()
         .data
     ) or []
     return rows[0]["current_level"] if rows else 1
 
 
-def advance_user_progress(user_id: str, learning_lang: str, completed_level: int) -> int:
+def advance_user_progress(user_id: str, learning_lang: str, completed_level: int, mode: str = "standard") -> int:
     """completed_level bitince ilerlemeyi bir sonraki seviyeye tasir (max
     MAX_LEVEL). Zaten daha ileri bir seviyedeyse (ayni bulmaca tekrar
-    cozulduyse) geri almaz."""
-    current = get_user_progress(user_id, learning_lang)
+    cozulduyse) geri almaz. 23 Kasim 2026: her mod KENDI ilerlemesini
+    (mode sutunu) bagimsiz tutar -- standard'da 50. seviyede olmak reverse/
+    own_pool'u etkilemez."""
+    current = get_user_progress(user_id, learning_lang, mode)
     next_level = min(max(current, completed_level + 1), MAX_LEVEL)
     supabase_admin.table("user_crossword_progress").upsert(
         {
             "user_id": user_id,
             "learning_lang": learning_lang,
+            "mode": mode,
             "current_level": next_level,
         },
-        on_conflict="user_id,learning_lang",
+        on_conflict="user_id,learning_lang,mode",
     ).execute()
     return next_level

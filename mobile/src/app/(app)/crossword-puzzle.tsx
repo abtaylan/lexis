@@ -14,7 +14,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -27,7 +29,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ArrowDown, ArrowRight, CheckCircle2, Sparkles, Trophy } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { crosswordApi } from '@/api/crossword';
-import type { CrosswordLevelResponse, CrosswordWord } from '@/api/types';
+import type { CrosswordLevelResponse, CrosswordMode, CrosswordWord } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -58,6 +60,11 @@ const L: Record<'tr' | 'en', Record<string, string>> = {
   },
 };
 
+function errorDetail(err: unknown): string {
+  const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+  return typeof detail === 'string' ? detail : '';
+}
+
 const CELL = 30;
 
 function cellsForWord(w: CrosswordWord): string[] {
@@ -74,8 +81,10 @@ export default function CrosswordPuzzleScreen() {
   const c = useThemeColors();
   const { locale } = useLocale();
   const t = L[locale === 'tr' ? 'tr' : 'en'];
-  const { level: levelParam } = useLocalSearchParams<{ level: string }>();
+  const { level: levelParam, mode: modeParam } = useLocalSearchParams<{ level: string; mode?: string }>();
   const levelNum = Number(levelParam) || 1;
+  const mode: CrosswordMode =
+    modeParam === 'reverse' || modeParam === 'own_pool' ? modeParam : 'standard';
 
   const [puzzle, setPuzzle] = useState<CrosswordLevelResponse | null>(null);
   const [error, setError] = useState('');
@@ -96,7 +105,7 @@ export default function CrosswordPuzzleScreen() {
     setActiveWordId(null);
     setCompletion(null);
     crosswordApi
-      .level(levelNum)
+      .level(levelNum, mode)
       .then((res) => {
         setPuzzle(res);
         setSolvedWordIds(res.solved_word_ids);
@@ -113,9 +122,9 @@ export default function CrosswordPuzzleScreen() {
         const firstUnsolved = sorted.find((w) => !res.solved_word_ids.includes(w.word_id));
         setActiveWordId((firstUnsolved ?? sorted[0])?.word_id ?? null);
       })
-      .catch(() => setError(t.error));
+      .catch((err) => setError(errorDetail(err) || t.error));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [levelNum]);
+  }, [levelNum, mode]);
 
   const { cellMap, numberAt, wordsById, wordsSorted } = useMemo(() => {
     const cellMapLocal = new Map<string, string[]>();
@@ -149,7 +158,7 @@ export default function CrosswordPuzzleScreen() {
     async (wordId: string, answer: string) => {
       setPending((p) => new Set(p).add(wordId));
       try {
-        const result = await crosswordApi.attemptWord(levelNum, wordId, answer);
+        const result = await crosswordApi.attemptWord(levelNum, wordId, answer, mode);
         if (result.correct) {
           setSolvedWordIds((prev) => (prev.includes(wordId) ? prev : [...prev, wordId]));
           if (result.word_xp_awarded > 0) {
@@ -186,7 +195,7 @@ export default function CrosswordPuzzleScreen() {
         });
       }
     },
-    [levelNum, wordsById, cellMap, solvedWordIds, t.error]
+    [levelNum, mode, wordsById, cellMap, solvedWordIds, t.error]
   );
 
   // Herhangi bir kelimenin TÜM hücreleri dolunca otomatik kontrol.
@@ -221,13 +230,29 @@ export default function CrosswordPuzzleScreen() {
     setActiveWordId(unsolved ?? wordIds[0]);
   };
 
+  // 23 Kasım 2026 kullanıcı isteği: kesişim hücresi başka (zaten çözülmüş)
+  // bir kelimeden geliyorsa editable={false} oluyor ve odak oraya gidince
+  // kullanıcı o hücreye hiç yazamadığı için bir sonraki harfe asla
+  // geçemiyordu ("kesişen yerde harfe basınca bir sonraki harfe geçmiyor").
+  // Otomatik ilerlemede zaten çözülmüş hücreleri atlayıp ilk YAZILABİLİR
+  // hücreye odaklanıyoruz.
   const handleChangeCell = (key: string, idx: number, text: string) => {
     const word = activeWordId ? wordsById.get(activeWordId) : undefined;
     const letter = text.slice(-1).toUpperCase();
     setGridLetters((prev) => ({ ...prev, [key]: letter }));
-    if (letter && word && idx < word.answer_length - 1) {
-      const nextKey = cellsForWord(word)[idx + 1];
-      inputRefs.current[nextKey]?.focus();
+    if (letter && word) {
+      const keys = cellsForWord(word);
+      let nextIdx = idx + 1;
+      while (nextIdx < word.answer_length) {
+        const nextKey = keys[nextIdx];
+        const owners = cellMap.get(nextKey) ?? [];
+        const isPrefilled = owners.some((id) => id !== word.word_id && solvedWordIds.includes(id));
+        if (!isPrefilled) {
+          inputRefs.current[nextKey]?.focus();
+          break;
+        }
+        nextIdx++;
+      }
     }
   };
 
@@ -235,8 +260,18 @@ export default function CrosswordPuzzleScreen() {
     if (e.nativeEvent.key !== 'Backspace' || gridLetters[key] || idx <= 0) return;
     const word = activeWordId ? wordsById.get(activeWordId) : undefined;
     if (!word) return;
-    const prevKey = cellsForWord(word)[idx - 1];
-    inputRefs.current[prevKey]?.focus();
+    const keys = cellsForWord(word);
+    let prevIdx = idx - 1;
+    while (prevIdx >= 0) {
+      const prevKey = keys[prevIdx];
+      const owners = cellMap.get(prevKey) ?? [];
+      const isPrefilled = owners.some((id) => id !== word.word_id && solvedWordIds.includes(id));
+      if (!isPrefilled) {
+        inputRefs.current[prevKey]?.focus();
+        break;
+      }
+      prevIdx--;
+    }
   };
 
   if (!puzzle && !error) {
@@ -264,7 +299,16 @@ export default function CrosswordPuzzleScreen() {
   const activeWord = activeWordId ? wordsById.get(activeWordId) : undefined;
   const activeWordKeys = activeWord ? new Set(cellsForWord(activeWord)) : new Set<string>();
 
+  // 23 Kasım 2026 kullanıcı isteği (ekran görüntüsü): klavye açılınca alttaki
+  // kelime/ipucu listesi ekranın dışında kalıp görünmüyordu — AgeGateScreen'
+  // deki (20 Kasım 2026) aynı kökten sorun: ScreenContainer'ın varsayılan
+  // ScrollView'i, klavye kapalıyken içerik zaten sığdığı için klavye
+  // açıldığında kaydıracak fazladan alana sahip değildi. Tüm ekranı
+  // KeyboardAvoidingView ile sarmalamak (sadece iOS — Android zaten
+  // windowSoftInputMode resize ile hallediyor) görünür alanı klavye kadar
+  // küçültüp ScrollView'e ihtiyaç duyduğu fazladan kaydırma alanını veriyor.
   return (
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScreenContainer>
       <ScreenNavBar />
       <View style={styles.headerRow}>
@@ -288,7 +332,12 @@ export default function CrosswordPuzzleScreen() {
             {completion.nextLevel ? (
               <Button
                 title={t.nextLevelBtn}
-                onPress={() => router.replace({ pathname: '/(app)/crossword-puzzle', params: { level: String(completion.nextLevel) } })}
+                onPress={() =>
+                  router.replace({
+                    pathname: '/(app)/crossword-puzzle',
+                    params: { level: String(completion.nextLevel), mode },
+                  })
+                }
               />
             ) : (
               <Text style={{ color: c.success, textAlign: 'center', fontWeight: '600' }}>{t.allDoneTitle}</Text>
@@ -387,10 +436,12 @@ export default function CrosswordPuzzleScreen() {
         </View>
       )}
     </ScreenContainer>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   h1: { fontSize: 20, fontWeight: '700' },
   cell: {
