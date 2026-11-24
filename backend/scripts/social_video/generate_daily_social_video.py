@@ -150,11 +150,20 @@ def main():
         chip(d, c["level"], 500, F_SEMI(30), BLUE, BOX_BLUE, pad_x=56, h=60)
     box_y = 640
     if c.get("meaning_en"):
-        rounded_rect(d, (90, box_y, W - 90, box_y + 560), 36, BOX_BLUE)
+        # Dynamically size the box / section offsets so a long meaning_en
+        # never overlaps the TR header/text below it.
+        en_lines = textwrap.wrap(c["meaning_en"], width=22)
+        en_text_h = max(len(en_lines), 1) * 54
+        tr_header_y = box_y + 110 + en_text_h + 40
+        tr_text_y = tr_header_y + 60
+        tr_lines = textwrap.wrap(c["meaning_tr"], width=26)
+        tr_text_h = max(len(tr_lines), 1) * 50
+        box_h = (tr_text_y + tr_text_h + 50) - box_y
+        rounded_rect(d, (90, box_y, W - 90, box_y + box_h), 36, BOX_BLUE)
         d.text((130, box_y + 50), "EN  ·  İngilizce", font=F_BOLD(34), fill=BLUE)
         wrapped_center_text(d, W / 2, box_y + 110, c["meaning_en"], F_SEMI(40), INK, 22, 54)
-        d.text((130, box_y + 260), "TR  ·  Türkçe", font=F_BOLD(34), fill=BLUE)
-        wrapped_center_text(d, W / 2, box_y + 320, c["meaning_tr"], F_SEMI(36), INK, 26, 50)
+        d.text((130, tr_header_y), "TR  ·  Türkçe", font=F_BOLD(34), fill=BLUE)
+        wrapped_center_text(d, W / 2, tr_text_y, c["meaning_tr"], F_SEMI(36), INK, 26, 50)
     else:
         rounded_rect(d, (90, box_y, W - 90, box_y + 420), 36, BOX_BLUE)
         d.text((130, box_y + 50), "TR  ·  Anlamı", font=F_BOLD(34), fill=BLUE)
