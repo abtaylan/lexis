@@ -162,7 +162,7 @@ def _tactics_by_tag(tags: list[str]) -> dict[str, dict[str, Any]]:
         return {}
     rows = (
         supabase_admin.table("exam_tactics")
-        .select("id, topic_tag, title_tr, tactic_tr, examples_tr")
+        .select("id, topic_tag, title_tr, tactic_tr, examples_tr, breakdown")
         .in_("topic_tag", tags)
         .execute()
         .data

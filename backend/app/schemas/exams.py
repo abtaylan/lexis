@@ -370,6 +370,13 @@ class ExamTacticItem(BaseModel):
     # her biri ayni "tirnak icinde cumle + aciklama" formatinda.
     examples_tr: list[str] = []
     related_grammar_topic: RelatedGrammarTopic | None = None
+    # 24 Kasim 2026 (4. tur) -- Behcet'in paylastigi tam HTML mockup'ina
+    # birebir uyan yapilandirilmis icerik (genel kural + numarali madde
+    # kartlari + anlam-cifti karsilastirmalari + uyari banner'i + cevap
+    # kelimesi vurgulu ornekler). Bkz. migration 106_exam_tactics_breakdown.sql
+    # ve frontend MarkupText/TacticItemCard/markup etiket sozlugu. Null ise
+    # istemci eski tactic_tr/examples_tr duz-metin gorunumune duser.
+    breakdown: dict | None = None
 
 
 class ExamPracticeQuestionsResult(BaseModel):

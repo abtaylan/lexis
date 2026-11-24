@@ -560,6 +560,61 @@ export interface TopicTranslationQuestionItem {
 
 // 23 Kasım 2026 -- "Sınav Taktikleri": mobile/src/api/types.ts ile birebir
 // aynı alan eşleşmesi (bkz. backend ExamTacticItem, exam_tactics tablosu).
+// 24 Kasim 2026 (4. tur) -- Behcet'in paylastigi tam HTML mockup'ina birebir
+// uyan yapilandirilmis taktik icerigi. Bkz. backend migration
+// 106_exam_tactics_breakdown.sql ve ExamTacticCard'daki MarkupText/markup
+// etiket sozlugu ([[q]]/[[dark]]/[[ok]]/[[bad]]/[[amber]]/[[b]]/[[pair]]/
+// [[right]]/[[wrong]]). Null/undefined ise eski tactic_tr/examples_tr
+// duz-metin gorunumune dusulur.
+export interface TacticSubRule {
+  condition: string; // markup metni
+  from: string;
+  to: string;
+}
+
+export interface TacticBodyTextBlock {
+  type: 'text';
+  text: string; // markup metni
+}
+
+export interface TacticBodyExampleCheckBlock {
+  type: 'example_check';
+  correct: string;
+  wrong_note: string;
+}
+
+export type TacticBodyBlock = TacticBodyTextBlock | TacticBodyExampleCheckBlock;
+
+export interface TacticMeaningPairEntry {
+  word: string;
+  meaning: string;
+  variant?: 'wrong';
+}
+
+export interface TacticItem {
+  heading: string;
+  badge?: string;
+  sub_rules?: TacticSubRule[];
+  body?: TacticBodyBlock[];
+  // Her iç dizi TAM OLARAK 2 eleman içerir: [doğru, yanlış/alternatif].
+  meaning_pairs?: TacticMeaningPairEntry[][];
+  is_warning?: boolean;
+  warning_label?: string;
+  warning_text?: string; // markup metni
+}
+
+export interface TacticExampleItem {
+  sentence: string;
+  answer_word: string; // sentence içinde birebir geçen, vurgulanacak kelime/öbek
+  reasoning: string; // markup metni
+}
+
+export interface TacticBreakdown {
+  intro: string; // markup metni
+  items: TacticItem[];
+  examples: TacticExampleItem[];
+}
+
 export interface ExamTacticItem {
   id: string;
   topic_tag: string | null;
@@ -569,6 +624,7 @@ export interface ExamTacticItem {
   // worked_example_tr yerine BIRDEN FAZLA ornek (bkz. backend migration 099).
   examples_tr: string[];
   related_grammar_topic?: RelatedGrammarTopic | null;
+  breakdown?: TacticBreakdown | null;
 }
 
 export interface ExamPracticeQuestionsResult {

@@ -1678,7 +1678,7 @@ async def practice_questions_by_topic(
     # gerekmez, mevcut pratik akışı zenginleştirilir.
     tactic_row = (
         supabase_admin.table("exam_tactics")
-        .select("id, topic_tag, title_tr, tactic_tr, examples_tr")
+        .select("id, topic_tag, title_tr, tactic_tr, examples_tr, breakdown")
         .eq("topic_tag", topic_tag)
         .limit(1)
         .execute()
@@ -1771,7 +1771,7 @@ async def list_exam_tactics(current_user=Depends(get_current_user)):
         )
     rows = (
         supabase_admin.table("exam_tactics")
-        .select("id, topic_tag, title_tr, tactic_tr, examples_tr, sort_order")
+        .select("id, topic_tag, title_tr, tactic_tr, examples_tr, sort_order, breakdown")
         .order("sort_order")
         .execute()
         .data
@@ -1786,6 +1786,7 @@ async def list_exam_tactics(current_user=Depends(get_current_user)):
             tactic_tr=r["tactic_tr"],
             examples_tr=r.get("examples_tr") or [],
             related_grammar_topic=topics_by_tag.get(r["topic_tag"]) if r.get("topic_tag") else None,
+            breakdown=r.get("breakdown"),
         )
         for r in rows
     ]
