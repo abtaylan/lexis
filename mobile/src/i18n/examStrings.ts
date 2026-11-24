@@ -136,6 +136,12 @@ export type ExamStrings = {
   examTacticsBadgeLabel: string;
   examTacticsExamplesLabel: string;
   examTacticsTopicLabel: string;
+  // 24 Kasım 2026 -- pratiğe cevaplanmadan ÖNCE gösterilen gramer ipucu kutusu
+  grammarHintLabel: string;
+  grammarHintTenseLabel: string;
+  grammarHintStructureLabel: string;
+  grammarHintBlankTypeLabel: string;
+  grammarHintReasoningLabel: string;
 };
 
 export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
@@ -258,6 +264,11 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     examTacticsBadgeLabel: 'Taktik',
     examTacticsExamplesLabel: 'Örnekler',
   examTacticsTopicLabel: 'Konu',
+    grammarHintLabel: 'Gramer İpucu',
+    grammarHintTenseLabel: 'Zaman',
+    grammarHintStructureLabel: 'Yapı',
+    grammarHintBlankTypeLabel: 'Boşluk Türü',
+    grammarHintReasoningLabel: 'Neden',
   },
   en: {
     entryLabel: 'Exam Prep',
@@ -378,5 +389,10 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     examTacticsBadgeLabel: 'Tactic',
     examTacticsExamplesLabel: 'Examples',
   examTacticsTopicLabel: 'Topic',
+    grammarHintLabel: 'Grammar Hint',
+    grammarHintTenseLabel: 'Tense',
+    grammarHintStructureLabel: 'Structure',
+    grammarHintBlankTypeLabel: 'Blank Type',
+    grammarHintReasoningLabel: 'Why',
   },
 };

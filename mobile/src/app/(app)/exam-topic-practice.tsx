@@ -329,6 +329,49 @@ export default function ExamTopicPracticeScreen() {
           </Text>
 
           <Card style={{ marginTop: spacing.sm }}>
+            {current.grammar_hint && (
+              <View
+                style={{
+                  backgroundColor: c.background,
+                  borderRadius: radius.md,
+                  borderLeftWidth: 3,
+                  borderLeftColor: c.warning,
+                  paddingVertical: spacing.sm,
+                  paddingHorizontal: spacing.md,
+                  marginBottom: spacing.sm,
+                  gap: 4,
+                }}
+              >
+                <Text
+                  style={{
+                    color: c.warning,
+                    fontSize: 11,
+                    fontWeight: '700',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    marginBottom: 2,
+                  }}
+                >
+                  {et.grammarHintLabel}
+                </Text>
+                <Text style={{ color: c.textSecondary, fontSize: 12, lineHeight: 17 }}>
+                  <Text style={{ fontWeight: '700' }}>{et.grammarHintTenseLabel}: </Text>
+                  {current.grammar_hint.tense_tr}
+                </Text>
+                <Text style={{ color: c.textSecondary, fontSize: 12, lineHeight: 17 }}>
+                  <Text style={{ fontWeight: '700' }}>{et.grammarHintStructureLabel}: </Text>
+                  {current.grammar_hint.structure_tr}
+                </Text>
+                <Text style={{ color: c.textSecondary, fontSize: 12, lineHeight: 17 }}>
+                  <Text style={{ fontWeight: '700' }}>{et.grammarHintBlankTypeLabel}: </Text>
+                  {current.grammar_hint.blank_type_tr}
+                </Text>
+                <Text style={{ color: c.textSecondary, fontSize: 12, lineHeight: 17 }}>
+                  <Text style={{ fontWeight: '700' }}>{et.grammarHintReasoningLabel}: </Text>
+                  {current.grammar_hint.reasoning_tr}
+                </Text>
+              </View>
+            )}
             <Text style={[styles.bodyText, { color: c.text }]}>{current.question_text}</Text>
           </Card>
 

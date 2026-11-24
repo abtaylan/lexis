@@ -825,6 +825,19 @@ export interface ExamAttemptResult {
   related_grammar_topic?: RelatedGrammarTopic | null;
 }
 
+// 24 Kasım 2026, Behçet'in kullanıcı isteği: "soru pratiği yaparken,
+// soruların üzerinde hiç bilgi yok, hangi tense kullanılmış, cümle grammer
+// yapısı ne olmalı, boşluğa gelecek cevap türü ne olmalı, neden o tür
+// seçilmeli gibi, bu bilgileri pratik yapılan sorularda görmeliyim, bunlar
+// antrenman soruları olacak bizim için." Soru cevaplanmadan ÖNCE gösterilir --
+// doğru şıkkı DOĞRUDAN söylemez (bkz. backend schemas/exams.py::GrammarHintItem).
+export interface GrammarHintItem {
+  tense_tr: string;
+  structure_tr: string;
+  blank_type_tr: string;
+  reasoning_tr: string;
+}
+
 export interface ExamPracticeQuestionItem {
   id: string;
   exam_type: ExamType;
@@ -834,6 +847,10 @@ export interface ExamPracticeQuestionItem {
   explanation: string;
   // 24 Eylül 2026 — hafta sonu quizinde her sorunun kendi konusu
   topic_tag?: string | null;
+  // 24 Kasım 2026 -- bkz. GrammarHintItem docstring'i. Eski sorularda
+  // (backfill tamamlanana kadar) null/undefined olabilir, istemci o durumda
+  // kutuyu hiç göstermez.
+  grammar_hint?: GrammarHintItem | null;
 }
 
 // "Konu Bazlı Çeviri Pratiği" (23 Ekim 2026, Behçet'in kullanıcı isteği) --

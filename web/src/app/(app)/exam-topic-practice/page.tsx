@@ -55,6 +55,12 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     translationWrongLabel: 'Yanlış',
     tacticBadgeLabel: 'Taktik',
     tacticExamplesLabel: 'Örnekler',
+    // 24 Kasım 2026 -- pratiğe cevaplanmadan ÖNCE gösterilen gramer ipucu kutusu
+    grammarHintLabel: 'Gramer İpucu',
+    grammarHintTenseLabel: 'Zaman',
+    grammarHintStructureLabel: 'Yapı',
+    grammarHintBlankTypeLabel: 'Boşluk Türü',
+    grammarHintReasoningLabel: 'Neden',
   },
   en: {
     back: 'Back',
@@ -84,6 +90,11 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     translationWrongLabel: 'Wrong',
     tacticBadgeLabel: 'Tactic',
     tacticExamplesLabel: 'Examples',
+    grammarHintLabel: 'Grammar Hint',
+    grammarHintTenseLabel: 'Tense',
+    grammarHintStructureLabel: 'Structure',
+    grammarHintBlankTypeLabel: 'Blank Type',
+    grammarHintReasoningLabel: 'Why',
   },
 };
 
@@ -403,6 +414,27 @@ export default function ExamTopicPracticePage() {
           </p>
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5 mt-2">
+            {current.grammar_hint && (
+              <div className="mb-3 rounded-xl bg-[#FFF8E8] dark:bg-amber-500/10 border border-[#FDE9B8] dark:border-amber-500/20 px-3.5 py-2.5 flex flex-col gap-1">
+                <p className="text-xs font-semibold text-[#8A6416] dark:text-amber-300 mb-0.5">{t.grammarHintLabel}</p>
+                <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
+                  <span className="font-semibold">{t.grammarHintTenseLabel}: </span>
+                  {current.grammar_hint.tense_tr}
+                </p>
+                <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
+                  <span className="font-semibold">{t.grammarHintStructureLabel}: </span>
+                  {current.grammar_hint.structure_tr}
+                </p>
+                <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
+                  <span className="font-semibold">{t.grammarHintBlankTypeLabel}: </span>
+                  {current.grammar_hint.blank_type_tr}
+                </p>
+                <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
+                  <span className="font-semibold">{t.grammarHintReasoningLabel}: </span>
+                  {current.grammar_hint.reasoning_tr}
+                </p>
+              </div>
+            )}
             <p className="text-sm text-gray-800 dark:text-slate-200 leading-relaxed">{current.question_text}</p>
           </div>
 
