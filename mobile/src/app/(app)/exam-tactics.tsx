@@ -5,23 +5,34 @@
 //
 // GET /exams/tactics (bkz. backend ExamTacticItem) iki tür satır döner:
 // - topic_tag DOLU: gerçek bir gramer konusuna bağlı taktik -- karta
-//   basınca exam-topic-practice ekranına (o konunun MEVCUT soru havuzuyla
-//   BİRLİKTE, taktik banner'ı zaten orada da gösterilir) yönlendirilir.
+//   basınca YERİNDE açılır/kapanır (bkz. ExamTacticCard, collapsible),
+//   altındaki "Taktikle Pratik Yap" butonuna basınca exam-topic-practice
+//   ekranına (o konunun MEVCUT soru havuzuyla BİRLİKTE) yönlendirilir.
 // - topic_tag BOŞ: bir soru TİPİNE (çeviri/cümle tamamlama/paragraf
-//   tamamlama) ait genel strateji -- pratik havuzu yok, salt okunur.
+//   tamamlama) ait genel strateji -- pratik havuzu yok, her zaman açık.
+//
+// 23 Kasım 2026 kullanıcı geri bildirimi ("burada sayfalama yapısı olmalı,
+// başlıklara tıklayınca ayrıntıları görmeliyiz ... sarı renkli alan
+// okunaklı olmuyor ... örnekler çok olmalı, taktikler isimlendirilmeli"):
+// önceden konu bazlı taktiklere basınca ayrıntı GÖSTERMEDEN direkt pratik
+// ekranına gidiliyordu -- artık ExamTacticCard ile YERİNDE açılıp
+// kapanabiliyor (literal sayfa numaralı "sayfalama" yerine akordeon --
+// sadece 25 taktik olduğu için bu daha kullanışlı; sayı arttıkça gerekirse
+// literal sayfalamaya geçilebilir) ve birden fazla örnek + okunaklı nötr
+// metin rengiyle gösteriliyor (bkz. ExamTacticCard bileşeni).
 import React from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { ChevronRight, Lightbulb } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { examsApi } from '@/api/exams';
 import type { ExamTacticItem } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
-import { radius, spacing } from '@/constants/theme';
+import { spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
-import { Card } from '@/components/ui/Card';
+import { Button } from '@/components/ui/Button';
+import { ExamTacticCard } from '@/components/ExamTacticCard';
 
 export default function ExamTacticsScreen() {
   const { et } = useLocale();
@@ -60,23 +71,18 @@ export default function ExamTacticsScreen() {
         <>
           {generalTactics.length > 0 && (
             <>
-              <Text style={[styles.groupLabel, { color: c.textMuted }]}>{et.examTacticsGeneralGroupLabel}</Text>
+              <Text style={{ fontSize: 13, fontWeight: '700', marginTop: spacing.lg, marginBottom: spacing.sm, textTransform: 'uppercase', color: c.textMuted }}>
+                {et.examTacticsGeneralGroupLabel}
+              </Text>
               <View style={{ gap: spacing.sm }}>
                 {generalTactics.map((tactic) => (
-                  <Card key={tactic.id}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Lightbulb color={c.warning} size={16} />
-                      <Text style={[styles.title, { color: c.text }]}>{tactic.title_tr}</Text>
-                    </View>
-                    <Text style={{ color: c.textSecondary, fontSize: 13, marginTop: spacing.sm, lineHeight: 19 }}>
-                      {tactic.tactic_tr}
-                    </Text>
-                    {tactic.worked_example_tr && (
-                      <Text style={{ color: c.textMuted, fontSize: 12, marginTop: spacing.sm, lineHeight: 18, fontStyle: 'italic' }}>
-                        {et.tacticExampleLabel}: {tactic.worked_example_tr}
-                      </Text>
-                    )}
-                  </Card>
+                  <ExamTacticCard
+                    key={tactic.id}
+                    collapsible
+                    title={tactic.title_tr}
+                    tactic={tactic.tactic_tr}
+                    examples={tactic.examples_tr}
+                  />
                 ))}
               </View>
             </>
@@ -84,24 +90,20 @@ export default function ExamTacticsScreen() {
 
           {topicTactics.length > 0 && (
             <>
-              <Text style={[styles.groupLabel, { color: c.textMuted, marginTop: spacing.lg }]}>
+              <Text style={{ fontSize: 13, fontWeight: '700', marginTop: spacing.lg, marginBottom: spacing.sm, textTransform: 'uppercase', color: c.textMuted }}>
                 {et.examTacticsTopicGroupLabel}
               </Text>
               <View style={{ gap: spacing.sm }}>
                 {topicTactics.map((tactic) => (
-                  <Pressable key={tactic.id} onPress={() => openTopicPractice(tactic)}>
-                    <Card style={styles.topicCard}>
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.title, { color: c.text }]}>{tactic.title_tr}</Text>
-                        {tactic.related_grammar_topic && (
-                          <Text style={{ color: c.textMuted, fontSize: 12, marginTop: 2 }}>
-                            {tactic.related_grammar_topic.title_tr}
-                          </Text>
-                        )}
-                      </View>
-                      <ChevronRight color={c.textMuted} size={18} />
-                    </Card>
-                  </Pressable>
+                  <ExamTacticCard
+                    key={tactic.id}
+                    collapsible
+                    title={tactic.title_tr}
+                    subtitle={tactic.related_grammar_topic ? `${et.examTacticsTopicLabel}: ${tactic.related_grammar_topic.title_tr}` : null}
+                    tactic={tactic.tactic_tr}
+                    examples={tactic.examples_tr}
+                    footer={<Button title={et.examTacticsPracticeBtn} onPress={() => openTopicPractice(tactic)} />}
+                  />
                 ))}
               </View>
             </>
@@ -111,9 +113,3 @@ export default function ExamTacticsScreen() {
     </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  title: { fontSize: 15, fontWeight: '700' },
-  groupLabel: { fontSize: 13, fontWeight: '700', marginTop: spacing.lg, marginBottom: spacing.sm, textTransform: 'uppercase' },
-  topicCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-});

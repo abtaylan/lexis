@@ -866,7 +866,9 @@ export interface ExamTacticItem {
   topic_tag: string | null;
   title_tr: string;
   tactic_tr: string;
-  worked_example_tr: string | null;
+  // 23 Kasim 2026 kullanici isteği ("ornekler cok olmali"): tek bir
+  // worked_example_tr yerine BIRDEN FAZLA ornek (bkz. backend migration 099).
+  examples_tr: string[];
   related_grammar_topic?: RelatedGrammarTopic | null;
 }
 
@@ -876,6 +878,9 @@ export interface ExamPracticeQuestionsResult {
   questions: ExamPracticeQuestionItem[];
   translation_questions: TopicTranslationQuestionItem[];
   tactic?: ExamTacticItem | null;
+  // 24 Kasım 2026 -- haftalık/aylık taktik sınavlarında birden fazla konunun
+  // taktiği birlikte gösterilir (bkz. backend _tactics_list()).
+  tactics?: ExamTacticItem[];
 }
 
 export interface WeakTopicItem {
@@ -1309,6 +1314,18 @@ export interface StudyProgramTopic {
   practiced_correct: number;
   target_count: number;
   done: boolean;
+  // 24 Kasım 2026 -- o günkü/haftaki konuyla eşleşen Sınav Taktiği (varsa).
+  tactic?: ExamTacticItem | null;
+}
+
+// 24 Kasım 2026 -- ay sonu taktik sınavı (bkz. backend StudyProgramMonthlyExam)
+export interface StudyProgramMonthlyExam {
+  available: boolean;
+  month_start: string;
+  topic_count: number;
+  answered_count: number;
+  target_count: number;
+  done: boolean;
 }
 
 export interface StudyProgram {
@@ -1321,6 +1338,8 @@ export interface StudyProgram {
   weekend_quiz?: { available: boolean; answered_count: number; target_count: number; done: boolean } | null;
   // 23 Kasım 2026 -- "Haftalık Toplu Pratik" (bkz. backend StudyProgramBulkPractice)
   bulk_practice?: { available: boolean; topic_count: number; all_topics_done: boolean } | null;
+  // 24 Kasım 2026 -- "Ayın Taktik Sınavı" (bkz. backend StudyProgramMonthlyExam)
+  monthly_exam?: StudyProgramMonthlyExam | null;
   completed_topics: number;
 }
 

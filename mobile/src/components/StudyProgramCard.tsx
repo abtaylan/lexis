@@ -15,6 +15,7 @@ import type { StudyProgram, StudyProgramTopic } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { Card } from '@/components/ui/Card';
+import { ExamTacticCard } from '@/components/ExamTacticCard';
 
 type ThemeColors = ReturnType<typeof useThemeColors>;
 
@@ -44,6 +45,11 @@ export type Strings = {
   bulkTpl: string;
   bulkAllDoneTpl: string;
   bulkCta: string;
+  monthlyTitle: string;
+  monthlyLocked: string;
+  monthlyTpl: string;
+  monthlyDone: string;
+  monthlyCta: string;
 };
 
 export const STRINGS: Partial<Record<Locale, Strings>> = {
@@ -72,6 +78,11 @@ export const STRINGS: Partial<Record<Locale, Strings>> = {
     bulkTpl: '{count} konudan geniş bir soru seti',
     bulkAllDoneTpl: 'Konuları bitirdin — {count} konudan toplu pratik zamanı!',
     bulkCta: 'Başla',
+    monthlyTitle: 'Ayın taktik sınavı',
+    monthlyLocked: 'Ay sonuna doğru açılır — bu ay öğrendiğin konuların taktik sınavı',
+    monthlyTpl: '{done}/{target} soru cevaplandı',
+    monthlyDone: 'Bu ayın taktik sınavı tamamlandı',
+    monthlyCta: 'Başla',
   },
   en: {
     title: "This Week's Plan",
@@ -98,6 +109,11 @@ export const STRINGS: Partial<Record<Locale, Strings>> = {
     bulkTpl: 'A large question set from {count} topics',
     bulkAllDoneTpl: "You've finished your topics — time for bulk practice on {count} topics!",
     bulkCta: 'Start',
+    monthlyTitle: "This month's tactic exam",
+    monthlyLocked: 'Unlocks near month end — a tactic exam on everything you learned this month',
+    monthlyTpl: '{done}/{target} questions answered',
+    monthlyDone: "This month's tactic exam is done",
+    monthlyCta: 'Start',
   },
 };
 
@@ -152,6 +168,14 @@ export function TopicRow({ topic, s, c }: { topic: StudyProgramTopic; s: Strings
       <View style={{ marginTop: spacing.xs }}>
         <Bar value={topic.practiced_count} max={topic.target_count} color={topic.done ? c.success : c.warning} c={c} />
       </View>
+      {/* 24 Kasım 2026 -- Behçet'in kullanıcı isteği: o günkü/haftaki konuyla
+          eşleşen Sınav Taktiği, konunun hemen altında daraltılmış kart
+          olarak gösterilir, aynı zamanda bu taktiğe de çalışılmış olur. */}
+      {!!topic.tactic && (
+        <View style={{ marginTop: spacing.xs }}>
+          <ExamTacticCard title={topic.tactic.title_tr} tactic={topic.tactic.tactic_tr} examples={topic.tactic.examples_tr} />
+        </View>
+      )}
     </View>
   );
 }
@@ -163,6 +187,7 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
   const today = program.today;
   const quiz = program.weekend_quiz;
   const bulk = program.bulk_practice;
+  const monthly = program.monthly_exam;
 
   return (
     <Card style={{ marginTop: spacing.sm }}>
@@ -263,6 +288,32 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
           >
             <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{s.bulkCta}</Text>
           </Pressable>
+        </View>
+      )}
+
+      {/* 24 Kasım 2026 -- "Ayın Taktik Sınavı" (Behçet'in kullanıcı isteği):
+          weekend_quiz ile AYNI desen, ama ay sonuna doğru açılır ve o ay
+          boyunca öğrenilen TÜM odak konularını kapsar. */}
+      {!!monthly && (
+        <View style={[styles.quizRow, { borderColor: c.border }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 14, fontWeight: '600', color: c.text }}>{s.monthlyTitle}</Text>
+            <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
+              {!monthly.available
+                ? s.monthlyLocked
+                : monthly.done
+                  ? s.monthlyDone
+                  : fill(s.monthlyTpl, { done: monthly.answered_count, target: monthly.target_count })}
+            </Text>
+          </View>
+          {monthly.available && !monthly.done && (
+            <Pressable
+              onPress={() => router.push({ pathname: '/(app)/exam-topic-practice', params: { topic_tag: 'monthly-tactic-exam' } })}
+              style={[styles.quizCta, { backgroundColor: c.primary }]}
+            >
+              <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{s.monthlyCta}</Text>
+            </Pressable>
+          )}
         </View>
       )}
     </Card>

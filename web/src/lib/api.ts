@@ -1892,6 +1892,12 @@ export const studyProgramApi = {
     const res = await api.get<ExamPracticeQuestionsResult>('/study-program/weekly-bulk-practice');
     return res.data;
   },
+  // 24 Kasım 2026 -- "Ayın Taktik Sınavı": mobile/src/api/studyProgram.ts ile
+  // birebir aynı endpoint (bkz. backend GET /study-program/monthly-tactic-exam).
+  monthlyTacticExam: async (): Promise<ExamPracticeQuestionsResult> => {
+    const res = await api.get<ExamPracticeQuestionsResult>('/study-program/monthly-tactic-exam');
+    return res.data;
+  },
 };
 
 // ── Ana sayfa hedef seviye ilerlemesi (3 Kasım 2026) ────────────────────

@@ -380,6 +380,16 @@ class ExamPracticeQuestionsResult(BaseModel):
     # (bkz. ExamTacticItem), pratik ekraninda soru havuzunun USTUNDE
     # taktik banner'i olarak gosterilir.
     tactic: ExamTacticItem | None = None
+    # 24 Kasim 2026 -- Behcet'in kullanici istegi ("bu testlerdeki sorular
+    # sinav taktik bolumu icin hazirlanan sorulardan olussun, ayni zamanda
+    # bu taktige de calisayim"): weekly-quiz / weekly-bulk-practice /
+    # monthly-tactic-exam gibi BIRDEN FAZLA konuyu karistiran setlerde tek
+    # bir `tactic` alani yetersiz kaliyordu (bkz. eski not: "bu uc tek bir
+    # topic_tag'e baglanamadigi icin tactic alani DONDURULMEZ"). Artik bu
+    # setler, sorularin kapsadigi HER konunun taktigini (varsa) burada
+    # LISTE olarak dondurur; istemci bunlari soru havuzunun ustunde
+    # daraltilmis kartlar halinde gosterir.
+    tactics: list[ExamTacticItem] = []
 
 
 class TopicPracticeAttemptCreate(BaseModel):

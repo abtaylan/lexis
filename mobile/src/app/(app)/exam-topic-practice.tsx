@@ -17,7 +17,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { CheckCircle2, Flag, Lightbulb, XCircle } from 'lucide-react-native';
+import { CheckCircle2, Flag, XCircle } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { examsApi } from '@/api/exams';
 import { studyProgramApi } from '@/api/studyProgram';
@@ -27,6 +27,7 @@ import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
+import { ExamTacticCard } from '@/components/ExamTacticCard';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { ReportQuestionModal } from '@/components/ReportQuestionModal';
@@ -35,6 +36,9 @@ const WEEKLY_QUIZ_TAG = 'weekly-quiz';
 // 23 Kasım 2026 -- "Haftalık Toplu Pratik" (backend BULK_PRACTICE_TAG ile
 // AYNI değer) -- WEEKLY_QUIZ_TAG ile AYNI desen, AYRI bir sanal topic_tag.
 const BULK_PRACTICE_TAG = 'weekly-bulk-practice';
+// 24 Kasım 2026 -- "Ayın Taktik Sınavı" (backend MONTHLY_TACTIC_EXAM_TAG ile
+// AYNI değer) -- WEEKLY_QUIZ_TAG ile AYNI desen, AYRI bir sanal topic_tag.
+const MONTHLY_TACTIC_EXAM_TAG = 'monthly-tactic-exam';
 
 // Cümle karşılaştırması: büyük/küçük harf, noktalama ve fazladan boşluk
 // farkları yüzünden doğru cevabı yanlış saymasın (kutudan seçim değil,
@@ -90,6 +94,7 @@ export default function ExamTopicPracticeScreen() {
   // haftalık programın odak konularından karışık hafta sonu quizi açılır.
   const isWeeklyQuiz = topicTag === WEEKLY_QUIZ_TAG;
   const isBulkPractice = topicTag === BULK_PRACTICE_TAG;
+  const isMonthlyTacticExam = topicTag === MONTHLY_TACTIC_EXAM_TAG;
   const { data, isLoading, isError } = useQuery({
     queryKey: ['exam-topic-practice', topicTag, excludeQuestionId, limit],
     queryFn: () =>
@@ -97,7 +102,9 @@ export default function ExamTopicPracticeScreen() {
         ? studyProgramApi.weeklyQuiz()
         : isBulkPractice
           ? studyProgramApi.weeklyBulkPractice()
-          : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
+          : isMonthlyTacticExam
+            ? studyProgramApi.monthlyTacticExam()
+            : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
     enabled: !!topicTag,
   });
 
@@ -185,30 +192,43 @@ export default function ExamTopicPracticeScreen() {
           ? et.weeklyQuizTitle
           : isBulkPractice
             ? et.bulkPracticeTitle
-            : data?.related_grammar_topic?.title_tr ?? et.topicPracticeTitle}
+            : isMonthlyTacticExam
+              ? et.monthlyTacticExamTitle
+              : data?.related_grammar_topic?.title_tr ?? et.topicPracticeTitle}
       </Text>
       <Text style={{ fontSize: 13, color: c.textMuted, marginTop: 4 }}>
-        {isWeeklyQuiz ? et.weeklyQuizSubtitle : isBulkPractice ? et.bulkPracticeSubtitle : et.topicPracticeSubtitle}
+        {isWeeklyQuiz
+          ? et.weeklyQuizSubtitle
+          : isBulkPractice
+            ? et.bulkPracticeSubtitle
+            : isMonthlyTacticExam
+              ? et.monthlyTacticExamSubtitle
+              : et.topicPracticeSubtitle}
       </Text>
 
       {/* 23 Kasım 2026 -- "Sınav Taktikleri": bu konu için exam_tactics'te
           bir satır varsa, soru havuzunun ÜSTÜNDE banner olarak gösterilir
           (bkz. backend ExamPracticeQuestionsResult.tactic). */}
       {!isLoading && !isError && data?.tactic && (
-        <Card style={{ marginTop: spacing.md, backgroundColor: c.warningSoft, borderColor: 'transparent' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Lightbulb color={c.warning} size={16} />
-            <Text style={{ color: c.warning, fontSize: 13, fontWeight: '700' }}>{data.tactic.title_tr}</Text>
-          </View>
-          <Text style={{ color: c.warning, fontSize: 13, marginTop: spacing.xs, lineHeight: 19 }}>
-            {data.tactic.tactic_tr}
-          </Text>
-          {data.tactic.worked_example_tr && (
-            <Text style={{ color: c.warning, fontSize: 12, marginTop: spacing.sm, lineHeight: 18, fontStyle: 'italic' }}>
-              {et.tacticExampleLabel}: {data.tactic.worked_example_tr}
-            </Text>
-          )}
-        </Card>
+        <View style={{ marginTop: spacing.md }}>
+          <ExamTacticCard
+            collapsible={false}
+            title={data.tactic.title_tr}
+            tactic={data.tactic.tactic_tr}
+            examples={data.tactic.examples_tr}
+          />
+        </View>
+      )}
+
+      {/* 24 Kasım 2026 -- haftalık quiz/toplu pratik/aylık taktik sınavında
+          birden fazla konunun taktiği birlikte, daraltılmış halde listelenir
+          (bkz. backend ExamPracticeQuestionsResult.tactics). */}
+      {!isLoading && !isError && (isWeeklyQuiz || isBulkPractice || isMonthlyTacticExam) && !!data?.tactics?.length && (
+        <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+          {data.tactics.map((t) => (
+            <ExamTacticCard key={t.id} title={t.title_tr} tactic={t.tactic_tr} examples={t.examples_tr} />
+          ))}
+        </View>
       )}
 
       {isLoading ? (
@@ -240,9 +260,9 @@ export default function ExamTopicPracticeScreen() {
               {difficultyLabel}
             </Text>
             {currentTranslation.grammar_note && (
-              <View style={{ backgroundColor: c.warningSoft, borderRadius: radius.md, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
-                <Text style={{ color: c.warning, fontSize: 12, fontWeight: '600' }}>{et.grammarNoteLabel}</Text>
-                <Text style={{ color: c.warning, fontSize: 12, marginTop: 4, lineHeight: 17 }}>{currentTranslation.grammar_note}</Text>
+              <View style={{ backgroundColor: c.background, borderRadius: radius.md, borderLeftWidth: 3, borderLeftColor: c.warning, paddingVertical: spacing.sm, paddingHorizontal: spacing.md, marginBottom: spacing.sm }}>
+                <Text style={{ color: c.warning, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>{et.grammarNoteLabel}</Text>
+                <Text style={{ color: c.textSecondary, fontSize: 12, marginTop: 4, lineHeight: 17 }}>{currentTranslation.grammar_note}</Text>
               </View>
             )}
             <Text style={[styles.bodyText, { color: c.text, fontWeight: '600' }]}>{currentTranslation.prompt_sentence}</Text>

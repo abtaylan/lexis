@@ -10,14 +10,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, CheckCircle2, Lightbulb, Loader2, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { examsApi, studyProgramApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { safeBack } from '@/lib/navBack';
 import type { ExamPracticeQuestionItem, TopicTranslationQuestionItem } from '@/types';
+import { ExamTacticCard } from '@/components/ExamTacticCard';
 
 const WEEKLY_QUIZ_TAG = 'weekly-quiz';
 const BULK_PRACTICE_TAG = 'weekly-bulk-practice';
+// 24 Kasım 2026 -- "Ayın Taktik Sınavı" (backend MONTHLY_TACTIC_EXAM_TAG ile
+// AYNI değer) -- WEEKLY_QUIZ_TAG ile AYNI desen, AYRI bir sanal topic_tag.
+const MONTHLY_TACTIC_EXAM_TAG = 'monthly-tactic-exam';
 
 const L: Partial<Record<Locale, Record<string, string>>> = {
   tr: {
@@ -28,6 +32,8 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     weeklyQuizSubtitle: 'Bu haftanın odak konularından karışık sorular.',
     bulkPracticeTitle: 'Haftalık Toplu Pratik',
     bulkPracticeSubtitle: 'Odak konularından geniş bir soru seti — istediğin gün çözebilirsin.',
+    monthlyTacticExamTitle: 'Ayın Taktik Sınavı',
+    monthlyTacticExamSubtitle: 'Bu ay öğrendiğin tüm konuların YDS/YÖKDİL formatında taktik sınavı — ayı tekrar etme zamanı.',
     noQuestionsYet: 'Bu konu için henüz pratik sorusu eklenmedi.',
     explanationLabel: 'Açıklama',
     questionCounterTpl: 'Soru {current} / {total}',
@@ -47,7 +53,8 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     modelAnswerLabel: 'Model Cevap',
     translationCorrectLabel: 'Doğru!',
     translationWrongLabel: 'Yanlış',
-    tacticExampleLabel: 'Örnek',
+    tacticBadgeLabel: 'Taktik',
+    tacticExamplesLabel: 'Örnekler',
   },
   en: {
     back: 'Back',
@@ -57,6 +64,8 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     weeklyQuizSubtitle: "Mixed questions from this week's focus topics.",
     bulkPracticeTitle: 'Weekly Bulk Practice',
     bulkPracticeSubtitle: 'A large question set from your focus topics — solve it any day you like.',
+    monthlyTacticExamTitle: "This Month's Tactic Exam",
+    monthlyTacticExamSubtitle: 'A YDS/YÖKDİL-style tactic exam covering everything you learned this month — time to review the month.',
     noQuestionsYet: 'No practice questions for this topic yet.',
     explanationLabel: 'Explanation',
     questionCounterTpl: 'Question {current} / {total}',
@@ -73,7 +82,8 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     modelAnswerLabel: 'Model Answer',
     translationCorrectLabel: 'Correct!',
     translationWrongLabel: 'Wrong',
-    tacticExampleLabel: 'Example',
+    tacticBadgeLabel: 'Tactic',
+    tacticExamplesLabel: 'Examples',
   },
 };
 
@@ -97,6 +107,7 @@ export default function ExamTopicPracticePage() {
   // her gün kullanılabilen ayrı bir sanal topic_tag (bkz. backend
   // study_program.py::BULK_PRACTICE_TAG).
   const isBulkPractice = topicTag === BULK_PRACTICE_TAG;
+  const isMonthlyTacticExam = topicTag === MONTHLY_TACTIC_EXAM_TAG;
   const { data, isLoading, isError } = useQuery({
     queryKey: ['exam-topic-practice', topicTag, excludeQuestionId, limit],
     queryFn: () =>
@@ -104,7 +115,9 @@ export default function ExamTopicPracticePage() {
         ? studyProgramApi.weeklyQuiz()
         : isBulkPractice
           ? studyProgramApi.weeklyBulkPractice()
-          : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
+          : isMonthlyTacticExam
+            ? studyProgramApi.monthlyTacticExam()
+            : examsApi.practiceQuestionsByTopic(topicTag, { excludeQuestionId, limit }),
     enabled: !!topicTag,
   });
 
@@ -227,10 +240,18 @@ export default function ExamTopicPracticePage() {
           ? t.weeklyQuizTitle
           : isBulkPractice
             ? t.bulkPracticeTitle
-            : data?.related_grammar_topic?.title_tr ?? t.defaultTitle}
+            : isMonthlyTacticExam
+              ? t.monthlyTacticExamTitle
+              : data?.related_grammar_topic?.title_tr ?? t.defaultTitle}
       </h1>
       <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-        {isWeeklyQuiz ? t.weeklyQuizSubtitle : isBulkPractice ? t.bulkPracticeSubtitle : t.subtitle}
+        {isWeeklyQuiz
+          ? t.weeklyQuizSubtitle
+          : isBulkPractice
+            ? t.bulkPracticeSubtitle
+            : isMonthlyTacticExam
+              ? t.monthlyTacticExamSubtitle
+              : t.subtitle}
       </p>
 
       {/* 23 Kasım 2026 -- "Sınav Taktikleri": bu konu için exam_tactics'te
@@ -238,21 +259,33 @@ export default function ExamTopicPracticePage() {
           (bkz. backend ExamPracticeQuestionsResult.tactic, mobile aynı deseni
           mobile/src/app/(app)/exam-topic-practice.tsx'te kullanıyor). */}
       {!isLoading && !isError && data?.tactic && (
-        <div className="mt-5 rounded-2xl border border-transparent p-4" style={{ backgroundColor: '#FAEEDA' }}>
-          <div className="flex items-center gap-1.5">
-            <Lightbulb className="w-4 h-4" style={{ color: '#854F0B' }} />
-            <span className="text-sm font-bold" style={{ color: '#854F0B' }}>
-              {data.tactic.title_tr}
-            </span>
-          </div>
-          <p className="text-sm mt-1.5 leading-relaxed" style={{ color: '#854F0B' }}>
-            {data.tactic.tactic_tr}
-          </p>
-          {data.tactic.worked_example_tr && (
-            <p className="text-xs italic mt-2 leading-relaxed" style={{ color: '#854F0B' }}>
-              {t.tacticExampleLabel}: {data.tactic.worked_example_tr}
-            </p>
-          )}
+        <div className="mt-5">
+          <ExamTacticCard
+            collapsible={false}
+            title={data.tactic.title_tr}
+            tactic={data.tactic.tactic_tr}
+            examples={data.tactic.examples_tr}
+            badgeLabel={t.tacticBadgeLabel}
+            examplesLabel={t.tacticExamplesLabel}
+          />
+        </div>
+      )}
+
+      {/* 24 Kasım 2026 -- haftalık quiz/toplu pratik/aylık taktik sınavında
+          birden fazla konunun taktiği birlikte, daraltılmış halde listelenir
+          (bkz. backend ExamPracticeQuestionsResult.tactics). */}
+      {!isLoading && !isError && (isWeeklyQuiz || isBulkPractice || isMonthlyTacticExam) && !!data?.tactics?.length && (
+        <div className="mt-5 flex flex-col gap-3">
+          {data.tactics.map((tac) => (
+            <ExamTacticCard
+              key={tac.id}
+              title={tac.title_tr}
+              tactic={tac.tactic_tr}
+              examples={tac.examples_tr}
+              badgeLabel={t.tacticBadgeLabel}
+              examplesLabel={t.tacticExamplesLabel}
+            />
+          ))}
         </div>
       )}
 

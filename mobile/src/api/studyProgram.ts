@@ -18,4 +18,10 @@ export const studyProgramApi = {
     const res = await api.get<ExamPracticeQuestionsResult>('/study-program/weekly-bulk-practice');
     return res.data;
   },
+  // "Ayın Taktik Sınavı" (24 Kasım 2026, Behçet'in kullanıcı isteği) --
+  // o ay boyunca öğrenilen tüm konuların taktik sınavı, weeklyQuiz ile AYNI kontrat.
+  monthlyTacticExam: async (): Promise<ExamPracticeQuestionsResult> => {
+    const res = await api.get<ExamPracticeQuestionsResult>('/study-program/monthly-tactic-exam');
+    return res.data;
+  },
 };

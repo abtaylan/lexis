@@ -63,6 +63,21 @@ BULK_TRANSLATION_SIZE = 10
 BULK_TRANSLATION_PER_TOPIC = 3
 DEFAULT_LEVEL = "a2"
 
+# 24 Kasim 2026 -- "Aylik Taktik Sinavi" (Behcet'in kullanici istegi: "her
+# ay sonunda da o ay boyunca ogrendigim konularin taktik sinavina
+# gireyim"). weekend_quiz'in Cmt/Pzr kisitlamasiyla AYNI mantik, ama
+# haftalik degil AYLIK: ayin son MONTHLY_EXAM_WINDOW_DAYS gununde acilir.
+# Kapsam o haftanin degil, bu AY icindeki TUM haftalarin odak konularinin
+# birlesimidir (bkz. monthly_focus_tags).
+MONTHLY_EXAM_WINDOW_DAYS = 5
+MONTHLY_EXAM_SIZE = 20
+MONTHLY_EXAM_PER_TOPIC = 4
+# "Sinav taktikleri icin hazirlanan sorular" (source_type='tactic', bkz.
+# 102_tactic_exam_questions.sql) soru havuzunda VARSA her konu icin ONCE
+# bunlardan secilir, yetmezse genel havuzdan (source_type='ai'/'system')
+# tamamlanir -- bkz. _pick_topic_questions.
+TACTIC_SOURCE_TYPE = "tactic"
+
 
 # ── zaman yardimcilari ──────────────────────────────────────────────────
 def _now() -> datetime:
@@ -136,6 +151,23 @@ def _grammar_topics(learning_lang: str) -> dict[str, dict[str, Any]]:
         .data
     ) or []
     return {r["slug"]: r for r in rows}
+
+
+def _tactics_by_tag(tags: list[str]) -> dict[str, dict[str, Any]]:
+    """24 Kasim 2026 -- verilen topic_tag listesindeki konularin (varsa)
+    exam_tactics satirini dondurur (tag -> row). StudyProgramTopic.tactic
+    ve ExamPracticeQuestionsResult.tactics icin kullanilir; routes katmani
+    bu dict'ten ExamTacticItem kurar (bkz. study_program.py)."""
+    if not tags:
+        return {}
+    rows = (
+        supabase_admin.table("exam_tactics")
+        .select("id, topic_tag, title_tr, tactic_tr, examples_tr")
+        .in_("topic_tag", tags)
+        .execute()
+        .data
+    ) or []
+    return {r["topic_tag"]: r for r in rows if r.get("topic_tag")}
 
 
 def _topic_answers(user_id: str, learning_lang: str, since_iso: str) -> list[dict[str, Any]]:
@@ -358,6 +390,32 @@ def invalidate_current_week(user_id: str, learning_lang: str) -> None:
     ).eq("week_start", ws.isoformat()).execute()
 
 
+# 24 Kasim 2026 -- "Aylik Taktik Sinavi" kapsami: bu AY icinde (bugune kadar)
+# uretilmis HER haftanin study_programs satirinin focus_topics'teki
+# topic_tag'lerinin BIRLESIMI (union). Haftalik program tasarimi geregi
+# (bkz. dosya basi docstring) her hafta Pazartesi ayri bir satir olarak
+# uretilir; bu yuzden "bu ay ogrenilen konular" tek bir satirdan degil,
+# o ayin TUM haftalarindan toplanir.
+def monthly_focus_tags(user_id: str, learning_lang: str, today: date) -> set[str]:
+    month_start = today.replace(day=1)
+    rows = (
+        supabase_admin.table("study_programs")
+        .select("focus_topics, week_start")
+        .eq("user_id", user_id)
+        .eq("learning_lang", learning_lang)
+        .gte("week_start", month_start.isoformat())
+        .lte("week_start", today.isoformat())
+        .execute()
+        .data
+    ) or []
+    tags: set[str] = set()
+    for row in rows:
+        for t in row.get("focus_topics") or []:
+            if t.get("topic_tag"):
+                tags.add(t["topic_tag"])
+    return tags
+
+
 # ── canli ilerleme ──────────────────────────────────────────────────────
 def _count(table: str, filters: list[tuple[str, str, Any]]) -> int:
     q = supabase_admin.table(table).select("id", count="exact")
@@ -379,6 +437,9 @@ def build_progress(user_id: str, learning_lang: str, program: dict[str, Any]) ->
     this_week = _topic_answers(user_id, learning_lang, week_since)
     week_stats = _stats_by_tag(this_week)
 
+    program_tags = [t["topic_tag"] for t in program.get("focus_topics") or []]
+    tactics_by_tag = _tactics_by_tag(program_tags)
+
     topics = []
     completed = 0
     for t in program.get("focus_topics") or []:
@@ -390,7 +451,8 @@ def build_progress(user_id: str, learning_lang: str, program: dict[str, Any]) ->
         completed += 1 if done else 0
         topics.append(
             {**t, "practiced_count": s["total"], "practiced_correct": s["correct"],
-             "target_count": TOPIC_TARGET_ATTEMPTS, "done": done}
+             "target_count": TOPIC_TARGET_ATTEMPTS, "done": done,
+             "tactic": tactics_by_tag.get(t["topic_tag"])}
         )
 
     today_local = now.astimezone(TR_TZ).date()
@@ -413,6 +475,26 @@ def build_progress(user_id: str, learning_lang: str, program: dict[str, Any]) ->
         1 for a in this_week
         if a["source"] == "practice" and a["topic_tag"] in focus_tags
         and (a.get("created_at") or "") >= saturday_since
+    )
+
+    # 24 Kasim 2026 -- "Aylik Taktik Sinavi" durumu (bkz.
+    # StudyProgramMonthlyExam, monthly_focus_tags). weekend_quiz'deki
+    # Cmt/Pzr kisitlamasinin ay olcegine tasinmis hali: sadece ayin son
+    # MONTHLY_EXAM_WINDOW_DAYS gununde acilir.
+    today_tr = now.astimezone(TR_TZ).date()
+    month_tags = monthly_focus_tags(user_id, learning_lang, today_tr)
+    month_start = today_tr.replace(day=1)
+    next_month = (month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
+    days_in_month = (next_month - month_start).days
+    monthly_available = (next_month - today_tr).days <= MONTHLY_EXAM_WINDOW_DAYS
+    window_start_day = max(1, days_in_month - MONTHLY_EXAM_WINDOW_DAYS + 1)
+    window_since = _tr_midnight_utc_iso(month_start.replace(day=window_start_day))
+    month_since = _tr_midnight_utc_iso(month_start)
+    this_month = _topic_answers(user_id, learning_lang, month_since) if month_tags else []
+    monthly_answered = sum(
+        1 for a in this_month
+        if a["source"] == "practice" and a["topic_tag"] in month_tags
+        and (a.get("created_at") or "") >= window_since
     )
 
     return {
@@ -439,7 +521,34 @@ def build_progress(user_id: str, learning_lang: str, program: dict[str, Any]) ->
             "topic_count": len(topics),
             "all_topics_done": len(topics) > 0 and completed >= len(topics),
         },
+        "monthly_exam": {
+            "available": monthly_available and len(month_tags) > 0,
+            "month_start": month_start.isoformat(),
+            "topic_count": len(month_tags),
+            "answered_count": min(monthly_answered, MONTHLY_EXAM_SIZE),
+            "target_count": MONTHLY_EXAM_SIZE,
+            "done": monthly_answered >= MONTHLY_EXAM_SIZE,
+        },
     }
+
+
+# 24 Kasim 2026 -- "bu testlerdeki sorular sinav taktik bolumu icin
+# hazirlanan sorulardan olussun" (Behcet'in istegi). source_type='tactic'
+# olan sorular (bkz. 102_tactic_exam_questions.sql, TACTIC_SOURCE_TYPE) her
+# konu icin ONCELIKLI secilir; o konuda tactic sorusu YOKSA ya da sayica
+# yetmiyorsa genel havuzdan (source_type='ai'/'system') TAMAMLANIR. Boylece
+# tactic sorusu olmayan eski/yeni konularda da test BOS KALMAZ.
+def _pick_topic_questions(
+    pool: list[dict[str, Any]], count: int
+) -> list[dict[str, Any]]:
+    tactic_pool = [q for q in pool if q.get("source_type") == TACTIC_SOURCE_TYPE]
+    general_pool = [q for q in pool if q.get("source_type") != TACTIC_SOURCE_TYPE]
+    random.shuffle(tactic_pool)
+    random.shuffle(general_pool)
+    picked = tactic_pool[:count]
+    if len(picked) < count:
+        picked += general_pool[: count - len(picked)]
+    return picked
 
 
 def weekly_quiz_questions(learning_lang: str, focus_tags: list[str]) -> list[dict[str, Any]]:
@@ -447,7 +556,10 @@ def weekly_quiz_questions(learning_lang: str, focus_tags: list[str]) -> list[dic
         return []
     rows = (
         supabase_admin.table("exam_questions")
-        .select("id, exam_type, question_text, options, correct_option, explanation, topic_tag")
+        .select(
+            "id, exam_type, question_text, options, correct_option, explanation, "
+            "topic_tag, source_type"
+        )
         .eq("learning_lang", learning_lang)
         .eq("is_active", True)
         .eq("status", "approved")
@@ -461,9 +573,7 @@ def weekly_quiz_questions(learning_lang: str, focus_tags: list[str]) -> list[dic
         by_tag.setdefault(r["topic_tag"], []).append(r)
     picked: list[dict[str, Any]] = []
     for tag in focus_tags:
-        pool = by_tag.get(tag, [])
-        random.shuffle(pool)
-        picked.extend(pool[:QUIZ_QUESTIONS_PER_TOPIC])
+        picked.extend(_pick_topic_questions(by_tag.get(tag, []), QUIZ_QUESTIONS_PER_TOPIC))
     random.shuffle(picked)
     return picked[:WEEKEND_QUIZ_SIZE]
 
@@ -477,7 +587,10 @@ def weekly_bulk_practice_questions(learning_lang: str, focus_tags: list[str]) ->
         return []
     rows = (
         supabase_admin.table("exam_questions")
-        .select("id, exam_type, question_text, options, correct_option, explanation, topic_tag")
+        .select(
+            "id, exam_type, question_text, options, correct_option, explanation, "
+            "topic_tag, source_type"
+        )
         .eq("learning_lang", learning_lang)
         .eq("is_active", True)
         .eq("status", "approved")
@@ -491,9 +604,7 @@ def weekly_bulk_practice_questions(learning_lang: str, focus_tags: list[str]) ->
         by_tag.setdefault(r["topic_tag"], []).append(r)
     picked: list[dict[str, Any]] = []
     for tag in focus_tags:
-        pool = by_tag.get(tag, [])
-        random.shuffle(pool)
-        picked.extend(pool[:BULK_PRACTICE_PER_TOPIC])
+        picked.extend(_pick_topic_questions(by_tag.get(tag, []), BULK_PRACTICE_PER_TOPIC))
     random.shuffle(picked)
     return picked[:BULK_PRACTICE_SIZE]
 
@@ -532,3 +643,34 @@ def weekly_bulk_translation_questions(focus_tags: list[str]) -> list[dict[str, A
         )
     )
     return picked[:BULK_TRANSLATION_SIZE]
+
+
+# 24 Kasim 2026 -- "Aylik Taktik Sinavi" soru havuzu (bkz. monthly_focus_tags,
+# MONTHLY_EXAM_SIZE/MONTHLY_EXAM_PER_TOPIC). weekly_quiz_questions ile AYNI
+# tactic-once mantigini (_pick_topic_questions) kullanir ama kapsam bu AYIN
+# TUM haftalarinin odak konulari (tags), tek bir haftanin degil.
+def monthly_tactic_exam_questions(learning_lang: str, tags: list[str]) -> list[dict[str, Any]]:
+    if not tags:
+        return []
+    rows = (
+        supabase_admin.table("exam_questions")
+        .select(
+            "id, exam_type, question_text, options, correct_option, explanation, "
+            "topic_tag, source_type"
+        )
+        .eq("learning_lang", learning_lang)
+        .eq("is_active", True)
+        .eq("status", "approved")
+        .in_("topic_tag", tags)
+        .limit(1000)
+        .execute()
+        .data
+    ) or []
+    by_tag: dict[str, list[dict[str, Any]]] = {}
+    for r in rows:
+        by_tag.setdefault(r["topic_tag"], []).append(r)
+    picked: list[dict[str, Any]] = []
+    for tag in tags:
+        picked.extend(_pick_topic_questions(by_tag.get(tag, []), MONTHLY_EXAM_PER_TOPIC))
+    random.shuffle(picked)
+    return picked[:MONTHLY_EXAM_SIZE]

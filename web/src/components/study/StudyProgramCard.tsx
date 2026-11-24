@@ -12,6 +12,7 @@
 import { useRouter } from 'next/navigation';
 import type { Locale } from '@/lib/i18n';
 import type { StudyProgram } from '@/types';
+import { ExamTacticCard } from '@/components/ExamTacticCard';
 
 type Strings = {
   title: string;
@@ -37,6 +38,13 @@ type Strings = {
   bulkTpl: string;
   bulkAllDoneTpl: string;
   bulkCta: string;
+  monthlyTitle: string;
+  monthlyLocked: string;
+  monthlyTpl: string;
+  monthlyDone: string;
+  monthlyCta: string;
+  tacticBadgeLabel: string;
+  tacticExamplesLabel: string;
 };
 
 const STRINGS: Partial<Record<Locale, Strings>> = {
@@ -64,6 +72,13 @@ const STRINGS: Partial<Record<Locale, Strings>> = {
     bulkTpl: '{count} konudan geniş bir soru seti',
     bulkAllDoneTpl: 'Konuları bitirdin — {count} konudan toplu pratik zamanı!',
     bulkCta: 'Başla',
+    monthlyTitle: 'Ayın taktik sınavı',
+    monthlyLocked: 'Ay sonuna doğru açılır — bu ay öğrendiğin konuların taktik sınavı',
+    monthlyTpl: '{done}/{target} soru cevaplandı',
+    monthlyDone: 'Bu ayın taktik sınavı tamamlandı',
+    monthlyCta: 'Başla',
+    tacticBadgeLabel: 'Taktik',
+    tacticExamplesLabel: 'Örnekler',
   },
   en: {
     title: "This Week's Plan",
@@ -89,6 +104,13 @@ const STRINGS: Partial<Record<Locale, Strings>> = {
     bulkTpl: 'A large question set from {count} topics',
     bulkAllDoneTpl: "You've finished your topics — time for bulk practice on {count} topics!",
     bulkCta: 'Start',
+    monthlyTitle: "This month's tactic exam",
+    monthlyLocked: 'Unlocks near month end — a tactic exam on everything you learned this month',
+    monthlyTpl: '{done}/{target} questions answered',
+    monthlyDone: "This month's tactic exam is done",
+    monthlyCta: 'Start',
+    tacticBadgeLabel: 'Tactic',
+    tacticExamplesLabel: 'Examples',
   },
 };
 
@@ -112,6 +134,7 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
   const today = program.today;
   const quiz = program.weekend_quiz;
   const bulk = program.bulk_practice;
+  const monthly = program.monthly_exam;
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
@@ -200,6 +223,20 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
             <div className="mt-2">
               <Bar value={t.practiced_count} max={t.target_count} color={t.done ? '#3B6D11' : '#854F0B'} />
             </div>
+            {/* 24 Kasım 2026 -- Behçet'in kullanıcı isteği: o günkü/haftaki
+                konuyla eşleşen Sınav Taktiği, konunun hemen altında
+                daraltılmış kart olarak gösterilir. */}
+            {!!t.tactic && (
+              <div className="mt-2">
+                <ExamTacticCard
+                  title={t.tactic.title_tr}
+                  tactic={t.tactic.tactic_tr}
+                  examples={t.tactic.examples_tr}
+                  badgeLabel={s.tacticBadgeLabel}
+                  examplesLabel={s.tacticExamplesLabel}
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>
@@ -247,6 +284,33 @@ export function StudyProgramCard({ program, locale }: { program: StudyProgram; l
           >
             {s.bulkCta}
           </button>
+        </div>
+      )}
+
+      {/* 24 Kasım 2026 -- "Ayın Taktik Sınavı" (Behçet'in kullanıcı isteği):
+          weekend_quiz ile AYNI desen, ama ay sonuna doğru açılır ve o ay
+          boyunca öğrenilen TÜM odak konularını kapsar. */}
+      {!!monthly && (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-dashed border-gray-200 dark:border-slate-700 p-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{s.monthlyTitle}</p>
+            <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
+              {!monthly.available
+                ? s.monthlyLocked
+                : monthly.done
+                  ? s.monthlyDone
+                  : fill(s.monthlyTpl, { done: monthly.answered_count, target: monthly.target_count })}
+            </p>
+          </div>
+          {monthly.available && !monthly.done && (
+            <button
+              onClick={() => router.push('/exam-topic-practice?topic_tag=monthly-tactic-exam')}
+              className="text-xs font-bold rounded-lg px-3 py-1.5 text-white shrink-0"
+              style={{ backgroundColor: '#378ADD' }}
+            >
+              {s.monthlyCta}
+            </button>
+          )}
         </div>
       )}
     </div>

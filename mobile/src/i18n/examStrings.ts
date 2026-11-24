@@ -96,6 +96,8 @@ export type ExamStrings = {
   // 23 Kasım 2026 -- "Haftalık Toplu Pratik"
   bulkPracticeTitle: string;
   bulkPracticeSubtitle: string;
+  monthlyTacticExamTitle: string;
+  monthlyTacticExamSubtitle: string;
   bulkPracticeEntryLabel: string;
   bulkPracticeAllDoneHintLabel: string;
   topicPracticeDoneTitle: string;
@@ -131,6 +133,9 @@ export type ExamStrings = {
   examTacticsGeneralGroupLabel: string;
   examTacticsTopicGroupLabel: string;
   examTacticsPracticeBtn: string;
+  examTacticsBadgeLabel: string;
+  examTacticsExamplesLabel: string;
+  examTacticsTopicLabel: string;
 };
 
 export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
@@ -219,6 +224,8 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     weeklyQuizSubtitle: 'Bu haftanın odak konularından karışık sorular.',
     bulkPracticeTitle: 'Haftalık Toplu Pratik',
     bulkPracticeSubtitle: 'Bu haftanın tüm odak konularından geniş kapsamlı bir soru seti -- taktikleri uygulama zamanı.',
+    monthlyTacticExamTitle: 'Ayın Taktik Sınavı',
+    monthlyTacticExamSubtitle: 'Bu ay öğrendiğin tüm konuların YDS/YÖKDİL formatında taktik sınavı -- ayı tekrar etme zamanı.',
     bulkPracticeEntryLabel: 'Haftalık Toplu Pratik',
     bulkPracticeAllDoneHintLabel: 'Bu haftanın konularını bitirdin — toplu pratik için tam zamanı!',
     topicPracticeDoneTitle: 'Bu tur tamamlandı!',
@@ -248,6 +255,9 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     examTacticsGeneralGroupLabel: 'Genel Stratejiler',
     examTacticsTopicGroupLabel: 'Konu Bazlı Taktikler',
     examTacticsPracticeBtn: 'Taktikle Pratik Yap',
+    examTacticsBadgeLabel: 'Taktik',
+    examTacticsExamplesLabel: 'Örnekler',
+  examTacticsTopicLabel: 'Konu',
   },
   en: {
     entryLabel: 'Exam Prep',
@@ -334,6 +344,8 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     weeklyQuizSubtitle: "Mixed questions from this week's focus topics.",
     bulkPracticeTitle: 'Weekly Bulk Practice',
     bulkPracticeSubtitle: "A large question set covering all of this week's focus topics -- time to apply the tactics.",
+    monthlyTacticExamTitle: "This Month's Tactic Exam",
+    monthlyTacticExamSubtitle: 'A YDS/YÖKDİL-style tactic exam covering everything you learned this month -- time to review the month.',
     bulkPracticeEntryLabel: 'Weekly Bulk Practice',
     bulkPracticeAllDoneHintLabel: "You've finished this week's topics — perfect time for bulk practice!",
     topicPracticeDoneTitle: 'Round complete!',
@@ -363,5 +375,8 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     examTacticsGeneralGroupLabel: 'General Strategies',
     examTacticsTopicGroupLabel: 'Topic-Based Tactics',
     examTacticsPracticeBtn: 'Practice With This Tactic',
+    examTacticsBadgeLabel: 'Tactic',
+    examTacticsExamplesLabel: 'Examples',
+  examTacticsTopicLabel: 'Topic',
   },
 };
