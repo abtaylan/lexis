@@ -61,6 +61,14 @@ class GrammarTopicDetail(BaseModel):
     # 16 Ekim 2026 -- bkz. GrammarTopicSummary.topic_number ustundeki not.
     topic_number: int | None = None
     total_topics: int | None = None
+    # 24 Kasim 2026 (5. tur) -- Behcet'in kullanici istegi: "Sinav Taktikleri
+    # sayfasinin gorsel yapisinin aynisini ... Gramer Rehberi sayfasinda da
+    # istiyorum". exam_tactics.breakdown ile AYNI yapilandirilmis icerik
+    # semasi (bkz. ExamTacticItem.breakdown ustundeki not, migration
+    # 120_grammar_topics_breakdown_column.sql). Null ise istemci eski
+    # rule_content_md/example_sentences/common_mistakes duz-metin gorunumune
+    # duser.
+    breakdown: dict | None = None
 
 
 # ── Günün Okuma Parçası (14 Ekim 2026) — bkz. services/study_passage_generator.py ──
