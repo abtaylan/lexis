@@ -332,44 +332,67 @@ export default function ExamTopicPracticeScreen() {
             {current.grammar_hint && (
               <View
                 style={{
-                  backgroundColor: c.background,
-                  borderRadius: radius.md,
-                  borderLeftWidth: 3,
-                  borderLeftColor: c.warning,
-                  paddingVertical: spacing.sm,
-                  paddingHorizontal: spacing.md,
+                  backgroundColor: c.warningSoft,
+                  borderRadius: radius.lg,
+                  padding: spacing.sm,
                   marginBottom: spacing.sm,
-                  gap: 4,
+                  gap: spacing.sm,
                 }}
               >
-                <Text
+                <View
                   style={{
-                    color: c.warning,
-                    fontSize: 11,
-                    fontWeight: '700',
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    marginBottom: 2,
+                    backgroundColor: c.amber,
+                    alignSelf: 'flex-start',
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: radius.full,
                   }}
                 >
-                  {et.grammarHintLabel}
-                </Text>
-                <Text style={{ color: c.textSecondary, fontSize: 12, lineHeight: 17 }}>
-                  <Text style={{ fontWeight: '700' }}>{et.grammarHintTenseLabel}: </Text>
-                  {current.grammar_hint.tense_tr}
-                </Text>
-                <Text style={{ color: c.textSecondary, fontSize: 12, lineHeight: 17 }}>
-                  <Text style={{ fontWeight: '700' }}>{et.grammarHintStructureLabel}: </Text>
-                  {current.grammar_hint.structure_tr}
-                </Text>
-                <Text style={{ color: c.textSecondary, fontSize: 12, lineHeight: 17 }}>
-                  <Text style={{ fontWeight: '700' }}>{et.grammarHintBlankTypeLabel}: </Text>
-                  {current.grammar_hint.blank_type_tr}
-                </Text>
-                <Text style={{ color: c.textSecondary, fontSize: 12, lineHeight: 17 }}>
-                  <Text style={{ fontWeight: '700' }}>{et.grammarHintReasoningLabel}: </Text>
-                  {current.grammar_hint.reasoning_tr}
-                </Text>
+                  <Text
+                    style={{
+                      fontSize: 10,
+                      fontWeight: '800',
+                      color: '#fff',
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5,
+                    }}
+                  >
+                    {et.grammarHintLabel}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+                  {[
+                    { label: et.grammarHintTenseLabel, value: current.grammar_hint.tense_tr },
+                    { label: et.grammarHintBlankTypeLabel, value: current.grammar_hint.blank_type_tr },
+                    { label: et.grammarHintStructureLabel, value: current.grammar_hint.structure_tr },
+                    { label: et.grammarHintReasoningLabel, value: current.grammar_hint.reasoning_tr },
+                  ].map((field, i) => (
+                    <View
+                      key={i}
+                      style={{
+                        flexBasis: '47%',
+                        flexGrow: 1,
+                        backgroundColor: c.surface,
+                        borderRadius: radius.md,
+                        padding: spacing.sm,
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontWeight: '700',
+                          color: c.warning,
+                          textTransform: 'uppercase',
+                          letterSpacing: 0.3,
+                          marginBottom: 2,
+                        }}
+                      >
+                        {field.label}
+                      </Text>
+                      <Text style={{ fontSize: 12.5, lineHeight: 17, color: c.text }}>{field.value}</Text>
+                    </View>
+                  ))}
+                </View>
               </View>
             )}
             <Text style={[styles.bodyText, { color: c.text }]}>{current.question_text}</Text>

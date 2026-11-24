@@ -415,24 +415,26 @@ export default function ExamTopicPracticePage() {
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5 mt-2">
             {current.grammar_hint && (
-              <div className="mb-3 rounded-xl bg-[#FFF8E8] dark:bg-amber-500/10 border border-[#FDE9B8] dark:border-amber-500/20 px-3.5 py-2.5 flex flex-col gap-1">
-                <p className="text-xs font-semibold text-[#8A6416] dark:text-amber-300 mb-0.5">{t.grammarHintLabel}</p>
-                <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
-                  <span className="font-semibold">{t.grammarHintTenseLabel}: </span>
-                  {current.grammar_hint.tense_tr}
-                </p>
-                <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
-                  <span className="font-semibold">{t.grammarHintStructureLabel}: </span>
-                  {current.grammar_hint.structure_tr}
-                </p>
-                <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
-                  <span className="font-semibold">{t.grammarHintBlankTypeLabel}: </span>
-                  {current.grammar_hint.blank_type_tr}
-                </p>
-                <p className="text-xs text-[#8A6416] dark:text-amber-300 leading-relaxed">
-                  <span className="font-semibold">{t.grammarHintReasoningLabel}: </span>
-                  {current.grammar_hint.reasoning_tr}
-                </p>
+              <div className="mb-3 rounded-xl p-3 flex flex-col gap-2" style={{ backgroundColor: '#FEF3C7' }}>
+                <span
+                  className="inline-block self-start text-[10px] font-extrabold uppercase tracking-wide text-white px-2 py-0.5 rounded-full"
+                  style={{ backgroundColor: '#D97706' }}
+                >
+                  {t.grammarHintLabel}
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: t.grammarHintTenseLabel, value: current.grammar_hint.tense_tr },
+                    { label: t.grammarHintBlankTypeLabel, value: current.grammar_hint.blank_type_tr },
+                    { label: t.grammarHintStructureLabel, value: current.grammar_hint.structure_tr },
+                    { label: t.grammarHintReasoningLabel, value: current.grammar_hint.reasoning_tr },
+                  ].map((field, i) => (
+                    <div key={i} className="bg-white dark:bg-slate-900 rounded-lg p-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wide text-[#8A6416] mb-0.5">{field.label}</p>
+                      <p className="text-xs leading-relaxed text-gray-800 dark:text-slate-200">{field.value}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
             <p className="text-sm text-gray-800 dark:text-slate-200 leading-relaxed">{current.question_text}</p>
