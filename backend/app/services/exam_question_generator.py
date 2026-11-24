@@ -85,8 +85,23 @@ _SUBMIT_TOOL = {
                             "type": "string",
                             "description": "Kısa İngilizce konu etiketi, örn. 'tenses', 'phrasal-verbs', 'reading-comprehension'.",
                         },
+                        "grammar_hint": {
+                            "type": "object",
+                            "description": (
+                                "24 Kasım 2026 -- öğrenci soruyu cevaplamadan ÖNCE görecek "
+                                "gramer ipucu (doğru şıkkı DOĞRUDAN söylemez, sadece hangi "
+                                "yapı/zaman aranmalı ve neden aranmalı onu öğretir)."
+                            ),
+                            "properties": {
+                                "tense_tr": {"type": "string", "description": "Hangi zaman/kip kullanılmış, kısa (ör. 'Present Perfect Continuous')."},
+                                "structure_tr": {"type": "string", "description": "Cümlenin/kalıbın gramer yapısı, kısa (ör. 'özne + has/have been + V-ing')."},
+                                "blank_type_tr": {"type": "string", "description": "Boşluğa gelecek kelime/yapı türü (ör. 'zarf (adverb)')."},
+                                "reasoning_tr": {"type": "string", "description": "Bu türün neden aranması gerektiği, 1 kısa Türkçe cümle."},
+                            },
+                            "required": ["tense_tr", "structure_tr", "blank_type_tr", "reasoning_tr"],
+                        },
                     },
-                    "required": ["question_text", "options", "correct_option", "explanation"],
+                    "required": ["question_text", "options", "correct_option", "explanation", "grammar_hint"],
                 },
             },
         },
@@ -262,6 +277,9 @@ def generate_questions(
         "- explanation alanı Türkçe yazılsın, öğrenciye doğru şıkkın neden doğru olduğunu "
         "kısaca (1-2 cümle) anlatsın.\n"
         "- question_text ve options İngilizce olsun.\n"
+        "- grammar_hint alanını da doldur: öğrenci soruyu cevaplamadan ÖNCE okuyacağı bir "
+        "ipucu olduğu için doğru şıkkı veya 'a/b/c/d' gibi bir harfi ASLA açık etmesin, "
+        "sadece hangi zaman/yapı/kelime türü arandığını ve nedenini kısaca anlatsın.\n"
         "- Telif hakkı olan bir metinden alıntı yapma veya gerçek bir sınavdan soru kopyalama — "
         "tamamen özgün içerik üret.\n"
         "- Sadece submit_questions aracını çağırarak cevap ver, ek metin yazma."
@@ -331,6 +349,12 @@ def generate_questions(
             continue
         if not q.get("question_text") or not q.get("explanation"):
             continue
+        grammar_hint = q.get("grammar_hint")
+        grammar_hint = grammar_hint if isinstance(grammar_hint, dict) else None
+        if grammar_hint is not None and not all(
+            grammar_hint.get(k) for k in ("tense_tr", "structure_tr", "blank_type_tr", "reasoning_tr")
+        ):
+            grammar_hint = None  # eksikse hiç gösterme -- yarım/boş ipucu kafa karıştırır
         validated.append(
             {
                 "question_text": q["question_text"].strip(),
@@ -341,6 +365,7 @@ def generate_questions(
                 "correct_option": q["correct_option"],
                 "explanation": q["explanation"].strip(),
                 "topic_tag": (q.get("topic_tag") or topic_tag or None),
+                "grammar_hint": grammar_hint,
             }
         )
 

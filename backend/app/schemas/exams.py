@@ -286,6 +286,21 @@ class AIQuestionGenerateResult(BaseModel):
 # (c) haftalık/günlük zayıf konu özeti
 
 
+class GrammarHintItem(BaseModel):
+    """24 Kasım 2026, Behçet'in kullanıcı isteği ("soru pratiği yaparken,
+    hangi tense kullanılmış, cümle grammer yapısı ne olmalı, boşluğa
+    gelecek cevap türü ne olmalı, neden o tür seçilmeli -- bunları
+    antrenman sorularında görmeliyim"). Soruyu cevaplamadan ÖNCE, soru
+    kartının üstünde gösterilir -- doğru şıkkı DOĞRUDAN söylemez, sadece
+    hangi gramer yapısını/zamanı aradığını ve neden öğretir; explanation
+    (reveal sonrası) ile KARIŞTIRILMAMALI."""
+
+    tense_tr: str  # hangi zaman/kip kullanılmış, kısa (ör. "Present Perfect Continuous")
+    structure_tr: str  # cümlenin/kalıbın gramer yapısı, kısa (ör. "özne + has/have been + V-ing")
+    blank_type_tr: str  # boşluğa gelecek kelime/yapı türü (ör. "zarf (adverb)")
+    reasoning_tr: str  # bu türün neden aranması gerektiği, 1 kısa cümle
+
+
 class ExamPracticeQuestionItem(BaseModel):
     id: str
     exam_type: str
@@ -296,6 +311,10 @@ class ExamPracticeQuestionItem(BaseModel):
     # 24 Eylul 2026 -- hafta sonu quizinde (study_program.py) sorular farkli
     # konulardan gelir; istemci cevabi bu etiketle loglar.
     topic_tag: str | None = None
+    # 24 Kasım 2026 -- bkz. GrammarHintItem docstring'i. Eski sorularda
+    # (backfill tamamlanana kadar) None olabilir, istemci o durumda kutuyu
+    # hiç göstermez.
+    grammar_hint: GrammarHintItem | None = None
 
 
 class TopicTranslationQuestionItem(BaseModel):

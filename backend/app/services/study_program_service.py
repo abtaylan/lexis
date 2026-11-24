@@ -558,7 +558,7 @@ def weekly_quiz_questions(learning_lang: str, focus_tags: list[str]) -> list[dic
         supabase_admin.table("exam_questions")
         .select(
             "id, exam_type, question_text, options, correct_option, explanation, "
-            "topic_tag, source_type"
+            "topic_tag, source_type, grammar_hint"
         )
         .eq("learning_lang", learning_lang)
         .eq("is_active", True)
@@ -589,7 +589,7 @@ def weekly_bulk_practice_questions(learning_lang: str, focus_tags: list[str]) ->
         supabase_admin.table("exam_questions")
         .select(
             "id, exam_type, question_text, options, correct_option, explanation, "
-            "topic_tag, source_type"
+            "topic_tag, source_type, grammar_hint"
         )
         .eq("learning_lang", learning_lang)
         .eq("is_active", True)
@@ -656,7 +656,7 @@ def monthly_tactic_exam_questions(learning_lang: str, tags: list[str]) -> list[d
         supabase_admin.table("exam_questions")
         .select(
             "id, exam_type, question_text, options, correct_option, explanation, "
-            "topic_tag, source_type"
+            "topic_tag, source_type, grammar_hint"
         )
         .eq("learning_lang", learning_lang)
         .eq("is_active", True)

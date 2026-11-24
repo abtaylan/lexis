@@ -28,6 +28,7 @@ from app.schemas.exams import (
     ExamPracticeQuestionsResult,
     ExamQuestionOption,
     ExamTacticItem,
+    GrammarHintItem,
 )
 from app.schemas.study_program import StudyProgramResponse
 from app.services import study_program_service as sps
@@ -123,6 +124,7 @@ async def weekly_quiz(current_user=Depends(get_current_user)):
                 correct_option=q["correct_option"],
                 explanation=q.get("explanation") or "",
                 topic_tag=q.get("topic_tag"),
+                grammar_hint=GrammarHintItem(**q["grammar_hint"]) if q.get("grammar_hint") else None,
             )
             for q in questions
         ],
@@ -159,6 +161,7 @@ async def weekly_bulk_practice(current_user=Depends(get_current_user)):
                 correct_option=q["correct_option"],
                 explanation=q.get("explanation") or "",
                 topic_tag=q.get("topic_tag"),
+                grammar_hint=GrammarHintItem(**q["grammar_hint"]) if q.get("grammar_hint") else None,
             )
             for q in questions
         ],
@@ -193,6 +196,7 @@ async def monthly_tactic_exam(current_user=Depends(get_current_user)):
                 correct_option=q["correct_option"],
                 explanation=q.get("explanation") or "",
                 topic_tag=q.get("topic_tag"),
+                grammar_hint=GrammarHintItem(**q["grammar_hint"]) if q.get("grammar_hint") else None,
             )
             for q in questions
         ],

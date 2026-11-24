@@ -49,6 +49,7 @@ from app.schemas.exams import (
     ExamQuestionModerationResponse,
     ExamTacticItem,
     ExamQuestionOption,
+    GrammarHintItem,
     ExamQuestionSuggestionCreate,
     ExamQuestionSuggestionResponse,
     ExamSessionCreate,
@@ -1548,6 +1549,7 @@ async def generate_ai_questions(
             "source_type": "ai",
             "status": "pending",
             "is_active": True,
+            "grammar_hint": q.get("grammar_hint"),
         }
         for q in questions
     ]
@@ -1623,7 +1625,7 @@ async def practice_questions_by_topic(
     _, practice_learning_lang = _profile_langs(current_user.id)
     query = (
         supabase_admin.table("exam_questions")
-        .select("id, exam_type, question_text, options, correct_option, explanation")
+        .select("id, exam_type, question_text, options, correct_option, explanation, grammar_hint")
         .eq("topic_tag", topic_tag)
         .eq("is_active", True)
         .eq("status", "approved")
@@ -1700,6 +1702,7 @@ async def practice_questions_by_topic(
                 correct_option=q["correct_option"],
                 explanation=q["explanation"],
                 topic_tag=topic_tag,
+                grammar_hint=GrammarHintItem(**q["grammar_hint"]) if q.get("grammar_hint") else None,
             )
             for q in chosen
         ],
