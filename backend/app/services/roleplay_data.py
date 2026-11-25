@@ -25,13 +25,11 @@ ogrenilen diller icin ceviri/yerellestirme henuz yapilmadi -- bilinen bir
 sinir, ilerleyen bir asamada ele alinacak.
 
 ILERLEME NOTU (25 Kasim 2026): Onaylanan 14 kategori / 102 senaryoluk
-katalogun SCENARIO_META'si (slug+basliklar+kategori) TAMAMI yazildi.
-SCENARIO_TREES (gercek dallanan diyalog icerigi) ise once 28 senaryo icin
-tam olarak yazildi (her kategoriden en az 2 tane) -- geri kalan ~74
-senaryo icin agac henuz yazilmadi. list_categories() SADECE SCENARIO_TREES
-icinde agaci olan senaryolari listeler, boylece secilebilir ama calismayan
-bir senaryo asla kullaniciya gosterilmez. Kalan senaryolarin agaclari
-ilerleyen turlarda eklenecek (bkz. gorev listesi).
+katalogun HEM SCENARIO_META'si (slug+basliklar+kategori) HEM DE
+SCENARIO_TREES'i (gercek dallanan diyalog icerigi, her biri 3-4 ila 6 node)
+TAMAMEN yazildi -- 102/102 senaryo tam calisir durumda. list_categories()
+yine de SADECE SCENARIO_TREES icinde agaci olan senaryolari listeler (ek
+guvenlik/gelecekteki genisletmeler icin), ama su an hepsi mevcut.
 """
 
 CATEGORIES: list[dict] = [
@@ -198,9 +196,8 @@ def _opts(a_text, a_reaction, a_next, b_text, b_reaction, b_next, c_text, c_reac
     ]
 
 
-# slug -> {start, nodes}. Ilk dalga: 28 senaryo (her kategoriden en az 2),
-# onaylanan dallan-ve-birles modeliyle tam yazildi. Geri kalanlar sonraki
-# asamada eklenecek.
+# slug -> {start, nodes}. Onaylanan 14 kategori / 102 senaryonun TAMAMI
+# dallan-ve-birles modeliyle tam yazildi (25 Kasim 2026).
 SCENARIO_TREES: dict[str, dict] = {
     "hotel_checkin": {
         "start": "n1",
@@ -1092,8 +1089,1613 @@ SCENARIO_TREES: dict[str, dict] = {
                        "No.", "Alright, goodbye.", None)},
         },
     },
+    "airport_checkin": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Good morning! Where are you flying to today?",
+                   "options": _opts(
+                       "Good morning, I'm flying to Berlin, flight LH1042.", "Great, let me check you in for that flight.", "n2",
+                       "Berlin.", "Thanks — could I also get your flight number or booking reference?", "n2",
+                       "Just check me in.", "Of course, I'll just need your destination first.", "n2")},
+            "n2": {"bot": "Can I see your passport and booking confirmation, please?",
+                   "options": _opts(
+                       "Here you go, passport and the confirmation email.", "Perfect, everything looks in order.", "n3",
+                       "Sure, here's my passport. I don't have the printout, is that okay?", "That's fine, I can look it up with your passport.", "n3",
+                       "Why do you need my passport?", "It's required for international check-in, I'm afraid.", "n3")},
+            "n3": {"bot": "How many bags would you like to check in today?",
+                   "options": _opts(
+                       "Just one suitcase, please.", "Okay, please place it on the scale.", "n4",
+                       "One, I think — is there a weight limit?", "Yes, twenty-three kilos for economy.", "n4",
+                       "I don't know, however many I have.", "No worries, let's just put them on the scale one by one.", "n4")},
+            "n4": {"bot": "Your bag is two kilos over the limit. Would you like to move something to your carry-on or pay the extra fee?",
+                   "options": _opts(
+                       "I'll move a few things to my carry-on, thanks for letting me know.", "Sounds good, take your time.", "n5",
+                       "How much would the extra fee be?", "It's about 20 euros for the extra weight.", "n5",
+                       "That's ridiculous, it was fine last time.", "I understand the frustration, but the limit is strict today — we can still sort it out.", "n5")},
+            "n5": {"bot": "All set — here's your boarding pass, gate B12, boarding starts at 10:40. Have a great flight!",
+                   "options": _opts(
+                       "Thank you so much, have a great day!", "You too, safe travels!", None,
+                       "Thanks.", "You're welcome.", None,
+                       "Finally.", "Have a good flight.", None)},
+        },
+    },
+    "passport_control": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Passport and boarding pass, please. What's the purpose of your visit?",
+                   "options": _opts(
+                       "Here you go. I'm here on vacation for two weeks.", "Great, enjoy your stay.", "n2",
+                       "Here. Tourism, I guess.", "Okay, and where will you be staying?", "n2",
+                       "Why do you need to know that?", "It's a standard question for entry.", "n2")},
+            "n2": {"bot": "Where will you be staying during your trip?",
+                   "options": _opts(
+                       "At the Grand Palace Hotel downtown, I have the reservation here.", "Thank you, that's all I need.", "n3",
+                       "With a friend, I don't have the address memorized.", "That's alright, do you have their phone number handy?", "n3",
+                       "Somewhere, I'll figure it out.", "I'll need a more specific answer, please.", "n3")},
+            "n3": {"bot": "Alright, everything checks out. Welcome, enjoy your trip!",
+                   "options": _opts(
+                       "Thank you very much!", "Have a great stay.", None,
+                       "Thanks.", "Welcome.", None,
+                       "Finally, took forever.", "Welcome to the country.", None)},
+        },
+    },
+    "taxi_uber": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, where would you like to be picked up?",
+                   "options": _opts(
+                       "Hi, I'm at 24 Elm Street, could you send a car, please?", "Sure, a car will arrive in about 8 minutes.", "n2",
+                       "Near the big supermarket on Elm Street.", "Got it, can I get a more exact address for the driver?", "n2",
+                       "Just send someone, I'll tell you when they get here.", "I really do need a pickup address to dispatch a driver.", "n2")},
+            "n2": {"bot": "And where are you headed?",
+                   "options": _opts(
+                       "To the central train station, please.", "Perfect, that's about a 15 minute ride.", "n3",
+                       "Somewhere downtown, near the station I think.", "No problem, I'll set the destination to the central station, let me know if that's wrong.", "n3",
+                       "I'll tell the driver when I get in.", "That works too, the driver will confirm with you.", "n3")},
+            "n3": {"bot": "Hi, are you the one who booked a ride to the station?",
+                   "options": _opts(
+                       "Yes, that's me, thanks for coming.", "No problem, hop in!", "n4",
+                       "I think so, yes.", "Great, let's get going then.", "n4",
+                       "Yeah, whatever, let's just go.", "Alright, buckle up.", "n4")},
+            "n4": {"bot": "Here we are, that'll be 85 lira. Cash or card?",
+                   "options": _opts(
+                       "Card is fine, thank you.", "Great, here's the reader.", "n5",
+                       "Do you take cash?", "I do, cash works too.", "n5",
+                       "That seems like a lot.", "That's the metered fare, I'm afraid.", "n5")},
+            "n5": {"bot": "Thanks, have a safe trip!",
+                   "options": _opts(
+                       "Thank you, you too!", "Take care!", None,
+                       "Thanks.", "Bye now.", None,
+                       "Whatever, bye.", "Alright then.", None)},
+        },
+    },
+    "bus_train_ticket": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, where are you traveling to?",
+                   "options": _opts(
+                       "Hi, one ticket to Izmir for tomorrow morning, please.", "Sure, let me check the morning departures.", "n2",
+                       "Izmir, sometime tomorrow.", "Okay, do you have a preferred time in the morning or afternoon?", "n2",
+                       "Izmir. Just give me a ticket.", "Of course — any particular time you'd like?", "n2")},
+            "n2": {"bot": "There's a train at 8:15 and one at 10:30. Which would you prefer?",
+                   "options": _opts(
+                       "The 8:15 one, please.", "Great, one ticket on the 8:15 train.", "n3",
+                       "Whichever is cheaper.", "They're the same price, I'll put you on the 8:15 then.", "n3",
+                       "I don't care, just pick one.", "Alright, I'll book the 8:15 departure.", "n3")},
+            "n3": {"bot": "Would you like a window or aisle seat?",
+                   "options": _opts(
+                       "Window, please, if it's available.", "You're in luck, window seat 14A.", "n4",
+                       "Either is fine.", "I'll put you by the window then.", "n4",
+                       "Does it matter? Just seat me somewhere.", "No problem, I'll assign you a seat.", "n4")},
+            "n4": {"bot": "That'll be 180 lira. Will you pay by card?",
+                   "options": _opts(
+                       "Yes, card please.", "Great, here's the machine.", "n5",
+                       "Can I pay in cash instead?", "Of course, cash works fine.", "n5",
+                       "180? That's expensive.", "That's the standard fare for this route, I'm afraid.", "n5")},
+            "n5": {"bot": "Here's your ticket, platform 3, departure at 8:15. Have a good trip!",
+                   "options": _opts(
+                       "Thank you so much!", "You're welcome, safe travels.", None,
+                       "Thanks.", "Take care.", None,
+                       "Fine.", "Have a good trip.", None)},
+        },
+    },
+    "lost_luggage": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi there, how can I help you?",
+                   "options": _opts(
+                       "Hi, my suitcase didn't arrive on the baggage belt, I think it's lost.", "I'm sorry to hear that, let's file a report right away.", "n2",
+                       "My bag isn't here. I don't know what happened.", "Let's look into that — do you have your baggage claim tag?", "n2",
+                       "Where's my bag?! This is unacceptable.", "I completely understand your frustration, let's find it together.", "n2")},
+            "n2": {"bot": "Can I see your baggage claim tag and flight ticket?",
+                   "options": _opts(
+                       "Here they are, flight LH1042 from Berlin.", "Thank you, let me look that up in the system.", "n3",
+                       "I think I lost the tag, but here's my ticket.", "That's alright, the ticket should be enough to trace it.", "n3",
+                       "I don't have it on me.", "No problem, can you tell me the flight number instead?", "n3")},
+            "n3": {"bot": "Can you describe your suitcase for me?",
+                   "options": _opts(
+                       "It's a large black hard-shell suitcase with a red ribbon on the handle.", "Got it, that's very helpful, I've logged the description.", "n4",
+                       "It's black, medium-sized, I think.", "That's helpful, any distinguishing marks or tags?", "n4",
+                       "It's just a normal suitcase, how should I know how to describe it?", "Any detail helps, even the color or brand.", "n4")},
+            "n4": {"bot": "Alright, I've filed the report. We'll deliver it to your address once it's found, usually within 48 hours.",
+                   "options": _opts(
+                       "Thank you, here's my address and phone number.", "Perfect, you'll get updates by text message.", "n5",
+                       "Okay, I hope it turns up soon.", "We'll do our best, you'll be notified as soon as we find it.", "n5",
+                       "48 hours? That's way too long.", "I understand, we do try to resolve these faster when possible.", "n5")},
+            "n5": {"bot": "Here's your reference number, keep it for tracking. Anything else?",
+                   "options": _opts(
+                       "No, that's all, thank you for your help.", "You're welcome, we'll be in touch soon.", None,
+                       "No, that's it.", "Alright, take care.", None,
+                       "No. I just want my bag back.", "We understand, we're on it.", None)},
+        },
+    },
+    "car_rental": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Welcome! Do you have a reservation with us?",
+                   "options": _opts(
+                       "Yes, under the name Ahmet Yılmaz, a compact car for five days.", "Found it, a Hyundai i20 for five days.", "n2",
+                       "Yes, I booked online, but I forgot the confirmation number.", "No worries, what name is it under?", "n2",
+                       "No, can I just rent something right now?", "Sure, let's see what's available.", "n2")},
+            "n2": {"bot": "May I see your driver's license and a credit card for the deposit?",
+                   "options": _opts(
+                       "Of course, here's my license and card.", "Perfect, everything looks good.", "n3",
+                       "Here's my license — do you need the physical card or can I pay with my phone?", "The physical card is needed for the deposit hold, I'm afraid.", "n3",
+                       "Do I really need to leave a deposit?", "Yes, it's standard policy and it's refunded when you return the car.", "n3")},
+            "n3": {"bot": "Would you like full insurance coverage, or just the basic plan?",
+                   "options": _opts(
+                       "Full coverage, please, better safe than sorry.", "Great choice, that covers any damage completely.", "n4",
+                       "What's the difference in price?", "Full coverage is 15 euros more per day than basic.", "n4",
+                       "I don't need any insurance.", "I'd recommend at least basic coverage, but it's your choice.", "n4")},
+            "n4": {"bot": "Here are the keys. Please check the car for any existing damage before you leave.",
+                   "options": _opts(
+                       "Thank you, I'll walk around and check now.", "Good idea, let me know if you spot anything.", "n5",
+                       "Okay, looks fine to me from here.", "Take a quick walk around just to be sure.", "n5",
+                       "I'm sure it's fine, I'll just go.", "I'd really recommend checking first, just to protect you.", "n5")},
+            "n5": {"bot": "All set. Please return the car with a full tank by Friday at 6 PM. Enjoy your trip!",
+                   "options": _opts(
+                       "Will do, thank you very much!", "You're welcome, drive safe!", None,
+                       "Got it, thanks.", "Take care.", None,
+                       "Fine, whatever.", "Have a good trip.", None)},
+        },
+    },
+    "tour_guide_info": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi! Welcome to the old town tour. Do you have any questions before we start?",
+                   "options": _opts(
+                       "Yes, how long does the tour usually take?", "Great question, it's about two hours with a short break.", "n2",
+                       "Is there a bathroom break at some point?", "Yes, we'll stop at the main square after an hour.", "n2",
+                       "Just start already, I don't have questions.", "Alright, let's get going then!", "n2")},
+            "n2": {"bot": "This building behind me is the old clock tower, built over 400 years ago. Any questions about it?",
+                   "options": _opts(
+                       "Can we go inside, or is it just viewed from outside?", "Good question, it's open to visitors on weekends.", "n3",
+                       "That's really old. Is it still used today?", "It is, actually, for small civic ceremonies.", "n3",
+                       "I've seen older buildings, not that impressive.", "Fair enough, let's move on to something more unique then.", "n3")},
+            "n3": {"bot": "Next, we'll head to the market square, about a five-minute walk. Keep up with the group, please.",
+                   "options": _opts(
+                       "Sounds good, lead the way.", "Great, follow me this way.", "n4",
+                       "Okay, is it far from here?", "Just a five-minute walk, not far at all.", "n4",
+                       "Can we skip ahead, this is taking long.", "We're moving at a steady pace, we'll be there soon.", "n4")},
+            "n4": {"bot": "This concludes today's tour. Thank you all for joining — any last questions?",
+                   "options": _opts(
+                       "No, this was a wonderful tour, thank you!", "I'm so glad you enjoyed it, take care!", None,
+                       "No, thanks for the tour.", "You're welcome, have a great day.", None,
+                       "No. Finally done.", "Thanks for coming, goodbye.", None)},
+        },
+    },
+    "restaurant_reservation": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Good evening, thanks for calling Bella Vista. How can I help you?",
+                   "options": _opts(
+                       "Hi, I'd like to book a table for four, tomorrow at 8 PM.", "Let me check availability for tomorrow at 8.", "n2",
+                       "I want to make a reservation.", "Of course, for how many people and what time?", "n2",
+                       "Do you even have tables free tomorrow?", "Let me check for you — how many people and what time?", "n2")},
+            "n2": {"bot": "We have a table for four at 8 PM. Any seating preference — indoor or on the terrace?",
+                   "options": _opts(
+                       "The terrace would be lovely, if it's not too cold.", "It's heated, so it should be comfortable.", "n3",
+                       "Indoor is probably safer, I think.", "Good call, I'll book you an indoor table.", "n3",
+                       "I don't care, just book something.", "No problem, I'll put you indoors.", "n3")},
+            "n3": {"bot": "Great, can I get a name and phone number for the reservation?",
+                   "options": _opts(
+                       "Sure, Ahmet Yılmaz, and my number is 0532 123 4567.", "Perfect, you're all set for tomorrow at 8.", "n4",
+                       "Ahmet, and I'll give my number when I arrive.", "The number helps us reach you if anything changes, but that's alright.", "n4",
+                       "Why do you need my phone number?", "Just in case we need to reach you about the booking.", "n4")},
+            "n4": {"bot": "You're all booked — table for four, tomorrow at 8 PM. See you then!",
+                   "options": _opts(
+                       "Thank you so much, see you tomorrow!", "Looking forward to it, goodbye!", None,
+                       "Okay, thanks.", "See you then.", None,
+                       "Fine.", "Goodbye.", None)},
+        },
+    },
+    "bill_dispute": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Here's your bill, whenever you're ready.",
+                   "options": _opts(
+                       "Thank you — could we get the bill split into two, please?", "Of course, I'll bring two separate checks.", "n2",
+                       "Thanks, could we pay separately?", "Sure thing, one moment.", "n2",
+                       "Just bring the bill, we'll sort it out.", "Alright, here it is.", "n2")},
+            "n2": {"bot": "Here you go. Is everything alright?",
+                   "options": _opts(
+                       "Actually, I think we were charged for a dessert we didn't order.", "Let me check that right away, I'm sorry about that.", "n3",
+                       "This total looks a bit higher than I expected.", "Let me double check the items for you.", "n3",
+                       "This is wrong, you're overcharging us.", "I'm sorry to hear that, let me look into it immediately.", "n3")},
+            "n3": {"bot": "You're right, I apologize — that dessert was added by mistake. I'll remove it now.",
+                   "options": _opts(
+                       "Thank you for fixing that, I appreciate it.", "Of course, sorry again for the trouble.", "n4",
+                       "Okay, thanks for checking.", "No problem at all.", "n4",
+                       "It's fine, just make sure it doesn't happen again.", "Understood, I'll be more careful.", "n4")},
+            "n4": {"bot": "Here's the corrected bill. Will you be paying by card or cash?",
+                   "options": _opts(
+                       "Card, please.", "Great, I'll bring the machine over.", None,
+                       "Cash, I think.", "No problem, I'll get your change.", None,
+                       "Card. Finally.", "Right away.", None)},
+        },
+    },
+    "fastfood_order": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, welcome to Burger Spot! What can I get started for you?",
+                   "options": _opts(
+                       "Hi, I'll have a cheeseburger meal with a cola, please.", "Great choice, what size for the meal?", "n2",
+                       "A burger and fries, I guess.", "Sure, would you like that as a meal with a drink?", "n2",
+                       "Just give me whatever's fast.", "Our cheeseburger meal is quick — would that work?", "n2")},
+            "n2": {"bot": "What size would you like — small, medium, or large?",
+                   "options": _opts(
+                       "Medium, please.", "Medium it is.", "n3",
+                       "What's the price difference for large?", "Large is just one dollar more.", "n3",
+                       "Doesn't matter, whatever's normal.", "I'll make that a medium for you.", "n3")},
+            "n3": {"bot": "For here or to go?",
+                   "options": _opts(
+                       "For here, please.", "Great, that'll be table service then.", "n4",
+                       "To go, thanks.", "No problem, I'll have it bagged up.", "n4",
+                       "I haven't decided yet.", "Take your time, I'll just put it on a tray for now.", "n4")},
+            "n4": {"bot": "That'll be 12 dollars. Anything else before I ring it up?",
+                   "options": _opts(
+                       "No, that's everything, thanks.", "Great, your total is 12 dollars.", None,
+                       "No, that's it.", "Alright, here's your total.", None,
+                       "No. Hurry up please.", "Coming right up.", None)},
+        },
+    },
+    "phone_food_order": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Thanks for calling Napoli Pizza, how can I help you?",
+                   "options": _opts(
+                       "Hi, I'd like to order a large pepperoni pizza for delivery.", "Sure thing, can I get your delivery address?", "n2",
+                       "I want a pizza delivered.", "Of course, what size and toppings would you like?", "n2",
+                       "Pizza, delivery, as fast as possible.", "I can do that — what size and toppings?", "n2")},
+            "n2": {"bot": "Great, and what's the delivery address?",
+                   "options": _opts(
+                       "45 Oak Avenue, apartment 3B.", "Got it, 45 Oak Avenue, apartment 3B.", "n3",
+                       "Somewhere on Oak Avenue, I'll give more detail if needed.", "I'll need the exact address and apartment number, please.", "n3",
+                       "I'll just tell the driver when he calls.", "I really do need an address to send out the order, I'm afraid.", "n3")},
+            "n3": {"bot": "Alright, that'll be about 35 minutes. Will you pay cash or card on delivery?",
+                   "options": _opts(
+                       "Card on delivery, please.", "Perfect, the driver will bring a card reader.", "n4",
+                       "Cash, I think I have exact change.", "Great, that works fine.", "n4",
+                       "Whatever's easiest for you.", "Cash on delivery is usually simplest.", "n4")},
+            "n4": {"bot": "You're all set — a large pepperoni pizza, about 35 minutes. Anything else?",
+                   "options": _opts(
+                       "No, that's perfect, thank you!", "You're welcome, enjoy your pizza!", None,
+                       "No, that's all.", "Great, see you soon.", None,
+                       "No, just hurry.", "We'll get it there quickly.", None)},
+        },
+    },
+    "allergy_notice": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, are you ready to order, or do you have any questions about the menu?",
+                   "options": _opts(
+                       "Hi, before I order — I have a peanut allergy, could you tell me which dishes are safe?", "Thanks for letting me know, let me check with the kitchen.", "n2",
+                       "I just wanted to mention I'm allergic to peanuts.", "Good to know, I'll make sure the kitchen is aware.", "n2",
+                       "Does any of this have peanuts? I can't eat that.", "Let me find out for you right away.", "n2")},
+            "n2": {"bot": "Good news — the grilled chicken and the pasta primavera are both peanut-free. The pad thai does contain peanuts.",
+                   "options": _opts(
+                       "Perfect, I'll have the pasta primavera, then.", "Great choice, I'll flag it as allergy-safe in the kitchen.", "n3",
+                       "Okay, I'll go with the chicken.", "Good choice, I'll let the kitchen know about the allergy.", "n3",
+                       "Fine, as long as it's not the pad thai.", "Understood, I'll make sure that's kept separate.", "n3")},
+            "n3": {"bot": "Your order will be prepared carefully, separate from any peanut products. Anything else?",
+                   "options": _opts(
+                       "No, thank you so much for being careful about this.", "Of course, your safety is our priority.", None,
+                       "No, that's all, thanks.", "You're welcome.", None,
+                       "No, just don't mess it up.", "We'll be very careful with your order.", None)},
+        },
+    },
+    "drink_menu_advice": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, can I get you something to drink? We have a full cocktail and mocktail menu.",
+                   "options": _opts(
+                       "Hi, could you recommend something fruity but not too sweet?", "Sure, our passionfruit mojito might be perfect for you.", "n2",
+                       "I don't really know what to pick, any suggestions?", "Our house specialty is the elderflower spritz, very popular.", "n2",
+                       "Just bring me whatever's popular.", "Our elderflower spritz is the best-seller, I'll bring that.", "n2")},
+            "n2": {"bot": "Would you like that with or without alcohol?",
+                   "options": _opts(
+                       "Without alcohol, please, I'm driving later.", "Smart choice, I'll make it a mocktail version.", "n3",
+                       "With a little alcohol, nothing too strong.", "Perfect, I'll make it a light version.", "n3",
+                       "Doesn't matter, surprise me.", "I'll go with the classic version then.", "n3")},
+            "n3": {"bot": "Great choice — I'll have that out to you shortly. Anything else for now?",
+                   "options": _opts(
+                       "No, that's all, thank you!", "You're welcome, coming right up.", None,
+                       "No, that's it.", "Alright, one moment.", None,
+                       "No, just bring it quickly.", "Right away.", None)},
+        },
+    },
+    "electronics_inquiry": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, welcome in! Are you looking for anything in particular today?",
+                   "options": _opts(
+                       "Hi, I'm looking for a laptop for everyday use and some light photo editing.", "Great, I can show you a few good options for that.", "n2",
+                       "Just a laptop, something decent.", "Sure, what will you mainly use it for?", "n2",
+                       "I don't know, just show me what you have.", "No problem, let me show you our most popular models.", "n2")},
+            "n2": {"bot": "This model here has 16GB of RAM and a good processor — great for photo editing. It's 650 dollars.",
+                   "options": _opts(
+                       "That sounds good, does it come with a warranty?", "Yes, a one-year warranty is included.", "n3",
+                       "That's a bit more than I wanted to spend, is there a cheaper option?", "There's a slightly older model for 500 that still handles light editing well.", "n3",
+                       "650 is way too much for a laptop.", "I understand — we do have more budget-friendly options too.", "n3")},
+            "n3": {"bot": "Would you like to add an extended two-year warranty for 40 dollars?",
+                   "options": _opts(
+                       "Sure, that sounds worth it for peace of mind.", "Good call, I'll add that to your order.", "n4",
+                       "I'll pass on that, thanks.", "No problem at all.", "n4",
+                       "No, that's just a scam to get more money.", "I understand the hesitation — it's completely optional.", "n4")},
+            "n4": {"bot": "Great, I'll ring that up for you. How would you like to pay?",
+                   "options": _opts(
+                       "Card, please.", "Perfect, here's the reader.", None,
+                       "Cash.", "Sure, that works.", None,
+                       "Card, obviously.", "Right this way.", None)},
+        },
+    },
+    "bargaining": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Welcome, welcome! This rug is handmade, very special — 200 dollars for you.",
+                   "options": _opts(
+                       "It's beautiful, but that's a bit more than I was hoping to pay. Could you do 140?", "You drive a hard bargain! How about 170?", "n2",
+                       "That seems expensive, can you lower the price?", "For you, I can do 180.", "n2",
+                       "200? No way, that's robbery.", "It's handmade, good quality — but let's talk, what's your offer?", "n2")},
+            "n2": {"bot": "I can really only go down to 160, it's genuinely good quality.",
+                   "options": _opts(
+                       "Alright, 160 works for me, thank you.", "Wonderful, let me wrap that up for you.", "n3",
+                       "Could we meet at 150?", "Okay, 150, just for you, final price.", "n3",
+                       "Still too much, forget it.", "Wait, wait — let's find a price that works for both of us.", "n3")},
+            "n3": {"bot": "Deal! Would you like it wrapped, or are you carrying it as is?",
+                   "options": _opts(
+                       "Wrapped would be great, thank you.", "Of course, one moment.", None,
+                       "No need, I'll just carry it.", "No problem at all.", None,
+                       "Just hurry, I have somewhere to be.", "Right away.", None)},
+        },
+    },
+    "grocery_shopping": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, can I help you find anything today?",
+                   "options": _opts(
+                       "Hi, yes — do you know which aisle has olive oil?", "Sure, that's in aisle 5, with the other oils.", "n2",
+                       "I'm looking for olive oil, not sure where it is.", "It's in aisle 5, near the cooking oils.", "n2",
+                       "Where's the oil? I've been looking forever.", "Sorry about that, it's in aisle 5.", "n2")},
+            "n2": {"bot": "Anything else I can help you track down?",
+                   "options": _opts(
+                       "Actually yes, do you have any fresh basil today?", "We do, it's in the produce section near the herbs.", "n3",
+                       "Maybe, is there fresh basil somewhere?", "Yes, over in the produce section.", "n3",
+                       "No, I'll find the rest myself.", "Sounds good, let me know if you need anything.", "n3")},
+            "n3": {"bot": "Great, anything else, or are you all set?",
+                   "options": _opts(
+                       "That's everything, thank you so much for your help!", "You're very welcome, have a great day!", None,
+                       "That's all, thanks.", "Take care.", None,
+                       "That's it.", "Alright, have a good one.", None)},
+        },
+    },
+    "order_tracking": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, thanks for contacting support. How can I help you today?",
+                   "options": _opts(
+                       "Hi, I'd like to check the status of my order, number 48213.", "Let me pull that up for you right away.", "n2",
+                       "My order hasn't arrived yet and I'm not sure why.", "I'm sorry about that, could I get your order number?", "n2",
+                       "Where is my order? It's been forever.", "I understand the frustration, let me look into it — order number, please?", "n2")},
+            "n2": {"bot": "I see it here — it shipped two days ago and is currently out for delivery, expected today.",
+                   "options": _opts(
+                       "Oh great, thank you for checking!", "You're welcome, it should arrive by this evening.", "n3",
+                       "Okay, I hope it actually shows up today.", "It's scheduled for today, I'll keep an eye on it too.", "n3",
+                       "It better arrive today, this is ridiculous.", "I completely understand, it is on track for today.", "n3")},
+            "n3": {"bot": "Is there anything else I can help you with?",
+                   "options": _opts(
+                       "No, that's all, thank you for your help!", "You're welcome, have a great day!", None,
+                       "No, that's everything.", "Take care.", None,
+                       "No. Just make sure it arrives.", "We'll do our best.", None)},
+        },
+    },
+    "gift_advice": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi there, looking for something special today?",
+                   "options": _opts(
+                       "Hi, I need a birthday gift for my sister, she loves reading and tea.", "That's sweet, I have a few ideas for that combination.", "n2",
+                       "I need a gift but I have no idea what to get.", "No worries, who's it for and what do they enjoy?", "n2",
+                       "Just give me something, anything that counts as a gift.", "Sure, do you have a budget or a recipient in mind?", "n2")},
+            "n2": {"bot": "We have a lovely gift set with a novel, a scented candle, and a tea sampler — very popular for readers.",
+                   "options": _opts(
+                       "That sounds perfect, how much is it?", "It's 45 dollars, and it comes nicely boxed already.", "n3",
+                       "That could work, is there anything a bit cheaper?", "There's a smaller version with just the tea and candle for 25.", "n3",
+                       "I don't know, just pick one for me.", "I'd go with the full gift set, it's a safe and lovely choice.", "n3")},
+            "n3": {"bot": "Would you like me to add a gift card or a handwritten note card as well?",
+                   "options": _opts(
+                       "A note card would be lovely, thank you.", "Of course, I'll include one at no extra charge.", None,
+                       "No, that's okay, just the gift.", "No problem at all.", None,
+                       "No, just wrap it already.", "Right away.", None)},
+        },
+    },
+    "post_package": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, how can I help you today?",
+                   "options": _opts(
+                       "Hi, I'd like to send this package to Istanbul, please.", "Sure, let's get it weighed and measured.", "n2",
+                       "I need to mail this package.", "No problem, where is it headed?", "n2",
+                       "I need to send this, how much will it cost?", "Let's weigh it first and I'll give you a price.", "n2")},
+            "n2": {"bot": "That'll be 2 kilos. Would you like standard or express shipping?",
+                   "options": _opts(
+                       "Standard is fine, no rush.", "Great, that'll be 25 lira, arriving in 3-5 days.", "n3",
+                       "What's the price difference for express?", "Express is 45 lira and arrives in 1-2 days.", "n3",
+                       "Just whatever's cheapest.", "Standard shipping is the most affordable option.", "n3")},
+            "n3": {"bot": "Would you like to add tracking and insurance for an extra 5 lira?",
+                   "options": _opts(
+                       "Yes, please, better to be safe.", "Good idea, I'll add that now.", "n4",
+                       "No, that's alright, I'll skip it.", "No problem, your total is 25 lira.", "n4",
+                       "No, don't try to upsell me more things.", "Understood, just the standard shipping then.", "n4")},
+            "n4": {"bot": "All done — here's your receipt and tracking number. Anything else?",
+                   "options": _opts(
+                       "No, that's everything, thank you!", "You're welcome, have a great day!", None,
+                       "No, that's all.", "Take care.", None,
+                       "No. Finally.", "Have a good day.", None)},
+        },
+    },
+    "meeting_roommate": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi! You must be the new roommate — I'm Sarah. Nice to finally meet you!",
+                   "options": _opts(
+                       "Hi Sarah, nice to meet you too! I'm really happy to be moving in.", "That's great to hear, I think we'll get along well.", "n2",
+                       "Hi, yeah, that's me. Nice to meet you.", "Likewise! Let me know if you have any questions about the place.", "n2",
+                       "Yeah, hi. Where's my room?", "Right this way, I'll show you around.", "n2")},
+            "n2": {"bot": "So, I usually do the dishes right after dinner and keep the kitchen tidy. How do you like to handle chores?",
+                   "options": _opts(
+                       "That sounds great, I'm happy to split chores however works for both of us.", "Perfect, maybe we can alternate weeks for the bigger cleaning?", "n3",
+                       "I'm pretty relaxed about it, I'll just try to keep things clean.", "Sounds good, we can figure out details as we go.", "n3",
+                       "I'm not really into chores, to be honest.", "That's okay, we can talk about finding a system that works for both of us.", "n3")},
+            "n3": {"bot": "Sounds good. Do you have any questions about the apartment or the building?",
+                   "options": _opts(
+                       "Just one — is there a laundry room in the building?", "Yes, it's in the basement, open 24 hours.", None,
+                       "Not really, I think I'm good for now.", "Great, let me know if anything comes up.", None,
+                       "No, I'll figure it out myself.", "Alright, I'm around if you need anything.", None)},
+        },
+    },
+    "utility_signup": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, thanks for calling. How can I help you today?",
+                   "options": _opts(
+                       "Hi, I just moved into a new apartment and need to set up electricity service.", "Congrats on the move! Let's get that set up for you.", "n2",
+                       "I need to start electricity at my new place.", "Sure, can I get the address for the new service?", "n2",
+                       "I need power turned on, how do I do that?", "I can help with that — what's the address?", "n2")},
+            "n2": {"bot": "What's the address, and when would you like the service to start?",
+                   "options": _opts(
+                       "It's 12 Maple Street, apartment 4. I'd like it to start this Friday.", "Got it, I'll schedule activation for Friday.", "n3",
+                       "12 Maple Street. As soon as possible, please.", "I can get you set up by tomorrow, does that work?", "n3",
+                       "Some address, I'll send it later, just turn it on quick.", "I'll need the exact address first to process this, I'm afraid.", "n3")},
+            "n3": {"bot": "Great, there's a one-time connection fee of 20 dollars. Is that alright?",
+                   "options": _opts(
+                       "That's fine, I'll pay that.", "Perfect, I'll add it to your first bill.", "n4",
+                       "Is there any way to avoid that fee?", "I'm afraid it's standard for new connections.", "n4",
+                       "That's an unnecessary fee, this is annoying.", "I understand, it does cover the technician's setup visit.", "n4")},
+            "n4": {"bot": "All set — your electricity will be activated on Friday. Anything else I can help with?",
+                   "options": _opts(
+                       "No, that's everything, thank you!", "You're welcome, have a great day!", None,
+                       "No, that's all, thanks.", "Take care.", None,
+                       "No. Just make sure it works.", "It will, don't worry.", None)},
+        },
+    },
+    "internet_provider": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, thanks for calling TurkNet support. What can I help you with?",
+                   "options": _opts(
+                       "Hi, my internet has been really slow for the past two days.", "I'm sorry to hear that, let's troubleshoot it together.", "n2",
+                       "My internet isn't working well.", "I can help with that, can you tell me more about the issue?", "n2",
+                       "Your internet is terrible, fix it now.", "I understand the frustration, let's see what's going on.", "n2")},
+            "n2": {"bot": "Could you try restarting your router and let me know if that helps?",
+                   "options": _opts(
+                       "Sure, one moment... okay, I've restarted it.", "Great, is the connection looking better now?", "n3",
+                       "I already tried that earlier, it didn't help.", "Okay, let's look into the line itself then.", "n3",
+                       "I'm not doing that again, I already tried it twice.", "Understood, let's check the connection from our side instead.", "n3")},
+            "n3": {"bot": "I see some signal issues on our end. I'll schedule a technician to visit — would tomorrow afternoon work?",
+                   "options": _opts(
+                       "Yes, tomorrow afternoon works great, thank you.", "Perfect, I'll book that for you now.", "n4",
+                       "I guess that works, though I was hoping for sooner.", "I understand, that's the earliest slot we have available.", "n4",
+                       "Finally, yes, just send someone already.", "I'll get that scheduled right away.", "n4")},
+            "n4": {"bot": "You're all set for tomorrow between 2 and 4 PM. Anything else?",
+                   "options": _opts(
+                       "No, that's all, thank you for your help.", "You're welcome, sorry for the trouble.", None,
+                       "No, that's it.", "Take care.", None,
+                       "No, just make sure it's actually fixed this time.", "We'll make sure it's resolved.", None)},
+        },
+    },
+    "neighbor_chat": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Oh, hi there! You're in the apartment next door, right? I don't think we've properly met.",
+                   "options": _opts(
+                       "Hi! Yes, I just moved in last week. I'm Deniz, nice to meet you.", "Nice to meet you too, Deniz! Welcome to the building.", "n2",
+                       "Yeah, that's me. Hi.", "Welcome to the building! Let me know if you need anything.", "n2",
+                       "Yeah. Is there a problem?", "No, no problem at all, just wanted to say hello.", "n2")},
+            "n2": {"bot": "If you ever need anything, feel free to knock. By the way, trash pickup is Tuesdays and Fridays.",
+                   "options": _opts(
+                       "That's really kind, thank you! Good to know about the trash schedule too.", "Of course, happy to help a new neighbor.", "n3",
+                       "Thanks, good to know.", "No problem at all.", "n3",
+                       "Okay, noted.", "Alright then.", "n3")},
+            "n3": {"bot": "Well, I should get going, but it was nice meeting you!",
+                   "options": _opts(
+                       "You too! I'm sure I'll see you around.", "Definitely, take care!", None,
+                       "Yeah, see you around.", "Bye now!", None,
+                       "Sure, bye.", "Take care.", None)},
+        },
+    },
+    "first_day": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Welcome aboard! I'm Mehmet, the team lead. How are you feeling about your first day?",
+                   "options": _opts(
+                       "Thanks, I'm excited to get started and meet everyone!", "That's great energy, let's get you settled in.", "n2",
+                       "A little nervous, but good overall.", "That's totally normal, we'll take it easy today.", "n2",
+                       "Fine, I guess. Where's my desk?", "Right this way, let me show you.", "n2")},
+            "n2": {"bot": "This will be your desk. I'll also introduce you to the team in a few minutes. Any questions so far?",
+                   "options": _opts(
+                       "Just one — who should I go to if I have technical questions?", "You can always ask Ayşe, she's great with that.", "n3",
+                       "Not yet, I'll probably have some as the day goes on.", "Of course, feel free to ask anytime.", "n3",
+                       "No, let's just get on with it.", "Sure, let's head to the team area then.", "n3")},
+            "n3": {"bot": "Great, let's go meet the team. Everyone's looking forward to working with you.",
+                   "options": _opts(
+                       "Sounds great, I'm looking forward to it too!", "Let's go then.", None,
+                       "Okay, sounds good.", "This way.", None,
+                       "Alright, let's just get it over with.", "Right, follow me.", None)},
+        },
+    },
+    "meeting_scheduling": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, do you have a few minutes to schedule our project check-in for this week?",
+                   "options": _opts(
+                       "Sure, I'm free Wednesday afternoon or Thursday morning, whichever works for you.", "Thursday morning works well for me too.", "n2",
+                       "I'm pretty busy, but let me check my calendar.", "No rush, whenever you find a slot works.", "n2",
+                       "I don't really have time for more meetings this week.", "I understand, could we find even just 20 minutes somewhere?", "n2")},
+            "n2": {"bot": "Great, let's say Thursday at 10 AM. Should we book a meeting room or do it online?",
+                   "options": _opts(
+                       "Let's do it online, it's easier for everyone.", "Sounds good, I'll send a video call link.", "n3",
+                       "Either is fine with me.", "I'll book the small meeting room then.", "n3",
+                       "I don't care, just send me an invite.", "Will do, I'll set that up now.", "n3")},
+            "n3": {"bot": "Perfect, I'll send the calendar invite now. See you Thursday!",
+                   "options": _opts(
+                       "Great, see you then, looking forward to it!", "Likewise, see you Thursday!", None,
+                       "Sounds good, see you then.", "See you then.", None,
+                       "Fine, see you.", "Alright.", None)},
+        },
+    },
+    "asking_raise": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, you wanted to talk? Come in, have a seat.",
+                   "options": _opts(
+                       "Thanks for making time. I wanted to discuss my compensation, given the extra responsibilities I've taken on.", "Of course, I'm happy to hear you out.", "n2",
+                       "Yeah, I wanted to talk about maybe getting a raise.", "Sure, tell me more about what's prompting this.", "n2",
+                       "I need more money, I feel like I deserve a raise.", "I hear you — can you walk me through why you feel that way?", "n2")},
+            "n2": {"bot": "Can you tell me more about what you've accomplished recently that supports this?",
+                   "options": _opts(
+                       "Sure — I led the Atlas project to completion ahead of schedule and took on mentoring two new hires.", "Those are solid accomplishments, thank you for sharing.", "n3",
+                       "I've just been working hard and taking on more tasks lately.", "Can you give me a specific example or two?", "n3",
+                       "I don't know, I just work here every day like everyone else.", "I'd love some specifics so I can make a strong case for you.", "n3")},
+            "n3": {"bot": "Thank you, this is helpful. I'll need to discuss it with HR, but I'll get back to you within two weeks.",
+                   "options": _opts(
+                       "That sounds fair, thank you for considering it.", "Of course, I'll follow up soon.", None,
+                       "Okay, I'll wait to hear back then.", "I'll be in touch.", None,
+                       "Two weeks? That feels like a long time.", "I understand, but I want to handle this properly.", None)},
+        },
+    },
+    "giving_presentation": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Alright everyone, let's begin. Go ahead whenever you're ready.",
+                   "options": _opts(
+                       "Thank you all for being here. Today I'll walk you through our Q3 results and next steps.", "Great opening, please continue.", "n2",
+                       "Okay, um, so I'll just go through the slides now.", "Sure, take your time.", "n2",
+                       "Let's just get this over with, here are the numbers.", "Alright, go ahead.", "n2")},
+            "n2": {"bot": "A colleague interrupts: \"Sorry, can you clarify that number on slide three?\"",
+                   "options": _opts(
+                       "Of course — that's our customer retention rate, which rose from 72% to 81% this quarter.", "That's clear, thank you.", "n3",
+                       "Sure, let me check... it's the retention number, I believe.", "Okay, thanks for checking.", "n3",
+                       "It's on the slide, you can read it.", "Alright, let's move on then.", "n3")},
+            "n3": {"bot": "Thanks for clarifying. Please go on with the rest of the presentation.",
+                   "options": _opts(
+                       "Of course — moving on to our plans for next quarter.", "Great, we're following along well.", "n4",
+                       "Okay, next slide then.", "Go ahead.", "n4",
+                       "Fine, here's the rest of it quickly.", "Alright, take it at your own pace.", "n4")},
+            "n4": {"bot": "Great presentation overall. Any final thoughts before we wrap up?",
+                   "options": _opts(
+                       "Just that I'm happy to answer any further questions afterward. Thank you all for your attention.", "Thank you, that was very well presented.", None,
+                       "No, I think that covers everything.", "Great, thanks for the presentation.", None,
+                       "No, that's it, I'm done.", "Alright, thank you.", None)},
+        },
+    },
+    "performance_review": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Thanks for coming in. Overall, you've had a strong year — let's go through some specifics.",
+                   "options": _opts(
+                       "Thank you, I'd love to hear the details and also share my own perspective.", "Great, let's start with the highlights.", "n2",
+                       "Okay, sounds good, go ahead.", "Alright, let's dive in.", "n2",
+                       "Sure, just tell me if I'm getting a raise or not.", "We'll get to that, let's review the year first.", "n2")},
+            "n2": {"bot": "Your project delivery has been excellent, though communication with other teams could improve. Thoughts?",
+                   "options": _opts(
+                       "That's fair feedback — I'll make an effort to loop other teams in earlier on projects.", "That's a great attitude, I appreciate that.", "n3",
+                       "I see, I didn't realize that was an issue. I'll try to work on it.", "I appreciate you being open to it.", "n3",
+                       "I don't think that's really my fault, other teams are hard to reach.", "I understand it's not always easy, but let's find ways to improve it together.", "n3")},
+            "n3": {"bot": "Based on this review, I'd like to set a goal around cross-team communication for next quarter. Sound good?",
+                   "options": _opts(
+                       "Sounds good, I'll come up with a concrete plan for that.", "Perfect, let's check in on it next quarter.", None,
+                       "Okay, I'll try my best with that.", "That's all I ask.", None,
+                       "Fine, if that's what you want.", "I appreciate you hearing me out.", None)},
+        },
+    },
+    "resignation_talk": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "You wanted to speak with me? What's on your mind?",
+                   "options": _opts(
+                       "Yes — I wanted to let you know I've accepted another offer and will be resigning.", "I see, thank you for telling me directly. Can we talk about your timeline?", "n2",
+                       "I'm thinking of leaving the company, I got another offer.", "I appreciate you sharing that. When were you thinking of leaving?", "n2",
+                       "I quit. I'm done with this job.", "I'm sorry to hear you feel that way — can we talk about what's going on?", "n2")},
+            "n2": {"bot": "I understand. What would work for your notice period — the standard two weeks?",
+                   "options": _opts(
+                       "Two weeks works for me, and I'm happy to help hand off my projects.", "That's very considerate, thank you.", "n3",
+                       "I was hoping for one week, if that's possible.", "Let's see what we can arrange, I appreciate the heads up either way.", "n3",
+                       "I don't really care about the notice period, I just want to leave.", "I understand, but a smooth handoff would really help the team.", "n3")},
+            "n3": {"bot": "Thank you for being professional about this. We'll miss you, and I wish you the best in the new role.",
+                   "options": _opts(
+                       "Thank you, I've really valued my time here and I'll make sure the transition goes smoothly.", "That means a lot, thank you.", None,
+                       "Thanks, I appreciate that.", "Take care.", None,
+                       "Yeah, thanks, I guess.", "Good luck out there.", None)},
+        },
+    },
+    "teacher_parent_meeting": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Thanks for coming in. Overall, your son is doing well, though I wanted to discuss his math grades.",
+                   "options": _opts(
+                       "Thank you for letting me know — what do you think is causing the difficulty?", "He seems to struggle most with word problems specifically.", "n2",
+                       "Okay, I didn't realize there was an issue. What's going on?", "He's been having trouble with word problems lately.", "n2",
+                       "That's strange, he says everything is fine at home.", "I understand, it may not always come up at home — it's mainly word problems.", "n2")},
+            "n2": {"bot": "I'd recommend maybe 15-20 minutes of extra practice at home a few times a week. Would that be possible?",
+                   "options": _opts(
+                       "Absolutely, I can sit with him in the evenings to go through some problems.", "That would really help, thank you for being supportive.", "n3",
+                       "I can try, though our evenings are pretty busy.", "Even a little consistent practice can make a difference.", "n3",
+                       "I don't really have time for that, isn't that your job?", "I understand it's a lot, but a little home support really does help.", "n3")},
+            "n3": {"bot": "I'll also send home some extra worksheets. Let's check in again in a month to see how he's doing.",
+                   "options": _opts(
+                       "That sounds great, thank you for working with us on this.", "Of course, we're a team in this.", None,
+                       "Okay, we'll check back in then.", "Sounds good.", None,
+                       "Fine, I hope this actually helps.", "I believe it will, with some consistency.", None)},
+        },
+    },
+    "group_project_planning": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Okay team, we need to divide up the research project. Any thoughts on how to split the work?",
+                   "options": _opts(
+                       "I think we should split it by topic — I'm happy to take the introduction and background section.", "That works for me, I'll take the data analysis part then.", "n2",
+                       "I'm not sure, maybe we just split it evenly somehow?", "Sure, let's figure out sections and assign them.", "n2",
+                       "I don't really care, just tell me what to do.", "Alright, how about you take the background section?", "n2")},
+            "n2": {"bot": "Great, and when should we meet again to combine everything?",
+                   "options": _opts(
+                       "How about this Thursday evening, so everyone has time to finish their part?", "Thursday works for me too.", "n3",
+                       "Whenever works for everyone, I'm flexible.", "Let's say Thursday evening then.", "n3",
+                       "I don't know, whenever, just don't make it too soon.", "Alright, let's aim for Thursday to be safe.", "n3")},
+            "n3": {"bot": "Sounds good. Let's also share a document so we can see each other's progress. Does that work?",
+                   "options": _opts(
+                       "Perfect, I'll set up a shared document right now.", "Great, thanks for setting that up.", None,
+                       "Sure, that should be fine.", "Alright, sounds good.", None,
+                       "I guess, if it's really necessary.", "It'll help us stay organized, I think.", None)},
+        },
+    },
+    "enrollment_library": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, welcome to the student services desk. How can I help you?",
+                   "options": _opts(
+                       "Hi, I just enrolled and need to get my student ID and library card set up.", "Great, let's get you registered — do you have your enrollment confirmation?", "n2",
+                       "I need to get set up as a new student, not sure what I need.", "No problem, do you have your enrollment confirmation with you?", "n2",
+                       "I need a student ID, just give me one.", "I can help with that — do you have your enrollment confirmation?", "n2")},
+            "n2": {"bot": "Here you go. Let me take your photo for the ID card now, is that alright?",
+                   "options": _opts(
+                       "Sure, go ahead, I'm ready.", "Great, hold still for a moment.", "n3",
+                       "Okay, I guess so, do I look okay?", "You look fine, this will just take a second.", "n3",
+                       "Fine, just make it quick.", "One moment, almost done.", "n3")},
+            "n3": {"bot": "Perfect, here's your student ID. It also works as your library card. Anything else you need?",
+                   "options": _opts(
+                       "Just one thing — how many books can I borrow at a time with this?", "You can borrow up to five books for three weeks.", None,
+                       "No, I think that's everything, thanks.", "Great, welcome to the university!", None,
+                       "No, that's it.", "Alright, welcome aboard.", None)},
+        },
+    },
+    "course_selection_advice": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, I understand you wanted some advice on course selection for next semester?",
+                   "options": _opts(
+                       "Yes, I'm interested in data science but not sure which electives to pick.", "Great field — let's look at a few electives that complement that path.", "n2",
+                       "Yeah, I'm not totally sure what I want to take.", "That's okay, what subjects have you enjoyed so far?", "n2",
+                       "I just need you to tell me what to pick.", "I can guide you, but it helps to know your interests first — any subjects you enjoy?", "n2")},
+            "n2": {"bot": "I'd suggest Statistics II and an Intro to Machine Learning course — both pair well with data science.",
+                   "options": _opts(
+                       "That sounds perfect, how many credits are those together?", "Together that's 8 credits, which fits well with a full course load.", "n3",
+                       "Okay, are those difficult courses?", "They're challenging but manageable with consistent study.", "n3",
+                       "I don't know, those sound hard, are there easier options?", "There are lighter options, but these would serve your goals best long-term.", "n3")},
+            "n3": {"bot": "Would you like me to go ahead and register you for these, or do you want to think it over?",
+                   "options": _opts(
+                       "Let's go ahead and register me for both, thank you!", "Great, I'll process that now.", None,
+                       "I'll think it over and come back tomorrow.", "Sounds good, take your time.", None,
+                       "I don't know, just pick for me.", "I'll register you for these two then.", None)},
+        },
+    },
+    "exchange_program_interview": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Thanks for coming in. Why are you interested in the exchange program in Spain?",
+                   "options": _opts(
+                       "I'd love to improve my Spanish and experience a new academic environment firsthand.", "That's a great motivation, very clear.", "n2",
+                       "I just think it would be a nice experience to live abroad.", "That's understandable, can you tell me more about your academic goals there?", "n2",
+                       "I don't know, it just sounded fun.", "I see — can you tell me more about what you hope to gain academically?", "n2")},
+            "n2": {"bot": "How do you think you'll handle being far from family and adapting to a new culture?",
+                   "options": _opts(
+                       "I've traveled alone before and I'm confident I can adapt, though I'll stay in touch with family regularly.", "That's reassuring, good self-awareness.", "n3",
+                       "I think it'll be an adjustment, but I'm willing to try my best.", "That's a healthy attitude to have.", "n3",
+                       "I haven't really thought about that part.", "It's worth considering, since it's a big part of the experience.", "n3")},
+            "n3": {"bot": "Thank you, that's helpful. We'll review your application and let you know within two weeks.",
+                   "options": _opts(
+                       "Thank you so much for your time, I really appreciate the opportunity.", "Of course, good luck!", None,
+                       "Okay, thank you.", "You're welcome.", None,
+                       "Alright, I'll wait then.", "We'll be in touch.", None)},
+        },
+    },
+    "enrolling_self_university": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, how can I help you with enrollment today?",
+                   "options": _opts(
+                       "Hi, I'd like to enroll in the computer science program for the fall semester.", "Great, let's get your application started.", "n2",
+                       "I want to sign up for classes, I'm new here.", "Sure, which program are you interested in?", "n2",
+                       "I need to enroll, what do I do?", "I can help — which program would you like to join?", "n2")},
+            "n2": {"bot": "I'll need your high school transcript and a copy of your ID. Do you have those with you?",
+                   "options": _opts(
+                       "Yes, here's my transcript and ID.", "Perfect, everything looks complete.", "n3",
+                       "I have my ID, but my transcript is being sent by mail.", "That's fine, we can start the process and add it once it arrives.", "n3",
+                       "I don't have any of that with me today.", "No problem, you can bring those by next week to complete it.", "n3")},
+            "n3": {"bot": "Great, there's also an application fee of 50 dollars. Would you like to pay now or later?",
+                   "options": _opts(
+                       "I'll pay now, that's easier.", "Great, here's the payment terminal.", "n4",
+                       "Can I pay later this week instead?", "Sure, just make sure it's settled before classes start.", "n4",
+                       "Another fee? This is getting expensive.", "I understand, it's a one-time application fee only.", "n4")},
+            "n4": {"bot": "All done! You'll receive your official acceptance letter by email within a week.",
+                   "options": _opts(
+                       "Thank you so much, I'm really excited to start!", "We're excited to have you, congratulations!", None,
+                       "Okay, thanks.", "You're welcome.", None,
+                       "Finally, thanks.", "Welcome aboard.", None)},
+        },
+    },
+    "diploma_recognition": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, how can I assist you today?",
+                   "options": _opts(
+                       "Hi, I'd like to get my foreign engineering diploma recognized here.", "Of course, let's go through the required documents.", "n2",
+                       "I need my diploma from abroad approved somehow.", "I can help with that, what degree and country is it from?", "n2",
+                       "I need my diploma to count here, what's the process?", "Let's start with what degree and from which country.", "n2")},
+            "n2": {"bot": "You'll need the original diploma, an official transcript, and a certified translation. Do you have all of these?",
+                   "options": _opts(
+                       "Yes, I have all three documents with me, certified and translated.", "Excellent, that will make this much faster.", "n3",
+                       "I have the diploma and transcript, but not the certified translation yet.", "That's alright, you can submit that once it's ready.", "n3",
+                       "I just have the diploma, is that not enough?", "Unfortunately we do need the transcript and translation too, I'm afraid.", "n3")},
+            "n3": {"bot": "The evaluation process usually takes about six to eight weeks. I'll register your application now.",
+                   "options": _opts(
+                       "That's good to know, thank you for explaining the process.", "Of course, you'll get updates by email.", None,
+                       "Okay, six to eight weeks, got it.", "Yes, we'll notify you once it's done.", None,
+                       "That's way too long for something like this.", "I understand, it does involve a thorough review process.", None)},
+        },
+    },
+    "scholarship_application": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, I understand you're interested in applying for the merit scholarship?",
+                   "options": _opts(
+                       "Yes, I have a strong academic record and I'm involved in several extracurricular activities.", "That's great, let's go over the requirements together.", "n2",
+                       "Yes, I'd like to apply, but I'm not sure if I qualify.", "No problem, let's check the requirements together.", "n2",
+                       "Yeah, I need money for school, does it matter what I've done?", "The scholarship does consider academic and extracurricular achievements, yes.", "n2")},
+            "n2": {"bot": "You'll need your transcript, two recommendation letters, and a personal essay. Do you have these ready?",
+                   "options": _opts(
+                       "I have my transcript ready, and I'm working on the letters and essay now.", "That's a great start, when do you expect to finish them?", "n3",
+                       "I have the transcript, but I need help with the essay.", "I can point you toward some writing resources for that.", "n3",
+                       "I don't have any of that prepared yet.", "No problem, the deadline is in a month, so there's still time.", "n3")},
+            "n3": {"bot": "The deadline for all materials is in four weeks. Is there anything else I can help clarify?",
+                   "options": _opts(
+                       "No, that's really helpful, thank you so much for your time.", "You're very welcome, good luck with your application!", None,
+                       "No, I think I understand the process now.", "Great, best of luck.", None,
+                       "No, I guess I'll figure out the rest.", "Feel free to reach out if you need anything.", None)},
+        },
+    },
+    "party_smalltalk": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hey, I don't think we've met — I'm Lucas, a friend of the host.",
+                   "options": _opts(
+                       "Hi Lucas, I'm Elif! I work with Maya, that's how I know her.", "Nice to meet you, Elif! How do you two know each other?", "n2",
+                       "Hi, I'm Elif, nice to meet you.", "Nice to meet you too! How do you know the host?", "n2",
+                       "Hey. Nice party, I guess.", "Yeah, it's pretty good so far. How do you know the host?", "n2")},
+            "n2": {"bot": "That's cool, small world! So, what do you do for work?",
+                   "options": _opts(
+                       "I'm a graphic designer, I actually just started a new job last month.", "That's exciting, congrats on the new job!", "n3",
+                       "I work in marketing, nothing too exciting.", "That sounds interesting regardless, what kind of marketing?", "n3",
+                       "I'd rather not talk about work, honestly.", "Fair enough, so what do you like to do outside of work then?", "n3")},
+            "n3": {"bot": "Nice! Well, I'm going to grab another drink — great talking to you!",
+                   "options": _opts(
+                       "You too, enjoy the rest of the party!", "Thanks, you too!", None,
+                       "Okay, see you around.", "See you!", None,
+                       "Sure, whatever.", "Alright, bye.", None)},
+        },
+    },
+    "catching_up_old_friend": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Wait, is that you?! Oh my gosh, it's been years! How have you been?",
+                   "options": _opts(
+                       "I can't believe it's you! I've been great, just got a new job actually. How about you?", "That's amazing, congrats! I've been good too, just busy with life.", "n2",
+                       "Oh wow, hi! I've been okay, just keeping busy. You?", "Same here, just the usual busy life. Good to see you though!", "n2",
+                       "Oh. Hey. It has been a while.", "Yeah, it really has. How's everything going?", "n2")},
+            "n2": {"bot": "We should really catch up properly — are you free for coffee sometime this week?",
+                   "options": _opts(
+                       "Absolutely, I'd love that! How about Thursday afternoon?", "Thursday works perfectly for me.", "n3",
+                       "I think so, let me check my schedule and text you.", "Sounds good, I'll wait to hear from you.", "n3",
+                       "Maybe, I'm pretty busy these days.", "No worries, whenever you have time works.", "n3")},
+            "n3": {"bot": "Great, I'll text you to confirm the details. It was so good running into you!",
+                   "options": _opts(
+                       "You too! I'm really happy we ran into each other.", "Me too, talk soon!", None,
+                       "Yeah, good seeing you.", "Likewise, take care!", None,
+                       "Yeah, sure, bye.", "Bye then.", None)},
+        },
+    },
+    "weekend_plans": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hey, any plans for the weekend? A few of us are thinking of going hiking Saturday.",
+                   "options": _opts(
+                       "That sounds fun, count me in! What time are you thinking?", "Great, probably around 9 AM, we'll meet at the trailhead.", "n2",
+                       "Maybe, I'm not sure yet, what trail are you doing?", "We're thinking the lake trail, it's a nice moderate hike.", "n2",
+                       "I don't really like hiking, to be honest.", "No worries, we could also just grab lunch another time.", "n2")},
+            "n2": {"bot": "Sounds good. Do you want to carpool, or meet us there?",
+                   "options": _opts(
+                       "I can carpool, that'd be easier for me.", "Perfect, I'll pick you up around 8:30 then.", "n3",
+                       "I'll probably just meet you there, if that's okay.", "That works fine too.", "n3",
+                       "I don't know yet, I'll figure it out later.", "No problem, just let us know closer to the day.", "n3")},
+            "n3": {"bot": "Great, see you Saturday then! Should be a fun day.",
+                   "options": _opts(
+                       "Can't wait, see you then!", "See you Saturday!", None,
+                       "Okay, see you then.", "Sounds good.", None,
+                       "Sure, whatever.", "Alright, see you.", None)},
+        },
+    },
+    "invitation_response": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hey, I'm having a small dinner party next Friday — would you like to come?",
+                   "options": _opts(
+                       "I'd love to! Is there anything I can bring?", "That's so sweet, maybe just a dessert if you want.", "n2",
+                       "That sounds nice, what time should I come?", "Around 7 PM would be great.", "n2",
+                       "I'm not sure, I might be busy that day.", "No worries, let me know once you check your schedule.", "n2")},
+            "n2": {"bot": "Great, I'll see you at 7 then. Is there anything you can't eat, by the way?",
+                   "options": _opts(
+                       "Just a heads up, I don't eat red meat, but everything else is fine.", "Good to know, I'll plan the menu around that.", "n3",
+                       "No, I eat pretty much everything.", "Perfect, that makes planning easier.", "n3",
+                       "Why does that matter, just cook whatever.", "I just want to make sure everyone enjoys the food.", "n3")},
+            "n3": {"bot": "Perfect, looking forward to seeing you Friday!",
+                   "options": _opts(
+                       "Me too, thank you so much for inviting me!", "Of course, see you then!", None,
+                       "Yeah, see you then.", "See you!", None,
+                       "Sure, bye.", "Bye.", None)},
+        },
+    },
+    "first_date": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi! It's so nice to finally meet you in person — you look great!",
+                   "options": _opts(
+                       "Thank you, you too! I'm a little nervous but excited to be here.", "That's totally understandable, I'm a bit nervous too, honestly.", "n2",
+                       "Thanks, nice to meet you too.", "Likewise, shall we grab a table?", "n2",
+                       "Yeah, hi. Can we just sit down?", "Sure, right this way.", "n2")},
+            "n2": {"bot": "So, tell me a bit about yourself — what do you like to do for fun?",
+                   "options": _opts(
+                       "I love painting and hiking on weekends, it really helps me unwind. What about you?", "That sounds lovely, I actually enjoy hiking too!", "n3",
+                       "Not much really, just normal stuff like watching shows.", "That's relatable, any shows you're into lately?", "n3",
+                       "I don't know, I don't really do much.", "That's alright, we can just enjoy dinner then.", "n3")},
+            "n3": {"bot": "This has been really nice. Would you like to do this again sometime?",
+                   "options": _opts(
+                       "I'd really like that, yes. This was a lovely evening.", "I'm so glad, I had a great time too!", None,
+                       "Sure, maybe, let's see.", "Sounds good either way.", None,
+                       "I don't know, maybe.", "No worries, it was nice meeting you regardless.", None)},
+        },
+    },
+    "local_event_invite": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hey, there's a street food festival downtown this Saturday — want to check it out with us?",
+                   "options": _opts(
+                       "That sounds amazing, I love food festivals! What time are you all going?", "We're planning to head over around noon.", "n2",
+                       "Maybe, I haven't heard of it, is it worth going?", "It's supposed to be really good this year, lots of vendors.", "n2",
+                       "I don't know, those things are usually too crowded.", "It can get busy, but it's usually worth it for the food.", "n2")},
+            "n2": {"bot": "Great, should we meet at the entrance around noon, or do you want to meet somewhere first?",
+                   "options": _opts(
+                       "Let's meet at the entrance at noon, that works for me.", "Perfect, see you there!", "n3",
+                       "Maybe we meet at the train station first and walk over together?", "Good idea, let's do that instead.", "n3",
+                       "I'll just show up whenever, don't wait for me.", "Alright, we'll be near the entrance if you want to find us.", "n3")},
+            "n3": {"bot": "Sounds good, looking forward to it! See you Saturday.",
+                   "options": _opts(
+                       "Can't wait, see you then!", "See you Saturday!", None,
+                       "Okay, see you then.", "Sounds good.", None,
+                       "Sure, bye.", "Bye.", None)},
+        },
+    },
+    "etiquette_question": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hey, quick question — is it normal here to bring a gift when visiting someone's house for dinner?",
+                   "options": _opts(
+                       "That's a great question — yes, it's common to bring something small like wine or dessert.", "Oh good, that's helpful to know, thank you!", "n2",
+                       "I think so, usually something small like flowers or wine.", "Okay, I'll keep that in mind, thanks!", "n2",
+                       "I don't really know, I'm new here too.", "No worries, maybe we can look it up together.", "n2")},
+            "n2": {"bot": "Good to know. Is it rude to be a few minutes late, or should I try to be exactly on time?",
+                   "options": _opts(
+                       "Being five or ten minutes late is usually totally fine and even expected.", "That's reassuring, thanks for explaining!", "n3",
+                       "I think being on time is generally safer, to be honest.", "Makes sense, I'll aim for that then.", "n3",
+                       "I have no idea, just show up whenever feels right.", "Alright, I'll just aim for around the invited time then.", "n3")},
+            "n3": {"bot": "Thanks so much, this really helps me feel more prepared!",
+                   "options": _opts(
+                       "Of course, happy to help! You'll do great.", "Thank you, that means a lot!", None,
+                       "No problem.", "Thanks.", None,
+                       "Sure, whatever helps.", "Okay, thanks anyway.", None)},
+        },
+    },
+    "calling_relative": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello? Oh, it's so nice to hear from you! How have you been?",
+                   "options": _opts(
+                       "Hi Grandma! I've been good, just busy with work. How are you doing?", "Oh, I'm doing fine, just the usual aches, but I'm managing.", "n2",
+                       "Hi, I've been okay. How about you?", "I'm alright, just taking it day by day.", "n2",
+                       "Hey, fine I guess. Listen, I can't talk long.", "Oh, okay, well, I'm doing alright.", "n2")},
+            "n2": {"bot": "I've missed you — when are you coming to visit again?",
+                   "options": _opts(
+                       "I'm actually planning to visit next month, I can't wait to see you!", "Oh, that makes me so happy to hear!", "n3",
+                       "I'm not sure yet, but I'll try to come soon.", "I understand, just don't wait too long, dear.", "n3",
+                       "I don't know, I've been really busy lately.", "I understand, work keeps everyone busy these days.", "n3")},
+            "n3": {"bot": "Well, take care of yourself, and call me again soon, okay?",
+                   "options": _opts(
+                       "I will, I promise. I love you, take care!", "I love you too, dear. Bye for now.", None,
+                       "Okay, I will. Bye for now.", "Bye now, take care.", None,
+                       "Yeah, sure, bye.", "Alright, bye.", None)},
+        },
+    },
+    "talking_about_childs_school": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "How was school today? Anything interesting happen?",
+                   "options": _opts(
+                       "It was good! We had a science experiment and I got picked to help the teacher.", "Wow, that sounds exciting! What was the experiment about?", "n2",
+                       "It was okay, nothing too special happened.", "That's fine, any homework for tonight?", "n2",
+                       "I don't want to talk about it.", "That's alright, is everything okay though?", "n2")},
+            "n2": {"bot": "That's wonderful! Do you have any homework to do tonight?",
+                   "options": _opts(
+                       "Yes, just a bit of math, I'll start it after dinner.", "Sounds like a good plan, let me know if you need help.", "n3",
+                       "A little, I think, I'll check my bag.", "Okay, let me know if you need any help with it.", "n3",
+                       "I don't want to do homework today.", "I understand it's tiring, but let's at least look at it together after dinner.", "n3")},
+            "n3": {"bot": "Alright, go wash up and we'll have dinner soon.",
+                   "options": _opts(
+                       "Okay, thanks Mom/Dad!", "Of course, sweetheart.", None,
+                       "Okay.", "Alright.", None,
+                       "Fine.", "Okay then.", None)},
+        },
+    },
+    "family_meeting_planning": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "So, we need to figure out Grandpa's birthday celebration — any ideas?",
+                   "options": _opts(
+                       "I was thinking we could do a family dinner at his favorite restaurant, with a small cake after.", "That sounds lovely, I think he'd really enjoy that.", "n2",
+                       "Maybe just a small get-together at someone's house?", "That could work too, whose place did you have in mind?", "n2",
+                       "I don't know, you all figure it out, I'm busy.", "I understand, we'll try to plan around your schedule too.", "n2")},
+            "n2": {"bot": "Good idea. Who's going to handle inviting everyone and booking the restaurant?",
+                   "options": _opts(
+                       "I can call the restaurant and send out a group message to everyone.", "That would be a huge help, thank you.", "n3",
+                       "I can help with part of it, maybe the group message.", "That's great, I'll handle the restaurant booking then.", "n3",
+                       "I really don't have time to organize any of that.", "That's okay, we'll figure out who can take it on.", "n3")},
+            "n3": {"bot": "Great, let's aim for Saturday evening then. I'll confirm with everyone else.",
+                   "options": _opts(
+                       "Sounds perfect, thank you for helping plan this!", "Of course, it'll be a lovely celebration.", None,
+                       "Okay, sounds good.", "Alright, I'll keep you posted.", None,
+                       "Fine, let me know when it's finalized.", "Will do.", None)},
+        },
+    },
+    "dentist": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, come on in and have a seat. What brings you in today?",
+                   "options": _opts(
+                       "Hi, I've had a sharp pain in my lower right molar for about a week now.", "Let's take a look at that right away.", "n2",
+                       "My tooth has been hurting a bit, not sure why.", "Okay, can you point to where it hurts?", "n2",
+                       "My tooth hurts, just fix it.", "Of course, let's first see what's going on.", "n2")},
+            "n2": {"bot": "I see some decay there. We'll need to do a filling. Would you like local anesthesia for comfort?",
+                   "options": _opts(
+                       "Yes, please, I'd prefer to be numb for this.", "Of course, I'll apply that now.", "n3",
+                       "Is it really necessary? I don't love needles.", "It does make the procedure much more comfortable, but it's your choice.", "n3",
+                       "Just do whatever is fastest.", "I'd recommend the anesthesia for your comfort, if that's alright.", "n3")},
+            "n3": {"bot": "Alright, the filling is done. You might feel some sensitivity for a day or two. Any questions?",
+                   "options": _opts(
+                       "Just one — should I avoid any foods for a while?", "I'd avoid very hot or cold foods for the next day.", None,
+                       "No, I think that's all, thank you.", "Great, take care of that tooth!", None,
+                       "No, finally, that took a while.", "All done now, you're free to go.", None)},
+        },
+    },
+    "describing_symptoms": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Good morning, what seems to be the problem today?",
+                   "options": _opts(
+                       "Good morning, I've had a fever and a sore throat for the past three days.", "I see, any other symptoms like coughing or body aches?", "n2",
+                       "I haven't been feeling well, just tired and achy.", "Okay, do you have a fever or any other specific symptoms?", "n2",
+                       "I feel sick, just give me some medicine.", "Let's figure out what's going on first, can you describe your symptoms?", "n2")},
+            "n2": {"bot": "Any coughing, body aches, or trouble breathing?",
+                   "options": _opts(
+                       "A mild cough and some body aches, but no trouble breathing.", "That sounds like it could be a viral infection, let's check your temperature.", "n3",
+                       "A little bit of a cough, I think.", "Okay, let's take your temperature and listen to your chest.", "n3",
+                       "I don't know, I just feel bad overall.", "That's alright, let's run a quick check to see what's going on.", "n3")},
+            "n3": {"bot": "Your temperature is slightly elevated. I'll prescribe some rest, fluids, and medication for the fever.",
+                   "options": _opts(
+                       "Thank you, how long should I expect to feel this way?", "Most likely three to five days with rest.", None,
+                       "Okay, thank you for checking.", "Of course, feel better soon.", None,
+                       "Fine, I hope this works.", "It should help, just rest and drink plenty of fluids.", None)},
+        },
+    },
+    "emergency_call": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Emergency services, what's your emergency?",
+                   "options": _opts(
+                       "My neighbor just collapsed and isn't responding, we need an ambulance right away.", "I'm sending an ambulance now, can you give me the address?", "n2",
+                       "Someone is hurt, I need help.", "Okay, I'm here to help, what's the address?", "n2",
+                       "I don't know, just send someone fast!", "I will, but I need your address first to send help.", "n2")},
+            "n2": {"bot": "What's the address, and is the person breathing?",
+                   "options": _opts(
+                       "We're at 18 Pine Street, and yes, he's breathing but not responding.", "Good, help is on the way, stay with him and keep him comfortable.", "n3",
+                       "18 Pine Street. I think he's breathing, I'm not totally sure.", "Try to check gently, and stay on the line with me.", "n3",
+                       "I don't know the exact address, somewhere on Pine Street.", "Okay, can you check a nearby building number for me?", "n3")},
+            "n3": {"bot": "Help is on the way, arriving in about five minutes. Stay on the line with me until they arrive.",
+                   "options": _opts(
+                       "Okay, thank you, I'll stay on the line.", "You're doing great, help is almost there.", None,
+                       "Okay, I'll wait.", "Stay calm, they're close.", None,
+                       "Just hurry, please!", "They're almost there, stay with me.", None)},
+        },
+    },
+    "hospital_reception": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, welcome to City Hospital. How can I help you?",
+                   "options": _opts(
+                       "Hi, I have an appointment with Dr. Aydın at 2 PM.", "Great, let me check you in, can I see some ID?", "n2",
+                       "I'm here for an appointment, not sure of the exact time.", "No problem, what's your name and I'll look it up?", "n2",
+                       "I need to see a doctor, where do I go?", "Do you have an appointment, or is this a walk-in?", "n2")},
+            "n2": {"bot": "Here's your ID back. Please take a seat in the waiting area, you'll be called shortly.",
+                   "options": _opts(
+                       "Thank you, do you know roughly how long the wait will be?", "It should be about 15 to 20 minutes.", "n3",
+                       "Okay, thank you.", "You're welcome, take a seat over there.", "n3",
+                       "Fine, I hope it's not too long.", "It shouldn't be too long, thank you for your patience.", "n3")},
+            "n3": {"bot": "The nurse will call your name when it's time. Is there anything else you need?",
+                   "options": _opts(
+                       "No, that's all, thank you for your help.", "Of course, take care.", None,
+                       "No, that's it.", "Alright, have a seat.", None,
+                       "No. I'll just wait, I guess.", "We'll call you shortly.", None)},
+        },
+    },
+    "insurance_company": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, thank you for calling HealthFirst Insurance. How can I help?",
+                   "options": _opts(
+                       "Hi, I had a doctor's visit last week and I'd like to check if it's covered under my plan.", "Sure, can I get your policy number to look into that?", "n2",
+                       "I need to know if something is covered by my insurance.", "Of course, what's your policy number?", "n2",
+                       "Why wasn't my visit covered? This is frustrating.", "I understand the frustration, let's look into it — could I get your policy number?", "n2")},
+            "n2": {"bot": "Thank you. I see the visit here — it looks like it's covered at 80%, with a 20 dollar copay.",
+                   "options": _opts(
+                       "That's great to hear, thank you for checking.", "You're welcome, is there anything else I can help with?", "n3",
+                       "Okay, so I just owe the 20 dollar copay then?", "Exactly, that's all that's outstanding.", "n3",
+                       "That doesn't match what I was charged, something's wrong.", "Let me double check the billing details for you then.", "n3")},
+            "n3": {"bot": "Is there anything else I can help you with today?",
+                   "options": _opts(
+                       "No, that's everything, thank you so much!", "You're welcome, have a great day!", None,
+                       "No, that's all.", "Take care.", None,
+                       "No, just fix the billing issue please.", "We'll sort that out for you.", None)},
+        },
+    },
+    "vet_appointment": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, what seems to be going on with your dog today?",
+                   "options": _opts(
+                       "Hi, he's been limping on his back leg since yesterday and seems uncomfortable.", "Let's take a look at that leg right away.", "n2",
+                       "He's been acting a bit off, maybe limping a little.", "Okay, can you show me which leg?", "n2",
+                       "I don't know, he's just acting weird.", "No problem, let's check him over to see what's going on.", "n2")},
+            "n2": {"bot": "I don't feel anything broken, likely just a sprain. I'd recommend rest and a mild anti-inflammatory.",
+                   "options": _opts(
+                       "That's a relief, how long should he rest for?", "About a week of limited activity should help him heal.", "n3",
+                       "Okay, how do I give him the medication?", "I'll show you the right dosage before you leave.", "n3",
+                       "Are you sure it's not something worse?", "Based on the exam, I'm confident, but we can do an X-ray if you'd like peace of mind.", "n3")},
+            "n3": {"bot": "I'll write up the instructions for you. Any other concerns about him today?",
+                   "options": _opts(
+                       "No, that covers it, thank you so much for taking care of him.", "Of course, he should be back to normal soon.", None,
+                       "No, I think that's everything.", "Great, take care of him.", None,
+                       "No, just make sure he gets better.", "He should heal up well with some rest.", None)},
+        },
+    },
+    "pet_registration": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, how can I help you today?",
+                   "options": _opts(
+                       "Hi, I just got a new puppy and need to register him with the city.", "Congratulations! Let's get that set up for you.", "n2",
+                       "I need to register my pet, not sure what's needed.", "No problem, is this a dog or a cat?", "n2",
+                       "I need to register an animal, what do I do?", "Sure, what kind of pet do you have?", "n2")},
+            "n2": {"bot": "Great, I'll need proof of vaccination and a microchip number if he has one. Do you have those?",
+                   "options": _opts(
+                       "Yes, here's his vaccination record and microchip info.", "Perfect, everything checks out.", "n3",
+                       "I have the vaccination record, but he's not microchipped yet.", "That's alright, we recommend getting that done soon though.", "n3",
+                       "I don't have any paperwork with me.", "No problem, you can bring it by within the next two weeks.", "n3")},
+            "n3": {"bot": "All set, here's his registration tag. There's a small annual renewal fee each year.",
+                   "options": _opts(
+                       "Great, thank you so much for your help!", "You're welcome, enjoy your new puppy!", None,
+                       "Okay, thanks.", "Take care.", None,
+                       "Fine, another fee, great.", "It's a small yearly cost, thanks for understanding.", None)},
+        },
+    },
+    "credit_card_issue": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, thank you for calling customer support. How can I help you today?",
+                   "options": _opts(
+                       "Hi, I noticed a charge on my credit card that I don't recognize.", "I'm sorry to hear that, let's look into it right away.", "n2",
+                       "There's a weird charge on my card, can you check it?", "Of course, can you tell me the date and amount?", "n2",
+                       "Someone's stealing my money, fix this now!", "I understand your concern, let's investigate this charge immediately.", "n2")},
+            "n2": {"bot": "Can you tell me the date and amount of the charge in question?",
+                   "options": _opts(
+                       "It was on the 14th, for 85 dollars, from a store I've never heard of.", "Thank you, I'll flag that as suspicious and start a dispute.", "n3",
+                       "I think it was last week, around 80 dollars maybe.", "That's alright, I'll look at recent transactions around that time.", "n3",
+                       "I don't remember exactly, just find it.", "No problem, I'll check your recent transaction history.", "n3")},
+            "n3": {"bot": "I found it and I've opened a dispute. We'll also cancel this card and send you a new one for safety.",
+                   "options": _opts(
+                       "Thank you so much, how long until the new card arrives?", "It usually takes five to seven business days.", "n4",
+                       "Okay, that sounds reasonable, thank you.", "You're welcome, we'll keep you updated.", "n4",
+                       "Finally, this should have been caught sooner.", "I understand the frustration, we'll make sure this is resolved quickly.", "n4")},
+            "n4": {"bot": "Is there anything else I can help you with today?",
+                   "options": _opts(
+                       "No, that's everything, thank you for your help.", "You're welcome, have a great day!", None,
+                       "No, that's all.", "Take care.", None,
+                       "No, just get this sorted out.", "We're on it.", None)},
+        },
+    },
+    "passport_visa_application": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, how can I help you today?",
+                   "options": _opts(
+                       "Hi, I'd like to apply for a tourist visa to visit Italy next month.", "Great, let's go over the required documents.", "n2",
+                       "I need a visa, not sure what I need for it.", "No problem, which country are you applying for, and for what purpose?", "n2",
+                       "I need a visa fast, what do I need to do?", "Let's start with the destination country and purpose of travel.", "n2")},
+            "n2": {"bot": "You'll need your passport, a passport photo, proof of accommodation, and travel insurance. Do you have these?",
+                   "options": _opts(
+                       "Yes, I have all of those ready with me today.", "Perfect, that makes the process much quicker.", "n3",
+                       "I have most of it, but I still need travel insurance.", "That's fine, you can submit that once you have it.", "n3",
+                       "I just have my passport, nothing else.", "You'll need the other documents too before we can proceed, I'm afraid.", "n3")},
+            "n3": {"bot": "Great, there's also a visa processing fee of 60 dollars. Processing usually takes about two weeks.",
+                   "options": _opts(
+                       "That's fine, I'll pay the fee now, thank you for explaining.", "Of course, here's the payment terminal.", "n4",
+                       "Okay, two weeks, I'll keep that in mind.", "Yes, we'll notify you once it's ready.", "n4",
+                       "Two weeks? I'm leaving sooner than that.", "I understand, there is an expedited option for an extra fee.", "n4")},
+            "n4": {"bot": "All set, your application has been submitted. You'll be notified by email once it's processed.",
+                   "options": _opts(
+                       "Thank you so much for your help with this!", "You're very welcome, good luck with your trip!", None,
+                       "Okay, thank you.", "You're welcome.", None,
+                       "Fine, I hope it goes through in time.", "We'll do our best to process it quickly.", None)},
+        },
+    },
+    "police_statement": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, I understand you'd like to report something. What happened?",
+                   "options": _opts(
+                       "Hi, my bike was stolen from outside my apartment building last night.", "I'm sorry to hear that, let's get the details for a report.", "n2",
+                       "My bike got stolen, I'm not sure how it happened.", "Okay, let's go through what you remember.", "n2",
+                       "Someone stole my bike, you need to find it now.", "I understand you're upset, let's start with the details so we can look into it.", "n2")},
+            "n2": {"bot": "Can you describe the bike and roughly what time you noticed it was missing?",
+                   "options": _opts(
+                       "It's a blue mountain bike, and I noticed it missing around 8 this morning.", "Thank you, that's helpful. I'll note that down.", "n3",
+                       "It's blue, I think, and I noticed it was gone this morning sometime.", "That's alright, any other details you remember would help too.", "n3",
+                       "I don't remember the details, I just want it back.", "I understand, any detail at all, even the color, would help us.", "n3")},
+            "n3": {"bot": "I've filed the report. Here's your case number for reference. We'll contact you with any updates.",
+                   "options": _opts(
+                       "Thank you for your help, I appreciate you looking into it.", "Of course, we'll do what we can.", None,
+                       "Okay, thank you.", "You're welcome.", None,
+                       "I hope you actually find it this time.", "We'll do our best to follow up on this.", None)},
+        },
+    },
+    "tax_office": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, welcome to the tax office. How can I help you today?",
+                   "options": _opts(
+                       "Hi, I need to get a tax identification number set up since I just moved here.", "Sure, let's get that processed for you.", "n2",
+                       "I need some kind of tax number, not totally sure what it's called.", "That would be a tax identification number, let's set that up.", "n2",
+                       "I need to deal with some tax stuff, where do I start?", "Let's figure out exactly what you need — are you newly residing here?", "n2")},
+            "n2": {"bot": "I'll need your passport or residence permit to process this. Do you have it with you?",
+                   "options": _opts(
+                       "Yes, here's my passport and residence permit.", "Perfect, I'll process your application now.", "n3",
+                       "I have my passport, but my residence permit is still being processed.", "That's alright, the passport should be enough for now.", "n3",
+                       "I don't have anything with me right now.", "I'm afraid we do need some form of ID to proceed.", "n3")},
+            "n3": {"bot": "All done — here's your tax identification number. You'll need this for banking and employment too.",
+                   "options": _opts(
+                       "Thank you so much, this is really helpful.", "You're welcome, good luck settling in!", None,
+                       "Okay, thank you.", "You're welcome.", None,
+                       "Finally, that took a while.", "Glad it's sorted now.", None)},
+        },
+    },
+    "phone_carrier_call": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, thank you for calling MobileConnect. How can I help you today?",
+                   "options": _opts(
+                       "Hi, I'd like to upgrade my data plan, I keep running out of data each month.", "Sure, let's look at some plans with more data for you.", "n2",
+                       "My data runs out too fast, can you help with that?", "Of course, let's find a plan that suits your usage better.", "n2",
+                       "Your plans are terrible, I always run out of data.", "I'm sorry to hear that, let's find a better plan for your needs.", "n2")},
+            "n2": {"bot": "We have a plan with double the data for just 5 dollars more a month. Would that work?",
+                   "options": _opts(
+                       "That sounds perfect, let's switch to that plan.", "Great, I'll apply that change right away.", "n3",
+                       "Is there anything even bigger, just in case?", "There's an unlimited plan too, for 15 dollars more.", "n3",
+                       "5 dollars more? Everything always costs more.", "I understand, this plan should really help avoid the extra charges though.", "n3")},
+            "n3": {"bot": "Great, your new plan will take effect starting next billing cycle. Anything else I can help with?",
+                   "options": _opts(
+                       "No, that's everything, thank you so much!", "You're welcome, have a great day!", None,
+                       "No, that's all, thanks.", "Take care.", None,
+                       "No, just make sure it works this time.", "It will, don't worry.", None)},
+        },
+    },
+    "faulty_product_complaint": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, thanks for reaching out. What seems to be the issue?",
+                   "options": _opts(
+                       "Hi, the blender I bought last week stopped working after only a few uses.", "I'm sorry to hear that, let's get this sorted out for you.", "n2",
+                       "The blender I bought isn't working right.", "I understand, can you tell me more about what's happening?", "n2",
+                       "This blender is garbage, it broke already.", "I'm sorry about that, let's see what we can do to fix this.", "n2")},
+            "n2": {"bot": "I understand. Would you prefer a replacement, or a full refund?",
+                   "options": _opts(
+                       "I'd prefer a replacement, since I still need a working blender.", "No problem, I'll arrange that right away.", "n3",
+                       "I think a refund would be simpler for me.", "Understood, I'll process a refund for you.", "n3",
+                       "I don't know, just do whatever fixes this.", "I'll go ahead and arrange a replacement, that should be the fastest option.", "n3")},
+            "n3": {"bot": "Great, I'll need your order number to process this. Do you have it handy?",
+                   "options": _opts(
+                       "Yes, it's order number 77215.", "Thank you, I've processed that now.", None,
+                       "I'll have to look for it, one moment.", "Take your time, I'll wait.", None,
+                       "I don't have it, can't you just look it up?", "I can try with your name and email instead.", None)},
+        },
+    },
+    "app_install_help": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, thanks for calling tech support. What can I help you with today?",
+                   "options": _opts(
+                       "Hi, I'm trying to install the banking app but it keeps failing halfway through.", "Let's troubleshoot that together, what device are you using?", "n2",
+                       "I can't get an app to install properly.", "No problem, which app is it and what device are you using?", "n2",
+                       "This app won't install, your software is broken.", "I'm sorry about the trouble, let's see what's going on — which device are you using?", "n2")},
+            "n2": {"bot": "Could you try restarting your phone and then attempting the install again?",
+                   "options": _opts(
+                       "Sure, let me try that now... okay, I restarted it.", "Great, go ahead and try installing again.", "n3",
+                       "I already tried that, it still doesn't work.", "Okay, let's check your storage space then.", "n3",
+                       "I'm not doing that again, I already tried it.", "Understood, let's try checking your available storage instead.", "n3")},
+            "n3": {"bot": "Let's also check if you have enough free storage space — can you check your settings?",
+                   "options": _opts(
+                       "Sure, I have about 2 GB free, should be enough I think.", "That should be plenty, let's try the install once more.", "n4",
+                       "I'm not sure how to check that, can you walk me through it?", "Of course, go to settings, then storage, and it'll show you.", "n4",
+                       "I don't know and I don't want to check.", "No problem, let's just try reinstalling it directly then.", "n4")},
+            "n4": {"bot": "Great, try the install one more time now and let me know if it goes through.",
+                   "options": _opts(
+                       "It worked this time, thank you so much for your help!", "Wonderful, glad we got that sorted!", None,
+                       "Okay, it seems to be working now.", "Great, let me know if anything else comes up.", None,
+                       "It's still not working, this is frustrating.", "Let's try one more thing — I can transfer you to a specialist.", None)},
+        },
+    },
+    "trainer_program": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, welcome in! What are your main fitness goals right now?",
+                   "options": _opts(
+                       "Hi, I'd like to build some strength and improve my overall endurance.", "Great goals, let's build a program around both.", "n2",
+                       "I just want to get in better shape generally.", "That's a good starting point, any specific areas you want to focus on?", "n2",
+                       "I don't know, just make me fit somehow.", "No problem, let's start with a balanced general program then.", "n2")},
+            "n2": {"bot": "How many days a week can you realistically commit to training?",
+                   "options": _opts(
+                       "I think three days a week would be realistic for my schedule.", "Perfect, that's a great amount to see solid progress.", "n3",
+                       "Maybe two days, I'm pretty busy.", "That's still workable, we'll focus on efficient full-body sessions.", "n3",
+                       "I don't know, whenever I feel like it I guess.", "I'd really recommend at least two set days to see real progress.", "n3")},
+            "n3": {"bot": "Great, I'll put together a plan for you. Should we start today, or would next week work better?",
+                   "options": _opts(
+                       "Let's start today if possible, I'm motivated right now!", "Love the energy, let's get started.", None,
+                       "Next week would work better for me.", "Sounds good, I'll have your plan ready by then.", None,
+                       "I'm not sure, maybe later.", "No rush, just let me know whenever you're ready.", None)},
+        },
+    },
+    "concert_smalltalk": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hey, great spot for the show, right? Have you seen this band before?",
+                   "options": _opts(
+                       "This is actually my first time seeing them live, I'm really excited! Have you?", "That's awesome, this is actually my third time, they're amazing live!", "n2",
+                       "No, not before, but I like their music.", "They're even better live, you're in for a treat!", "n2",
+                       "Not really my thing, my friend dragged me here.", "Fair enough, hopefully the show wins you over!", "n2")},
+            "n2": {"bot": "Yeah, their live energy is unreal. Which album is your favorite?",
+                   "options": _opts(
+                       "I really love their last album, the lyrics are so honest and raw.", "Same here, that album is incredible front to back.", "n3",
+                       "I mostly just know their popular songs, to be honest.", "That's a good start, their deeper cuts are worth checking out too.", "n3",
+                       "I don't really know their albums.", "No worries, tonight's a great way to get into them.", "n3")},
+            "n3": {"bot": "Looks like the show's about to start — enjoy the concert!",
+                   "options": _opts(
+                       "You too, enjoy the show!", "Thanks, you too!", None,
+                       "Yeah, you too.", "Enjoy!", None,
+                       "Sure, whatever.", "Have fun.", None)},
+        },
+    },
+    "hobby_class": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, welcome to the pottery class! Have you worked with clay before?",
+                   "options": _opts(
+                       "Hi, this is actually my first time, I'm excited to learn!", "Wonderful, we'll start with the basics then.", "n2",
+                       "A little bit, a long time ago, but I don't remember much.", "No problem, we'll do a quick refresher to get you comfortable again.", "n2",
+                       "No, and I'm not sure I'll be any good at it.", "That's totally okay, everyone starts somewhere, you'll do fine.", "n2")},
+            "n2": {"bot": "Great, let's start with centering the clay on the wheel. Go ahead and give it a try.",
+                   "options": _opts(
+                       "Okay, I'll give it a try — like this?", "That's a great start, just apply a bit more even pressure.", "n3",
+                       "I'm not sure I'm doing this right.", "No worries, let me show you the hand position again.", "n3",
+                       "This is harder than it looks, I don't think I can do this.", "It takes practice, let's try it together step by step.", "n3")},
+            "n3": {"bot": "There you go, much better! How are you feeling about it so far?",
+                   "options": _opts(
+                       "I'm actually really enjoying this, thank you for your patience!", "I'm so glad, you're picking it up quickly!", None,
+                       "It's okay, I think I'm getting the hang of it.", "You are, keep practicing and it'll feel natural.", None,
+                       "I still don't think I'm good at this.", "You're doing better than you think, don't be so hard on yourself.", None)},
+        },
+    },
+    "book_club": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Welcome, glad you could make it! So, what did everyone think of this month's book?",
+                   "options": _opts(
+                       "I really loved it, especially how the author handled the ending — it surprised me.", "I agree, that twist really caught me off guard too!", "n2",
+                       "It was okay, I didn't love it but it was an easy read.", "That's fair, what part didn't work for you?", "n2",
+                       "Honestly, I didn't finish it, it didn't grab me.", "That happens sometimes, what part lost your interest?", "n2")},
+            "n2": {"bot": "That's interesting. What did you think about the main character's choices throughout the story?",
+                   "options": _opts(
+                       "I thought she was really well written, flawed but relatable in a lot of ways.", "Totally agree, her growth felt very genuine.", "n3",
+                       "I didn't connect with her that much, honestly.", "That's valid, some characters just don't click for everyone.", "n3",
+                       "I didn't really pay attention to that part.", "That's okay, maybe the next book will grab you more.", "n3")},
+            "n3": {"bot": "Great discussion, everyone! What should we read for next month?",
+                   "options": _opts(
+                       "I'd love to suggest that mystery novel everyone's been talking about.", "Great suggestion, let's go with that one!", None,
+                       "I don't have a strong preference, whatever works for the group.", "Alright, we'll pick something together then.", None,
+                       "I don't know, you all decide without me.", "No worries, we'll figure it out as a group.", None)},
+        },
+    },
+    "address_registration": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, how can I help you today?",
+                   "options": _opts(
+                       "Hi, I just moved into a new apartment and need to register my new address.", "Sure, let's get that updated in the system.", "n2",
+                       "I need to update my address, I'm not sure what's required.", "No problem, do you have your lease agreement with you?", "n2",
+                       "I need to change my address, what do I do?", "Let's start with your lease agreement, do you have it?", "n2")},
+            "n2": {"bot": "I'll need your lease agreement and your ID card. Do you have both with you?",
+                   "options": _opts(
+                       "Yes, here's my lease and my ID card.", "Perfect, everything looks in order.", "n3",
+                       "I have my ID, but my lease is still being finalized.", "That's alright, you can bring the lease once it's signed.", "n3",
+                       "I just have my ID, nothing else.", "I'm afraid we do need the lease agreement to complete this.", "n3")},
+            "n3": {"bot": "Great, your address has been updated. You'll receive a confirmation letter by mail within two weeks.",
+                   "options": _opts(
+                       "Thank you so much for your help with this.", "You're very welcome, welcome to the neighborhood!", None,
+                       "Okay, thank you.", "You're welcome.", None,
+                       "Two weeks? That's a while, but fine.", "It's just the standard mailing time, thank you for your patience.", None)},
+        },
+    },
+    "work_permit": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, I understand you'd like to apply for a work permit. Is that right?",
+                   "options": _opts(
+                       "Yes, that's right. I have a job offer from a local company and need the permit to start.", "Great, let's go through what's needed for that.", "n2",
+                       "Yes, I need a permit to work here, not sure what's required.", "No problem, do you already have a job offer?", "n2",
+                       "I need to work here, just tell me what to do.", "Let's start with whether you already have a job offer lined up.", "n2")},
+            "n2": {"bot": "I'll need the job offer letter, your passport, and proof of qualifications. Do you have all of these?",
+                   "options": _opts(
+                       "Yes, I have all three documents ready with me today.", "Excellent, that will speed things up considerably.", "n3",
+                       "I have the offer letter and passport, but not my qualification documents yet.", "That's alright, you can add those once you receive them.", "n3",
+                       "I just have my passport right now.", "You'll need the other documents too before we can process this, I'm afraid.", "n3")},
+            "n3": {"bot": "Great, processing usually takes about four weeks. I'll register your application now.",
+                   "options": _opts(
+                       "Thank you, that's good to know, I appreciate your help.", "Of course, you'll get updates by email.", None,
+                       "Okay, four weeks, got it.", "Yes, we'll notify you once it's ready.", None,
+                       "Four weeks is a long time when I need to start working.", "I understand, we do try to process these as quickly as possible.", None)},
+        },
+    },
+    "drivers_license_conversion": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, how can I help you today?",
+                   "options": _opts(
+                       "Hi, I'd like to convert my foreign driver's license to a local one.", "Sure, let's see what's needed for that conversion.", "n2",
+                       "I need to get my foreign license turned into a local one.", "No problem, which country issued your original license?", "n2",
+                       "I need a local license, can you just give me one?", "We can convert your existing one — which country is it from?", "n2")},
+            "n2": {"bot": "Good, your country has a license exchange agreement, so you won't need to retake the test. I'll need your current license and a translation.",
+                   "options": _opts(
+                       "Great, here's my license and the certified translation.", "Perfect, everything is in order.", "n3",
+                       "I have my license, but I don't have a translation yet.", "That's alright, you can get that done and come back with it.", "n3",
+                       "Why do I need a translation, can't you just read it?", "Unfortunately it's required for official processing purposes.", "n3")},
+            "n3": {"bot": "Great, there's also a small conversion fee of 30 dollars. Your new license will be ready in about a week.",
+                   "options": _opts(
+                       "That's fine, I'll pay that now, thank you for explaining the process.", "Of course, here's the payment terminal.", None,
+                       "Okay, a week sounds reasonable.", "Great, we'll notify you once it's ready.", None,
+                       "Another fee and another wait, this is frustrating.", "I understand, it is a fairly quick process though compared to the full test.", None)},
+        },
+    },
+    "moving_company": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi, thanks for calling Swift Movers. How can we help you today?",
+                   "options": _opts(
+                       "Hi, I need to move a two-bedroom apartment across town next Saturday.", "Great, let's get some details to give you an accurate quote.", "n2",
+                       "I need to move some furniture, not sure how it all works.", "No problem, can you tell me roughly how much you're moving and when?", "n2",
+                       "I need movers, just tell me the price.", "I can do that, but I'll need a few details first — how much are you moving?", "n2")},
+            "n2": {"bot": "Got it, a two-bedroom move. Do you need packing services as well, or just transport?",
+                   "options": _opts(
+                       "Just transport is fine, I'll handle the packing myself.", "Great, that keeps the cost lower for you.", "n3",
+                       "I might need some help with packing a few fragile items.", "We can send extra packing materials and help with those specifically.", "n3",
+                       "I don't know, whatever is easiest for you.", "I'd suggest just transport to keep things simple and affordable.", "n3")},
+            "n3": {"bot": "Alright, for a two-bedroom move with transport only, it'll be around 300 dollars. Does Saturday at 9 AM work?",
+                   "options": _opts(
+                       "That works perfectly, thank you, see you Saturday at 9.", "Great, we'll see you then!", None,
+                       "That could work, I'll confirm the time with you closer to the date.", "Sounds good, just let us know.", None,
+                       "That seems like a lot for just transport.", "It covers the truck, fuel, and two movers, but I can check if there's a lighter package.", None)},
+        },
+    },
+    "social_security_number": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, how can I help you today?",
+                   "options": _opts(
+                       "Hi, I just started working here and need to apply for a social security number.", "Great, let's get that application started for you.", "n2",
+                       "I need one of those social security numbers, not totally sure how.", "No problem, let's go through what's required.", "n2",
+                       "I need that number thing for work, what do I do?", "That would be a social security number — let's get you set up.", "n2")},
+            "n2": {"bot": "I'll need your passport or residence permit and your employment contract. Do you have those?",
+                   "options": _opts(
+                       "Yes, here's my passport and my employment contract.", "Perfect, I'll process your application now.", "n3",
+                       "I have my passport, but my contract is still being finalized.", "That's alright, the passport should be enough to start the process.", "n3",
+                       "I don't have any of that with me right now.", "I'm afraid we will need at least one of these to proceed.", "n3")},
+            "n3": {"bot": "All done — your number will be mailed to your registered address within ten days.",
+                   "options": _opts(
+                       "Thank you so much, I really appreciate your help.", "You're very welcome, good luck with the new job!", None,
+                       "Okay, thank you.", "You're welcome.", None,
+                       "Ten days? I need it sooner for payroll.", "I understand, but this is the standard processing time, I'm afraid.", None)},
+        },
+    },
+    "buying_a_car": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hi there, welcome to the dealership! Are you looking for something specific today?",
+                   "options": _opts(
+                       "Hi, I'm looking for a reliable, fuel-efficient car for daily commuting.", "Great, I have a few sedans that would be perfect for that.", "n2",
+                       "Just something reliable, I don't know much about cars.", "No problem, let me show you a few solid, easy options.", "n2",
+                       "I don't know, just show me something cheap.", "Sure, let's start with our more budget-friendly models.", "n2")},
+            "n2": {"bot": "This sedan here gets great mileage and has a strong safety rating. It's 18,000 dollars. Want to take it for a test drive?",
+                   "options": _opts(
+                       "Yes, I'd love to test drive it, thank you.", "Great, let me grab the keys for you.", "n3",
+                       "Maybe, is there anything a bit cheaper first?", "There's a slightly older model for 15,000 that's also quite reliable.", "n3",
+                       "18,000 seems like too much.", "I understand, we do have some more affordable options too.", "n3")},
+            "n3": {"bot": "How did the test drive feel? Any thoughts?",
+                   "options": _opts(
+                       "It drove really smoothly, I think I'd like to move forward with this one.", "Wonderful, let's go over the financing options.", "n4",
+                       "It was okay, I want to think about it a bit more.", "Of course, take your time, no pressure at all.", "n4",
+                       "I didn't love it, honestly.", "That's alright, let's look at a different model that might suit you better.", "n4")},
+            "n4": {"bot": "Would you like to discuss financing options, or are you planning to pay in full?",
+                   "options": _opts(
+                       "I'd like to hear about financing options, please.", "Sure, we have plans starting at 5% interest over three years.", None,
+                       "I'll pay in full, actually.", "Great, that simplifies things, let's get the paperwork ready.", None,
+                       "I haven't decided yet, I need more time.", "No rush at all, think it over and come back whenever you're ready.", None)},
+        },
+    },
+    "vehicle_inspection": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, welcome to the inspection center. Here for your annual vehicle inspection?",
+                   "options": _opts(
+                       "Hi, yes, I'm here for the annual inspection on my car.", "Great, please pull into bay 3 and I'll start the checklist.", "n2",
+                       "Yes, I think that's what I need, my registration said it's due.", "That's right, please pull into bay 3 for me.", "n2",
+                       "I don't know, I was just told to come here.", "No problem, this is the annual inspection, please pull into bay 3.", "n2")},
+            "n2": {"bot": "I'll check your brakes, lights, and emissions now. This should take about 20 minutes.",
+                   "options": _opts(
+                       "Sounds good, I'll just wait here, thank you.", "Great, I'll let you know as soon as it's done.", "n3",
+                       "Okay, is there somewhere I can wait?", "Yes, there's a waiting area right over there.", "n3",
+                       "20 minutes? That seems long for a quick check.", "It's a thorough safety check, but we'll be as quick as possible.", "n3")},
+            "n3": {"bot": "Good news — everything passed except one brake light that's out. You'll need to fix that within a week.",
+                   "options": _opts(
+                       "Thank you for letting me know, I'll get that replaced today.", "Great, just bring proof of the fix and you'll be all set.", None,
+                       "Okay, I'll try to get it fixed soon.", "Just make sure it's done within the week.", None,
+                       "That's such a minor thing, does it really matter?", "It does for road safety, but it's a quick and cheap fix.", None)},
+        },
+    },
+    "contesting_traffic_fine": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Hello, how can I help you today?",
+                   "options": _opts(
+                       "Hi, I received a parking fine that I believe was issued in error, and I'd like to contest it.", "Sure, let's look at the details of your case.", "n2",
+                       "I got a fine I don't think is right, can I dispute it?", "Yes, you can, let's go over the details.", "n2",
+                       "This fine is completely wrong, you need to cancel it now.", "I understand your frustration, let's review the details together.", "n2")},
+            "n2": {"bot": "Can you explain why you believe the fine was issued incorrectly?",
+                   "options": _opts(
+                       "I was parked in a valid spot, but the sign indicating restrictions was covered by a tree branch.", "That's a valid point, do you have a photo of that?", "n3",
+                       "I think the meter was broken, so it looked like I hadn't paid.", "Okay, do you have any proof of that, like a receipt or photo?", "n3",
+                       "I don't know, it's just wrong, cancel it.", "I'll need some evidence or explanation to process a dispute, I'm afraid.", "n3")},
+            "n3": {"bot": "Thank you, I'll submit this for review with the evidence you've provided. You'll hear back within two weeks.",
+                   "options": _opts(
+                       "Thank you so much for looking into this.", "Of course, we'll be in touch with a decision soon.", None,
+                       "Okay, I'll wait to hear back then.", "We'll follow up as soon as we can.", None,
+                       "Two weeks is a long time to wait for this.", "I understand, but we do want to review each case carefully.", None)},
+        },
+    },
+    "talking_to_traffic_police": {
+        "start": "n1",
+        "nodes": {
+            "n1": {"bot": "Good afternoon, license and registration, please. Do you know why I pulled you over?",
+                   "options": _opts(
+                       "Good afternoon, here you go. I'm not entirely sure, was I speeding?", "You were going a bit over the limit back there, yes.", "n2",
+                       "Here you go. I'm not sure, honestly.", "You were driving a bit over the speed limit.", "n2",
+                       "I don't know, I wasn't doing anything wrong.", "You were actually going over the speed limit back there.", "n2")},
+            "n2": {"bot": "You were doing 70 in a 50 zone. I'm going to have to issue a citation.",
+                   "options": _opts(
+                       "I understand, I apologize, I didn't realize I was going that fast.", "I appreciate you understanding, here's your citation with payment details.", "n3",
+                       "Okay, I understand, is there anything I need to do next?", "Just follow the instructions on the citation for payment or appeal.", "n3",
+                       "That seems really unfair, I wasn't going that fast.", "The radar confirmed the speed, but you can contest it through the proper channels if you'd like.", "n3")},
+            "n3": {"bot": "Please drive safely for the rest of your trip. Have a good day.",
+                   "options": _opts(
+                       "I will, thank you, officer, have a good day too.", "Take care, drive safe.", None,
+                       "Okay, thank you.", "You're welcome.", None,
+                       "Fine, whatever, bye.", "Drive safely.", None)},
+        },
+    },
 }
 
-assert len(SCENARIO_TREES) == 28
+assert len(SCENARIO_TREES) == 102
 assert all(slug in SCENARIO_META for slug in SCENARIO_TREES)
 
