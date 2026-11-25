@@ -1,24 +1,28 @@
-// src/api/roleplay.ts — "Roleplay/diyalog botu" API istemcisi. exams.ts/
-// dailyChallenge.ts ile aynı desen.
+// src/api/roleplay.ts — "Roleplay/diyalog botu" API istemcisi (25 Kasım
+// 2026'da dallanan diyalog ağacına geçiş — bkz. backend/app/services/
+// roleplay_service.py modül docstring'i). exams.ts/dailyChallenge.ts ile
+// aynı desen.
 import { api } from './client';
 import type {
+  RoleplayCategory,
+  RoleplayChoiceResponse,
   RoleplayFinishResponse,
-  RoleplayMessageResponse,
-  RoleplayScenario,
   RoleplaySessionResponse,
 } from './types';
 
 export const roleplayApi = {
-  listScenarios: async (): Promise<RoleplayScenario[]> => {
-    const res = await api.get<RoleplayScenario[]>('/roleplay/scenarios');
+  listCategories: async (): Promise<RoleplayCategory[]> => {
+    const res = await api.get<RoleplayCategory[]>('/roleplay/categories');
     return res.data;
   },
   startSession: async (scenario_slug: string): Promise<RoleplaySessionResponse> => {
     const res = await api.post<RoleplaySessionResponse>('/roleplay/sessions', { scenario_slug });
     return res.data;
   },
-  sendMessage: async (sessionId: string, content: string): Promise<RoleplayMessageResponse> => {
-    const res = await api.post<RoleplayMessageResponse>(`/roleplay/sessions/${sessionId}/messages`, { content });
+  chooseOption: async (sessionId: string, optionId: string): Promise<RoleplayChoiceResponse> => {
+    const res = await api.post<RoleplayChoiceResponse>(`/roleplay/sessions/${sessionId}/choices`, {
+      option_id: optionId,
+    });
     return res.data;
   },
   finishSession: async (sessionId: string): Promise<RoleplayFinishResponse> => {

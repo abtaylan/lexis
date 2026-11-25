@@ -1,83 +1,107 @@
-// src/app/(app)/roleplay.tsx — "Roleplay/diyalog botu" (24 Eylül 2026,
-// Madde 2 — ikinci seçim) sohbet ekranı. message-thread.tsx'teki AYNI
-// sohbet UI deseni (FlatList inverted, balon stilleri, composer satırı) --
-// mevcut mesajlaşma ekranına hiç dokunulmadı, sadece görsel dili tekrar
-// kullanıldı. İki aşama: senaryo seçimi -> canlı sohbet. Mikrofon/STT YOK.
+// src/app/(app)/roleplay.tsx — "Roleplay/diyalog botu" (ilk sürüm: 24 Eylül
+// 2026; 25 Kasım 2026'da dallanan diyalog ağacına GEÇİŞ — kullanıcı isteği:
+// serbest metin yazmak yerine her adımda sunulan 3 hazır cevaptan birini
+// işaretleyerek konuşma pratiği). Dört aşama: kategori seçimi -> senaryo
+// seçimi -> sabit/dallanan sohbet -> bitiş. Mikrofon/STT YOK.
 import React, { useState } from 'react';
 import {
   ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable,
-  StyleSheet, Text, TextInput, View,
+  ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Flag, Home, MessagesSquare, Send, Sparkles } from 'lucide-react-native';
+import {
+  ArrowLeft, Check, Flag, Home, Minus, MessagesSquare, Sparkles, X,
+  Plane, Utensils, ShoppingBag, GraduationCap, Users, Heart, Stethoscope,
+  Landmark, Headphones, Ticket, FileText, Car, Briefcase,
+} from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { roleplayApi } from '@/api/roleplay';
-import type { RoleplayMessage, RoleplayScenario } from '@/api/types';
+import type { RoleplayCategory, RoleplayOption } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 
+// roleplay_data.py::CATEGORIES içindeki icon alanıyla birebir eşleşir
+// (web/src/app/(app)/roleplay/page.tsx'teki ICONS ile AYNI harita).
+const ICONS: Record<string, typeof Plane> = {
+  plane: Plane,
+  utensils: Utensils,
+  'shopping-bag': ShoppingBag,
+  home: Home,
+  briefcase: Briefcase,
+  'graduation-cap': GraduationCap,
+  users: Users,
+  heart: Heart,
+  stethoscope: Stethoscope,
+  landmark: Landmark,
+  headphones: Headphones,
+  ticket: Ticket,
+  'file-text': FileText,
+  car: Car,
+};
+
 const L: Record<'tr' | 'en', Record<string, string>> = {
   tr: {
     title: 'Diyalog Pratiği',
-    subtitle: 'Bir senaryo seç, hedef dilinde canlı bir sohbete başla.',
+    subtitle: 'Bir kategori seç, sonra bir senaryo seç.',
     error: 'Bir şeyler ters gitti.',
-    placeholder: 'Mesajını yaz…',
     finishBtn: 'Bitir',
-    newSessionBtn: 'Yeni Senaryo',
+    newSessionBtn: 'Başka Senaryo',
     xpEarnedTpl: '+{xp} XP kazandın!',
-    xpNoneMsg: 'Oturum bitti. Daha uzun bir sohbet XP kazandırır.',
-    turnCounterTpl: '{turn}/{max} tur',
+    xpNoneMsg: 'Oturum bitti.',
     home: 'Ana Menü',
   },
   en: {
     title: 'Roleplay Practice',
-    subtitle: 'Pick a scenario and start a live chat in your target language.',
+    subtitle: 'Pick a category, then a scenario.',
     error: 'Something went wrong.',
-    placeholder: 'Type your message…',
     finishBtn: 'Finish',
-    newSessionBtn: 'New Scenario',
+    newSessionBtn: 'Another Scenario',
     xpEarnedTpl: '+{xp} XP earned!',
-    xpNoneMsg: 'Session ended. A longer chat earns XP.',
-    turnCounterTpl: '{turn}/{max} turns',
+    xpNoneMsg: 'Session ended.',
     home: 'Home',
   },
 };
 
-type Stage = 'pick' | 'chat' | 'finished';
+type Stage = 'categories' | 'pick' | 'chat' | 'finished';
+type ChatLine = { who: 'bot' | 'user'; text: string; quality?: 'good' | 'ok' | 'poor' };
 
 export default function RoleplayScreen() {
   const c = useThemeColors();
   const { locale } = useLocale();
   const t = L[locale === 'tr' ? 'tr' : 'en'];
 
-  const { data: scenarios } = useQuery({
-    queryKey: ['roleplay-scenarios'],
-    queryFn: roleplayApi.listScenarios,
+  const { data: categories } = useQuery({
+    queryKey: ['roleplay-categories'],
+    queryFn: roleplayApi.listCategories,
   });
 
-  const [stage, setStage] = useState<Stage>('pick');
+  const [stage, setStage] = useState<Stage>('categories');
+  const [selectedCategory, setSelectedCategory] = useState<RoleplayCategory | null>(null);
   const [error, setError] = useState('');
   const [starting, setStarting] = useState<string | null>(null);
 
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<RoleplayMessage[]>([]);
-  const [turnCount, setTurnCount] = useState(0);
-  const [maxTurns, setMaxTurns] = useState(20);
-  const [draft, setDraft] = useState('');
-  const [sending, setSending] = useState(false);
+  const [lines, setLines] = useState<ChatLine[]>([]);
+  const [options, setOptions] = useState<RoleplayOption[]>([]);
+  const [choosing, setChoosing] = useState<string | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [xpAwarded, setXpAwarded] = useState<number | null>(null);
 
-  const handleStart = async (scenario: RoleplayScenario) => {
-    setStarting(scenario.slug);
+  const handlePickCategory = (cat: RoleplayCategory) => {
+    setSelectedCategory(cat);
+    setStage('pick');
+  };
+
+  const handleStart = async (slug: string) => {
+    setStarting(slug);
     setError('');
     try {
-      const session = await roleplayApi.startSession(scenario.slug);
+      const session = await roleplayApi.startSession(slug);
       setSessionId(session.id);
-      setMessages(session.messages);
-      setTurnCount(session.turn_count);
+      setLines([{ who: 'bot', text: session.bot_line }]);
+      setOptions(session.options);
       setStage('chat');
     } catch {
       setError(t.error);
@@ -86,26 +110,30 @@ export default function RoleplayScreen() {
     }
   };
 
-  const handleSend = async () => {
-    const text = draft.trim();
-    if (!text || !sessionId || sending) return;
-    setSending(true);
+  const handleChoose = async (option: RoleplayOption) => {
+    if (!sessionId || choosing) return;
+    setChoosing(option.id);
     setError('');
-    setMessages((prev) => [...prev, { role: 'user', content: text }]);
-    setDraft('');
+    setOptions([]);
+    setLines((prev) => [...prev, { who: 'user', text: option.text }]);
     try {
-      const res = await roleplayApi.sendMessage(sessionId, text);
-      setMessages((prev) => [...prev, { role: 'assistant', content: res.reply }]);
-      setTurnCount(res.turn_count);
-      setMaxTurns(res.max_turns);
+      const res = await roleplayApi.chooseOption(sessionId, option.id);
+      setLines((prev) => [...prev, { who: 'bot', text: res.reaction, quality: res.quality }]);
+      if (res.status === 'completed') {
+        setXpAwarded(res.xp_awarded);
+        setTimeout(() => setStage('finished'), 700);
+      } else if (res.next_bot_line) {
+        setLines((prev) => [...prev, { who: 'bot', text: res.next_bot_line as string }]);
+        setOptions(res.options || []);
+      }
     } catch {
       setError(t.error);
     } finally {
-      setSending(false);
+      setChoosing(null);
     }
   };
 
-  const handleFinish = async () => {
+  const handleFinishEarly = async () => {
     if (!sessionId || finishing) return;
     setFinishing(true);
     setError('');
@@ -122,33 +150,50 @@ export default function RoleplayScreen() {
 
   const handleNewSession = () => {
     setSessionId(null);
-    setMessages([]);
-    setTurnCount(0);
+    setLines([]);
+    setOptions([]);
     setXpAwarded(null);
-    setStage('pick');
+    setSelectedCategory(null);
+    setStage('categories');
   };
 
-  const reversedMessages = [...messages].reverse();
+  const qualityIcon = (q?: 'good' | 'ok' | 'poor') => {
+    if (q === 'good') return <Check color={c.success} size={14} />;
+    if (q === 'poor') return <X color={c.danger} size={14} />;
+    if (q === 'ok') return <Minus color="#D97706" size={14} />;
+    return null;
+  };
+
+  const headerTitle =
+    stage === 'pick' && selectedCategory
+      ? locale === 'tr'
+        ? selectedCategory.title_tr
+        : selectedCategory.title_en
+      : t.title;
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: c.background }]} edges={['top']}>
-      {/* words.tsx'teki AYNI Android duzeltmesi (bkz. o dosyadaki yorum,
-          24 Eylul 2026, Task #15): Android'de 'padding' davranisi
-          beklendigi gibi calismiyor -- klavye acilinca composer alani
-          klavyenin arkasinda kalip gorunmuyordu. 'height' ile duzeltildi. */}
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <View style={[styles.header, { borderBottomColor: c.border }]}>
-          <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Pressable
+            onPress={() => (stage === 'pick' ? setStage('categories') : router.back())}
+            hitSlop={10}
+          >
             <ArrowLeft color={c.textMuted} size={20} />
           </Pressable>
-          <Text style={{ color: c.text, fontSize: 15, fontWeight: '700', flex: 1 }}>{t.title}</Text>
+          <Text style={{ color: c.text, fontSize: 15, fontWeight: '700', flex: 1 }}>{headerTitle}</Text>
           {stage === 'chat' && (
-            <Pressable onPress={handleFinish} disabled={finishing} hitSlop={10} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              {finishing ? <ActivityIndicator size="small" color={c.textMuted} /> : <Flag color={c.textMuted} size={16} />}
+            <Pressable
+              onPress={handleFinishEarly}
+              disabled={finishing}
+              hitSlop={10}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+            >
+              {finishing ? (
+                <ActivityIndicator size="small" color={c.textMuted} />
+              ) : (
+                <Flag color={c.textMuted} size={16} />
+              )}
               <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '600' }}>{t.finishBtn}</Text>
             </Pressable>
           )}
@@ -157,17 +202,53 @@ export default function RoleplayScreen() {
           </Pressable>
         </View>
 
-        {!!error && <Text style={{ color: c.danger, fontSize: 12, textAlign: 'center', marginTop: spacing.sm }}>{error}</Text>}
+        {!!error && (
+          <Text style={{ color: c.danger, fontSize: 12, textAlign: 'center', marginTop: spacing.sm }}>
+            {error}
+          </Text>
+        )}
 
-        {stage === 'pick' && (
+        {stage === 'categories' && (
+          <FlatList
+            data={categories ?? []}
+            keyExtractor={(item) => item.slug}
+            numColumns={2}
+            contentContainerStyle={{ padding: spacing.md, gap: spacing.sm }}
+            columnWrapperStyle={{ gap: spacing.sm }}
+            ListHeaderComponent={
+              <Text style={{ color: c.textMuted, fontSize: 13, marginBottom: spacing.sm }}>{t.subtitle}</Text>
+            }
+            renderItem={({ item }) => {
+              const Icon = ICONS[item.icon] || MessagesSquare;
+              return (
+                <Pressable
+                  onPress={() => handlePickCategory(item)}
+                  style={[styles.categoryCard, { backgroundColor: c.surface, borderColor: c.border }]}
+                >
+                  <View style={[styles.scenarioIcon, { backgroundColor: c.primarySoft }]}>
+                    <Icon color={c.primary} size={18} />
+                  </View>
+                  <Text style={{ color: c.text, fontSize: 13, fontWeight: '600' }}>
+                    {locale === 'tr' ? item.title_tr : item.title_en}
+                  </Text>
+                  <Text style={{ color: c.textMuted, fontSize: 11 }}>{item.scenarios.length}</Text>
+                </Pressable>
+              );
+            }}
+          />
+        )}
+
+        {stage === 'pick' && selectedCategory && (
           <View style={{ flex: 1, padding: spacing.md, gap: spacing.sm }}>
-            <Text style={{ color: c.textMuted, fontSize: 13 }}>{t.subtitle}</Text>
-            {(scenarios ?? []).map((s) => (
+            {selectedCategory.scenarios.map((s) => (
               <Pressable
                 key={s.slug}
-                onPress={() => handleStart(s)}
+                onPress={() => handleStart(s.slug)}
                 disabled={!!starting}
-                style={[styles.scenarioRow, { backgroundColor: c.surface, borderColor: c.border, opacity: starting ? 0.7 : 1 }]}
+                style={[
+                  styles.scenarioRow,
+                  { backgroundColor: c.surface, borderColor: c.border, opacity: starting ? 0.7 : 1 },
+                ]}
               >
                 <View style={[styles.scenarioIcon, { backgroundColor: c.primarySoft }]}>
                   <MessagesSquare color={c.primary} size={18} />
@@ -183,51 +264,60 @@ export default function RoleplayScreen() {
 
         {stage === 'chat' && (
           <>
-            <Text style={{ color: c.textMuted, fontSize: 11, textAlign: 'center', marginTop: 4 }}>
-              {t.turnCounterTpl.replace('{turn}', String(turnCount)).replace('{max}', String(maxTurns))}
-            </Text>
-            <FlatList
-              data={reversedMessages}
-              keyExtractor={(_, i) => String(i)}
-              inverted
+            <ScrollView
+              style={styles.flex}
               contentContainerStyle={{ padding: spacing.md, gap: 6 }}
-              renderItem={({ item }) => {
-                const mine = item.role === 'user';
-                return (
-                  <View style={{ flexDirection: 'row', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-                    <View
-                      style={[
-                        styles.bubble,
-                        mine
-                          ? { backgroundColor: c.primary, borderBottomRightRadius: 4 }
-                          : { backgroundColor: c.surface, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: c.border },
-                      ]}
-                    >
-                      <Text style={{ color: mine ? '#fff' : c.text, fontSize: 14 }}>{item.content}</Text>
-                    </View>
+              onContentSizeChange={() => {}}
+            >
+              {lines.map((line, i) => (
+                <View
+                  key={i}
+                  style={{
+                    flexDirection: line.who === 'user' ? 'row-reverse' : 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    justifyContent: line.who === 'user' ? 'flex-end' : 'flex-start',
+                  }}
+                >
+                  {qualityIcon(line.quality)}
+                  <View
+                    style={[
+                      styles.bubble,
+                      line.who === 'user'
+                        ? { backgroundColor: c.primary, borderBottomRightRadius: 4 }
+                        : { backgroundColor: c.surface, borderBottomLeftRadius: 4, borderWidth: 1, borderColor: c.border },
+                    ]}
+                  >
+                    <Text style={{ color: line.who === 'user' ? '#fff' : c.text, fontSize: 14 }}>{line.text}</Text>
                   </View>
-                );
-              }}
-            />
-            <View style={[styles.composerRow, { borderTopColor: c.border }]}>
-              <TextInput
-                value={draft}
-                onChangeText={setDraft}
-                placeholder={t.placeholder}
-                placeholderTextColor={c.textMuted}
-                maxLength={500}
-                style={[styles.input, { borderColor: c.border, color: c.text, backgroundColor: c.surface }]}
-                returnKeyType="send"
-                onSubmitEditing={handleSend}
-              />
-              <Pressable
-                onPress={handleSend}
-                disabled={sending || !draft.trim()}
-                style={[styles.sendBtn, { backgroundColor: c.primary, opacity: sending || !draft.trim() ? 0.5 : 1 }]}
-              >
-                {sending ? <ActivityIndicator color="#fff" size="small" /> : <Send color="#fff" size={16} />}
-              </Pressable>
-            </View>
+                </View>
+              ))}
+              {!!choosing && (
+                <View style={{ flexDirection: 'row' }}>
+                  <View style={[styles.bubble, { backgroundColor: c.surface, borderWidth: 1, borderColor: c.border }]}>
+                    <ActivityIndicator size="small" color={c.textMuted} />
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            {options.length > 0 && (
+              <View style={{ padding: spacing.md, gap: spacing.sm }}>
+                {options.map((opt) => (
+                  <Pressable
+                    key={opt.id}
+                    onPress={() => handleChoose(opt)}
+                    disabled={!!choosing}
+                    style={[
+                      styles.optionBtn,
+                      { backgroundColor: c.surface, borderColor: c.border, opacity: choosing ? 0.6 : 1 },
+                    ]}
+                  >
+                    <Text style={{ color: c.text, fontSize: 14, fontWeight: '600' }}>{opt.text}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </>
         )}
 
@@ -252,12 +342,11 @@ export default function RoleplayScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1 },
+  categoryCard: { flex: 1, gap: 6, borderRadius: radius.lg, borderWidth: 1, padding: spacing.md },
   scenarioRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm + 4, borderRadius: radius.lg, borderWidth: 1, padding: spacing.md },
   scenarioIcon: { width: 36, height: 36, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center' },
   bubble: { maxWidth: '78%', borderRadius: radius.lg, paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
-  composerRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderTopWidth: 1 },
-  input: { flex: 1, borderWidth: 1, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2, fontSize: 14 },
-  sendBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  optionBtn: { borderRadius: radius.lg, borderWidth: 1, paddingHorizontal: spacing.md, paddingVertical: spacing.sm + 2 },
   finishIcon: { width: 56, height: 56, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
   newBtn: { borderRadius: radius.lg, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm + 4 },
 });

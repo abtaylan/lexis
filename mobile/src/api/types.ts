@@ -1458,35 +1458,46 @@ export interface DailyChallengeGuessResult {
 // ── "Roleplay/diyalog botu" (24 Eylül 2026, Madde 2 — ikinci seçim) ────
 // backend/app/api/routes/roleplay.py ile birebir aynı alan eşleşmesi (web
 // ile de aynı).
-export interface RoleplayScenario {
+export interface RoleplayScenarioSummary {
   slug: string;
   title_tr: string;
   title_en: string;
 }
 
-export interface RoleplayMessage {
-  role: 'user' | 'assistant';
-  content: string;
+export interface RoleplayCategory {
+  slug: string;
+  title_tr: string;
+  title_en: string;
+  icon: string;
+  scenarios: RoleplayScenarioSummary[];
+}
+
+export interface RoleplayOption {
+  id: string;
+  text: string;
 }
 
 export interface RoleplaySessionResponse {
   id: string;
   scenario_slug: string;
+  category_slug: string;
   learning_lang: string;
   status: string;
-  turn_count: number;
-  messages: RoleplayMessage[];
+  bot_line: string;
+  options: RoleplayOption[];
 }
 
-export interface RoleplayMessageResponse {
-  reply: string;
-  turn_count: number;
-  max_turns: number;
+export interface RoleplayChoiceResponse {
+  reaction: string;
+  quality: 'good' | 'ok' | 'poor';
+  next_bot_line: string | null;
+  options: RoleplayOption[] | null;
+  status: string;
+  xp_awarded: number;
 }
 
 export interface RoleplayFinishResponse {
   status: string;
-  turn_count: number;
   xp_awarded: number;
 }
 

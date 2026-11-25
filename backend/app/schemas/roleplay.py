@@ -1,22 +1,31 @@
 """
 backend/app/schemas/roleplay.py
 
-"Roleplay/diyalog botu" istek/yanit semalari -- bkz.
-roleplay_service.py modul docstring'i.
+"Roleplay/diyalog botu" istek/yanit semalari -- 25 Kasim 2026'da dallanan
+diyalog agaci modeline gecis: serbest metin yazmak yerine sabit secenek
+secimi. bkz. roleplay_service.py modul docstring'i.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
-class RoleplayScenario(BaseModel):
+class RoleplayScenarioSummary(BaseModel):
     slug: str
     title_tr: str
     title_en: str
 
 
-class RoleplayMessage(BaseModel):
-    role: str
-    content: str
+class RoleplayCategory(BaseModel):
+    slug: str
+    title_tr: str
+    title_en: str
+    icon: str
+    scenarios: list[RoleplayScenarioSummary]
+
+
+class RoleplayOption(BaseModel):
+    id: str
+    text: str
 
 
 class RoleplaySessionStart(BaseModel):
@@ -26,23 +35,26 @@ class RoleplaySessionStart(BaseModel):
 class RoleplaySessionResponse(BaseModel):
     id: str
     scenario_slug: str
+    category_slug: str
     learning_lang: str
     status: str
-    turn_count: int
-    messages: list[RoleplayMessage]
+    bot_line: str
+    options: list[RoleplayOption]
 
 
-class RoleplayMessageCreate(BaseModel):
-    content: str = Field(min_length=1, max_length=500)
+class RoleplayChoiceCreate(BaseModel):
+    option_id: str
 
 
-class RoleplayMessageResponse(BaseModel):
-    reply: str
-    turn_count: int
-    max_turns: int
+class RoleplayChoiceResponse(BaseModel):
+    reaction: str
+    quality: str
+    next_bot_line: str | None
+    options: list[RoleplayOption] | None
+    status: str
+    xp_awarded: int
 
 
 class RoleplayFinishResponse(BaseModel):
     status: str
-    turn_count: int
     xp_awarded: int
