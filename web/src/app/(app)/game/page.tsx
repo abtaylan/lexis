@@ -40,6 +40,7 @@ import {
 } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useAuth } from '@/store/auth';
+import { WeakDifficultyCard } from '@/components/layout/WeakDifficultyCard';
 
 type Strings = {
   pageTitle: string;
@@ -2245,6 +2246,13 @@ export default function GamePage() {
               </div>
             </button>
           </div>
+        </div>
+
+        {/* Zayıf zorluk seviyesi özeti — 25 Kasım 2026 ana sayfa
+            sadeleştirmesinde dashboard'dan buraya taşındı (eski CTA zaten
+            /game'e yönlendiriyordu, artık doğrudan burada). */}
+        <div className="w-full max-w-md mt-4">
+          <WeakDifficultyCard />
         </div>
       </div>
     );

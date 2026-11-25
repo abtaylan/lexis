@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, TrendingDown, Swords, Trophy, Map, Dumbbell, FileBarChart2, MessagesSquare, NotebookPen, ScanText } from 'lucide-react-native';
+import { BookOpen, Plus, Clock, Play, Zap, Layers, BarChart3, Users, GraduationCap, ChevronRight, CalendarDays, Swords, Trophy, Map, FileBarChart2, MessagesSquare, NotebookPen, ScanText } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import type { Locale } from '@/i18n/locales';
 import { FRIENDS_STRINGS } from '@/i18n/friendsStrings';
@@ -15,9 +15,7 @@ import { scheduleApi } from '@/api/schedule';
 import { examsApi } from '@/api/exams';
 import { studyProgramApi } from '@/api/studyProgram';
 import { levelGoalApi } from '@/api/levelGoal';
-import { wordsApi } from '@/api/words';
 import { gamesApi } from '@/api/games';
-import type { WeakTopicItem, WeakWordTypeItem } from '@/api/types';
 import { useAuth } from '@/store/auth';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
@@ -27,7 +25,6 @@ import { DashboardHeader } from '@/components/DashboardHeader';
 import { StudyProgramCard } from '@/components/StudyProgramCard';
 import { LevelGoalCard } from '@/components/LevelGoalCard';
 import { DailyWordCard } from '@/components/DailyWordCard';
-import { ReferralPromoCard } from '@/components/ReferralPromoCard';
 import { MascotGreeting } from '@/components/MascotGreeting';
 import { OnboardingTour } from '@/components/OnboardingTour';
 import { AdBanner } from '@/components/ads/AdBanner';
@@ -58,27 +55,9 @@ interface QuickAction {
 }
 
 
-function humanizeTopicTag(tag: string): string {
-  const cleaned = tag.replace(/^vocab-/, '').replace(/-/g, ' ');
-  return cleaned.replace(/\b\w/g, (ch) => ch.toUpperCase());
-}
-
-// V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan ozetleri. Web'deki
-// WEAK_WORD_TYPES_STRINGS/WEAK_DIFFICULTY_STRINGS ile birebir ayni tr/en
-// metinler (bkz. web/src/app/(app)/dashboard/page.tsx).
-const WEAK_WORD_TYPES_STRINGS: Record<'tr' | 'en', { title: string; subtitle: string; cta: string }> = {
-  tr: {
-    title: 'Zayıf Kelime Türlerin',
-    subtitle: 'Tekrarlarında en çok zorlandığın kelime türleri',
-    cta: 'Kelimelerime Git',
-  },
-  en: {
-    title: 'Your Weak Word Types',
-    subtitle: 'Word types you struggle with most in reviews',
-    cta: 'Go to My Words',
-  },
-};
-
+// V2 madde #6 (Faz 2) -- oyun tarafi zayif alan ozeti. Web'deki
+// WEAK_DIFFICULTY_STRINGS ile birebir ayni tr/en metinler (bkz.
+// web/src/app/(app)/dashboard/page.tsx).
 const WEAK_DIFFICULTY_STRINGS: Record<'tr' | 'en', { title: string; subtitle: string; cta: string; levelLabels: Record<string, string> }> = {
   tr: {
     title: 'Zayıf Zorluk Seviyen',
@@ -157,14 +136,6 @@ export default function DashboardScreen() {
     queryFn: statsApi.getSummary,
   });
 
-  // Madde #3c: haftalık zayıf konu özeti. list_exam_types ile aynı desen —
-  // uygun olmayan kullanıcıda backend boş liste döner, widget o durumda hiç
-  // görünmez (bkz. exams.py::weak_topics).
-  const { data: weakTopics } = useQuery({
-    queryKey: ['exam-weak-topics'],
-    queryFn: () => examsApi.weakTopics(7, 3),
-  });
-
   // Kullanıcı isteği (3 Kasım 2026) — hedef seviyeye ilerleme kartı.
   const qc = useQueryClient();
   const { data: levelGoal } = useQuery({
@@ -190,10 +161,6 @@ export default function DashboardScreen() {
   });
 
   // V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan widget'lari.
-  const { data: weakWordTypes } = useQuery({
-    queryKey: ['words-weak-word-types'],
-    queryFn: () => wordsApi.weakWordTypes(30, 3),
-  });
   const { data: weakDifficulty } = useQuery({
     queryKey: ['games-weak-difficulty'],
     queryFn: () => gamesApi.weakDifficulty(30, 3),
@@ -472,96 +439,11 @@ export default function DashboardScreen() {
         )}
 
 
-        {/* Günün Kelimesi (salt okunur, e-postayla gelen günlük kelime
-            içeriği) kartı kaldırıldı — kullanıcı isteği (25 Eylül 2026):
-            "Günün kelimesi zaten mail olarak geliyor, o da mobil
-            uygulamadan kaldırılsın". Bileşen (WordOfTheDayCard.tsx) dosyası
-            duruyor ama artık hiçbir yerden kullanılmıyor. */}
-
-        {/* Referans/Davet Programı — Task #12 (24 Eylül 2026): program zaten
-            profile.tsx'te tam olarak var, burada sadece dashboard'a (günlük
-            görülen ekran) bir görünürlük/giriş noktası ekleniyor. Aynı
-            soft-disable deseni: referral_code gelmezse hiç render edilmez. */}
-        <ReferralPromoCard />
-
-        {/* Çalışma takvimi (streak heatmap) kaldırıldı — kullanıcı isteği
-            (25 Eylül 2026): "Çalışma Takvimi mobil uygulamadan kaldırılsın".
-            Bileşen (StreakHeatmap.tsx) dosyası duruyor ama artık hiçbir
-            yerden kullanılmıyor. */}
-
-        {/* Madde #3c: zayıf konu özeti — sadece en az bir zayıf konu varsa
-            gösterilir (backend boş liste dönerse widget hiç render edilmez). */}
-        {!(studyProgram?.available && studyProgram.focus_topics.length > 0) && !!weakTopics?.items?.length && (
-          <Card style={{ marginTop: spacing.sm }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
-              <TrendingDown color={c.danger} size={18} />
-              <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>{et.weakTopicsTitle}</Text>
-            </View>
-            <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>{et.weakTopicsSubtitle}</Text>
-            <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-              {weakTopics.items.map((item: WeakTopicItem) => (
-                <View key={item.topic_tag} style={[styles.weakTopicRow, { borderColor: c.border }]}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 14, fontWeight: '600', color: c.text }} numberOfLines={1}>
-                      {item.related_grammar_topic?.title_tr ?? humanizeTopicTag(item.topic_tag)}
-                    </Text>
-                    <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
-                      {et.weakTopicsAccuracyTpl.replace('{percent}', String(Math.round(item.accuracy_ratio * 100)))}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: spacing.xs }}>
-                    {item.related_grammar_topic && (
-                      <Pressable
-                        onPress={() =>
-                          router.push({ pathname: '/(app)/exam-grammar-detail', params: { slug: item.related_grammar_topic!.slug } })
-                        }
-                        style={[styles.weakTopicBtn, { borderColor: c.primary }]}
-                      >
-                        <Text style={{ color: c.primary, fontSize: 12, fontWeight: '700' }}>{et.weakTopicsReviewBtn}</Text>
-                      </Pressable>
-                    )}
-                    <Pressable
-                      onPress={() => router.push({ pathname: '/(app)/exam-topic-practice', params: { topic_tag: item.topic_tag } })}
-                      style={[styles.weakTopicBtn, { borderColor: c.warning, flexDirection: 'row', alignItems: 'center', gap: 4 }]}
-                    >
-                      <Dumbbell color={c.warning} size={12} />
-                      <Text style={{ color: c.warning, fontSize: 12, fontWeight: '700' }}>{et.weakTopicsPracticeBtn}</Text>
-                    </Pressable>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </Card>
-        )}
-
-        {/* V2 madde #6 (Faz 2): zayıf kelime türü özeti */}
-        {!!weakWordTypes?.items?.length && (
-          <Card style={{ marginTop: spacing.sm }}>
-            <Text style={{ fontSize: 15, fontWeight: '700', color: c.text }}>
-              {(WEAK_WORD_TYPES_STRINGS[locale as 'tr' | 'en'] ?? WEAK_WORD_TYPES_STRINGS.tr).title}
-            </Text>
-            <Text style={{ fontSize: 12, color: c.textMuted, marginTop: 2 }}>
-              {(WEAK_WORD_TYPES_STRINGS[locale as 'tr' | 'en'] ?? WEAK_WORD_TYPES_STRINGS.tr).subtitle}
-            </Text>
-            <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-              {weakWordTypes.items.map((item: WeakWordTypeItem) => (
-                <View key={item.word_type} style={[styles.weakTopicRow, { borderColor: c.border }]}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: c.text, textTransform: 'capitalize' }} numberOfLines={1}>
-                    {item.word_type}
-                  </Text>
-                  <Pressable
-                    onPress={() => router.push('/(app)/words')}
-                    style={[styles.weakTopicBtn, { borderColor: c.primary }]}
-                  >
-                    <Text style={{ color: c.primary, fontSize: 12, fontWeight: '700' }}>
-                      {(WEAK_WORD_TYPES_STRINGS[locale as 'tr' | 'en'] ?? WEAK_WORD_TYPES_STRINGS.tr).cta}
-                    </Text>
-                  </Pressable>
-                </View>
-              ))}
-            </View>
-          </Card>
-        )}
+        {/* Günün Kelimesi, Referans/Davet Programı (zaten profile.tsx'te
+            var), Çalışma Takvimi, zayıf konu özeti (zaten report.tsx'te var)
+            ve zayıf kelime türü özeti (zaten stats.tsx'te var) 25 Kasım 2026
+            ana sayfa sadeleştirmesinde kaldırıldı -- bileşen dosyaları
+            duruyor ama bazıları artık hiçbir yerden kullanılmıyor. */}
 
         {/* V2 madde #6 (Faz 2): zayıf zorluk seviyesi özeti — kullanıcı isteği
             (25 Eylül 2026): "Zayıf Zorluk Seviyen bölümünde Odak konular

@@ -7,7 +7,7 @@ import {
   BookOpen, Clock, Target, Layers, Brain, CheckCircle2, Bell, BellRing, MessageCircle, Sun, Moon,
   GraduationCap, ChevronRight,
 } from 'lucide-react';
-import { statsApi, wordsApi, gamesApi, languagesApi, userLanguagesApi, notificationsApi, socialApi, examsApi, studyProgramApi, levelGoalApi } from '@/lib/api';
+import { statsApi, wordsApi, languagesApi, userLanguagesApi, notificationsApi, socialApi, examsApi, studyProgramApi, levelGoalApi } from '@/lib/api';
 import type { LevelGoal } from '@/lib/api';
 import { StudyProgramCard } from '@/components/study/StudyProgramCard';
 import { LevelGoalCard } from '@/components/study/LevelGoalCard';
@@ -17,12 +17,9 @@ import { XPBar } from '@/components/layout/XPBar';
 import { CefrBadge } from '@/components/layout/CefrBadge';
 import { DailyWordCard } from '@/components/layout/DailyWordCard';
 import { WordOfTheDayCard } from '@/components/layout/WordOfTheDayCard';
-import { ReferralPromoCard } from '@/components/layout/ReferralPromoCard';
-import { StreakHeatmap } from '@/components/layout/StreakHeatmap';
 import { MascotGreeting } from '@/components/layout/MascotGreeting';
 import { OnboardingTour } from '@/components/layout/OnboardingTour';
-import { Leaderboard } from '@/components/layout/Leaderboard';
-import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, WeakTopicItem, WeakWordTypeItem, WeakDifficultyItem, StudyProgram } from '@/types';
+import type { Stats, Word, DailyProgress, Language, UserLanguage, ConversationItem, StudyProgram } from '@/types';
 
 // Kullanici geri bildirimi (10 Eylul 2026 -- "bir dashboard'a bu saate
 // gunaydin yaziyor, mobildeki gibi hallet"): mobile/src/app/(app)/
@@ -40,61 +37,6 @@ function greetingKeyForHour(hour: number): 'greeting' | 'greetingAfternoon' | 'g
 // bannerCta ile birebir aynı tr/en metinler (bu alan sadece native_lang=tr +
 // learning_lang=en kullanıcılarına açık, bkz. backend _exam_area_enabled) —
 // diğer diller tr'ye düşer (Sidebar.tsx'teki EXAM_PREP_LABEL ile tutarlı).
-// Madde #3c: haftalık zayıf konu özeti — sadece en az bir zayıf konu varsa
-// gösterilen widget (backend boş liste dönerse hiç render edilmez, bkz.
-// exams.py::weak_topics'teki "soft-disable" deseni).
-const WEAK_TOPICS_STRINGS: Partial<Record<Locale, { title: string; subtitle: string; accuracyTpl: string; reviewBtn: string; practiceBtn: string }>> = {
-  tr: {
-    title: 'Zayıf Konuların',
-    subtitle: 'Son dönemde en çok yanlış yaptığın konular',
-    accuracyTpl: 'Doğruluk: %{percent}',
-    reviewBtn: 'İncele',
-    practiceBtn: 'Pratik Yap',
-  },
-  en: {
-    title: 'Your Weak Topics',
-    subtitle: 'Topics you have missed most recently',
-    accuracyTpl: 'Accuracy: {percent}%',
-    reviewBtn: 'Review',
-    practiceBtn: 'Practice',
-  },
-};
-
-// V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan ozetleri. Ayni
-// "soft-disable" deseni: backend bos liste donerse widget hic gosterilmez.
-const WEAK_WORD_TYPES_STRINGS: Partial<Record<Locale, { title: string; subtitle: string; cta: string }>> = {
-  tr: {
-    title: 'Zayıf Kelime Türlerin',
-    subtitle: 'Tekrarlarında en çok zorlandığın kelime türleri',
-    cta: 'Kelimelerime Git',
-  },
-  en: {
-    title: 'Your Weak Word Types',
-    subtitle: 'Word types you struggle with most in reviews',
-    cta: 'Go to My Words',
-  },
-};
-
-const WEAK_DIFFICULTY_STRINGS: Partial<Record<Locale, { title: string; subtitle: string; cta: string; levelLabels: Record<string, string> }>> = {
-  tr: {
-    title: 'Zayıf Zorluk Seviyen',
-    subtitle: 'Oyunlarda en çok yanlış yaptığın zorluk seviyeleri',
-    cta: 'Oyun Oyna',
-    levelLabels: { beginner: 'Başlangıç', intermediate: 'Orta', advanced: 'İleri' },
-  },
-  en: {
-    title: 'Your Weak Difficulty Level',
-    subtitle: 'Difficulty levels you miss most in games',
-    cta: 'Play a Game',
-    levelLabels: { beginner: 'Beginner', intermediate: 'Intermediate', advanced: 'Advanced' },
-  },
-};
-
-function humanizeTopicTag(tag: string): string {
-  const cleaned = tag.replace(/^vocab-/, '').replace(/-/g, ' ');
-  return cleaned.replace(/\b\w/g, (ch) => ch.toUpperCase());
-}
-
 const EXAM_BANNER: Partial<Record<Locale, { title: string; subtitle: string; cta: string }>> = {
   tr: {
     title: 'Sınav Hazırlık Alanı',
@@ -222,7 +164,6 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [dueWords, setDueWords] = useState<Word[]>([]);
   const [history, setHistory] = useState<DailyProgress[]>([]);
-  const [recentWords, setRecentWords] = useState<Word[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [username, setUsername] = useState('');
@@ -247,17 +188,12 @@ export default function DashboardPage() {
   const [conversations, setConversations] = useState<ConversationItem[]>([]);
   const msgPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Madde #3c: zayıf konu özeti (dashboard widget'ı) ──
-  const [weakTopics, setWeakTopics] = useState<WeakTopicItem[]>([]);
   // Adaptif Öğrenme Motoru Madde 2 — haftalık çalışma programı kartı.
   const [studyProgram, setStudyProgram] = useState<StudyProgram | null>(null);
   // Kullanıcı isteği (3 Kasım 2026) — hedef seviyeye ilerleme kartı.
   const [levelGoal, setLevelGoal] = useState<LevelGoal | null>(null);
   const [settingLevelGoal, setSettingLevelGoal] = useState(false);
   const [showLevelGoalPicker, setShowLevelGoalPicker] = useState(false);
-  // V2 madde #6 (Faz 2) -- kelime/oyun tarafi zayif alan widget'lari.
-  const [weakWordTypes, setWeakWordTypes] = useState<WeakWordTypeItem[]>([]);
-  const [weakDifficulty, setWeakDifficulty] = useState<WeakDifficultyItem[]>([]);
 
   useEffect(() => {
     studyProgramApi
@@ -271,24 +207,6 @@ export default function DashboardPage() {
       .then(setLevelGoal)
       .catch(() => {
         /* soft-disable: hata durumunda kart gösterilmez */
-      });
-    examsApi
-      .weakTopics(7, 3)
-      .then((res) => setWeakTopics(res.items))
-      .catch(() => {
-        /* soft-disable: uygun olmayan kullanıcı/hata durumunda widget hiç gösterilmez */
-      });
-    wordsApi
-      .weakWordTypes(30, 3)
-      .then((res) => setWeakWordTypes(res.items))
-      .catch(() => {
-        /* veri yoksa (henüz hiç tekrar edilmemiş kelime) widget gösterilmez */
-      });
-    gamesApi
-      .weakDifficulty(30, 3)
-      .then((res) => setWeakDifficulty(res.items))
-      .catch(() => {
-        /* veri yoksa (henüz oyun oynanmamış) widget gösterilmez */
       });
     // 18 Eylül 2026 — kullanıcı isteği: "sisteme girer girmez hemen seviye
     // tespit sınavına yönlendirilsin" (mevcut + yeni kullanıcılar, tüm
@@ -366,16 +284,14 @@ export default function DashboardPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [s, due, hist, words] = await Promise.all([
+        const [s, due, hist] = await Promise.all([
           statsApi.getSummary(),
           wordsApi.getDue(),
           statsApi.getHistory(14),
-          wordsApi.getAll({ page: 1, per_page: 4 }),
         ]);
         setStats(s);
         setDueWords(due);
         setHistory(hist);
-        setRecentWords(words.items);
       } catch {
         setError(t('loadingError'));
       } finally {
@@ -422,18 +338,16 @@ export default function DashboardPage() {
     setSwitchingLang(true);
     try {
       await userLanguagesApi.setActive(code);
-      const [ul, s, due, hist, words] = await Promise.all([
+      const [ul, s, due, hist] = await Promise.all([
         userLanguagesApi.getAll(),
         statsApi.getSummary(),
         wordsApi.getDue(),
         statsApi.getHistory(14),
-        wordsApi.getAll({ page: 1, per_page: 4 }),
       ]);
       setUserLangs(ul);
       setStats(s);
       setDueWords(due);
       setHistory(hist);
-      setRecentWords(words.items);
     } catch {
       // Sessizce yut — dashboard verisi bir önceki dilde kalır, kullanıcı tekrar deneyebilir.
     } finally {
@@ -461,21 +375,6 @@ export default function DashboardPage() {
   const weekDays = getWeekDays(history, dayLabels);
 
   const thisWeekTotal = weekDays.reduce((acc, d) => acc + d.count, 0);
-  const lastWeekTotal = history
-    .filter((h) => {
-      const d = new Date(h.date);
-      const today = new Date();
-      const diff = (today.getTime() - d.getTime()) / (1000 * 60 * 60 * 24);
-      return diff >= 7 && diff < 14;
-    })
-    .reduce((acc, h) => acc + h.words_added, 0);
-
-  const total = stats?.total_words || 1;
-  const newCount = Math.max(0, total - (stats?.learning ?? 0) - (stats?.learned ?? 0));
-  const learningPct = Math.round(((stats?.learning ?? 0) / total) * 100);
-  const learnedPct = Math.round(((stats?.learned ?? 0) / total) * 100);
-  const newPct = Math.round((newCount / total) * 100);
-
   const activeLangCode = userLangs.find((l) => l.is_active)?.learning_lang ?? '';
   // Kullanici geri bildirimi (10 Eylul 2026 -- "bir dashboard'da bu
   // saate gunaydin yaziyor, mobildeki gibi hallet"): web'de {t('greeting')}
@@ -653,20 +552,6 @@ export default function DashboardPage() {
           taşınmış hali. Aynı soft-disable deseni: içerik yoksa render edilmez. */}
       <WordOfTheDayCard />
 
-      {/* Referans/Davet Programı — Task #12 (24 Eylül 2026): program zaten
-          profile/page.tsx'te tam olarak var, burada sadece dashboard'a
-          (günlük görülen sayfa) bir görünürlük/giriş noktası ekleniyor.
-          Aynı soft-disable deseni: referral_code gelmezse hiç render
-          edilmez. */}
-      <ReferralPromoCard />
-
-      {/* Sıralama — kendi puanın + rakip karşılaştırması (Genel/Haftalık/Aylık).
-          limit=5: ilk 5 gösterilir; kullanıcı ilk 5'te değilse (örn. 10.
-          sırada) 6-9 arası atlanır, sadece kendi satırı ayrıca eklenir
-          (bkz. Leaderboard.tsx — data.top zaten sadece top N döner, "me"
-          top'ta değilse ayraç + tek satır olarak ekleniyor). */}
-      <Leaderboard limit={5} />
-
       {/* Streak banner */}
       {(stats?.current_streak ?? 0) > 0 && (
         <div
@@ -684,13 +569,6 @@ export default function DashboardPage() {
           <span className="text-3xl">🔥</span>
         </div>
       )}
-
-      {/* Çalışma takvimi (streak heatmap) — Madde 3 (Görsel/GUI), 24 Eylül
-          2026. Mevcut statsApi.getHistory çağrısı (backend'de zaten vardı,
-          değişiklik gerekmedi) daha geniş bir pencereyle (18 hafta) tekrar
-          çağrılıyor; CefrBadge/XPBar/DailyWordCard ile aynı soft-disable
-          deseni. */}
-      <StreakHeatmap />
 
       {/* 3 stat kart */}
       <div className="grid grid-cols-3 gap-3">
@@ -752,44 +630,6 @@ export default function DashboardPage() {
             className="h-full rounded-full transition-all"
             style={{ width: `${goalPercent}%`, background: '#378ADD' }}
           />
-        </div>
-      </div>
-
-      {/* Haftalık ilerleme */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
-        <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">{t('weeklyProgress')}</p>
-        <div className="flex justify-between items-end pb-3">
-          {weekDays.map((d, i) => (
-            <div key={i} className="flex flex-col items-center gap-1">
-              <span className="text-xs text-gray-400 dark:text-slate-500">{d.label}</span>
-              <div
-                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium"
-                style={
-                  d.isToday
-                    ? { background: '#378ADD', color: '#fff' }
-                    : d.done
-                    ? { background: '#EAF3DE', color: '#3B6D11' }
-                    : { background: '#F3F4F6', color: '#9CA3AF' }
-                }
-              >
-                {d.isToday ? d.count : d.done ? '✓' : '—'}
-              </div>
-              <span
-                className="text-xs"
-                style={{
-                  color: d.isToday ? '#378ADD' : '#9CA3AF',
-                  fontWeight: d.isToday ? 500 : 400,
-                }}
-              >
-                {d.isToday ? t('todayAbbr') : d.count > 0 ? d.count : '—'}
-              </span>
-            </div>
-          ))}
-        </div>
-        <div className="h-px bg-gray-100 dark:bg-slate-800 mb-3" />
-        <div className="flex gap-4 text-xs text-gray-400 dark:text-slate-500">
-          <span>{t('thisWeekColon')}: <strong className="text-gray-700 dark:text-slate-300">{thisWeekTotal} {t('wordsUnit')}</strong></span>
-          <span>{t('lastWeekColon')}: <strong className="text-gray-700 dark:text-slate-300">{lastWeekTotal} {t('wordsUnit')}</strong></span>
         </div>
       </div>
 
@@ -860,126 +700,6 @@ export default function DashboardPage() {
         <StudyProgramCard program={studyProgram} locale={locale} />
       )}
 
-      {/* Madde #3c: zayıf konu özeti — sadece en az bir zayıf konu varsa gösterilir. */}
-      {weakTopics.length > 0 && !(studyProgram?.available && studyProgram.focus_topics.length > 0) && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
-          <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
-            {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.title}
-          </p>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-            {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.subtitle}
-          </p>
-          <div className="flex flex-col gap-2 mt-3">
-            {weakTopics.map((item) => (
-              <div
-                key={item.topic_tag}
-                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 dark:border-slate-800 p-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate">
-                    {item.related_grammar_topic?.title_tr ?? humanizeTopicTag(item.topic_tag)}
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-                    {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.accuracyTpl.replace(
-                      '{percent}',
-                      String(Math.round(item.accuracy_ratio * 100))
-                    )}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {item.related_grammar_topic && (
-                    <button
-                      onClick={() => router.push(`/exam-grammar/${item.related_grammar_topic!.slug}`)}
-                      className="text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors"
-                      style={{ borderColor: '#378ADD', color: '#378ADD' }}
-                    >
-                      {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.reviewBtn}
-                    </button>
-                  )}
-                  <button
-                    onClick={() => router.push(`/exam-topic-practice?topic_tag=${encodeURIComponent(item.topic_tag)}`)}
-                    className="text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors"
-                    style={{ borderColor: '#854F0B', color: '#854F0B' }}
-                  >
-                    {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.practiceBtn}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* V2 madde #6 (Faz 2): zayıf kelime türü özeti */}
-      {weakWordTypes.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
-          <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
-            {(WEAK_WORD_TYPES_STRINGS[locale] ?? WEAK_WORD_TYPES_STRINGS.tr)!.title}
-          </p>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-            {(WEAK_WORD_TYPES_STRINGS[locale] ?? WEAK_WORD_TYPES_STRINGS.tr)!.subtitle}
-          </p>
-          <div className="flex flex-col gap-2 mt-3">
-            {weakWordTypes.map((item) => (
-              <div
-                key={item.word_type}
-                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 dark:border-slate-800 p-3"
-              >
-                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate capitalize">
-                  {item.word_type}
-                </p>
-                <button
-                  onClick={() => router.push('/words')}
-                  className="text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors shrink-0"
-                  style={{ borderColor: '#378ADD', color: '#378ADD' }}
-                >
-                  {(WEAK_WORD_TYPES_STRINGS[locale] ?? WEAK_WORD_TYPES_STRINGS.tr)!.cta}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* V2 madde #6 (Faz 2): zayıf zorluk seviyesi özeti */}
-      {weakDifficulty.length > 0 && (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
-          <p className="text-sm font-bold text-gray-900 dark:text-slate-100">
-            {(WEAK_DIFFICULTY_STRINGS[locale] ?? WEAK_DIFFICULTY_STRINGS.tr)!.title}
-          </p>
-          <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-            {(WEAK_DIFFICULTY_STRINGS[locale] ?? WEAK_DIFFICULTY_STRINGS.tr)!.subtitle}
-          </p>
-          <div className="flex flex-col gap-2 mt-3">
-            {weakDifficulty.map((item) => (
-              <div
-                key={item.difficulty_level}
-                className="flex items-center justify-between gap-3 rounded-xl border border-gray-100 dark:border-slate-800 p-3"
-              >
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-800 dark:text-slate-200 truncate">
-                    {(WEAK_DIFFICULTY_STRINGS[locale] ?? WEAK_DIFFICULTY_STRINGS.tr)!.levelLabels[item.difficulty_level] ?? item.difficulty_level}
-                  </p>
-                  <p className="text-xs text-gray-400 dark:text-slate-500 mt-0.5">
-                    {(WEAK_TOPICS_STRINGS[locale] ?? WEAK_TOPICS_STRINGS.tr)!.accuracyTpl.replace(
-                      '{percent}',
-                      String(Math.round(item.accuracy_ratio * 100))
-                    )}
-                  </p>
-                </div>
-                <button
-                  onClick={() => router.push('/game')}
-                  className="text-xs font-bold rounded-lg border px-2.5 py-1.5 transition-colors shrink-0"
-                  style={{ borderColor: '#854F0B', color: '#854F0B' }}
-                >
-                  {(WEAK_DIFFICULTY_STRINGS[locale] ?? WEAK_DIFFICULTY_STRINGS.tr)!.cta}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Hızlı aksiyonlar */}
       <div className="grid grid-cols-3 gap-3">
         {[
@@ -1022,55 +742,6 @@ export default function DashboardPage() {
             </div>
           </button>
         ))}
-      </div>
-
-      {/* Alt grid: Seviye dağılımı + Son eklenenler */}
-      <div className="grid grid-cols-2 gap-3">
-
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
-          <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">{t('levelDistribution')}</p>
-          {[
-            { label: t('newLabel'), count: newCount, pct: newPct, color: '#B5D4F4' },
-            { label: t('learningLabel'), count: stats?.learning ?? 0, pct: learningPct, color: '#9FE1CB' },
-            { label: t('learnedLabel'), count: stats?.learned ?? 0, pct: learnedPct, color: '#C0DD97' },
-          ].map(({ label, count, pct, color }) => (
-            <div key={label} className="flex items-center gap-2 mb-2 text-xs">
-              <span className="w-20 text-gray-400 dark:text-slate-500 shrink-0">{label}</span>
-              <div className="flex-1 h-1.5 rounded-full overflow-hidden bg-gray-100 dark:bg-slate-800">
-                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-              </div>
-              <span className="w-6 text-right text-gray-500 dark:text-slate-400">{count}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
-          <p className="text-sm font-medium text-gray-700 dark:text-slate-300 mb-3">{t('recentWordsTitle')}</p>
-          {recentWords.length === 0 ? (
-            <p className="text-xs text-gray-400 dark:text-slate-500">{t('noWordsYet')}</p>
-          ) : (
-            recentWords.map((w, i) => (
-              <div
-                key={w.id}
-                className="flex items-center justify-between py-1.5 text-sm"
-                style={{ borderBottom: i < recentWords.length - 1 ? '0.5px solid #F3F4F6' : 'none' }}
-              >
-                <div className="flex items-center gap-1.5">
-                  <span className="font-medium text-gray-800 dark:text-slate-200">{w.word}</span>
-                  {i === 0 && (
-                    <span
-                      className="rounded px-1.5 py-0.5"
-                      style={{ background: '#EEEDFE', color: '#534AB7', fontSize: 10 }}
-                    >
-                      {t('newBadge')}
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-gray-400 dark:text-slate-500">{w.meaning_native || w.meaning}</span>
-              </div>
-            ))
-          )}
-        </div>
       </div>
 
       {/* Due banner */}

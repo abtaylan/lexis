@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { statsApi } from '@/lib/api';
 import { useLocale } from '@/lib/i18n';
+import { StreakHeatmap } from '@/components/layout/StreakHeatmap';
 import type { AnalyticsData } from '@/types';
 
 const C = {
@@ -127,6 +128,11 @@ export default function StatsPage() {
               </Card>
             ))}
           </div>
+
+          {/* Çalışma takvimi (streak heatmap) — 25 Kasım 2026 ana sayfa
+              sadeleştirmesinde dashboard'dan buraya taşındı (zaten bir
+              analitik/istatistik görünümü, bu sayfanın tam yeri). */}
+          <StreakHeatmap />
 
           {/* Üst sıra: durum donut + öğrenme oranı */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

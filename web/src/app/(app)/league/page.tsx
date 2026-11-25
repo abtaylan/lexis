@@ -27,6 +27,7 @@ import { useLocale } from '@/lib/i18n';
 import { LEAGUE_L, TIER_NAMES, formatDateRange } from '@/lib/leagueLocale';
 import { LeagueTable } from '@/components/league/LeagueTable';
 import { LeagueGroupStrip } from '@/components/league/LeagueGroupStrip';
+import { Leaderboard } from '@/components/layout/Leaderboard';
 import type { LeagueStatusResponse, LeagueOverviewGroup } from '@/types';
 
 function errorDetail(err: unknown): string | undefined {
@@ -143,6 +144,14 @@ export default function LeaguePage() {
           onSelect={(id) => router.push(`/league/${id}`)}
         />
       )}
+
+      {/* Genel Sıralama (Leaderboard) — 25 Kasım 2026 ana sayfa
+          sadeleştirmesinde dashboard'dan taşındı (kullanıcı isteği: "ana
+          sayfa da çok karışık ... sol menüde hangi başlık ile ilgiliyse
+          oraya alalım"). Haftalık lig (yukarıdaki LeagueTable, terfi/düşme
+          sistemi) ile KARIŞTIRILMASIN -- bu, Genel/Haftalık/Aylık XP
+          puanına göre tüm kullanıcılar arası sıralamadır. */}
+      <Leaderboard limit={10} />
 
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-4">
         {meLoading && <p className="text-sm text-gray-400 dark:text-slate-500 py-8 text-center">{t.loading}</p>}
