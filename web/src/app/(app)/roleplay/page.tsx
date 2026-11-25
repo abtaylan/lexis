@@ -178,7 +178,11 @@ export default function RoleplayPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-6 flex flex-col gap-4 h-[calc(100vh-2rem)]">
+    <div
+      className={`mx-auto px-4 py-6 flex flex-col gap-4 h-[calc(100vh-2rem)] ${
+        stage === 'categories' ? 'max-w-5xl' : 'max-w-md'
+      }`}
+    >
       <div className="flex items-center gap-3">
         {stage === 'pick' ? (
           <button
@@ -225,7 +229,7 @@ export default function RoleplayPage() {
       {stage === 'categories' && (
         <>
           <p className="text-sm text-gray-500 dark:text-slate-400">{t.subtitle}</p>
-          <div className="grid grid-cols-2 gap-3 overflow-y-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto">
             {categories.map((cat) => {
               const Icon = ICONS[cat.icon] || MessagesSquare;
               return (
