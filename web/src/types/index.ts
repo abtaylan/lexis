@@ -847,6 +847,12 @@ export interface GrammarTopicDetail extends GrammarTopicSummary {
   example_sentences: GrammarExampleSentence[];
   common_mistakes: GrammarCommonMistake[];
   total_topics?: number | null;
+  // 24 Kasim 2026 (5. tur) -- "Sinav Taktikleri" ile AYNI yapilandirilmis
+  // icerik semasi (bkz. TacticBreakdown ustundeki not, backend migration
+  // 120_grammar_topics_breakdown_column.sql). Null/undefined ise eski
+  // rule_content_md/example_sentences/common_mistakes duz-metin gorunumune
+  // dusulur.
+  breakdown?: TacticBreakdown | null;
 }
 
 // ── Günün Okuma Parçası (14-15 Ekim 2026) — bkz. backend

@@ -85,6 +85,8 @@ export type ExamStrings = {
   grammarLangUnavailable: string;
   grammarExamplesTitle: string;
   grammarMistakesTitle: string;
+  grammarRuleBadgeLabel: string;
+  grammarCriticalSummaryLabel: string;
   grammarPracticeCta: string;
   grammarNoQuestionsYet: string;
   reviewGrammarTopicTpl: string;
@@ -226,6 +228,8 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     grammarLangUnavailable: 'Gramer Rehberi şu anda sadece İngilizce öğrenenler için hazır. Diğer diller için içerik yakında eklenecek.',
     grammarExamplesTitle: 'Örnekler',
     grammarMistakesTitle: 'Sık Yapılan Hatalar',
+    grammarRuleBadgeLabel: 'Kural',
+    grammarCriticalSummaryLabel: 'Kritik Gramer Özeti',
     grammarPracticeCta: 'Bu Konuyu Pratik Et',
     grammarNoQuestionsYet: 'Bu konu için henüz pratik sorusu eklenmedi.',
     reviewGrammarTopicTpl: '"{topic}" Konusunu İncele',
@@ -355,6 +359,8 @@ export const EXAM_STRINGS: Partial<Record<Locale, ExamStrings>> = {
     grammarLangUnavailable: 'The Grammar Guide is currently only available for English learners. Content for other languages is coming soon.',
     grammarExamplesTitle: 'Examples',
     grammarMistakesTitle: 'Common Mistakes',
+    grammarRuleBadgeLabel: 'Rule',
+    grammarCriticalSummaryLabel: 'Critical Grammar Summary',
     grammarPracticeCta: 'Practice This Topic',
     grammarNoQuestionsYet: 'No practice questions for this topic yet.',
     reviewGrammarTopicTpl: 'Review "{topic}"',

@@ -13,12 +13,15 @@ import { grammarApi, wordsApi } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { markTopicVisited } from '@/lib/grammarProgress';
 import type { StudyPassageResponse, StudyPassageVocabItem, StudyPassageQuestion } from '@/types';
+import { ExamTacticCard } from '@/components/ExamTacticCard';
 
 const L: Partial<Record<Locale, Record<string, string>>> = {
   tr: {
     back: 'Geri',
     error: 'Bir şeyler ters gitti, tekrar dene.',
     examplesTitle: 'Örnekler',
+    ruleBadgeLabel: 'Kural',
+    criticalSummaryLabel: 'Kritik Gramer Özeti',
     mistakesTitle: 'Sık Yapılan Hatalar',
     practiceCta: 'Bu Konuyu Pratik Et',
     noQuestionsYet: 'Bu konu için henüz pratik sorusu eklenmedi.',
@@ -43,6 +46,8 @@ const L: Partial<Record<Locale, Record<string, string>>> = {
     back: 'Back',
     error: 'Something went wrong, please try again.',
     examplesTitle: 'Examples',
+    ruleBadgeLabel: 'Rule',
+    criticalSummaryLabel: 'Critical Grammar Summary',
     mistakesTitle: 'Common Mistakes',
     practiceCta: 'Practice This Topic',
     noQuestionsYet: 'No practice questions for this topic yet.',
@@ -394,32 +399,49 @@ export default function ExamGrammarDetailPage() {
           </h1>
           <p className="text-sm text-gray-500 dark:text-slate-400 mt-1 leading-relaxed">{topic.summary_tr}</p>
 
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5 mt-5">
-            {paragraphs.map((line, idx) => {
-              const isBullet = line.startsWith('- ');
-              return (
-                <p
-                  key={idx}
-                  className={`text-sm text-gray-700 dark:text-slate-300 leading-relaxed ${idx === 0 ? '' : 'mt-2.5'} ${isBullet ? 'ml-4' : ''}`}
-                >
-                  {isBullet ? `•  ${line.slice(2)}` : line}
-                </p>
-              );
-            })}
-          </div>
-
-          {topic.example_sentences.length > 0 && (
-            <div className="mt-6">
-              <h2 className="text-sm font-bold text-gray-900 dark:text-slate-100 mb-2.5">{t.examplesTitle}</h2>
-              <div className="flex flex-col gap-2">
-                {topic.example_sentences.map((example, idx) => (
-                  <div key={idx} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-800 p-3.5">
-                    <p className="text-sm text-gray-800 dark:text-slate-200">{example.en}</p>
-                    {example.tr && <p className="text-sm text-gray-400 dark:text-slate-500 mt-0.5">{example.tr}</p>}
-                  </div>
-                ))}
-              </div>
+          {topic.breakdown ? (
+            <div className="mt-5">
+              <ExamTacticCard
+                collapsible={false}
+                title={topic.title_tr}
+                tactic={topic.rule_content_md}
+                examples={topic.example_sentences.map((e) => (e.tr ? `"${e.en}" ${e.tr}` : `"${e.en}"`))}
+                breakdown={topic.breakdown}
+                badgeLabel={t.ruleBadgeLabel}
+                examplesLabel={t.examplesTitle}
+                criticalSummaryLabel={t.criticalSummaryLabel}
+              />
             </div>
+          ) : (
+            <>
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm p-5 mt-5">
+                {paragraphs.map((line, idx) => {
+                  const isBullet = line.startsWith('- ');
+                  return (
+                    <p
+                      key={idx}
+                      className={`text-sm text-gray-700 dark:text-slate-300 leading-relaxed ${idx === 0 ? '' : 'mt-2.5'} ${isBullet ? 'ml-4' : ''}`}
+                    >
+                      {isBullet ? `•  ${line.slice(2)}` : line}
+                    </p>
+                  );
+                })}
+              </div>
+
+              {topic.example_sentences.length > 0 && (
+                <div className="mt-6">
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-slate-100 mb-2.5">{t.examplesTitle}</h2>
+                  <div className="flex flex-col gap-2">
+                    {topic.example_sentences.map((example, idx) => (
+                      <div key={idx} className="bg-white dark:bg-slate-900 rounded-xl border border-gray-100 dark:border-slate-800 p-3.5">
+                        <p className="text-sm text-gray-800 dark:text-slate-200">{example.en}</p>
+                        {example.tr && <p className="text-sm text-gray-400 dark:text-slate-500 mt-0.5">{example.tr}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           {topic.common_mistakes.length > 0 && (

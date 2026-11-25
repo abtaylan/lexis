@@ -8,7 +8,7 @@ import {
   LayoutDashboard, BookOpen, Layers, HelpCircle, Gamepad2,
   CalendarDays, ShieldCheck, LogOut, User, BarChart3, Crown,
   Menu, X, Users, GraduationCap, Swords, Trophy, Map, Award, FileBarChart2,
-  Building2, MessagesSquare, Route, NotebookPen, ScanText,
+  Building2, MessagesSquare, Route, NotebookPen, ScanText, ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/store/auth';
 import { organizationsApi } from '@/lib/api';
@@ -168,6 +168,51 @@ const THEME_LABEL: Record<Locale, string> = {
   pt: 'Tema',
 };
 
+// 24 Kasım 2026 (sol menü sadeleştirme, Behçet'in kullanıcı isteği): "sol
+// paneldeki menüler çok, bu da sistemi karmaşıklaştırıyor ... ortak
+// başlıklara tıklayınca alt menü başlıklarını görelim". 19 düz linkten
+// Dashboard (her zaman tek başına görünür ana giriş noktası) + 5 ortak
+// başlık grubuna indirildi -- toplam 6 üst seviye satır. Aynı yerel çeviri
+// deseni (diğer *_LABEL sözlükleriyle AYNI).
+const LEARN_GROUP_LABEL: Record<Locale, string> = {
+  tr: 'Öğren', en: 'Learn', ar: 'تعلم', ru: 'Учиться', de: 'Lernen',
+  fr: 'Apprendre', es: 'Aprender', it: 'Impara', ja: '学ぶ', pt: 'Aprender',
+};
+const EXAM_GROUP_LABEL: Record<Locale, string> = {
+  tr: 'Sınav Çalışmaları', en: 'Exam Studies', ar: 'دراسات الامتحان', ru: 'Подготовка к экзамену', de: 'Prüfungsvorbereitung',
+  fr: "Préparation à l'examen", es: 'Preparación de examen', it: 'Preparazione esame', ja: '試験対策', pt: 'Preparação para Exame',
+};
+const SOCIAL_GROUP_LABEL: Record<Locale, string> = {
+  tr: 'Sosyal & Yarışma', en: 'Social & Compete', ar: 'اجتماعي ومنافسة', ru: 'Общение и соревнования', de: 'Sozial & Wettbewerb',
+  fr: 'Social et compétition', es: 'Social y competencia', it: 'Sociale e competizione', ja: 'ソーシャル＆対戦', pt: 'Social e Competição',
+};
+const PROGRESS_GROUP_LABEL: Record<Locale, string> = {
+  tr: 'İlerleme', en: 'Progress', ar: 'التقدم', ru: 'Прогресс', de: 'Fortschritt',
+  fr: 'Progrès', es: 'Progreso', it: 'Progresso', ja: '進捗', pt: 'Progresso',
+};
+const ACCOUNT_GROUP_LABEL: Record<Locale, string> = {
+  tr: 'Hesap', en: 'Account', ar: 'الحساب', ru: 'Аккаунт', de: 'Konto',
+  fr: 'Compte', es: 'Cuenta', it: 'Account', ja: 'アカウント', pt: 'Conta',
+};
+
+// Grup eşleştirmesi locale'den bağımsız (href'ler sabit) -- modül
+// seviyesinde tutulup pathname değişince hangi grubun otomatik açılacağını
+// bulmak için kullanılıyor (bkz. aşağıdaki openGroup state'i).
+const NAV_GROUP_HREFS: Record<string, string[]> = {
+  learn: ['/words', '/flashcards', '/quiz', '/game', '/image-scan', '/roleplay'],
+  exam: ['/exam-prep', '/roadmap', '/study-notes', '/schedule'],
+  social: ['/duels', '/league', '/quests', '/friends'],
+  progress: ['/report', '/stats', '/rewards'],
+  account: ['/profile', '/organizations'],
+};
+
+function findGroupForPath(path: string): string | null {
+  for (const [id, hrefs] of Object.entries(NAV_GROUP_HREFS)) {
+    if (hrefs.some((href) => path.startsWith(href))) return id;
+  }
+  return null;
+}
+
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -191,41 +236,76 @@ export function Sidebar() {
   // ayarlama (React'ın "adjusting state during render" deseni), effect içinde
   // setState'ten kaçınmak için (bkz. react-hooks/set-state-in-effect kuralı).
   const [prevPathname, setPrevPathname] = useState(pathname);
+  const [openGroup, setOpenGroup] = useState<string | null>(() => findGroupForPath(pathname));
   if (pathname !== prevPathname) {
     setPrevPathname(pathname);
     setMobileOpen(false);
+    const matchedGroup = findGroupForPath(pathname);
+    if (matchedGroup) setOpenGroup(matchedGroup);
   }
 
-  const navItems = [
-    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-    { href: '/words', label: t('words'), icon: BookOpen },
-    { href: '/flashcards', label: t('flashcards'), icon: Layers },
-    { href: '/quiz', label: t('quiz'), icon: HelpCircle },
-    { href: '/game', label: GAME_LABEL[locale], icon: Gamepad2 },
-    { href: '/duels', label: DUELS_LABEL[locale], icon: Swords },
-    { href: '/league', label: LEAGUE_LABEL[locale], icon: Trophy },
-    { href: '/quests', label: QUESTS_LABEL[locale], icon: Map },
-    { href: '/roleplay', label: ROLEPLAY_LABEL[locale], icon: MessagesSquare },
-    { href: '/rewards', label: REWARDS_LABEL[locale], icon: Award },
-    { href: '/report', label: REPORT_LABEL[locale], icon: FileBarChart2 },
-    // Sadece zaten bir kurumun üyesi olan kullanıcıya görünür (yukarıdaki effect).
-    ...(hasOrganizations ? [{ href: '/organizations', label: ORGANIZATIONS_LABEL[locale], icon: Building2 }] : []),
-    { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
-    { href: '/schedule', label: t('schedule'), icon: CalendarDays },
-    { href: '/roadmap', label: ROADMAP_LABEL[locale], icon: Route },
-    { href: '/study-notes', label: STUDY_NOTES_LABEL[locale], icon: NotebookPen },
-    { href: '/image-scan', label: IMAGE_SCAN_LABEL[locale], icon: ScanText },
-    // 23 Kasım 2026 kullanıcı isteği: "Çengel Bulmaca" sol menüden kaldırıldı
-    // -- mobildeki ile aynı yerleşim, artık SADECE /game (Oyun) sayfasındaki
-    // "Çengel Bulmaca" kartından erişiliyor (bkz. app/(app)/game/page.tsx),
-    // ayrı bir üst-seviye menü maddesi değil.
-    // V2 Yol Haritası §1.1 (9 Eylül 2026) — Sınav Hazırlık Alanı. Giriş noktası
-    // mobildeki dashboard davranışıyla tutarlı: her zaman görünür, sayfanın
-    // kendisi (exam-prep/page.tsx) uygun olmayan dil çiftleri için nazik bir
-    // "kullanılamıyor" mesajı gösteriyor.
-    { href: '/exam-prep', label: EXAM_PREP_LABEL[locale], icon: GraduationCap },
-    { href: '/stats', label: t('stats'), icon: BarChart3 },
-    { href: '/profile', label: t('profile'), icon: User },
+  const dashboardItem = { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard };
+
+  const navGroups = [
+    {
+      id: 'learn',
+      label: LEARN_GROUP_LABEL[locale],
+      icon: Layers,
+      items: [
+        { href: '/words', label: t('words'), icon: BookOpen },
+        { href: '/flashcards', label: t('flashcards'), icon: Layers },
+        { href: '/quiz', label: t('quiz'), icon: HelpCircle },
+        { href: '/game', label: GAME_LABEL[locale], icon: Gamepad2 },
+        { href: '/image-scan', label: IMAGE_SCAN_LABEL[locale], icon: ScanText },
+        { href: '/roleplay', label: ROLEPLAY_LABEL[locale], icon: MessagesSquare },
+      ],
+    },
+    {
+      // V2 Yol Haritası §1.1 (9 Eylül 2026) -- Sınav Hazırlık Alanı artık bu
+      // grubun ilk maddesi (giriş noktası), Program Haritası/Çalışma
+      // Notlarım/Program (Takvim) de aynı YDS/YÖKDİL hazırlık akışının
+      // parçası olduğu için aynı grupta.
+      id: 'exam',
+      label: EXAM_GROUP_LABEL[locale],
+      icon: GraduationCap,
+      items: [
+        { href: '/exam-prep', label: EXAM_PREP_LABEL[locale], icon: GraduationCap },
+        { href: '/roadmap', label: ROADMAP_LABEL[locale], icon: Route },
+        { href: '/study-notes', label: STUDY_NOTES_LABEL[locale], icon: NotebookPen },
+        { href: '/schedule', label: t('schedule'), icon: CalendarDays },
+      ],
+    },
+    {
+      id: 'social',
+      label: SOCIAL_GROUP_LABEL[locale],
+      icon: Swords,
+      items: [
+        { href: '/duels', label: DUELS_LABEL[locale], icon: Swords },
+        { href: '/league', label: LEAGUE_LABEL[locale], icon: Trophy },
+        { href: '/quests', label: QUESTS_LABEL[locale], icon: Map },
+        { href: '/friends', label: FRIENDS_LABEL[locale], icon: Users },
+      ],
+    },
+    {
+      id: 'progress',
+      label: PROGRESS_GROUP_LABEL[locale],
+      icon: BarChart3,
+      items: [
+        { href: '/report', label: REPORT_LABEL[locale], icon: FileBarChart2 },
+        { href: '/stats', label: t('stats'), icon: BarChart3 },
+        { href: '/rewards', label: REWARDS_LABEL[locale], icon: Award },
+      ],
+    },
+    {
+      id: 'account',
+      label: ACCOUNT_GROUP_LABEL[locale],
+      icon: User,
+      items: [
+        { href: '/profile', label: t('profile'), icon: User },
+        // Sadece zaten bir kurumun üyesi olan kullanıcıya görünür (yukarıdaki effect).
+        ...(hasOrganizations ? [{ href: '/organizations', label: ORGANIZATIONS_LABEL[locale], icon: Building2 }] : []),
+      ],
+    },
   ];
 
   const handleLogout = () => { logout(); router.push('/login'); };
@@ -292,15 +372,46 @@ export function Sidebar() {
         </div>
 
       <nav className="flex-1 space-y-1">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href);
+        <Link href={dashboardItem.href}
+          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            pathname.startsWith(dashboardItem.href) ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+          }`}>
+          <dashboardItem.icon className="w-4 h-4 shrink-0" />{dashboardItem.label}
+        </Link>
+
+        {navGroups.map((group) => {
+          const GroupIcon = group.icon;
+          const groupActive = group.items.some((item) => pathname.startsWith(item.href));
+          const expanded = openGroup === group.id;
           return (
-            <Link key={href} href={href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                active ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
-              }`}>
-              <Icon className="w-4 h-4 shrink-0" />{label}
-            </Link>
+            <div key={group.id}>
+              <button
+                type="button"
+                onClick={() => setOpenGroup((cur) => (cur === group.id ? null : group.id))}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  groupActive ? 'text-blue-700 dark:text-blue-400' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                }`}
+              >
+                <GroupIcon className="w-4 h-4 shrink-0" />
+                <span className="flex-1 text-left">{group.label}</span>
+                <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+              </button>
+              {expanded && (
+                <div className="mt-1 ml-4 pl-3 border-l border-gray-100 dark:border-slate-800 space-y-1">
+                  {group.items.map(({ href, label, icon: Icon }) => {
+                    const active = pathname.startsWith(href);
+                    return (
+                      <Link key={href} href={href}
+                        className={`flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          active ? 'bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100'
+                        }`}>
+                        <Icon className="w-3.5 h-3.5 shrink-0" />{label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           );
         })}
       </nav>

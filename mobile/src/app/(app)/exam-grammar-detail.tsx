@@ -17,6 +17,7 @@ import { ScreenContainer } from '@/components/ui/ScreenContainer';
 import { ScreenNavBar } from '@/components/ui/ScreenNavBar';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
+import { ExamTacticCard } from '@/components/ExamTacticCard';
 
 // Günün Okuma Parçası (14 Ekim 2026, kullanıcı isteği -- bkz. backend
 // services/study_passage_generator.py modül docstring'i): o gün çalışılan
@@ -347,43 +348,57 @@ export default function ExamGrammarDetailScreen() {
           </Text>
           <Text style={{ fontSize: 14, marginTop: spacing.xs, lineHeight: 20, color: c.textSecondary }}>{topic.summary_tr}</Text>
 
-          <Card style={{ marginTop: spacing.lg }}>
-            {paragraphs.map((line, idx) => {
-              const isBullet = line.startsWith('- ');
-              return (
-                <Text
-                  key={idx}
-                  style={{
-                    fontSize: 14,
-                    lineHeight: 21,
-                    color: c.text,
-                    marginTop: idx === 0 ? 0 : spacing.sm,
-                    marginLeft: isBullet ? spacing.sm : 0,
-                  }}
-                >
-                  {isBullet ? `•  ${line.slice(2)}` : line}
-                </Text>
-              );
-            })}
-          </Card>
-
-          {topic.example_sentences.length > 0 ? (
+          {topic.breakdown ? (
             <View style={{ marginTop: spacing.lg }}>
-              <Text style={{ fontSize: 15, fontWeight: '700', color: c.text, marginBottom: spacing.sm }}>
-                {et.grammarExamplesTitle}
-              </Text>
-              <View style={{ gap: spacing.sm }}>
-                {topic.example_sentences.map((example, idx) => (
-                  <Card key={idx} style={{ paddingVertical: spacing.sm }}>
-                    <Text style={{ fontSize: 14, color: c.text }}>{example.en}</Text>
-                    {example.tr ? (
-                      <Text style={{ fontSize: 13, color: c.textSecondary, marginTop: 2 }}>{example.tr}</Text>
-                    ) : null}
-                  </Card>
-                ))}
-              </View>
+              <ExamTacticCard
+                collapsible={false}
+                title={topic.title_tr}
+                tactic={topic.rule_content_md}
+                examples={topic.example_sentences.map((e) => (e.tr ? `"${e.en}" ${e.tr}` : `"${e.en}"`))}
+                breakdown={topic.breakdown}
+              />
             </View>
-          ) : null}
+          ) : (
+            <>
+              <Card style={{ marginTop: spacing.lg }}>
+                {paragraphs.map((line, idx) => {
+                  const isBullet = line.startsWith('- ');
+                  return (
+                    <Text
+                      key={idx}
+                      style={{
+                        fontSize: 14,
+                        lineHeight: 21,
+                        color: c.text,
+                        marginTop: idx === 0 ? 0 : spacing.sm,
+                        marginLeft: isBullet ? spacing.sm : 0,
+                      }}
+                    >
+                      {isBullet ? `•  ${line.slice(2)}` : line}
+                    </Text>
+                  );
+                })}
+              </Card>
+
+              {topic.example_sentences.length > 0 ? (
+                <View style={{ marginTop: spacing.lg }}>
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: c.text, marginBottom: spacing.sm }}>
+                    {et.grammarExamplesTitle}
+                  </Text>
+                  <View style={{ gap: spacing.sm }}>
+                    {topic.example_sentences.map((example, idx) => (
+                      <Card key={idx} style={{ paddingVertical: spacing.sm }}>
+                        <Text style={{ fontSize: 14, color: c.text }}>{example.en}</Text>
+                        {example.tr ? (
+                          <Text style={{ fontSize: 13, color: c.textSecondary, marginTop: 2 }}>{example.tr}</Text>
+                        ) : null}
+                      </Card>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+            </>
+          )}
 
           {topic.common_mistakes.length > 0 ? (
             <View style={{ marginTop: spacing.lg }}>
