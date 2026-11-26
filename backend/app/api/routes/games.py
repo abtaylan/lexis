@@ -119,6 +119,8 @@ from app.schemas.games import (
     GameWordOption,
     GuessLetterRequest,
     GuessLetterResponse,
+    LingoGuessRequest,
+    LingoGuessResponse,
     NextWordResponse,
     PoolSource,
     WeakDifficultyItem,
@@ -142,6 +144,14 @@ DISTRACTOR_FETCH_LIMIT = 30
 
 # Adam asmaca (wordle) modu için izin verilen yanlış tahmin hakkı
 MAX_WRONG_GUESSES = 6
+
+# Lingo modu sabitleri (26 Kasim 2026) -- bkz. 123_lingo_game_mode.sql.
+# Gercek TRT1 "Lingo Turkiye" formati 4 -> 5 -> 6 harfe yukseliyor; Lexis'te
+# oturum bitmeyen bir akis oldugu icin bu dizi tekrar eder (indeks %
+# len(dizi)) -- kullanici istedigi kadar oynayabilir.
+LINGO_MAX_GUESSES = 5
+LINGO_START_POT = 10
+LINGO_LENGTH_SEQUENCE = [4, 4, 5, 5, 6, 6]
 
 
 def _get_profile_langs(user_id: str) -> tuple[str, str]:
@@ -502,6 +512,30 @@ def _choose_general_word(
     return random.choice(fresh or candidates)
 
 
+def _choose_word_by_length(
+    learning_lang: str, native_lang: str, length: int, attempted: list[str]
+) -> dict | None:
+    """Lingo modu icin TAM OLARAK `length` harfli bir genel havuz kelimesi
+    secer. PostgREST'te hesaplanmis (length()) bir filtre yok -- bunun
+    yerine SQL LIKE deseninde `_` tek bir karaktere denk geldigi icin,
+    `length` adet alt cizgiden olusan bir desen (ornegin 5 harf icin
+    "_____") TAM OLARAK o uzunluktaki kelimeleri eslestirir (ne fazlasini
+    ne azini). Birden fazla kelimeden olusan / bosluklu girisler bu
+    yuzden -- bilincli olarak -- hic eslesmez (Lingo tek kelimelik bir
+    oyun)."""
+    pattern = "_" * length
+    candidates = (
+        _general_pool_query(learning_lang, native_lang, attempted, Direction.word_to_meaning.value)
+        .like("word", pattern)
+        .limit(CANDIDATE_FETCH_LIMIT)
+        .execute()
+        .data
+    ) or []
+    if not candidates:
+        return None
+    return random.choice(candidates)
+
+
 def _prior_attempt_count(
     session_id: str,
     word_id: str | None,
@@ -553,6 +587,32 @@ def _reveal_pattern(word: str, guessed_letters: list[str]) -> str:
         else:
             chars.append("_")
     return " ".join(chars)
+
+
+def _lingo_feedback(guess: str, target: str) -> list[str]:
+    """Klasik Wordle/Lingo renk kodlamasi -- iki gecisli, TEKRARLANAN
+    harfleri dogru sayan standart algoritma:
+    1. gecis: pozisyonu tam dogru olanlari 'correct' isaretle, o harfi
+       hedefin kullanilabilir havuzundan dus (tekrar sayilmasin).
+    2. gecis: kalan harfler icin, hedefin kalan havuzunda VARSA
+       'present', yoksa 'absent'.
+    guess ile target ayni uzunlukta olmali (cagiran yerde dogrulanir --
+    lingo_guess endpoint'i farkli uzunlugu 422 ile reddeder)."""
+    n = len(target)
+    result = ["absent"] * n
+    pool: list[str | None] = list(target)
+    for i in range(min(n, len(guess))):
+        if guess[i] == pool[i]:
+            result[i] = "correct"
+            pool[i] = None
+    for i in range(min(n, len(guess))):
+        if result[i] == "correct":
+            continue
+        ch = guess[i]
+        if ch in pool:
+            result[i] = "present"
+            pool[pool.index(ch)] = None
+    return result
 
 
 def _fetch_word_text(word_id: str | None, general_word_id: str | None) -> str:
@@ -768,6 +828,53 @@ async def next_word(
                 word_hints=chosen.get("word_hints") or [],
                 topic_tag=chosen.get("topic_tag"),
                 level=chosen.get("level"),
+            )
+
+        # "Lingo" (26 Kasim 2026) -- grammar_sentence ile AYNI nedenle
+        # (pool_source'a BAGLI DEGIL -- always general, length-constrained)
+        # asagidaki own/general dallanmasinin TAMAMEN DISINDA, en ustte ele
+        # alinir. Gizli kelime metni istemciye GONDERILMEZ (wordle modu ile
+        # ayni guvenlik modeli) -- bkz. 123_lingo_game_mode.sql.
+        if mode == GameMode.lingo.value:
+            lingo_learning_lang, lingo_native_lang = _get_profile_langs(current_user.id)
+            lingo_attempted = _attempted_ids(session_id, "general_word_id")
+            word_index = int((session.get("state") or {}).get("lingo_word_index", 0))
+            length = LINGO_LENGTH_SEQUENCE[word_index % len(LINGO_LENGTH_SEQUENCE)]
+            lingo_chosen = _choose_word_by_length(
+                lingo_learning_lang, lingo_native_lang, length, lingo_attempted
+            )
+            if lingo_chosen is None:
+                # Bu uzunlukta havuzda kelime kalmadi -- bir sonraki
+                # uzunluga gecip bir kez daha dene (dizi dongusel).
+                word_index += 1
+                length = LINGO_LENGTH_SEQUENCE[word_index % len(LINGO_LENGTH_SEQUENCE)]
+                lingo_chosen = _choose_word_by_length(
+                    lingo_learning_lang, lingo_native_lang, length, lingo_attempted
+                )
+            if lingo_chosen is None:
+                return NextWordResponse(finished=True)
+
+            supabase_admin.table("game_sessions").update(
+                {
+                    "state": {
+                        "current_word_id": None,
+                        "current_general_word_id": lingo_chosen["id"],
+                        "lingo_guesses": [],
+                        "lingo_pot": LINGO_START_POT,
+                        "lingo_word_index": word_index + 1,
+                    }
+                }
+            ).eq("id", session_id).execute()
+
+            return NextWordResponse(
+                finished=False,
+                general_word_id=lingo_chosen["id"],
+                meaning=lingo_chosen["meaning"],
+                lingo_word_length=length,
+                lingo_locked=[None] * length,
+                lingo_max_guesses=LINGO_MAX_GUESSES,
+                lingo_guesses_used=0,
+                lingo_pot=LINGO_START_POT,
             )
 
         if pool_source == "own":
@@ -1284,6 +1391,134 @@ async def guess_letter(
         guessed_letters=guessed,
         wrong_guesses=wrong_guesses,
         max_wrong_guesses=MAX_WRONG_GUESSES,
+        is_complete=is_complete,
+        is_game_over=is_game_over,
+        word=word_text if round_ended else None,
+        xp_awarded=xp_awarded,
+        leveled_up=leveled_up,
+        new_level=new_level,
+    )
+
+
+@router.post(
+    "/sessions/{session_id}/lingo/guess",
+    response_model=LingoGuessResponse,
+    status_code=201,
+)
+async def lingo_guess(
+    session_id: str,
+    req: LingoGuessRequest,
+    current_user=Depends(get_current_user),
+):
+    """Lingo modunda tam kelime tahmini gonderir -- TRT1 "Lingo Turkiye"
+    formatindan uyarlanmistir (bkz. 123_lingo_game_mode.sql modul notu).
+    Harf harf degil, HER SEFERINDE o uzunlukta TAM bir kelime gonderilir;
+    sunucu Wordle tarzi pozisyon bazli geri bildirim doner (correct/
+    present/absent) ve dogru pozisyonda bulunan harfler bu turdaki TUM
+    tahminler boyunca kalici olarak 'locked' kalir -- asil Lingo'nun
+    Wordle'dan farki budur."""
+    session = _get_session(session_id, current_user.id)
+    if session.get("ended_at"):
+        raise HTTPException(status_code=400, detail="Oturum zaten bitmiş.")
+    if session["mode"] != GameMode.lingo.value:
+        raise HTTPException(status_code=400, detail="Bu endpoint sadece lingo modu içindir.")
+
+    state = session.get("state") or {}
+    word_id = state.get("current_word_id")
+    general_word_id = state.get("current_general_word_id")
+    if not word_id and not general_word_id:
+        raise HTTPException(
+            status_code=400, detail="Aktif bir tur yok, önce next-word çağırın."
+        )
+
+    word_text = _fetch_word_text(word_id, general_word_id)
+    target = word_text.lower()
+    length = len(target)
+
+    guess = req.word.strip().lower()
+    if len(guess) != length:
+        raise HTTPException(
+            status_code=422, detail=f"Tahmininiz {length} harfli olmalı."
+        )
+
+    guesses = list(state.get("lingo_guesses", []))
+    pot = int(state.get("lingo_pot", LINGO_START_POT))
+
+    feedback = _lingo_feedback(guess, target)
+    guesses.append({"word": guess, "feedback": feedback})
+    pot = max(0, pot - 1)
+
+    locked: list[str | None] = [None] * length
+    for g in guesses:
+        for i, f in enumerate(g["feedback"]):
+            if f == "correct":
+                locked[i] = g["word"][i]
+
+    is_complete = guess == target
+    is_game_over = (not is_complete) and (
+        len(guesses) >= LINGO_MAX_GUESSES or pot <= 0
+    )
+    round_ended = is_complete or is_game_over
+
+    xp_awarded = 0
+    leveled_up = False
+    new_level = None
+
+    if round_ended:
+        if is_complete:
+            xp_result = await award_xp(
+                user_id=current_user.id,
+                source_type="game_lingo",
+                amount=max(1, pot),
+                source_id=session_id,
+            )
+            xp_awarded = xp_result.amount_awarded
+            leveled_up = xp_result.leveled_up
+            new_level = xp_result.level
+
+        supabase_admin.table("game_attempts").insert(
+            {
+                "session_id": session_id,
+                "word_id": word_id,
+                "general_word_id": general_word_id,
+                "is_correct": is_complete,
+                "attempts_count": len(guesses),
+                "xp_awarded": xp_awarded,
+            }
+        ).execute()
+
+        _sync_word_progress(current_user.id, word_id, general_word_id, is_complete)
+
+        lingo_learning_lang, _ = _get_profile_langs(current_user.id)
+        await update_streak(current_user.id, "word_reviewed", learning_lang=lingo_learning_lang)
+
+        new_score = session["score"] + (1 if is_complete else 0)
+        new_xp_earned = session["xp_earned"] + xp_awarded
+        supabase_admin.table("game_sessions").update(
+            {
+                "score": new_score,
+                "xp_earned": new_xp_earned,
+                "state": {
+                    **state,
+                    "current_word_id": None,
+                    "current_general_word_id": None,
+                    "lingo_guesses": guesses,
+                    "lingo_pot": pot,
+                },
+            }
+        ).eq("id", session_id).execute()
+    else:
+        supabase_admin.table("game_sessions").update(
+            {"state": {**state, "lingo_guesses": guesses, "lingo_pot": pot}}
+        ).eq("id", session_id).execute()
+
+    return LingoGuessResponse(
+        guess=guess,
+        feedback=feedback,
+        locked=locked,
+        guesses_used=len(guesses),
+        max_guesses=LINGO_MAX_GUESSES,
+        pot=pot,
         is_complete=is_complete,
         is_game_over=is_game_over,
         word=word_text if round_ended else None,

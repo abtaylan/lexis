@@ -22,6 +22,11 @@ XPSourceType = Literal[
     "schedule_complete",
     "daily_goal_bonus",
     "game_wordle",
+    # "Lingo" (26 Kasim 2026) -- games.py::lingo_guess dinamik degil,
+    # wordle (adam asmaca) ile AYNI sabit-isim deseniyle (dedike uc nokta
+    # kendi XP cagrisini yapiyor, submit_attempt uzerinden gecmiyor) sabit
+    # "game_lingo" kullanir -- bkz. 123_lingo_game_mode.sql.
+    "game_lingo",
     "game_multiple_choice",
     "game_multiple_choice_reverse",
     "game_multiple_choice_definition",
@@ -121,6 +126,10 @@ XP_AMOUNTS: dict[str, int] = {
     "schedule_complete": 10,
     "daily_goal_bonus": 20,
     "game_wordle": 15,
+    # Gercek XP miktari games.py::lingo_guess tarafindan HER ZAMAN acik
+    # `amount=` olarak gecilir (kalan kasa puanina gore degisir) -- bu
+    # deger sadece guvenlik agi/varsayilan (amount verilmeden cagrilirsa).
+    "game_lingo": 10,
     "game_multiple_choice": 3,
     "game_multiple_choice_reverse": 6,
     # Faz 2 — İngilizce tanım -> İngilizce kelime (monolingual, en zor yön)

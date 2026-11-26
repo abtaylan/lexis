@@ -20,6 +20,9 @@ class GameMode(str, Enum):
     fill_blank = "fill_blank"
     true_false = "true_false"
     word_chain = "word_chain"
+    # "Lingo" (26 Kasim 2026, kullanici istegi: "Lingo Turkiye" TRT1
+    # formatindan uyarlama) -- bkz. 123_lingo_game_mode.sql modul notu.
+    lingo = "lingo"
     # "Gramer Cümle Kurma" (23 Ekim 2026, Behçet'in kullanıcı isteği) —
     # sentence_building ile AYNI next-word/attempt akışı ama pool_source'a
     # BAĞLI DEĞİL -- her zaman game_grammar_sentences'tan beslenir (bkz.
@@ -79,6 +82,16 @@ class NextWordResponse(BaseModel):
     word_length: int | None = None
     revealed: str | None = None  # örn. "_ e _ _ e" (harf aralarında boşluk)
     max_wrong_guesses: int | None = None
+    # ── lingo moduna özel alanlar (26 Kasım 2026) — bkz.
+    # 123_lingo_game_mode.sql modül notu + GuessLetterResponse altındaki
+    # LingoGuessRequest/LingoGuessResponse. Harf-harf değil TAM KELİME
+    # tahmini — wordle (adam asmaca) ile aynı güvenlik modeli (kelime
+    # metni istemciye asla erken gönderilmez), ama farklı geri bildirim.
+    lingo_word_length: int | None = None
+    lingo_locked: list[str | None] | None = None  # pozisyon başına kilitli (doğrulanmış) harf, yoksa None
+    lingo_max_guesses: int | None = None
+    lingo_guesses_used: int | None = None
+    lingo_pot: int | None = None  # kalan "kasa" puanı — kelimeyi ne kadar erken bulursan o kadar yüksek kalır
     # ── sentence_building (cümle kurma) moduna özel alan ──
     # DOĞRU sırada gönderilir (word_to_meaning'de kelimenin kendisinin
     # gönderilmesiyle AYNI güven modeli) — istemci kendi karıştırır, kendi
@@ -146,6 +159,32 @@ class GuessLetterResponse(BaseModel):
     max_wrong_guesses: int
     is_complete: bool  # kelime tamamen bulundu
     is_game_over: bool  # yanlış hakkı bitti, kelime bulunamadı
+    word: str | None = None  # sadece tur bittiğinde (is_complete/is_game_over) dolu
+    xp_awarded: int = 0
+    leveled_up: bool = False
+    new_level: int | None = None
+
+
+class LingoGuessRequest(BaseModel):
+    word: str = Field(min_length=1, max_length=12)
+
+
+class LingoGuessResponse(BaseModel):
+    """Lingo modunda tam-kelime tahmininin sonucu. `feedback` ve `locked`
+    her zaman hedef kelimeyle AYNI uzunlukta dizilerdir; feedback[i] ∈
+    {"correct", "present", "absent"} (Wordle tarzı), locked[i] ise bu
+    turdaki TÜM tahminler boyunca kümülatif olarak kilitlenmiş (doğru
+    pozisyonda doğrulanmış) harftir — bir sonraki tahmin için istemci
+    bu pozisyonları önceden doldurup sadece kalanları sorabilir."""
+
+    guess: str
+    feedback: list[str]
+    locked: list[str | None]
+    guesses_used: int
+    max_guesses: int
+    pot: int
+    is_complete: bool  # kelime tamamen bulundu
+    is_game_over: bool  # tahmin hakkı/kasa bitti, kelime bulunamadı
     word: str | None = None  # sadece tur bittiğinde (is_complete/is_game_over) dolu
     xp_awarded: int = 0
     leveled_up: bool = False

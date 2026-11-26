@@ -1,0 +1,66 @@
+-- 123_lingo_game_mode.sql
+--
+-- "Lingo" oyun modu -- 26 Kasim 2026, kullanici istegi: "yeni oyun
+-- modelimiz olacak, bu turkce versiyonu, bu oyun lingo turkiye adli
+-- yarismaya ait, trt de yayinlaniyor... bu oyun tek kisi olarak sisteme
+-- karsi oynayabiliriz, ayrica duello mantigi olarak sistemi kullanan
+-- herhangi bir user ile de karsilikli oynayabiliriz".
+--
+-- LINGO TURKIYE (TRT1) MEKANIGI -- arastirma + kullanicinin ekran
+-- goruntulerinden dogrulandi:
+--   - Gizli kelime N harfli (program 4 -> 5 -> 6 harfe yukseliyor).
+--   - Oyuncu HER SEFERINDE o uzunlukta TAM bir kelime soyler (harf harf
+--     DEGIL -- bu da Wordle'dan degil, hangman/adam-asmaca'dan (games.py
+--     mode='wordle', hala o isimle duruyor) farkini acikliyor).
+--   - Her harf Wordle tarzi renklendirilir: yesil = dogru harf+dogru yer,
+--     turuncu = dogru harf+yanlis yer, lacivert/gri = kelimede yok.
+--   - ASIL LINGO FARKI: bir pozisyon bir kez yesil (dogru) olarak
+--     kilitlendiginde, bir SONRAKI tahminde o harf sabit kalir/tekrar
+--     yazilmasi gerekmez -- oyuncu sadece KALAN harfleri bulmaya calisir.
+--     Kullanicinin ekran goruntusundeki "S A . E ." satiri tam olarak
+--     budur (S, A, E onceki tahminlerden kilitli, pozisyon 3 ve 5 hala
+--     aciк).
+--   - Sinirli tahmin hakki (5) + azalan bir "kasa" puani (ekran
+--     goruntusunde 8 -> 7 gibi) -- kelimeyi ne kadar erken bulursan o
+--     kadar cok puan/XP kazanirsin.
+--
+-- LEXIS UYARLAMASI (V1 -- bu migration SADECE TEK OYUNCULU "sisteme
+-- karsi" modu kurar, bkz. asagidaki "SONRAKI FAZ" notu duello icin):
+--   - Gizli kelime general_word_pool'dan (zaten 12 dilin hepsinde var)
+--     TAM ISTENEN UZUNLUKTA secilir -- PostgREST'te length() filtresi
+--     olmadigi icin SQL LIKE'da `_` = "tek bir karakter" ozelligi
+--     kullanilir (ornek: 5 harf icin desen "_____" -- bkz.
+--     games.py::_choose_word_by_length). Ayri bir "lingo_words" katalog
+--     tablosuna GEREK YOK, var olan havuz zaten yeterli.
+--   - Mevcut mode='wordle' (adam asmaca) gibi, gizli kelime METNI
+--     istemciye ASLA erken gonderilmez -- games.py::game_sessions.state
+--     (jsonb) deseni AYNEN kullanilir (lingo_guesses, lingo_pot,
+--     lingo_word_index alanlari) -- YENI BIR TABLO GEREKMEDI.
+--   - Ogrenme amacli EK DEGER: gercek TV formatindan farkli olarak,
+--     Lexis kullaniciya kelimenin ANLAMINI da gosterir (meaning alani,
+--     tahmin ederken ipucu/ogrenme amacli) -- bu bir kelime ogrenme
+--     uygulamasi oldugu icin bilincli bir sapma.
+--
+-- SONRAKI FAZ (bu migration'da YAPILMADI, backlog): "sistemi kullanan
+-- herhangi bir user ile duello" -- mevcut duels/duel_rounds/duel_answers
+-- altyapisi (037_duels_schema.sql) + mode='wordle' icin 076_duel_wordle_
+-- mode.sql'de kurulan "ayni desenin lingo icin tekrari" yeterli olacak:
+-- duels.mode icin yeni bir deger ('lingo'), duel_answers'a lingo_guesses
+-- jsonb kolonu, duels.py'de guess-letter'in karsiligi bir guess-word
+-- ucu + bot simulasyonu + tur ilerletme dallanmasi. Klasik Lingo'nun
+-- "dogru pozisyonlu harf bulan rakibe sira gecer" riskli-bilgi mekanigi
+-- de bu fazda duel_rounds bazinda (kim once kilitli harf acarsa sira
+-- degisir) uygulanacak. Bu, mevcut wordle-duello ozelliginin kendisi
+-- kadar buyuk bir is oldugu icin BILINCLI olarak ayri bir oturuma
+-- birakildi (UI'siz altyapi riskini tekrarlamamak icin, ayni anda
+-- hem backend hem frontend tamamlanmadan push edilmeyecek).
+--
+-- game_mode enum'u zaten PUBLIC (006_xp_and_games.sql) -- yeni bir deger
+-- eklemek yeterli, CREATE TYPE'a dokunulmuyor.
+ALTER TYPE public.game_mode ADD VALUE IF NOT EXISTS 'lingo';
+
+-- XP kaynak tipi (app/services/xp_service.py::XPSourceType ile BIRLIKTE
+-- guncellenmeli -- aksi halde award_xp() 500/503 verir, kural zaten
+-- lexis.md'de kayitli -- bkz. migration 038/039/069/071/084/095 hepsi
+-- bunun ayni deseni).
+ALTER TYPE public.xp_source_type ADD VALUE IF NOT EXISTS 'game_lingo';
