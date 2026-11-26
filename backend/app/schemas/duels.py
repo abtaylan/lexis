@@ -19,7 +19,7 @@ class DuelCreate(BaseModel):
     deseniyle tutarlı, DB tarafında zaten aynı public.game_mode enum'u)."""
 
     learning_lang: str | None = None
-    mode: str = Field(default="multiple_choice", pattern="^(multiple_choice|wordle)$")
+    mode: str = Field(default="multiple_choice", pattern="^(multiple_choice|wordle|lingo)$")
     max_players: int = Field(default=8, ge=2, le=20)
     round_count: int = Field(default=10, ge=1, le=50)
 
@@ -86,6 +86,21 @@ class DuelRoundPublic(BaseModel):
     guessed_letters: list[str] | None = None
     wrong_guesses: int | None = None
     max_wrong_guesses: int | None = None
+    # lingo alanlari (26 Kasim 2026 -- "sistemdeki kullanicilarla da
+    # oynanacak" kullanici istegi uzerine duello fazi). lingo_guesses, bu
+    # kullanicinin BU turda simdiye kadar gonderdigi tam-kelime tahminlerinin
+    # tam gecmisi (her biri {"word":..., "feedback":[...]})-- istemci
+    # sayfayi yeniden actiginda/katildiginda TUM tahmin tahtasini (Wordle
+    # tarzi satirlari) buradan yeniden olusturabilsin diye (wordle
+    # modundaki tek "revealed" string'inden farkli olarak burada TAM
+    # gecmis donuluyor cunku Lingo'da tahminler tek harf degil, tam
+    # kelime -- satir satir goruntulenmesi gerekir).
+    lingo_word_length: int | None = None
+    lingo_locked: list[str | None] | None = None
+    lingo_guesses: list[dict] | None = None
+    lingo_pot: int | None = None
+    lingo_guesses_used: int | None = None
+    lingo_max_guesses: int | None = None
     started_at: datetime | None = None
     ends_at: datetime | None = None
 
@@ -114,7 +129,7 @@ class DuelInviteCreate(BaseModel):
     etmek -- accept sirasinda oda dolu degilse eklenir)."""
 
     username: str
-    mode: str = Field(default="multiple_choice", pattern="^(multiple_choice|wordle)$")
+    mode: str = Field(default="multiple_choice", pattern="^(multiple_choice|wordle|lingo)$")
     max_players: int = Field(default=2, ge=2, le=8)
     round_count: int = Field(default=10, ge=1, le=50)
 
@@ -156,6 +171,33 @@ class DuelGuessLetterResponse(BaseModel):
     guessed_letters: list[str]
     wrong_guesses: int
     max_wrong_guesses: int
+    is_complete: bool
+    is_round_over: bool
+    word: str | None = None
+    score: int
+    first_to_finish: bool = False
+
+
+# ============================================================
+# Faz 3i (26 Kasim 2026 kullanici istegi -- "sadece sisteme karsi degil,
+# sistemdeki kullanicilarla da oynanacak") -- mode='lingo' duellolarina
+# ozel round-servis uclari. games.py::LingoGuessRequest/Response ile AYNI
+# alan adlari (istemci tarafinda tek-oyunculu Lingo ekraniyla ayni
+# bilesenler yeniden kullanilabilsin diye), farki: DuelGuessLetterResponse
+# ile ayni ilkeyle is_round_over (bu KULLANICI icin bitti mi) ve
+# first_to_finish (yaris bonusu) alanlari.
+# ============================================================
+class DuelLingoGuessRequest(BaseModel):
+    word: str = Field(min_length=1, max_length=12)
+
+
+class DuelLingoGuessResponse(BaseModel):
+    guess: str
+    feedback: list[str]
+    locked: list[str | None]
+    guesses_used: int
+    max_guesses: int
+    pot: int
     is_complete: bool
     is_round_over: bool
     word: str | None = None

@@ -42,6 +42,8 @@ from app.schemas.duels import (
     DuelInviteCreate,
     DuelInviteItem,
     DuelInvitesListResponse,
+    DuelLingoGuessRequest,
+    DuelLingoGuessResponse,
     DuelListResponse,
     DuelParticipantItem,
     DuelResponse,
@@ -79,6 +81,22 @@ BOT_FILL_INITIAL_DELAY_SECONDS = 10
 BOT_FILL_INTERVAL_SECONDS = 20
 BOT_FILL_MAX_TOTAL = 4
 BOT_ANSWER_ACCURACY = {"kolay": 0.5, "orta": 0.7, "zor": 0.85, "usta": 0.95}
+
+# Faz 3i (26 Kasim 2026 kullanici istegi -- "sadece sisteme karsi degil,
+# sistemdeki kullanicilarla da oynanacak") -- mode='lingo' duellolarina
+# ozel sabitler. games.py::LINGO_MAX_GUESSES/LINGO_START_POT/
+# LINGO_LENGTH_SEQUENCE ile AYNI degerler (tek-oyunculu Lingo ile tutarli
+# oyun hissi) -- cross-module import yerine bilincli tekrar, bu dosyadaki
+# MAX_WRONG_GUESSES / _reveal_pattern ile AYNI ilke (route modulleri
+# arasinda bagimlilik kurulmuyor).
+LINGO_MAX_GUESSES = 5
+LINGO_START_POT = 10
+LINGO_LENGTH_SEQUENCE = [4, 4, 5, 5, 6, 6]
+# Tam kelime yazmak tek harf tiklamaktan daha uzun surdugu icin wordle
+# duellosundan (45sn) biraz daha uzun bir sure.
+LINGO_ROUND_DURATION_SECONDS = 60
+LINGO_COMPLETE_POINTS = 10
+LINGO_FIRST_FINISH_BONUS = 5
 
 
 def _get_learning_lang(user_id: str) -> str:
@@ -387,6 +405,52 @@ def _fetch_round_word_text(round_row: dict) -> str:
     return word
 
 
+def _lingo_feedback(guess: str, target: str) -> list[str]:
+    """games.py::_lingo_feedback ile BIREBIR AYNI -- iki geçişli Wordle
+    algoritması (tekrarlı harfleri doğru ele alır). Cross-module import
+    yerine bilinçli tekrar, bu dosyadaki _reveal_pattern ile AYNI ilke."""
+    n = len(target)
+    result = ["absent"] * n
+    pool: list[str | None] = list(target)
+    for i in range(min(n, len(guess))):
+        if guess[i] == pool[i]:
+            result[i] = "correct"
+            pool[i] = None
+    for i in range(min(n, len(guess))):
+        if result[i] == "correct":
+            continue
+        ch = guess[i]
+        if ch in pool:
+            result[i] = "present"
+            pool[pool.index(ch)] = None
+    return result
+
+
+def _fetch_length_candidates(learning_lang: str, length: int) -> list[dict]:
+    """Lingo duellolari icin uzunluga gore kelime adaylari -- games.py::
+    _choose_word_by_length'teki AYNI LIKE "_" (tek karakter = tek harf)
+    deseni, ama burada TEK bir rastgele secim yerine TUM adaylari ceker
+    ki _generate_lingo_rounds turlar arasinda TEKRARSIZ secim yapabilsin
+    (_fetch_band_candidates ile AYNI ilke)."""
+    pattern = "_" * length
+    rows = (
+        supabase_admin.table("general_word_pool")
+        .select("id, word")
+        .eq("source_lang", learning_lang)
+        .eq("is_active", True)
+        .like("word", pattern)
+        .limit(ROUND_CANDIDATE_FETCH_LIMIT)
+        .execute()
+        .data
+    ) or []
+    unique: dict[str, dict] = {}
+    for row in rows:
+        key = row["word"].strip().lower()
+        if key not in unique:
+            unique[key] = row
+    return list(unique.values())
+
+
 def _generate_wordle_rounds(duel_id: str, learning_lang: str, round_count: int) -> int:
     """mode='wordle' duellolari icin tur uretimi -- _generate_rounds ile
     AYNI havuz/kademe (_difficulty_band_for_round, _fetch_band_candidates)
@@ -439,41 +503,130 @@ def _generate_wordle_rounds(duel_id: str, learning_lang: str, round_count: int) 
     return len(rounds_to_insert)
 
 
+def _generate_lingo_rounds(duel_id: str, learning_lang: str, round_count: int) -> int:
+    """mode='lingo' duellolari icin tur uretimi -- _generate_wordle_rounds
+    ile AYNI ilke (distractor/options gerekmez: options=[] correct_option=
+    secilen kelime), ama kelime uzunlugu _difficulty_band_for_round'a
+    DEGIL, TV formatindaki gibi round_index'e gore LINGO_LENGTH_SEQUENCE'a
+    (4->4->5->5->6->6, games.py'deki AYNI dizi) gore belirlenir -- Lingo
+    Turkiye'de zorluk sadece kelime uzunlugundan gelir, kolay/orta/zor
+    kademesi (diger modlardaki gibi) YOK.
+
+    Bir uzunlukta havuzda hic aday kalmamissa (kucuk bir dil icin olasi)
+    o round_index ATLANIR (round_count'tan AZ tur uretilebilir -- diger
+    uretici fonksiyonlarla AYNI, advance_round zaten "uretilen tur sayisi
+    kadar" davraniyor)."""
+    used_words: set[str] = set()
+    rounds_to_insert = []
+    actual_index = 0
+
+    for index in range(round_count):
+        length = LINGO_LENGTH_SEQUENCE[index % len(LINGO_LENGTH_SEQUENCE)]
+        candidates = [
+            w
+            for w in _fetch_length_candidates(learning_lang, length)
+            if w["word"].strip().lower() not in used_words
+        ]
+        if not candidates:
+            continue
+
+        chosen = random.choice(candidates)
+        used_words.add(chosen["word"].strip().lower())
+
+        rounds_to_insert.append(
+            {
+                "duel_id": duel_id,
+                "round_index": actual_index,
+                "general_word_id": chosen["id"],
+                "options": [],
+                "correct_option": chosen["word"],
+            }
+        )
+        actual_index += 1
+
+    if rounds_to_insert:
+        supabase_admin.table("duel_rounds").insert(rounds_to_insert).execute()
+    return len(rounds_to_insert)
+
+
 def _round_public_response(duel: dict, round_row: dict, user_id: str) -> DuelRoundPublic:
     """get_current_round/begin_current_round icin ORTAK yanit olusturucu --
     duel['mode']'a gore dallanir. wordle modunda bu KULLANICIYA ait
     duel_answers ilerleme satirini (varsa) okuyup revealed/guessed_letters/
     wrong_guesses'i doldurur; satir yoksa (henuz hic harf tahmin
     edilmemis) bos/varsayilan degerlerle (tum kelime '_' olarak) doner."""
-    if duel["mode"] != "wordle":
+    if duel["mode"] == "wordle":
+        word_text = _fetch_round_word_text(round_row)
+        answer_row = (
+            supabase_admin.table("duel_answers")
+            .select("guessed_letters, wrong_guesses")
+            .eq("duel_round_id", round_row["id"])
+            .eq("user_id", user_id)
+            .execute()
+            .data
+        )
+        guessed_letters = (answer_row[0]["guessed_letters"] if answer_row else []) or []
+        wrong_guesses = (answer_row[0]["wrong_guesses"] if answer_row else 0) or 0
+
         return DuelRoundPublic(
             round_index=round_row["round_index"],
-            mode=duel["mode"],
-            definition=_definition_for_round(round_row),
-            options=round_row["options"],
+            mode="wordle",
+            revealed=_reveal_pattern(word_text, guessed_letters),
+            guessed_letters=guessed_letters,
+            wrong_guesses=wrong_guesses,
+            max_wrong_guesses=MAX_WRONG_GUESSES,
             started_at=round_row.get("started_at"),
             ends_at=round_row.get("ends_at"),
         )
 
-    word_text = _fetch_round_word_text(round_row)
-    answer_row = (
-        supabase_admin.table("duel_answers")
-        .select("guessed_letters, wrong_guesses")
-        .eq("duel_round_id", round_row["id"])
-        .eq("user_id", user_id)
-        .execute()
-        .data
-    )
-    guessed_letters = (answer_row[0]["guessed_letters"] if answer_row else []) or []
-    wrong_guesses = (answer_row[0]["wrong_guesses"] if answer_row else 0) or 0
+    if duel["mode"] == "lingo":
+        # Faz 3i (26 Kasim 2026) -- wordle dalindaki ayni ilke: SADECE
+        # cagiran KULLANICININ KENDI duel_answers satiri okunur (rakibin/
+        # botun tahminleri asla bu ucten sizdirilmaz). lingo_guesses'in
+        # TAM gecmisi (sadece turetilmis 'locked' degil) donuluyor ki
+        # istemci sayfayi yeniden actiginda tum Wordle-tarzi tahmin
+        # tahtasini (satir satir) yeniden olusturabilsin.
+        word_text = _fetch_round_word_text(round_row)
+        length = len(word_text)
+        answer_row = (
+            supabase_admin.table("duel_answers")
+            .select("lingo_guesses, lingo_pot")
+            .eq("duel_round_id", round_row["id"])
+            .eq("user_id", user_id)
+            .execute()
+            .data
+        )
+        guesses = (answer_row[0]["lingo_guesses"] if answer_row else []) or []
+        pot = (
+            answer_row[0]["lingo_pot"]
+            if answer_row and answer_row[0].get("lingo_pot") is not None
+            else LINGO_START_POT
+        )
+
+        locked: list[str | None] = [None] * length
+        for g in guesses:
+            for i, f in enumerate(g["feedback"]):
+                if f == "correct":
+                    locked[i] = g["word"][i]
+
+        return DuelRoundPublic(
+            round_index=round_row["round_index"],
+            mode="lingo",
+            lingo_word_length=length,
+            lingo_locked=locked,
+            lingo_guesses=guesses,
+            lingo_pot=pot,
+            lingo_guesses_used=len(guesses),
+            lingo_max_guesses=LINGO_MAX_GUESSES,
+            started_at=round_row.get("started_at"),
+            ends_at=round_row.get("ends_at"),
+        )
 
     return DuelRoundPublic(
         round_index=round_row["round_index"],
-        mode="wordle",
-        revealed=_reveal_pattern(word_text, guessed_letters),
-        guessed_letters=guessed_letters,
-        wrong_guesses=wrong_guesses,
-        max_wrong_guesses=MAX_WRONG_GUESSES,
+        mode=duel["mode"],
+        definition=_definition_for_round(round_row),
+        options=round_row["options"],
         started_at=round_row.get("started_at"),
         ends_at=round_row.get("ends_at"),
     )
@@ -727,6 +880,116 @@ def _auto_complete_hangman_bots(duel_id: str, round_row: dict, active_ids: list[
         _submit_bot_hangman_progress(duel_id, round_row, bot["id"], bot.get("bot_difficulty") or "orta")
 
 
+def _submit_bot_lingo_progress(duel_id: str, round_row: dict, bot_id: str, difficulty: str) -> None:
+    """mode='lingo' icin _submit_bot_hangman_progress'in karsiligi -- bot
+    katilimci icin bu turu BASTAN SONA simule eder. Bu satirin icerigi
+    HIC KIMSEYE GOSTERILMEZ (_round_public_response SADECE cagiran
+    kullanicinin KENDI satirini okur, bkz. o fonksiyonun docstring'i) --
+    bu yuzden yanlis denemeler icin gercek bir sozluk kelimesi aramaya
+    gerek yok: hedef kelimenin harfleri KARISTIRILARAK ayni uzunlukta
+    gecerli (ama anlamsiz) bir "yanlis tahmin" uretilir, _submit_bot_
+    answer'daki basit bernoulli deseniyle AYNI ruhta her denemede
+    accuracy olasiligiyla dogru kelime denenir -- LINGO_MAX_GUESSES
+    denemede hic tutturamazsa bot o turu TAMAMLAYAMAMIS sayilir (hangman
+    bot simulasyonundaki "hakki tukenebilir" olasiligiyla AYNI ilke)."""
+    word_text = _fetch_round_word_text(round_row)
+    target = word_text.lower()
+    accuracy = BOT_ANSWER_ACCURACY.get(difficulty, BOT_ANSWER_ACCURACY["orta"])
+
+    guesses: list[dict] = []
+    pot = LINGO_START_POT
+    is_complete = False
+    for _attempt in range(LINGO_MAX_GUESSES):
+        if random.random() < accuracy:
+            word_guess = target
+        else:
+            shuffled = list(target)
+            random.shuffle(shuffled)
+            word_guess = "".join(shuffled)
+        feedback = _lingo_feedback(word_guess, target)
+        guesses.append({"word": word_guess, "feedback": feedback})
+        pot = max(0, pot - 1)
+        if word_guess == target:
+            is_complete = True
+            break
+
+    first_to_finish = False
+    if is_complete:
+        prior_finishers = (
+            supabase_admin.table("duel_answers")
+            .select("id", count="exact")
+            .eq("duel_round_id", round_row["id"])
+            .eq("is_correct", True)
+            .execute()
+            .count
+            or 0
+        )
+        first_to_finish = prior_finishers == 0
+
+    supabase_admin.table("duel_answers").insert(
+        {
+            "duel_round_id": round_row["id"],
+            "user_id": bot_id,
+            "selected_option": word_text,
+            "is_correct": is_complete,
+            "lingo_guesses": guesses,
+            "lingo_pot": pot,
+        }
+    ).execute()
+
+    if is_complete:
+        participant = (
+            supabase_admin.table("duel_participants")
+            .select("score")
+            .eq("duel_id", duel_id)
+            .eq("user_id", bot_id)
+            .single()
+            .execute()
+        )
+        score = (participant.data or {}).get("score", 0) + LINGO_COMPLETE_POINTS
+        if first_to_finish:
+            score += LINGO_FIRST_FINISH_BONUS
+        supabase_admin.table("duel_participants").update({"score": score}).eq(
+            "duel_id", duel_id
+        ).eq("user_id", bot_id).execute()
+
+
+def _auto_complete_lingo_bots(duel_id: str, round_row: dict, active_ids: list[str]) -> None:
+    """advance_round basinda cagrilir -- _auto_complete_hangman_bots'un
+    lingo karsiligi: bu turu henuz BITIRMEMIS (ne tamamlamis ne hakki
+    tukenmis) bot katilimcilar icin turu simule eder."""
+    if not active_ids:
+        return
+    bot_rows = (
+        supabase_admin.table("profiles")
+        .select("id, bot_difficulty")
+        .in_("id", active_ids)
+        .eq("is_bot", True)
+        .execute()
+        .data
+    ) or []
+    if not bot_rows:
+        return
+
+    progress_rows = (
+        supabase_admin.table("duel_answers")
+        .select("user_id, is_correct, lingo_guesses")
+        .eq("duel_round_id", round_row["id"])
+        .execute()
+        .data
+    ) or []
+    finished_ids = {
+        r["user_id"]
+        for r in progress_rows
+        if r.get("is_correct") or len(r.get("lingo_guesses") or []) >= LINGO_MAX_GUESSES
+    }
+
+    for bot in bot_rows:
+        if bot["id"] in finished_ids:
+            continue
+        _submit_bot_lingo_progress(duel_id, round_row, bot["id"], bot.get("bot_difficulty") or "orta")
+
+
 @router.post("", response_model=DuelResponse, status_code=201)
 async def create_duel(
     duel_in: DuelCreate,
@@ -910,6 +1173,8 @@ async def start_duel(
 
     if duel["mode"] == "wordle":
         generated = _generate_wordle_rounds(duel_id, duel["learning_lang"], duel["round_count"])
+    elif duel["mode"] == "lingo":
+        generated = _generate_lingo_rounds(duel_id, duel["learning_lang"], duel["round_count"])
     else:
         generated = _generate_rounds(duel_id, duel["learning_lang"], duel["round_count"])
     if generated == 0:
@@ -960,7 +1225,12 @@ async def begin_current_round(
 
     if not round_row.get("started_at"):
         now = datetime.now(UTC)
-        duration = WORDLE_ROUND_DURATION_SECONDS if duel["mode"] == "wordle" else ROUND_DURATION_SECONDS
+        if duel["mode"] == "wordle":
+            duration = WORDLE_ROUND_DURATION_SECONDS
+        elif duel["mode"] == "lingo":
+            duration = LINGO_ROUND_DURATION_SECONDS
+        else:
+            duration = ROUND_DURATION_SECONDS
         ends_at = now + timedelta(seconds=duration)
         updated = (
             supabase_admin.table("duel_rounds")
@@ -998,8 +1268,8 @@ async def submit_round_answer(
     # "tamamlanmis" isaretleyebiliyordu (hile/oyun butunlugu acigi).
     # submit_round_guess_letter zaten simetrik kontrolu yapiyordu
     # (mode != "wordle" -> 400), burasi eksikti.
-    if duel["mode"] == "wordle":
-        raise HTTPException(status_code=400, detail="Bu uç nokta wordle modu için kullanılamaz.")
+    if duel["mode"] in ("wordle", "lingo"):
+        raise HTTPException(status_code=400, detail="Bu uç nokta wordle/lingo modu için kullanılamaz.")
     round_row = _get_round_or_404(duel_id, duel["current_round_index"])
 
     if not round_row.get("started_at"):
@@ -1168,6 +1438,133 @@ async def submit_round_guess_letter(
     )
 
 
+@router.post("/{duel_id}/rounds/guess-word", response_model=DuelLingoGuessResponse)
+async def submit_round_guess_word(
+    duel_id: str,
+    guess_in: DuelLingoGuessRequest,
+    current_user=Depends(get_current_user),
+):
+    """mode='lingo' duellolarina ozel (26 Kasim 2026 kullanici istegi --
+    "sistemdeki kullanicilarla da oynanacak"): su anki turda TAM bir
+    kelime tahmini gonderir. games.py::lingo_guess ile AYNI mantik
+    (_lingo_feedback, kilitli-harf birikimi, azalan kasa), farki:
+    submit_round_guess_letter ile AYNI "yaris" deseni -- BIRDEN FAZLA
+    katilimci AYNI kelimede BAGIMSIZ ilerler, ilerleme duel_answers.
+    lingo_guesses/lingo_pot'ta (duel_round_id, user_id basina TEK satir)
+    birikir. Kelimeyi ilk tamamlayan katilimciya LINGO_FIRST_FINISH_BONUS
+    eklenir."""
+    duel = _get_duel_or_404(duel_id)
+    if duel["status"] != "active":
+        raise HTTPException(status_code=400, detail="Düello aktif değil.")
+    if duel["mode"] != "lingo":
+        raise HTTPException(status_code=400, detail="Bu uç nokta sadece lingo modu içindir.")
+    round_row = _get_round_or_404(duel_id, duel["current_round_index"])
+
+    if not round_row.get("started_at"):
+        raise HTTPException(status_code=400, detail="Tur henüz başlamadı.")
+    ends_at = datetime.fromisoformat(round_row["ends_at"])
+    if datetime.now(UTC) > ends_at:
+        raise HTTPException(status_code=400, detail="Bu tur için süre doldu.")
+
+    word_text = _fetch_round_word_text(round_row)
+    target = word_text.lower()
+    length = len(target)
+
+    guess = guess_in.word.strip().lower()
+    if len(guess) != length:
+        raise HTTPException(status_code=422, detail=f"Tahmininiz {length} harfli olmalı.")
+
+    existing_rows = (
+        supabase_admin.table("duel_answers")
+        .select("id, lingo_guesses, lingo_pot, is_correct")
+        .eq("duel_round_id", round_row["id"])
+        .eq("user_id", current_user.id)
+        .execute()
+        .data
+    )
+    existing = existing_rows[0] if existing_rows else None
+    guesses = list((existing or {}).get("lingo_guesses") or [])
+    pot = int(
+        (existing or {}).get("lingo_pot")
+        if existing and existing.get("lingo_pot") is not None
+        else LINGO_START_POT
+    )
+    if existing and (
+        existing.get("is_correct") or len(guesses) >= LINGO_MAX_GUESSES or pot <= 0
+    ):
+        raise HTTPException(status_code=400, detail="Bu turu bu düelloda zaten tamamladınız.")
+
+    feedback = _lingo_feedback(guess, target)
+    guesses.append({"word": guess, "feedback": feedback})
+    pot = max(0, pot - 1)
+
+    locked: list[str | None] = [None] * length
+    for g in guesses:
+        for i, f in enumerate(g["feedback"]):
+            if f == "correct":
+                locked[i] = g["word"][i]
+
+    is_complete = guess == target
+    is_round_over = is_complete or len(guesses) >= LINGO_MAX_GUESSES or pot <= 0
+    first_to_finish = False
+
+    if is_complete:
+        prior_finishers = (
+            supabase_admin.table("duel_answers")
+            .select("id", count="exact")
+            .eq("duel_round_id", round_row["id"])
+            .eq("is_correct", True)
+            .execute()
+            .count
+            or 0
+        )
+        first_to_finish = prior_finishers == 0
+
+    row_payload = {
+        "duel_round_id": round_row["id"],
+        "user_id": current_user.id,
+        "selected_option": word_text if is_round_over else None,
+        "is_correct": is_complete,
+        "lingo_guesses": guesses,
+        "lingo_pot": pot,
+    }
+    if existing:
+        supabase_admin.table("duel_answers").update(row_payload).eq("id", existing["id"]).execute()
+    else:
+        supabase_admin.table("duel_answers").insert(row_payload).execute()
+
+    participant = (
+        supabase_admin.table("duel_participants")
+        .select("score")
+        .eq("duel_id", duel_id)
+        .eq("user_id", current_user.id)
+        .single()
+        .execute()
+    )
+    score = (participant.data or {}).get("score", 0)
+    if is_complete:
+        score += LINGO_COMPLETE_POINTS
+        if first_to_finish:
+            score += LINGO_FIRST_FINISH_BONUS
+        supabase_admin.table("duel_participants").update({"score": score}).eq(
+            "duel_id", duel_id
+        ).eq("user_id", current_user.id).execute()
+
+    return DuelLingoGuessResponse(
+        guess=guess,
+        feedback=feedback,
+        locked=locked,
+        guesses_used=len(guesses),
+        max_guesses=LINGO_MAX_GUESSES,
+        pot=pot,
+        is_complete=is_complete,
+        is_round_over=is_round_over,
+        word=word_text if is_round_over else None,
+        score=score,
+        first_to_finish=first_to_finish,
+    )
+
+
 @router.post("/{duel_id}/rounds/advance", response_model=DuelStatusResponse)
 async def advance_round(
     duel_id: str,
@@ -1205,6 +1602,22 @@ async def advance_round(
             1
             for r in progress_rows
             if r.get("is_correct") or (r.get("wrong_guesses") or 0) >= MAX_WRONG_GUESSES
+        )
+    elif duel["mode"] == "lingo":
+        _auto_complete_lingo_bots(duel_id, round_row, active_ids)
+        progress_rows = (
+            supabase_admin.table("duel_answers")
+            .select("user_id, is_correct, lingo_guesses, lingo_pot")
+            .eq("duel_round_id", round_row["id"])
+            .execute()
+            .data
+        ) or []
+        answered_count = sum(
+            1
+            for r in progress_rows
+            if r.get("is_correct")
+            or len(r.get("lingo_guesses") or []) >= LINGO_MAX_GUESSES
+            or (r.get("lingo_pot") if r.get("lingo_pot") is not None else LINGO_START_POT) <= 0
         )
     else:
         _auto_answer_bots(duel_id, round_row, active_ids)
@@ -1282,9 +1695,12 @@ async def advance_round(
             # de tam esitlik yerine >= kullaniyor (quiz modunda skor bu tabani
             # asamayacagi icin davranis degismiyor, wordle'da ise bonuslu
             # skorlar da 'perfect' sayiliyor).
-            per_round_max_score = (
-                WORDLE_COMPLETE_POINTS if duel["mode"] == "wordle" else ANSWER_SCORE_POINTS
-            )
+            if duel["mode"] == "wordle":
+                per_round_max_score = WORDLE_COMPLETE_POINTS
+            elif duel["mode"] == "lingo":
+                per_round_max_score = LINGO_COMPLETE_POINTS
+            else:
+                per_round_max_score = ANSWER_SCORE_POINTS
             max_possible_score = (generated_rounds_result.count or 0) * per_round_max_score
             for p in participant_rows:
                 await award_xp(
