@@ -696,6 +696,16 @@ export default function CrosswordPuzzleScreen() {
             ))}
           </View>
 
+          {/* GECICI TEŞHIS SATIRI -- 27 Kasim 2026, "I" harfi bug'ini kesin
+              teshis etmek icin. tapOrder (dokunma SIRASI, cark INDEX'leri)
+              ve o indexlerin wheelLetters'taki karsiligini ham olarak
+              gosterir -- "I" harfine basinca index eklenip eklenmedigini
+              ve o index'teki harfin gercekten "I" olup olmadigini aninda
+              gorebilmek icin. Bug netlesince KALDIRILACAK. */}
+          <Text selectable style={{ fontSize: 10, color: c.textMuted, textAlign: 'center' }}>
+            DEBUG tapOrder=[{tapOrder.join(',')}] harfler=[{wheelLetters.map((ch, i) => `${i}:${ch}`).join(' ')}]
+          </Text>
+
           <LetterWheel
             letters={wheelLetters}
             tapOrder={tapOrder}
