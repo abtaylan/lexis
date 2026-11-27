@@ -122,6 +122,21 @@ function wheelPositions(count: number, radius: number): { x: number; y: number }
   return out;
 }
 
+// Harf dairelerinin birbirine değip dokunma hedeflerinin çakışmamasi icin
+// gereken minimum yaricapi hesaplar (esit araklikli N daire halka
+// paketleme formulu). Onceki sabit yaricap (7+ harf icin duz 76) 9-10+
+// daireli carklarda (ozellikle celdirici harfler eklendikten sonra, orn.
+// DIFFICULT: 9 harf + 2 celdirici = 11 daire) daireleri ust uste bindirip
+// bir harfe (orn. "I") dokunulunca yanlis/komsu dairenin tetiklenmesine
+// yol aciyordu -- bkz. kullanici raporu, 27 Kasim 2026.
+function computeWheelRadius(count: number, circleSize: number): number {
+  const baseRadius = count <= 4 ? 52 : count <= 6 ? 64 : 76;
+  if (count <= 1) return baseRadius;
+  const minGap = 6; // dairelerin birbirine degmemesi icin ek guvenlik payi
+  const packingRadius = (circleSize + minGap) / (2 * Math.sin(Math.PI / count));
+  return Math.max(baseRadius, packingRadius);
+}
+
 // Grid'in altındaki dairesel harf çarkı -- harfler SIRAYLA dokunularak
 // seçilir, seçilen harfler arasına bağlantı çizgisi çizilir (bkz.
 // web/src/app/(app)/crossword/[level]/page.tsx'teki AYNI bileşen).
@@ -140,8 +155,8 @@ function LetterWheel({
   disabled?: boolean;
   c: ReturnType<typeof useThemeColors>;
 }) {
-  const circleRadius = letters.length <= 4 ? 52 : letters.length <= 6 ? 64 : 76;
   const circleSize = 44;
+  const circleRadius = computeWheelRadius(letters.length, circleSize);
   const size = circleRadius * 2 + circleSize + 16;
   const center = size / 2;
   const positions = useMemo(() => wheelPositions(letters.length, circleRadius), [letters.length, circleRadius]);
@@ -208,7 +223,7 @@ function LetterWheel({
               },
             ]}
           >
-            <Text style={{ fontSize: 16, fontWeight: '700', color: isUsed ? '#FFFFFF' : c.text }}>{ch}</Text>
+            <Text allowFontScaling={false} style={{ fontSize: 16, lineHeight: 20, fontWeight: '700', color: isUsed ? '#FFFFFF' : c.text }}>{ch}</Text>
             {isUsed && (
               <View style={[styles.wheelBadge, { backgroundColor: c.accent }]}>
                 <Text style={styles.wheelBadgeText}>{order + 1}</Text>
@@ -602,7 +617,7 @@ export default function CrosswordPuzzleScreen() {
                       ]}
                     >
                       {!!number && <Text style={[styles.cellNumber, { color: c.textMuted }]}>{number}</Text>}
-                      <Text style={[styles.cellLetter, { color: isSolved ? c.success : c.text }]}>
+                      <Text allowFontScaling={false} style={[styles.cellLetter, { color: isSolved ? c.success : c.text }]}>
                         {gridLetters[key] ?? ''}
                       </Text>
                     </Pressable>
@@ -674,7 +689,7 @@ export default function CrosswordPuzzleScreen() {
                   },
                 ]}
               >
-                <Text style={{ fontSize: 14, fontWeight: '700', color: c.text }}>
+                <Text allowFontScaling={false} style={{ fontSize: 14, lineHeight: 18, fontWeight: '700', color: c.text }}>
                   {tapOrder[i] !== undefined ? wheelLetters[tapOrder[i]] : ''}
                 </Text>
               </View>
@@ -781,7 +796,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cellNumber: { position: 'absolute', top: 1, left: 2, fontSize: 8, fontWeight: '600' },
-  cellLetter: { fontSize: 15, fontWeight: '700' },
+  cellLetter: { fontSize: 15, lineHeight: 19, fontWeight: '700' },
   progressBox: {
     width: 32,
     height: 32,

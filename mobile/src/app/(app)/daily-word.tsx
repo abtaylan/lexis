@@ -230,7 +230,7 @@ export default function DailyWordScreen() {
                           },
                         ]}
                       >
-                        <Text style={{ fontSize: 13, fontWeight: '600', color: isGuessed ? (isCorrectGuess ? c.success : c.textMuted) : c.text }}>
+                        <Text style={{ fontSize: 17, fontWeight: '600', color: isGuessed ? (isCorrectGuess ? c.success : c.textMuted) : c.text }}>
                           {letter}
                         </Text>
                       </Pressable>
@@ -264,5 +264,5 @@ const styles = StyleSheet.create({
   livesRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, marginTop: spacing.md, marginBottom: spacing.md },
   revealRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginBottom: spacing.md },
   letterBox: { width: 32, height: 40, borderWidth: 2, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
-  key: { width: 28, height: 36, borderRadius: radius.sm, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  key: { width: 42, height: 48, borderRadius: radius.sm, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
 });

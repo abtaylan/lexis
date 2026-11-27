@@ -131,6 +131,21 @@ function wheelPositions(count: number, radius: number): { x: number; y: number }
   return out;
 }
 
+// Harf dairelerinin birbirine değip dokunma hedeflerinin çakışmamasi icin
+// gereken minimum yaricapi hesaplar (esit araklikli N daire halka
+// paketleme formulu). Onceki sabit yaricap (7+ harf icin duz 76) 9-10+
+// daireli carklarda (ozellikle celdirici harfler eklendikten sonra, orn.
+// DIFFICULT: 9 harf + 2 celdirici = 11 daire) daireleri ust uste bindirip
+// bir harfe (orn. "I") dokunulunca yanlis/komsu dairenin tetiklenmesine
+// yol aciyordu -- bkz. kullanici raporu, 27 Kasim 2026.
+function computeWheelRadius(count: number, circleSize: number): number {
+  const baseRadius = count <= 4 ? 52 : count <= 6 ? 64 : 76;
+  if (count <= 1) return baseRadius;
+  const minGap = 6; // dairelerin birbirine degmemesi icin ek guvenlik payi
+  const packingRadius = (circleSize + minGap) / (2 * Math.sin(Math.PI / count));
+  return Math.max(baseRadius, packingRadius);
+}
+
 // Grid'in altındaki dairesel harf çarkı -- harfler SIRAYLA dokunularak
 // seçilir (sürükleme değil, güvenilirlik için dokunma-sırası), seçilen
 // harfler arasına bağlantı çizgisi çizilir (bkz. referans ekran görüntüsü).
@@ -147,8 +162,8 @@ function LetterWheel({
   onShuffle: () => void;
   disabled?: boolean;
 }) {
-  const radius = letters.length <= 4 ? 52 : letters.length <= 6 ? 64 : 76;
   const circleSize = 44;
+  const radius = computeWheelRadius(letters.length, circleSize);
   const size = radius * 2 + circleSize + 16;
   const center = size / 2;
   const positions = useMemo(() => wheelPositions(letters.length, radius), [letters.length, radius]);
