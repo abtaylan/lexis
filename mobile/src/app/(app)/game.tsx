@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2, Grid3x3 } from 'lucide-react-native';
@@ -1532,6 +1532,12 @@ export default function GameScreen() {
   const isChain = gameMode === 'word_chain';
   const keyboardRows = getKeyboardRowsForLanguage(user?.learning_lang);
   const letterGuessSupported = isLetterGuessSupported(user?.learning_lang);
+  const { width: windowWidth } = useWindowDimensions();
+  const keyGapSize = 6;
+  const maxRowLen = Math.max(...keyboardRows.map((row) => row.length), 1);
+  const keyboardAreaWidth = Math.min(windowWidth - spacing.lg * 2, 520);
+  const keySize = Math.max(42, Math.min(64, Math.floor((keyboardAreaWidth - keyGapSize * (maxRowLen - 1)) / maxRowLen)));
+  const keyFontSize = Math.round(keySize * (17 / 42));
   const activeDirection = current.direction ?? direction;
   const isDefinition = activeDirection === 'definition_to_word';
   const isReverse = !isWordle && (activeDirection === 'meaning_to_word' || isDefinition);
@@ -1724,7 +1730,7 @@ export default function GameScreen() {
           {!roundResult && (
             <View style={{ alignItems: 'center', gap: 6 }}>
               {keyboardRows.map((row, i) => (
-                <View key={i} style={{ flexDirection: 'row', gap: 5 }}>
+                <View key={i} style={{ flexDirection: 'row', gap: keyGapSize }}>
                   {row.split('').map((letter) => {
                     const lower = letter.toLowerCase();
                     const isGuessed = guessedLetters.includes(lower);
@@ -1737,12 +1743,14 @@ export default function GameScreen() {
                         style={[
                           styles.key,
                           {
+                            width: keySize,
+                            height: keySize * (48 / 42),
                             backgroundColor: isGuessed ? (isCorrectGuess ? c.successSoft : c.border) : c.surface,
                             borderColor: isGuessed ? 'transparent' : c.border,
                           },
                         ]}
                       >
-                        <Text style={{ fontSize: 17, fontWeight: '600', color: isGuessed ? (isCorrectGuess ? c.success : c.textMuted) : c.text }}>
+                        <Text style={{ fontSize: keyFontSize, fontWeight: '600', color: isGuessed ? (isCorrectGuess ? c.success : c.textMuted) : c.text }}>
                           {letter}
                         </Text>
                       </Pressable>
