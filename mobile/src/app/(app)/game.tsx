@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2, Grid3x3, Tv } from 'lucide-react-native';
+import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2, Grid3x3 } from 'lucide-react-native';
+import Svg, { Rect } from 'react-native-svg';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
@@ -1041,7 +1042,7 @@ export default function GameScreen() {
               web/game/page.tsx'teki sıralamayla AYNI. */}
           <ModeCard
             title={gt.modeLingoLabel}
-            icon={Tv}
+            icon={LingoTilesIcon}
             bg="#FDEAF0"
             fg="#9F1D53"
             onPress={() => {
@@ -2236,6 +2237,17 @@ function SectionLabel({ children, c }: { children: React.ReactNode; c: ReturnTyp
 // 28 Eylül 2026 -- mod seçim ekranının hero+kart tasarımı için OptionButton'DAN
 // AYRI bir bileşen (OptionButton yön/havuz seçiminde DEĞİŞMEDEN kullanılmaya
 // devam ediyor). Sol kenarda mod rengini tekrar eden ince bir şerit + git oku.
+function LingoTilesIcon({ size = 22, color = '#fff' }: { size?: number; color?: string }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Rect x={1.5} y={9} width={4.5} height={6} rx={1.2} fill={color} />
+      <Rect x={7} y={9} width={4.5} height={6} rx={1.2} fill="none" stroke={color} strokeWidth={2} />
+      <Rect x={12.5} y={9} width={4.5} height={6} rx={1.2} fill={color} />
+      <Rect x={18} y={9} width={4.5} height={6} rx={1.2} fill="none" stroke={color} strokeWidth={2} />
+    </Svg>
+  );
+}
+
 function ModeCard({
   title,
   icon: Icon,

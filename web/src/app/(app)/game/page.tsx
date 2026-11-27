@@ -27,7 +27,6 @@ import {
   Scale,
   Link2,
   Grid3x3,
-  Tv,
 } from 'lucide-react';
 import {
   gamesApi,
@@ -1342,6 +1341,27 @@ const ARABIC_DIACRITICS_RE = /[\u064B-\u065F\u0670\u06D6-\u06ED\u08D4-\u08E1\u08
 // typed/correct karşılaştırmasında — DB'deki/ekrandaki asıl yazım
 // değişmiyor, kullanıcı hâlâ doğru haliyle ة görür).
 const ARABIC_TEH_VARIANTS_RE = /[ةت]/g;
+function LingoTilesIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      width="1em"
+      height="1em"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <rect x="1.5" y="9" width="4.5" height="6" rx="1.2" fill="currentColor" stroke="none" />
+      <rect x="7" y="9" width="4.5" height="6" rx="1.2" />
+      <rect x="12.5" y="9" width="4.5" height="6" rx="1.2" fill="currentColor" stroke="none" />
+      <rect x="18" y="9" width="4.5" height="6" rx="1.2" />
+    </svg>
+  );
+}
+
 function normalizeTypedAnswer(s: string): string {
   return s
     .trim()
@@ -2317,7 +2337,7 @@ export default function GamePage() {
               className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
             >
               <div className="w-9 h-9 shrink-0 rounded-lg bg-[#FDEAF0] flex items-center justify-center">
-                <Tv className="w-4 h-4 text-[#9F1D53]" />
+                <LingoTilesIcon className="w-4 h-4 text-[#9F1D53]" />
               </div>
               <div>
                 <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeLingoLabel}</p>
