@@ -31,7 +31,7 @@ import { duelsApi } from '@/lib/api';
 import { useAuth } from '@/store/auth';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
-import type { DuelStatusResponse, DuelRoundPublic, DuelGuessLetterResponse } from '@/types';
+import type { DuelStatusResponse, DuelRoundPublic, DuelGuessLetterResponse, DuelLingoGuessResponse } from '@/types';
 
 function errorDetail(err: unknown): string | undefined {
   if (err instanceof AxiosError) {
@@ -52,7 +52,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Düello Bitti', backToLobbyBtn: 'Lobiye Dön',
     youLabel: '(sen)', scoreLabel: 'puan', waitingRoundLabel: 'Sıradaki tur hazırlanıyor…',
     livesLabel: 'Can', wordleCompleteLabel: 'Kelimeyi tamamladın! 🎉',
-    wordleFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', wordleFailedLabel: 'Hakların bitti.',
+    wordleFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', wordleFailedLabel: 'Hakların bitti.', lingoPotLabel: 'Kasa', lingoGuessesLeftTpl: '{n} hakkın kaldı', lingoInputPlaceholder: '{n} harfli kelimeyi yaz…', lingoSubmitBtn: 'Tahmin Et', lingoInvalidLengthTpl: 'Tahminin {n} harfli olmalı.', lingoCompleteLabel: 'Kelimeyi tamamladın! 🎉', lingoFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', lingoFailedLabel: 'Kasan bitti.',
   },
   en: {
     loading: 'Loading…', error: 'Something went wrong.',
@@ -65,7 +65,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duel Over', backToLobbyBtn: 'Back to Lobby',
     youLabel: '(you)', scoreLabel: 'pts', waitingRoundLabel: 'Preparing the next round…',
     livesLabel: 'Lives', wordleCompleteLabel: 'You completed the word! 🎉',
-    wordleFirstFinishLabel: 'First to finish! +bonus 🏆', wordleFailedLabel: 'Out of guesses.',
+    wordleFirstFinishLabel: 'First to finish! +bonus 🏆', wordleFailedLabel: 'Out of guesses.', lingoPotLabel: 'Pot', lingoGuessesLeftTpl: '{n} guesses left', lingoInputPlaceholder: 'Type a {n}-letter word…', lingoSubmitBtn: 'Guess', lingoInvalidLengthTpl: 'Your guess must be {n} letters.', lingoCompleteLabel: 'You completed the word! 🎉', lingoFirstFinishLabel: 'First to finish! +bonus 🏆', lingoFailedLabel: 'Out of guesses.',
   },
   de: {
     loading: 'Wird geladen…', error: 'Etwas ist schiefgelaufen.',
@@ -78,7 +78,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duell beendet', backToLobbyBtn: 'Zurück zur Lobby',
     youLabel: '(du)', scoreLabel: 'Pkt.', waitingRoundLabel: 'Nächste Runde wird vorbereitet…',
     livesLabel: 'Leben', wordleCompleteLabel: 'Du hast das Wort vervollständigt! 🎉',
-    wordleFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', wordleFailedLabel: 'Keine Versuche mehr.',
+    wordleFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', wordleFailedLabel: 'Keine Versuche mehr.', lingoPotLabel: 'Topf', lingoGuessesLeftTpl: 'Noch {n} Versuche', lingoInputPlaceholder: 'Gib ein {n}-buchstabiges Wort ein…', lingoSubmitBtn: 'Raten', lingoInvalidLengthTpl: 'Dein Wort muss {n} Buchstaben haben.', lingoCompleteLabel: 'Du hast das Wort vervollständigt! 🎉', lingoFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', lingoFailedLabel: 'Kein Guthaben mehr.',
   },
   fr: {
     loading: 'Chargement…', error: "Une erreur s'est produite.",
@@ -91,7 +91,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duel terminé', backToLobbyBtn: 'Retour au lobby',
     youLabel: '(toi)', scoreLabel: 'pts', waitingRoundLabel: 'Préparation de la prochaine manche…',
     livesLabel: 'Vies', wordleCompleteLabel: 'Tu as complété le mot ! 🎉',
-    wordleFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', wordleFailedLabel: "Plus d'essais.",
+    wordleFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', wordleFailedLabel: "Plus d'essais.", lingoPotLabel: 'Cagnotte', lingoGuessesLeftTpl: 'Il te reste {n} essais', lingoInputPlaceholder: 'Tape un mot de {n} lettres…', lingoSubmitBtn: 'Deviner', lingoInvalidLengthTpl: 'Ton mot doit faire {n} lettres.', lingoCompleteLabel: 'Tu as complété le mot ! 🎉', lingoFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', lingoFailedLabel: 'Cagnotte épuisée.',
   },
   es: {
     loading: 'Cargando…', error: 'Algo salió mal.',
@@ -104,7 +104,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duelo terminado', backToLobbyBtn: 'Volver al lobby',
     youLabel: '(tú)', scoreLabel: 'pts', waitingRoundLabel: 'Preparando la siguiente ronda…',
     livesLabel: 'Vidas', wordleCompleteLabel: '¡Completaste la palabra! 🎉',
-    wordleFirstFinishLabel: '¡Primero en terminar! +bono 🏆', wordleFailedLabel: 'Sin intentos.',
+    wordleFirstFinishLabel: '¡Primero en terminar! +bono 🏆', wordleFailedLabel: 'Sin intentos.', lingoPotLabel: 'Bote', lingoGuessesLeftTpl: 'Te quedan {n} intentos', lingoInputPlaceholder: 'Escribe una palabra de {n} letras…', lingoSubmitBtn: 'Adivinar', lingoInvalidLengthTpl: 'Tu palabra debe tener {n} letras.', lingoCompleteLabel: '¡Completaste la palabra! 🎉', lingoFirstFinishLabel: '¡Primero en terminar! +bono 🏆', lingoFailedLabel: 'Bote agotado.',
   },
   it: {
     loading: 'Caricamento…', error: 'Qualcosa è andato storto.',
@@ -117,7 +117,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duello finito', backToLobbyBtn: 'Torna alla lobby',
     youLabel: '(tu)', scoreLabel: 'pt', waitingRoundLabel: 'Preparazione del prossimo turno…',
     livesLabel: 'Vite', wordleCompleteLabel: 'Hai completato la parola! 🎉',
-    wordleFirstFinishLabel: 'Primo a finire! +bonus 🏆', wordleFailedLabel: 'Tentativi esauriti.',
+    wordleFirstFinishLabel: 'Primo a finire! +bonus 🏆', wordleFailedLabel: 'Tentativi esauriti.', lingoPotLabel: 'Montepremi', lingoGuessesLeftTpl: 'Ti restano {n} tentativi', lingoInputPlaceholder: 'Scrivi una parola di {n} lettere…', lingoSubmitBtn: 'Indovina', lingoInvalidLengthTpl: 'La tua parola deve avere {n} lettere.', lingoCompleteLabel: 'Hai completato la parola! 🎉', lingoFirstFinishLabel: 'Primo a finire! +bonus 🏆', lingoFailedLabel: 'Montepremi esaurito.',
   },
   ar: {
     loading: 'جارٍ التحميل…', error: 'حدث خطأ ما.',
@@ -130,7 +130,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'انتهت المبارزة', backToLobbyBtn: 'العودة إلى الصالة',
     youLabel: '(أنت)', scoreLabel: 'نقطة', waitingRoundLabel: 'يتم تجهيز الجولة التالية…',
     livesLabel: 'محاولات', wordleCompleteLabel: 'أكملت الكلمة! 🎉',
-    wordleFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', wordleFailedLabel: 'نفدت محاولاتك.',
+    wordleFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', wordleFailedLabel: 'نفدت محاولاتك.', lingoPotLabel: 'الرصيد', lingoGuessesLeftTpl: 'تبقّى لك {n} محاولات', lingoInputPlaceholder: 'اكتب كلمة من {n} أحرف…', lingoSubmitBtn: 'خمّن', lingoInvalidLengthTpl: 'يجب أن تكون كلمتك من {n} أحرف.', lingoCompleteLabel: 'أكملت الكلمة! 🎉', lingoFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', lingoFailedLabel: 'نفد رصيدك.',
   },
   ru: {
     loading: 'Загрузка…', error: 'Что-то пошло не так.',
@@ -143,7 +143,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Дуэль окончена', backToLobbyBtn: 'Вернуться в лобби',
     youLabel: '(ты)', scoreLabel: 'очк.', waitingRoundLabel: 'Подготовка следующего раунда…',
     livesLabel: 'Жизни', wordleCompleteLabel: 'Вы завершили слово! 🎉',
-    wordleFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', wordleFailedLabel: 'Попытки закончились.',
+    wordleFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', wordleFailedLabel: 'Попытки закончились.', lingoPotLabel: 'Банк', lingoGuessesLeftTpl: 'Осталось попыток: {n}', lingoInputPlaceholder: 'Введите слово из {n} букв…', lingoSubmitBtn: 'Угадать', lingoInvalidLengthTpl: 'Слово должно быть из {n} букв.', lingoCompleteLabel: 'Вы завершили слово! 🎉', lingoFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', lingoFailedLabel: 'Банк исчерпан.',
   },
   ja: {
     loading: '読み込み中…', error: '問題が発生しました。',
@@ -156,7 +156,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'デュエル終了', backToLobbyBtn: 'ロビーに戻る',
     youLabel: '(あなた)', scoreLabel: '点', waitingRoundLabel: '次のラウンドを準備中…',
     livesLabel: 'ライフ', wordleCompleteLabel: '単語を完成させました！🎉',
-    wordleFirstFinishLabel: '最速クリア！+ボーナス 🏆', wordleFailedLabel: '挑戦回数が尽きました。',
+    wordleFirstFinishLabel: '最速クリア！+ボーナス 🏆', wordleFailedLabel: '挑戦回数が尽きました。', lingoPotLabel: '賞金', lingoGuessesLeftTpl: '残り{n}回', lingoInputPlaceholder: '{n}文字の単語を入力…', lingoSubmitBtn: '回答する', lingoInvalidLengthTpl: '単語は{n}文字である必要があります。', lingoCompleteLabel: '単語を完成させました！🎉', lingoFirstFinishLabel: '最速クリア！+ボーナス 🏆', lingoFailedLabel: '賞金がなくなりました。',
   },
   pt: {
     loading: 'Carregando…', error: 'Algo deu errado.',
@@ -169,7 +169,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duelo Encerrado', backToLobbyBtn: 'Voltar ao Lobby',
     youLabel: '(você)', scoreLabel: 'pts', waitingRoundLabel: 'Preparando a próxima rodada…',
     livesLabel: 'Vidas', wordleCompleteLabel: 'Você completou a palavra! 🎉',
-    wordleFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', wordleFailedLabel: 'Sem mais tentativas.',
+    wordleFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', wordleFailedLabel: 'Sem mais tentativas.', lingoPotLabel: 'Prémio', lingoGuessesLeftTpl: 'Restam-te {n} tentativas', lingoInputPlaceholder: 'Escreve uma palavra de {n} letras…', lingoSubmitBtn: 'Adivinhar', lingoInvalidLengthTpl: 'A tua palavra deve ter {n} letras.', lingoCompleteLabel: 'Você completou a palavra! 🎉', lingoFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', lingoFailedLabel: 'Prémio esgotado.',
   },
 };
 
@@ -224,6 +224,18 @@ export default function DuelRoomPage() {
     guessResultRef.current = guessResult;
   }, [guessResult]);
 
+  // 26 Kasim 2026 -- mode='lingo' turu icin tam-kelime tahmin ilerlemesi
+  // (bkz. asagidaki handleGuessWord). guessResultRef ile AYNI "en guncel
+  // deger" deseni.
+  const [lingoGuessResult, setLingoGuessResult] = useState<DuelLingoGuessResponse | null>(null);
+  const [lingoInput, setLingoInput] = useState('');
+  const [lingoBusy, setLingoBusy] = useState(false);
+  const [lingoInputError, setLingoInputError] = useState('');
+  const lingoGuessResultRef = useRef<DuelLingoGuessResponse | null>(null);
+  useEffect(() => {
+    lingoGuessResultRef.current = lingoGuessResult;
+  }, [lingoGuessResult]);
+
   const tick = useCallback(async () => {
     try {
       const status = await duelsApi.getStatus(duelId);
@@ -237,6 +249,9 @@ export default function DuelRoomPage() {
           setSelected(null);
           setAnswerResult(null);
           setGuessResult(null);
+          setLingoGuessResult(null);
+          setLingoInput('');
+          setLingoInputError('');
         }
         if (!r.started_at) {
           const started = await duelsApi.beginRound(duelId);
@@ -244,7 +259,12 @@ export default function DuelRoomPage() {
         } else {
           setRound(r);
           const ended = r.ends_at ? new Date(r.ends_at).getTime() <= Date.now() : false;
-          if (ended || answerResultRef.current || guessResultRef.current?.is_round_over) {
+          if (
+            ended ||
+            answerResultRef.current ||
+            guessResultRef.current?.is_round_over ||
+            lingoGuessResultRef.current?.is_round_over
+          ) {
             duelsApi.advanceRound(duelId).catch(() => {});
           }
         }
@@ -347,6 +367,44 @@ export default function DuelRoomPage() {
     }
   };
 
+  // 26 Kasim 2026 -- mode='lingo' turu icin tam-kelime tahmini (bkz.
+  // game/page.tsx::handleLingoGuess ile AYNI mantik, farki: tahmin
+  // tahtasi `round.lingo_guesses`'ten -- bir sonraki tick() zaten tam
+  // gecmisi geri dondurur, ama burada ANINDA geri bildirim icin yerel
+  // olarak da ekleniyor, wordle'daki round.revealed guncellemesiyle
+  // AYNI ilke).
+  const handleGuessWord = async () => {
+    if (!round || lingoBusy || lingoGuessResult?.is_round_over) return;
+    const length = round.lingo_word_length ?? 5;
+    const guess = lingoInput.trim().toLowerCase();
+    if (guess.length !== length) {
+      setLingoInputError(t.lingoInvalidLengthTpl.replace('{n}', String(length)));
+      return;
+    }
+    setLingoInputError('');
+    setLingoBusy(true);
+    try {
+      const res = await duelsApi.guessWord(duelId, guess);
+      setLingoGuessResult(res);
+      setLingoInput('');
+      setRound((prev) =>
+        prev
+          ? {
+              ...prev,
+              lingo_guesses: [...(prev.lingo_guesses ?? []), { word: res.guess, feedback: res.feedback }],
+              lingo_locked: res.locked,
+              lingo_pot: res.pot,
+              lingo_guesses_used: res.guesses_used,
+            }
+          : prev
+      );
+    } catch (err) {
+      setError(errorDetail(err) || t.error);
+    } finally {
+      setLingoBusy(false);
+    }
+  };
+
   if (loading && !duel) {
     return (
       <div className="max-w-2xl mx-auto p-8 flex items-center justify-center">
@@ -363,6 +421,7 @@ export default function DuelRoomPage() {
 
   const isHost = duel.created_by === user?.id;
   const isWordle = duel.mode === 'wordle';
+  const isLingo = duel.mode === 'lingo';
   const keyboardRows = duel.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
   const secondsLeft = round?.ends_at ? Math.max(0, Math.ceil((new Date(round.ends_at).getTime() - now) / 1000)) : null;
   const sortedParticipants = [...duel.participants].sort((a, b) => b.score - a.score);
@@ -528,7 +587,122 @@ export default function DuelRoomPage() {
             </>
           )}
 
-          {round && !isWordle && (
+          {round && isLingo && (
+            <>
+              <div className="w-full flex items-center justify-center gap-4">
+                <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
+                  {t.lingoPotLabel}: <span className="font-bold text-gray-700 dark:text-slate-200">{round.lingo_pot ?? 10}</span>
+                </span>
+                <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
+                  {t.lingoGuessesLeftTpl.replace(
+                    '{n}',
+                    String(Math.max(0, (round.lingo_max_guesses ?? 5) - (round.lingo_guesses_used ?? (round.lingo_guesses ?? []).length)))
+                  )}
+                </span>
+              </div>
+
+              <div className="w-full flex flex-col items-center gap-1.5 py-2">
+                {(round.lingo_guesses ?? []).map((g, rowIdx) => (
+                  <div key={rowIdx} className="flex gap-1.5">
+                    {g.word.split('').map((ch, i) => {
+                      const fb = g.feedback[i];
+                      const cls =
+                        fb === 'correct'
+                          ? 'bg-[#3B6D11] border-[#3B6D11] text-white'
+                          : fb === 'present'
+                            ? 'bg-[#C98A1A] border-[#C98A1A] text-white'
+                            : 'bg-gray-200 dark:bg-slate-700 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-300';
+                      return (
+                        <span
+                          key={i}
+                          className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase border-2 ${cls}`}
+                        >
+                          {ch}
+                        </span>
+                      );
+                    })}
+                  </div>
+                ))}
+                {!lingoGuessResult?.is_round_over && (
+                  <div className="flex gap-1.5">
+                    {Array.from({ length: round.lingo_word_length ?? 5 }).map((_, i) => {
+                      const lockedChar = (round.lingo_locked ?? [])[i];
+                      const typedChar = lingoInput[i];
+                      return (
+                        <span
+                          key={i}
+                          className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase border-2 ${
+                            lockedChar
+                              ? 'bg-[#EAF3DE] border-[#3B6D11]/40 text-[#3B6D11]'
+                              : typedChar
+                                ? 'border-[#378ADD] text-gray-800 dark:text-slate-100'
+                                : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-transparent'
+                          }`}
+                        >
+                          {lockedChar ?? typedChar ?? '·'}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {lingoGuessResult?.is_round_over && (
+                <div
+                  className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-center ${
+                    lingoGuessResult.is_complete ? 'bg-[#EAF3DE] text-[#3B6D11]' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+                  }`}
+                >
+                  <p>
+                    {lingoGuessResult.is_complete
+                      ? lingoGuessResult.first_to_finish
+                        ? t.lingoFirstFinishLabel
+                        : t.lingoCompleteLabel
+                      : t.lingoFailedLabel}
+                  </p>
+                  {!lingoGuessResult.is_complete && lingoGuessResult.word && (
+                    <p className="mt-1 font-normal">{t.correctAnswerPrefix} {lingoGuessResult.word}</p>
+                  )}
+                </div>
+              )}
+
+              {!lingoGuessResult?.is_round_over && (
+                <div className="w-full flex flex-col gap-2">
+                  <input
+                    type="text"
+                    value={lingoInput}
+                    onChange={(e) => {
+                      setLingoInput(e.target.value.slice(0, round.lingo_word_length ?? 5));
+                      setLingoInputError('');
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleGuessWord();
+                    }}
+                    disabled={lingoBusy}
+                    autoFocus
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    placeholder={t.lingoInputPlaceholder.replace('{n}', String(round.lingo_word_length ?? 5))}
+                    className="w-full border-2 rounded-xl px-4 py-3.5 text-base text-center font-medium transition-all outline-none border-gray-200 dark:border-slate-700 focus:border-[#378ADD]"
+                  />
+                  {lingoInputError && (
+                    <p className="text-xs text-red-500 dark:text-red-400 text-center">{lingoInputError}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleGuessWord}
+                    disabled={lingoInput.trim().length !== (round.lingo_word_length ?? 5) || lingoBusy}
+                    className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
+                  >
+                    {t.lingoSubmitBtn}
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+
+          {round && !isWordle && !isLingo && (
             <>
               <p className="text-base font-medium text-gray-900 dark:text-slate-100 text-center py-2">{round.definition}</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">

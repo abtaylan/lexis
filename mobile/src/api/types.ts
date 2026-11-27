@@ -673,7 +673,11 @@ export type GameMode =
   | 'word_chain'
   // Gramer Pratiği (23 Ekim 2026): Cümle Kurma modunun yanına eklenen,
   // 91 gramer konusundan rastgele seçilen serbest metin çeviri havuzu.
-  | 'grammar_sentence';
+  | 'grammar_sentence'
+  // Lingo (26 Kasım 2026, Behçet'in kullanıcı isteği) -- TRT1 "Lingo
+  // Türkiye" uyarlaması: tam kelime tahmini + Wordle tarzı geri bildirim
+  // + kilitli harf mekaniği (bkz. backend games.py docstring'i).
+  | 'lingo';
 export type PoolSource = 'own' | 'general';
 export type Direction = 'word_to_meaning' | 'meaning_to_word' | 'definition_to_word';
 
@@ -705,6 +709,12 @@ export interface NextWordResult {
   word_length?: number | null;
   revealed?: string | null;
   max_wrong_guesses?: number | null;
+  // ── lingo moduna özel alanlar (26 Kasım 2026) ──
+  lingo_word_length?: number | null;
+  lingo_locked?: (string | null)[] | null;
+  lingo_max_guesses?: number | null;
+  lingo_guesses_used?: number | null;
+  lingo_pot?: number | null;
   // ── sentence_building (cümle kurma) moduna özel alan ──
   sentence_tokens?: string[] | null;
   // ── grammar_sentence (Gramer Pratiği) moduna özel alanlar ──
@@ -734,6 +744,24 @@ export interface GuessLetterResult {
   guessed_letters: string[];
   wrong_guesses: number;
   max_wrong_guesses: number;
+  is_complete: boolean;
+  is_game_over: boolean;
+  word?: string | null;
+  xp_awarded: number;
+  leveled_up: boolean;
+  new_level: number | null;
+}
+
+// 26 Kasım 2026 -- POST /games/sessions/{id}/lingo/guess yanıtı.
+// GuessLetterResult ile AYNI ilke, farkı tam-kelime tahmini + pozisyon
+// bazlı geri bildirim + kilitli harfler.
+export interface LingoGuessResult {
+  guess: string;
+  feedback: string[];
+  locked: (string | null)[];
+  guesses_used: number;
+  max_guesses: number;
+  pot: number;
   is_complete: boolean;
   is_game_over: boolean;
   word?: string | null;
@@ -1186,7 +1214,7 @@ export interface DuelStatusResponse extends DuelResponse {
   participants: DuelParticipantItem[];
 }
 
-export type DuelMode = 'multiple_choice' | 'wordle';
+export type DuelMode = 'multiple_choice' | 'wordle' | 'lingo';
 
 export interface DuelRoundPublic {
   round_index: number;
@@ -1200,6 +1228,14 @@ export interface DuelRoundPublic {
   guessed_letters?: string[] | null;
   wrong_guesses?: number | null;
   max_wrong_guesses?: number | null;
+  // lingo alanlari (26 Kasim 2026) -- lingo_guesses, bu kullanicinin BU
+  // turda simdiye kadar gonderdigi tam-kelime tahminlerinin TAM gecmisi.
+  lingo_word_length?: number | null;
+  lingo_locked?: (string | null)[] | null;
+  lingo_guesses?: { word: string; feedback: string[] }[] | null;
+  lingo_pot?: number | null;
+  lingo_guesses_used?: number | null;
+  lingo_max_guesses?: number | null;
   started_at: string | null;
   ends_at: string | null;
 }
@@ -1221,6 +1257,23 @@ export interface DuelGuessLetterResponse {
   guessed_letters: string[];
   wrong_guesses: number;
   max_wrong_guesses: number;
+  is_complete: boolean;
+  is_round_over: boolean;
+  word: string | null;
+  score: number;
+  first_to_finish: boolean;
+}
+
+// 26 Kasim 2026 -- POST /duels/{id}/rounds/guess-word yaniti (lingo
+// modu). DuelGuessLetterResponse ile AYNI ilke, farki tam-kelime
+// tahmini + pozisyon bazli geri bildirim + kilitli harfler.
+export interface DuelLingoGuessResponse {
+  guess: string;
+  feedback: string[];
+  locked: (string | null)[];
+  guesses_used: number;
+  max_guesses: number;
+  pot: number;
   is_complete: boolean;
   is_round_over: boolean;
   word: string | null;

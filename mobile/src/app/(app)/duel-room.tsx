@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AxiosError } from 'axios';
 import { Swords, Play, LogOut, Check, X, Trophy } from 'lucide-react-native';
 import { duelsApi } from '@/api/duels';
-import type { DuelAnswerResponse, DuelGuessLetterResponse, DuelRoundPublic, DuelStatusResponse } from '@/api/types';
+import type { DuelAnswerResponse, DuelGuessLetterResponse, DuelLingoGuessResponse, DuelRoundPublic, DuelStatusResponse } from '@/api/types';
 import { DUELS_STRINGS } from '@/i18n/duelsStrings';
 import { useLocale } from '@/i18n';
 import { useAuth } from '@/store/auth';
@@ -67,15 +67,28 @@ export default function DuelRoomScreen() {
   const [guessResult, setGuessResult] = useState<DuelGuessLetterResponse | null>(null);
   const [letterBusy, setLetterBusy] = useState(false);
 
+  // ── Lingo duellosu ilerlemesi (26 Kasım 2026, kullanıcı isteği --
+  // "sadece sisteme karşı değil, sistemdeki kullanıcılarla da
+  // oynanacak"): guessResult/letterBusy ile AYNI desen, ama tek harf
+  // yerine TAM KELİME tahmini gönderiliyor. ──
+  const [lingoGuessResult, setLingoGuessResult] = useState<DuelLingoGuessResponse | null>(null);
+  const [lingoInput, setLingoInput] = useState('');
+  const [lingoBusy, setLingoBusy] = useState(false);
+  const [lingoInputError, setLingoInputError] = useState('');
+
   const lastRoundIndex = useRef<number | null>(null);
   const answerResultRef = useRef<DuelAnswerResponse | null>(null);
   const guessResultRef = useRef<DuelGuessLetterResponse | null>(null);
+  const lingoGuessResultRef = useRef<DuelLingoGuessResponse | null>(null);
   useEffect(() => {
     answerResultRef.current = answerResult;
   }, [answerResult]);
   useEffect(() => {
     guessResultRef.current = guessResult;
   }, [guessResult]);
+  useEffect(() => {
+    lingoGuessResultRef.current = lingoGuessResult;
+  }, [lingoGuessResult]);
 
   const tick = useCallback(async () => {
     if (!duelId) return;
@@ -91,6 +104,9 @@ export default function DuelRoomScreen() {
           setSelected(null);
           setAnswerResult(null);
           setGuessResult(null);
+          setLingoGuessResult(null);
+          setLingoInput('');
+          setLingoInputError('');
         }
         if (!r.started_at) {
           const started = await duelsApi.beginRound(duelId);
@@ -99,8 +115,14 @@ export default function DuelRoomScreen() {
           setRound(r);
           const ended = r.ends_at ? new Date(r.ends_at).getTime() <= Date.now() : false;
           // wordle modunda "bu tur benim icin bitti" -- guessResultRef.current?.is_round_over
-          // (tamamladi VEYA hakki tukendi), quiz modunda answerResultRef.current (cevapladi).
-          if (ended || answerResultRef.current || guessResultRef.current?.is_round_over) {
+          // (tamamladi VEYA hakki tukendi), quiz modunda answerResultRef.current (cevapladi),
+          // lingo modunda da AYNI fikir -- lingoGuessResultRef.current?.is_round_over.
+          if (
+            ended ||
+            answerResultRef.current ||
+            guessResultRef.current?.is_round_over ||
+            lingoGuessResultRef.current?.is_round_over
+          ) {
             duelsApi.advanceRound(duelId).catch(() => {});
           }
         }
@@ -183,6 +205,42 @@ export default function DuelRoomScreen() {
     }
   };
 
+  // Lingo duellosu icin TAM KELIME tahmini -- handleGuessLetter ile AYNI
+  // optimistik guncelleme deseni (round.lingo_* alanlarina dogrudan yaz,
+  // 2sn'lik polling'i beklemeden).
+  const handleGuessWord = async () => {
+    if (!round || !duelId || lingoBusy || lingoGuessResult?.is_round_over) return;
+    const word = lingoInput.trim();
+    const expectedLength = round.lingo_word_length ?? 0;
+    if (word.length !== expectedLength) {
+      setLingoInputError(t.lingoInvalidLengthTpl.replace('{n}', String(expectedLength)));
+      return;
+    }
+    setLingoInputError('');
+    setLingoBusy(true);
+    try {
+      const res = await duelsApi.guessWord(duelId, word);
+      setLingoGuessResult(res);
+      setLingoInput('');
+      setRound((prev) =>
+        prev
+          ? {
+              ...prev,
+              lingo_locked: res.locked,
+              lingo_pot: res.pot,
+              lingo_guesses_used: res.guesses_used,
+              lingo_max_guesses: res.max_guesses,
+              lingo_guesses: [...(prev.lingo_guesses ?? []), { word: res.guess, feedback: res.feedback }],
+            }
+          : prev
+      );
+    } catch (err) {
+      setError(errorDetail(err) || t.error);
+    } finally {
+      setLingoBusy(false);
+    }
+  };
+
   if (loading && !duel) {
     return (
       <ScreenContainer>
@@ -207,6 +265,7 @@ export default function DuelRoomScreen() {
 
   const isHost = duel.created_by === user?.id;
   const isWordle = duel.mode === 'wordle';
+  const isLingo = duel.mode === 'lingo';
   const keyboardRows = duel.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
   const secondsLeft = round?.ends_at ? Math.max(0, Math.ceil((new Date(round.ends_at).getTime() - now) / 1000)) : null;
   const sortedParticipants = [...duel.participants].sort((a, b) => b.score - a.score);
@@ -365,7 +424,128 @@ export default function DuelRoomScreen() {
             </>
           )}
 
-          {round && !isWordle && (
+          {/* Lingo duellosu (26 Kasım 2026, kullanıcı isteği) -- wordle
+              bloğuyla AYNI desen (kasa/hak göstergesi + ızgara), ama harf
+              harf değil TAM KELİME tahmini: solo moddaki game.tsx'teki
+              Lingo render bloğuyla BİREBİR AYNI mantık, burada round'un
+              (tüm katılımcılar için ortak) lingo_word_length alanı
+              kullanılıyor. İpucu/anlam GÖSTERİLMİYOR -- wordle duellosunun
+              minimalizmiyle AYNI (bkz. yukarıdaki round && isWordle bloğu,
+              o da current.meaning göstermiyor). */}
+          {round && isLingo && (
+            <>
+              <View style={styles.livesRow}>
+                <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginRight: 4 }}>
+                  {t.lingoPotLabel}: {round.lingo_pot ?? 10}
+                </Text>
+                <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginLeft: spacing.sm }}>
+                  {t.lingoGuessesLeftTpl.replace(
+                    '{n}',
+                    String(Math.max(0, (round.lingo_max_guesses ?? 5) - (round.lingo_guesses_used ?? round.lingo_guesses?.length ?? 0)))
+                  )}
+                </Text>
+              </View>
+
+              {(round.lingo_guesses ?? []).map((g, gi) => (
+                <View key={gi} style={styles.revealRow}>
+                  {g.word.split('').map((ch, i) => {
+                    const fb = g.feedback[i];
+                    const bg = fb === 'correct' ? c.successSoft : fb === 'present' ? c.warningSoft : c.border;
+                    const fg = fb === 'correct' ? c.success : fb === 'present' ? c.warning : c.textMuted;
+                    return (
+                      <View key={i} style={[styles.letterBox, { borderColor: bg, backgroundColor: bg }]}>
+                        <Text style={{ fontSize: 18, fontWeight: '700', color: fg, textTransform: 'uppercase' }}>{ch}</Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+
+              {!lingoGuessResult?.is_round_over && (
+                <View style={styles.revealRow}>
+                  {Array.from({ length: round.lingo_word_length ?? 0 }).map((_, i) => {
+                    const locked = round.lingo_locked?.[i] ?? null;
+                    const typed = lingoInput[i];
+                    const shown = locked ?? typed ?? '';
+                    return (
+                      <View
+                        key={i}
+                        style={[
+                          styles.letterBox,
+                          { borderColor: locked ? c.success : c.border, backgroundColor: locked ? c.successSoft : c.background },
+                        ]}
+                      >
+                        <Text style={{ fontSize: 18, fontWeight: '700', color: locked ? c.success : c.text, textTransform: 'uppercase' }}>
+                          {shown}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {lingoGuessResult?.is_round_over && (
+                <Card
+                  style={{
+                    backgroundColor: lingoGuessResult.is_complete ? c.successSoft : c.dangerSoft,
+                    borderColor: lingoGuessResult.is_complete ? c.successSoft : c.dangerSoft,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ color: lingoGuessResult.is_complete ? c.success : c.danger, fontWeight: '700' }}>
+                    {lingoGuessResult.is_complete
+                      ? lingoGuessResult.first_to_finish
+                        ? t.lingoFirstFinishLabel
+                        : t.lingoCompleteLabel
+                      : t.lingoFailedLabel}
+                  </Text>
+                  {!lingoGuessResult.is_complete && lingoGuessResult.word && (
+                    <Text style={{ color: c.danger, marginTop: 4 }}>{t.correctAnswerPrefix} {lingoGuessResult.word}</Text>
+                  )}
+                </Card>
+              )}
+
+              {!lingoGuessResult?.is_round_over && (
+                <>
+                  <TextInput
+                    value={lingoInput}
+                    onChangeText={(val) => {
+                      setLingoInput(val.slice(0, round.lingo_word_length ?? 0));
+                      setLingoInputError('');
+                    }}
+                    onSubmitEditing={handleGuessWord}
+                    editable={!lingoBusy}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    spellCheck={false}
+                    maxLength={round.lingo_word_length ?? 0}
+                    placeholder={t.lingoInputPlaceholder}
+                    placeholderTextColor={c.textMuted}
+                    style={[styles.lingoInput, { borderColor: c.border, backgroundColor: c.surface, color: c.text }]}
+                  />
+                  {!!lingoInputError && (
+                    <Text style={{ color: c.danger, fontSize: 12, textAlign: 'center' }}>{lingoInputError}</Text>
+                  )}
+                  <Pressable
+                    onPress={handleGuessWord}
+                    disabled={lingoBusy || lingoInput.trim().length !== (round.lingo_word_length ?? 0)}
+                    style={[
+                      styles.primaryBtn,
+                      {
+                        backgroundColor: c.primary,
+                        justifyContent: 'center',
+                        opacity: lingoBusy || lingoInput.trim().length !== (round.lingo_word_length ?? 0) ? 0.5 : 1,
+                      },
+                    ]}
+                  >
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{t.lingoSubmitBtn}</Text>
+                  </Pressable>
+                </>
+              )}
+            </>
+          )}
+
+          {round && !isWordle && !isLingo && (
             <>
               <Text style={{ color: c.text, fontSize: 16, fontWeight: '600', textAlign: 'center', paddingVertical: spacing.xs }}>
                 {round.definition}
@@ -479,4 +659,15 @@ const styles = StyleSheet.create({
   revealRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
   letterBox: { width: 32, height: 40, borderWidth: 2, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
   key: { width: 28, height: 36, borderRadius: radius.sm, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
+  // 26 Kasim 2026 -- Lingo duellosu icin tam-kelime giris kutusu (game.tsx'teki
+  // typingInput ile AYNI boyut/radius ailesi).
+  lingoInput: {
+    borderWidth: 2,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
 });

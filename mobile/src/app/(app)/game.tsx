@@ -2,14 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2, Grid3x3 } from 'lucide-react-native';
+import { Volume2, CheckSquare, Puzzle, Type, Timer, Shuffle, AlignLeft, PencilLine, Scale, Link2, Gamepad2, Grid3x3, Tv } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocale } from '@/i18n';
 import { getFillBlankStrings } from '@/i18n/fillBlankStrings';
 import { useAuth } from '@/store/auth';
 import { gamesApi } from '@/api/games';
-import type { Direction, GameFinishResult, GameMode, NextWordResult, PoolSource } from '@/api/types';
+import type { Direction, GameFinishResult, GameMode, LingoGuessResult, NextWordResult, PoolSource } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
 import { ScreenContainer } from '@/components/ui/ScreenContainer';
@@ -179,6 +179,17 @@ export default function GameScreen() {
   const [revealedWord, setRevealedWord] = useState<string | null>(null);
   const [letterBusy, setLetterBusy] = useState(false);
 
+  // ── Lingo state (26 Kasım 2026, Behçet'in kullanıcı isteği) -- TRT1
+  // "Lingo Türkiye" uyarlaması, web/game/page.tsx'teki AYNI state deseni. ──
+  const [lingoWordLength, setLingoWordLength] = useState(5);
+  const [lingoLocked, setLingoLocked] = useState<(string | null)[]>([]);
+  const [lingoGuesses, setLingoGuesses] = useState<{ word: string; feedback: string[] }[]>([]);
+  const [lingoPot, setLingoPot] = useState(10);
+  const [lingoMaxGuesses, setLingoMaxGuesses] = useState(5);
+  const [lingoInput, setLingoInput] = useState('');
+  const [lingoBusy, setLingoBusy] = useState(false);
+  const [lingoInputError, setLingoInputError] = useState('');
+
   // ── yazma (typing) state — web'deki gibi dinleme/sprint modları da bunu
   // paylaşacak (bkz. handleTypingSubmit): doğruluk kontrolü current.word ile
   // karşılaştırma. ──
@@ -194,6 +205,8 @@ export default function GameScreen() {
   // zaten Arapça klavyesi olan kullanıcı onu da kullanmaya devam edebilir.
   const insertArabicChar = (ch: string) => setTypedAnswer((prev) => prev + ch);
   const backspaceArabic = () => setTypedAnswer((prev) => prev.slice(0, -1));
+  const insertArabicCharLingo = (ch: string) => setLingoInput((prev) => prev + ch);
+  const backspaceArabicLingo = () => setLingoInput((prev) => prev.slice(0, -1));
 
   // ── sprint state — tüm oturum için tek bir geri sayım (bkz. web/game/page.tsx
   // içindeki aynı isimli useEffect) ──
@@ -276,7 +289,7 @@ export default function GameScreen() {
       setGameMode('true_false');
       setDirection('word_to_meaning');
       setStage('setup');
-    } else if (['wordle', 'typing', 'listening', 'matching', 'sentence_building', 'fill_blank', 'word_chain'].includes(mode)) {
+    } else if (['wordle', 'typing', 'listening', 'matching', 'sentence_building', 'fill_blank', 'word_chain', 'lingo'].includes(mode)) {
       setGameMode(mode);
       setDirection('meaning_to_word');
       setStage('setup');
@@ -327,6 +340,13 @@ export default function GameScreen() {
       setMaxWrongGuesses(nw.max_wrong_guesses ?? 6);
       setRoundResult(null);
       setRevealedWord(null);
+      setLingoWordLength(nw.lingo_word_length ?? 5);
+      setLingoLocked(nw.lingo_locked ?? []);
+      setLingoGuesses([]);
+      setLingoPot(nw.lingo_pot ?? 10);
+      setLingoMaxGuesses(nw.lingo_max_guesses ?? 5);
+      setLingoInput('');
+      setLingoInputError('');
       setTypedAnswer('');
       setTypingResult(null);
       setSentenceTiles(
@@ -866,6 +886,53 @@ export default function GameScreen() {
     setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 1800);
   };
 
+  // ── Lingo tahmin gönderme (26 Kasım 2026) -- handleGuessLetter ile AYNI
+  // XP-invalidate deseni, ama tek harf yerine TAM KELIME gönderiliyor. ──
+  const handleLingoGuess = async () => {
+    if (lingoBusy || roundResult || !sessionId) return;
+    const word = lingoInput.trim();
+    if (word.length !== lingoWordLength) {
+      setLingoInputError(gt.lingoInvalidLengthTpl.replace('{n}', String(lingoWordLength)));
+      return;
+    }
+    setLingoInputError('');
+    setLingoBusy(true);
+    try {
+      const res = await gamesApi.lingoGuess(sessionId, word);
+      setLingoGuesses((prev) => [...prev, { word: res.guess, feedback: res.feedback }]);
+      setLingoLocked(res.locked);
+      setLingoPot(res.pot);
+      setLingoMaxGuesses(res.max_guesses);
+      setLingoInput('');
+      setXpEarned((x) => x + res.xp_awarded);
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
+      if (res.leveled_up) setLevelUp(res.new_level);
+
+      if (res.is_complete) {
+        setScore((s) => s + 1);
+        setRoundResult('won');
+        setRevealedWord(res.word ?? null);
+        setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 1600);
+      } else if (res.is_game_over) {
+        setRoundResult('lost');
+        setRevealedWord(res.word ?? null);
+        setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 2000);
+      }
+    } catch {
+      /* sessiz */
+    } finally {
+      setLingoBusy(false);
+    }
+  };
+
+  const handleLingoSkip = () => {
+    if (lingoBusy || roundResult || !sessionId) return;
+    setRoundResult('lost');
+    setRevealedWord(current?.word ?? null);
+    setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 1800);
+  };
+
   const handleFinish = async () => {
     if (!sessionId) return;
     if (sprintTimerRef.current) {
@@ -963,6 +1030,20 @@ export default function GameScreen() {
             fg={c.accent}
             onPress={() => {
               setGameMode('wordle');
+              setDirection('meaning_to_word');
+              setStage('setup');
+            }}
+          />
+          {/* Lingo (26 Kasım 2026, kullanıcı isteği) -- TRT1 "Lingo
+              Türkiye" uyarlaması: Wordle ModeCard'ının hemen ardında,
+              web/game/page.tsx'teki sıralamayla AYNI. */}
+          <ModeCard
+            title={gt.modeLingoLabel}
+            icon={Tv}
+            bg="#FDEAF0"
+            fg="#9F1D53"
+            onPress={() => {
+              setGameMode('lingo');
               setDirection('meaning_to_word');
               setStage('setup');
             }}
@@ -1267,6 +1348,7 @@ export default function GameScreen() {
   if (!current) return null;
   const isWordle = gameMode === 'wordle';
   const isTyping = gameMode === 'typing';
+  const isLingo = gameMode === 'lingo';
   const isListening = gameMode === 'listening';
   const isSprint = gameMode === 'sprint';
   const isSentence = gameMode === 'sentence_building';
@@ -1512,6 +1594,144 @@ export default function GameScreen() {
             <Text style={{ color: c.textMuted, fontSize: 11, textAlign: 'center', marginTop: spacing.md }}>
               {gt.guessedLabel}: {guessedLetters.join(', ').toUpperCase()}
             </Text>
+          )}
+        </>
+      )}
+
+      {/* Lingo (26 Kasım 2026, kullanıcı isteği) -- wordle bloğuyla AYNI
+          desen (ipucu kartı + ızgara + sonuç banner'ı), ama harf harf değil
+          TAM KELİME tahmini: her geçmiş tahmin (lingoGuesses) kendi satırını
+          backend'in hesapladığı correct/present/absent geri bildirimiyle
+          renklendiriyor, "kilitli" (doğru konumda bulunmuş) harfler ise
+          canlı satırda (lingoLocked) önceden dolu gösteriliyor -- TRT1
+          "Lingo Türkiye"nin imza mekaniği. */}
+      {isLingo && (
+        <>
+          <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>
+              {gt.lingoHintLabel}
+            </Text>
+            <Text style={{ color: c.text, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{current.meaning}</Text>
+          </Card>
+
+          <View style={styles.livesRow}>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginRight: 4 }}>
+              {gt.lingoPotLabel}: {lingoPot}
+            </Text>
+            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginLeft: spacing.sm }}>
+              {gt.lingoGuessesLeftTpl.replace('{n}', String(Math.max(0, lingoMaxGuesses - lingoGuesses.length)))}
+            </Text>
+          </View>
+
+          {lingoGuesses.map((g, gi) => (
+            <View key={gi} style={styles.revealRow}>
+              {g.word.split('').map((ch, i) => {
+                const fb = g.feedback[i];
+                const bg = fb === 'correct' ? c.successSoft : fb === 'present' ? c.warningSoft : c.border;
+                const fg = fb === 'correct' ? c.success : fb === 'present' ? c.warning : c.textMuted;
+                return (
+                  <View key={i} style={[styles.letterBox, { borderColor: bg, backgroundColor: bg }]}>
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: fg, textTransform: 'uppercase' }}>{ch}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ))}
+
+          {!roundResult && (
+            <View style={styles.revealRow}>
+              {Array.from({ length: lingoWordLength }).map((_, i) => {
+                const locked = lingoLocked[i];
+                const typed = lingoInput[i];
+                const shown = locked ?? typed ?? '';
+                return (
+                  <View
+                    key={i}
+                    style={[
+                      styles.letterBox,
+                      {
+                        borderColor: locked ? c.success : c.border,
+                        backgroundColor: locked ? c.successSoft : c.background,
+                      },
+                    ]}
+                  >
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: locked ? c.success : c.text, textTransform: 'uppercase' }}>
+                      {shown}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {roundResult && (
+            <Card style={{ backgroundColor: roundResult === 'won' ? c.successSoft : c.dangerSoft, borderColor: roundResult === 'won' ? c.successSoft : c.dangerSoft, alignItems: 'center', marginBottom: spacing.md }}>
+              <Text style={{ color: roundResult === 'won' ? c.success : c.danger, fontWeight: '700' }}>
+                {roundResult === 'won' ? gt.lingoWonTitle : gt.lingoLostTitle}
+              </Text>
+              {roundResult === 'lost' && revealedWord && (
+                <Text style={{ color: c.danger, marginTop: 4 }}>{gt.correctWordTpl.replace('{word}', revealedWord)}</Text>
+              )}
+            </Card>
+          )}
+
+          {!roundResult && (
+            <>
+              <TextInput
+                value={lingoInput}
+                onChangeText={(t) => {
+                  setLingoInput(t.slice(0, lingoWordLength));
+                  setLingoInputError('');
+                }}
+                onSubmitEditing={handleLingoGuess}
+                editable={!lingoBusy}
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect={false}
+                spellCheck={false}
+                maxLength={lingoWordLength}
+                placeholder={gt.lingoInputPlaceholder}
+                placeholderTextColor={c.textMuted}
+                style={[styles.typingInput, { marginTop: spacing.sm }]}
+              />
+
+              {!!lingoInputError && (
+                <Text style={{ color: c.danger, fontSize: 12, textAlign: 'center', marginTop: 4 }}>{lingoInputError}</Text>
+              )}
+
+              {user?.learning_lang === 'ar' && (
+                <View style={{ alignItems: 'center', gap: 6, marginTop: spacing.sm }}>
+                  {ARABIC_KEYBOARD_ROWS.map((row, i) => (
+                    <View key={i} style={{ flexDirection: 'row', gap: 5 }}>
+                      {row.split('').map((letter) => (
+                        <Pressable
+                          key={letter}
+                          onPress={() => insertArabicCharLingo(letter)}
+                          style={[styles.key, { borderColor: c.border, backgroundColor: c.surface }]}
+                        >
+                          <Text style={{ fontSize: 15, fontWeight: '600', color: c.text }}>{letter}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  ))}
+                  <Pressable
+                    onPress={backspaceArabicLingo}
+                    style={[styles.key, { width: 64, borderColor: c.border, backgroundColor: c.surface }]}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: c.text }}>⌫</Text>
+                  </Pressable>
+                </View>
+              )}
+
+              <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
+                <Button
+                  title={gt.lingoSubmitBtn}
+                  onPress={handleLingoGuess}
+                  disabled={lingoBusy || lingoInput.trim().length !== lingoWordLength}
+                />
+                <Button title={gt.typingSkipBtn} onPress={handleLingoSkip} variant="ghost" />
+              </View>
+            </>
           )}
         </>
       )}

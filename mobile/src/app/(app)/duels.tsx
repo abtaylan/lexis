@@ -123,7 +123,10 @@ export default function DuelsLobbyScreen() {
       </View>
 
       <View style={styles.modeToggleRow}>
-        {(['multiple_choice', 'wordle'] as DuelMode[]).map((m) => {
+        {/* Lingo (26 Kasım 2026, kullanıcı isteği -- "sadece sisteme karşı
+            değil, sistemdeki kullanıcılarla da oynanacak"): üçüncü mod
+            seçeneği olarak eklendi, web/duels/page.tsx'teki AYNI sıralama. */}
+        {(['multiple_choice', 'wordle', 'lingo'] as DuelMode[]).map((m) => {
           const active = createMode === m;
           return (
             <Pressable
@@ -135,7 +138,7 @@ export default function DuelsLobbyScreen() {
               ]}
             >
               <Text style={{ color: active ? '#fff' : c.textSecondary, fontSize: 12, fontWeight: '700' }}>
-                {m === 'wordle' ? ds.modeWordleLabel : ds.modeQuizLabel}
+                {m === 'wordle' ? ds.modeWordleLabel : m === 'lingo' ? ds.modeLingoLabel : ds.modeQuizLabel}
               </Text>
             </Pressable>
           );

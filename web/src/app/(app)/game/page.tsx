@@ -27,6 +27,7 @@ import {
   Scale,
   Link2,
   Grid3x3,
+  Tv,
 } from 'lucide-react';
 import {
   gamesApi,
@@ -37,6 +38,7 @@ import {
   type NextWordResult,
   type GameFinishResult,
   type GuessLetterResult,
+  type LingoGuessResult,
 } from '@/lib/api';
 import { useLocale, type Locale } from '@/lib/i18n';
 import { useAuth } from '@/store/auth';
@@ -121,6 +123,20 @@ type Strings = {
   wordleLostTitle: string;
   correctWordTpl: string;
   exampleHintLabel: string;
+  // Lingo (26 Kasım 2026, Behçet'in kullanıcı isteği) -- TRT1 "Lingo
+  // Türkiye" uyarlaması: adam asmacadan farklı olarak harf değil TAM
+  // kelime tahmin edilir, Wordle tarzı renkli geri bildirim + azalan
+  // "kasa" puanı var (bkz. backend games.py docstring'i).
+  modeLingoLabel: string;
+  modeLingoDesc: string;
+  lingoHintLabel: string;
+  lingoPotLabel: string;
+  lingoGuessesLeftTpl: string;
+  lingoInputPlaceholder: string;
+  lingoSubmitBtn: string;
+  lingoWonTitle: string;
+  lingoLostTitle: string;
+  lingoInvalidLengthTpl: string;
   // Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (mobile/src/app/(app)/game.tsx
   // ile aynı 3 yeni mod — bkz. backend games.py docstring'i).
   modeFillBlankLabel: string;
@@ -231,6 +247,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Kelimeyi buldun! 🎉',
     wordleLostTitle: 'Hakların bitti',
     correctWordTpl: 'Doğru kelime: {word}',
+    modeLingoLabel: 'Lingo',
+    modeLingoDesc: 'TRT\'deki Lingo Türkiye gibi, tam kelimeyi tahmin et',
+    lingoHintLabel: 'İpucu (anlamı)',
+    lingoPotLabel: 'Kasa',
+    lingoGuessesLeftTpl: '{n} hakkın kaldı',
+    lingoInputPlaceholder: '{n} harfli kelimeyi yaz…',
+    lingoSubmitBtn: 'Tahmin Et',
+    lingoWonTitle: 'Kelimeyi buldun! 🎉',
+    lingoLostTitle: 'Kasa bitti',
+    lingoInvalidLengthTpl: 'Tahminin {n} harfli olmalı.',
     exampleHintLabel: 'Örnek cümle:',
     modeFillBlankLabel: 'Boşluk Doldurma',
     modeFillBlankDesc: 'Cümledeki boşluğu doğru kelimeyle doldur',
@@ -334,6 +360,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'You got it! 🎉',
     wordleLostTitle: 'Out of lives',
     correctWordTpl: 'Correct word: {word}',
+    modeLingoLabel: 'Lingo',
+    modeLingoDesc: 'Guess the whole word, like the Lingo TV game show',
+    lingoHintLabel: 'Hint (meaning)',
+    lingoPotLabel: 'Pot',
+    lingoGuessesLeftTpl: '{n} guesses left',
+    lingoInputPlaceholder: 'Type a {n}-letter word…',
+    lingoSubmitBtn: 'Guess',
+    lingoWonTitle: 'You got it! 🎉',
+    lingoLostTitle: 'Out of guesses',
+    lingoInvalidLengthTpl: 'Your guess must be {n} letters.',
     exampleHintLabel: 'Example sentence:',
     modeFillBlankLabel: 'Fill in the Blank',
     modeFillBlankDesc: 'Fill in the missing word in the sentence',
@@ -437,6 +473,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'لقد عرفتها! 🎉',
     wordleLostTitle: 'انتهت محاولاتك',
     correctWordTpl: 'الكلمة الصحيحة: {word}',
+    modeLingoLabel: 'لينجو',
+    modeLingoDesc: 'خمّن الكلمة كاملة، كما في برنامج لينجو التلفزيوني',
+    lingoHintLabel: 'تلميح (المعنى)',
+    lingoPotLabel: 'الرصيد',
+    lingoGuessesLeftTpl: 'تبقّى لك {n} محاولات',
+    lingoInputPlaceholder: 'اكتب كلمة من {n} أحرف…',
+    lingoSubmitBtn: 'خمّن',
+    lingoWonTitle: 'لقد عرفتها! 🎉',
+    lingoLostTitle: 'انتهى الرصيد',
+    lingoInvalidLengthTpl: 'يجب أن تكون كلمتك من {n} أحرف.',
     exampleHintLabel: 'جملة مثال:',
     modeFillBlankLabel: 'إكمال الفراغ',
     modeFillBlankDesc: 'أكمل الكلمة الناقصة في الجملة',
@@ -540,6 +586,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Вы угадали! 🎉',
     wordleLostTitle: 'Жизни закончились',
     correctWordTpl: 'Правильное слово: {word}',
+    modeLingoLabel: 'Линго',
+    modeLingoDesc: 'Угадай слово целиком, как в телешоу Lingo',
+    lingoHintLabel: 'Подсказка (значение)',
+    lingoPotLabel: 'Банк',
+    lingoGuessesLeftTpl: 'Осталось попыток: {n}',
+    lingoInputPlaceholder: 'Введите слово из {n} букв…',
+    lingoSubmitBtn: 'Угадать',
+    lingoWonTitle: 'Вы угадали! 🎉',
+    lingoLostTitle: 'Банк исчерпан',
+    lingoInvalidLengthTpl: 'Слово должно быть из {n} букв.',
     exampleHintLabel: 'Пример предложения:',
     modeFillBlankLabel: 'Заполни пропуск',
     modeFillBlankDesc: 'Вставь пропущенное слово в предложение',
@@ -643,6 +699,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Du hast es erraten! 🎉',
     wordleLostTitle: 'Keine Leben mehr',
     correctWordTpl: 'Richtiges Wort: {word}',
+    modeLingoLabel: 'Lingo',
+    modeLingoDesc: 'Errate das ganze Wort, wie in der TV-Show Lingo',
+    lingoHintLabel: 'Hinweis (Bedeutung)',
+    lingoPotLabel: 'Topf',
+    lingoGuessesLeftTpl: 'Noch {n} Versuche',
+    lingoInputPlaceholder: 'Gib ein {n}-buchstabiges Wort ein…',
+    lingoSubmitBtn: 'Raten',
+    lingoWonTitle: 'Du hast es erraten! 🎉',
+    lingoLostTitle: 'Topf aufgebraucht',
+    lingoInvalidLengthTpl: 'Dein Wort muss {n} Buchstaben haben.',
     exampleHintLabel: 'Beispielsatz:',
     modeFillBlankLabel: 'Lückentext',
     modeFillBlankDesc: 'Fülle die Lücke im Satz mit dem richtigen Wort',
@@ -746,6 +812,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: "Tu l'as trouvé ! 🎉",
     wordleLostTitle: 'Plus de vies',
     correctWordTpl: 'Mot correct : {word}',
+    modeLingoLabel: 'Lingo',
+    modeLingoDesc: 'Devine le mot entier, comme dans le jeu télévisé Lingo',
+    lingoHintLabel: 'Indice (sens)',
+    lingoPotLabel: 'Cagnotte',
+    lingoGuessesLeftTpl: 'Il te reste {n} essais',
+    lingoInputPlaceholder: 'Tape un mot de {n} lettres…',
+    lingoSubmitBtn: 'Deviner',
+    lingoWonTitle: 'Tu l\'as trouvé ! 🎉',
+    lingoLostTitle: 'Cagnotte épuisée',
+    lingoInvalidLengthTpl: 'Ton mot doit faire {n} lettres.',
     exampleHintLabel: "Phrase d'exemple :",
     modeFillBlankLabel: 'Texte à trous',
     modeFillBlankDesc: 'Complète le mot manquant dans la phrase',
@@ -849,6 +925,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: '¡La adivinaste! 🎉',
     wordleLostTitle: 'Sin vidas',
     correctWordTpl: 'Palabra correcta: {word}',
+    modeLingoLabel: 'Lingo',
+    modeLingoDesc: 'Adivina la palabra completa, como en el concurso Lingo',
+    lingoHintLabel: 'Pista (significado)',
+    lingoPotLabel: 'Bote',
+    lingoGuessesLeftTpl: 'Te quedan {n} intentos',
+    lingoInputPlaceholder: 'Escribe una palabra de {n} letras…',
+    lingoSubmitBtn: 'Adivinar',
+    lingoWonTitle: '¡La adivinaste! 🎉',
+    lingoLostTitle: 'Bote agotado',
+    lingoInvalidLengthTpl: 'Tu palabra debe tener {n} letras.',
     exampleHintLabel: 'Frase de ejemplo:',
     modeFillBlankLabel: 'Rellenar el Hueco',
     modeFillBlankDesc: 'Completa la palabra que falta en la frase',
@@ -952,6 +1038,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: "L'hai indovinata! 🎉",
     wordleLostTitle: 'Vite finite',
     correctWordTpl: 'Parola corretta: {word}',
+    modeLingoLabel: 'Lingo',
+    modeLingoDesc: 'Indovina la parola intera, come nel gioco TV Lingo',
+    lingoHintLabel: 'Indizio (significato)',
+    lingoPotLabel: 'Montepremi',
+    lingoGuessesLeftTpl: 'Ti restano {n} tentativi',
+    lingoInputPlaceholder: 'Scrivi una parola di {n} lettere…',
+    lingoSubmitBtn: 'Indovina',
+    lingoWonTitle: 'L\'hai indovinata! 🎉',
+    lingoLostTitle: 'Montepremi esaurito',
+    lingoInvalidLengthTpl: 'La tua parola deve avere {n} lettere.',
     exampleHintLabel: 'Frase di esempio:',
     modeFillBlankLabel: 'Completa la Frase',
     modeFillBlankDesc: 'Completa la parola mancante nella frase',
@@ -1055,6 +1151,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: '正解です! 🎉',
     wordleLostTitle: 'ライフがなくなりました',
     correctWordTpl: '正解の単語: {word}',
+    modeLingoLabel: 'Lingo',
+    modeLingoDesc: '意味を頼りに単語全体を当てる、Lingoのようなゲーム',
+    lingoHintLabel: 'ヒント(意味)',
+    lingoPotLabel: '賞金',
+    lingoGuessesLeftTpl: '残り{n}回',
+    lingoInputPlaceholder: '{n}文字の単語を入力…',
+    lingoSubmitBtn: '回答する',
+    lingoWonTitle: '正解です! 🎉',
+    lingoLostTitle: '賞金がなくなりました',
+    lingoInvalidLengthTpl: '単語は{n}文字である必要があります。',
     exampleHintLabel: '例文:',
     modeFillBlankLabel: '穴埋め問題',
     modeFillBlankDesc: '文中の空欄に正しい単語を入力しよう',
@@ -1158,6 +1264,16 @@ const STRINGS: Record<Locale, Strings> = {
     wordleWonTitle: 'Conseguiste! 🎉',
     wordleLostTitle: 'Sem vidas',
     correctWordTpl: 'Palavra correta: {word}',
+    modeLingoLabel: 'Lingo',
+    modeLingoDesc: 'Adivinha a palavra inteira, como no concurso de TV Lingo',
+    lingoHintLabel: 'Dica (significado)',
+    lingoPotLabel: 'Prémio',
+    lingoGuessesLeftTpl: 'Restam-te {n} tentativas',
+    lingoInputPlaceholder: 'Escreve uma palavra de {n} letras…',
+    lingoSubmitBtn: 'Adivinhar',
+    lingoWonTitle: 'Conseguiste! 🎉',
+    lingoLostTitle: 'Prémio esgotado',
+    lingoInvalidLengthTpl: 'A tua palavra deve ter {n} letras.',
     exampleHintLabel: 'Frase de exemplo:',
     modeFillBlankLabel: 'Preencher a Lacuna',
     modeFillBlankDesc: 'Preenche a palavra em falta na frase',
@@ -1320,6 +1436,25 @@ export default function GamePage() {
   const [revealedWord, setRevealedWord] = useState<string | null>(null);
   const [letterBusy, setLetterBusy] = useState(false);
 
+  // ── Lingo state (26 Kasım 2026, Behçet'in kullanıcı isteği) -- TRT1
+  // "Lingo Türkiye" uyarlaması: adam asmacadan farklı olarak TEK harf
+  // değil TAM kelime tahmin edilir. lingoGuesses, bu turdaki TÜM
+  // tahminlerin (ve her birinin pozisyon bazlı Wordle-tarzı geri
+  // bildiriminin) sırayla biriktiği liste -- ekranda satır satır
+  // gösterilir. lingoLocked, doğru pozisyonda bulunup bir SONRAKİ
+  // tahminde sabit kalan harfleri tutar (asıl Lingo mekaniği, bkz.
+  // backend 123_lingo_game_mode.sql yorumu). roundResult/revealedWord
+  // ile AYNI state wordle ile PAYLAŞILIYOR (ikisi de "tur bitti" anlamına
+  // geliyor, aynı anda sadece biri aktif olabilir). ──
+  const [lingoWordLength, setLingoWordLength] = useState(5);
+  const [lingoLocked, setLingoLocked] = useState<(string | null)[]>([]);
+  const [lingoGuesses, setLingoGuesses] = useState<{ word: string; feedback: string[] }[]>([]);
+  const [lingoPot, setLingoPot] = useState(10);
+  const [lingoMaxGuesses, setLingoMaxGuesses] = useState(5);
+  const [lingoInput, setLingoInput] = useState('');
+  const [lingoBusy, setLingoBusy] = useState(false);
+  const [lingoInputError, setLingoInputError] = useState('');
+
   // ── yazma (typing) state — dinleme ve sprint modları da bunu paylaşır,
   // çünkü doğruluk kontrolü üçünde de aynı: current.word ile karşılaştırma ──
   const [typedAnswer, setTypedAnswer] = useState('');
@@ -1329,6 +1464,10 @@ export default function GamePage() {
   // gerekiyor klavye seçeneği eksik" — bkz. mobile/game.tsx'teki aynı not.
   const insertArabicChar = (ch: string) => setTypedAnswer((prev) => prev + ch);
   const backspaceArabic = () => setTypedAnswer((prev) => prev.slice(0, -1));
+  // Lingo icin ayni Arapca sanal klavye -- typedAnswer yerine lingoInput'u
+  // hedefler (bkz. yukaridaki Lingo state notu).
+  const insertArabicCharLingo = (ch: string) => setLingoInput((prev) => prev + ch);
+  const backspaceArabicLingo = () => setLingoInput((prev) => prev.slice(0, -1));
 
   // ── sprint state — tüm oturum için tek bir geri sayım ──
   const [sprintSecondsLeft, setSprintSecondsLeft] = useState(60);
@@ -1479,6 +1618,13 @@ export default function GamePage() {
       setMaxWrongGuesses(nw.max_wrong_guesses ?? 6);
       setRoundResult(null);
       setRevealedWord(null);
+      setLingoWordLength(nw.lingo_word_length ?? 5);
+      setLingoLocked(nw.lingo_locked ?? []);
+      setLingoGuesses([]);
+      setLingoPot(nw.lingo_pot ?? 10);
+      setLingoMaxGuesses(nw.lingo_max_guesses ?? 5);
+      setLingoInput('');
+      setLingoInputError('');
       setTypedAnswer('');
       setTypingResult(null);
       setSentenceTiles(
@@ -1625,11 +1771,11 @@ export default function GamePage() {
     const presetPool = searchParams.get('pool') as PoolSource | null;
     const VALID_MODES: GameMode[] = [
       'wordle', 'multiple_choice', 'typing', 'matching', 'listening', 'sprint', 'sentence_building',
-      'fill_blank', 'true_false', 'word_chain', 'grammar_sentence',
+      'fill_blank', 'true_false', 'word_chain', 'grammar_sentence', 'lingo',
     ];
     if (!presetMode || !VALID_MODES.includes(presetMode)) return;
     const pool: PoolSource = presetPool === 'own' ? 'own' : 'general';
-    const dir: Direction = presetMode === 'wordle' ? 'meaning_to_word' : 'word_to_meaning';
+    const dir: Direction = presetMode === 'wordle' || presetMode === 'lingo' ? 'meaning_to_word' : 'word_to_meaning';
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount/parametre değişiminde veri çekme (fetch-on-effect) deseni; senkron setState çağrısı kasıtlı, davranış değiştirilmedi (bkz. üstteki challengeId efektindeki aynı not)
     setDirection(dir);
     start(presetMode, pool, dir);
@@ -2001,6 +2147,55 @@ export default function GamePage() {
     }, 1800);
   };
 
+  // ── Lingo tam-kelime tahmini (26 Kasım 2026) ──
+  const handleLingoGuess = async () => {
+    if (lingoBusy || roundResult || !sessionId) return;
+    const guess = lingoInput.trim().toLowerCase();
+    if (guess.length !== lingoWordLength) {
+      setLingoInputError(t.lingoInvalidLengthTpl.replace('{n}', String(lingoWordLength)));
+      return;
+    }
+    setLingoInputError('');
+    setLingoBusy(true);
+    try {
+      const res: LingoGuessResult = await gamesApi.lingoGuess(sessionId, guess);
+      setLingoGuesses((prev) => [...prev, { word: res.guess, feedback: res.feedback }]);
+      setLingoLocked(res.locked);
+      setLingoPot(res.pot);
+      setLingoInput('');
+      setXpEarned((x) => x + res.xp_awarded);
+      if (res.leveled_up) setLevelUp(res.new_level);
+
+      if (res.is_complete) {
+        setScore((s) => s + 1);
+        setRoundResult('won');
+        setRevealedWord(res.word ?? null);
+        setTimeout(() => {
+          if (sessionId) loadNext(sessionId, true, poolSource);
+        }, 1600);
+      } else if (res.is_game_over) {
+        setRoundResult('lost');
+        setRevealedWord(res.word ?? null);
+        setTimeout(() => {
+          if (sessionId) loadNext(sessionId, true, poolSource);
+        }, 2000);
+      }
+    } catch {
+      /* sessiz */
+    } finally {
+      setLingoBusy(false);
+    }
+  };
+
+  const handleLingoSkip = () => {
+    if (lingoBusy || roundResult || !sessionId) return;
+    setRoundResult('lost');
+    setRevealedWord(current?.word ?? null);
+    setTimeout(() => {
+      if (sessionId) loadNext(sessionId, true, poolSource);
+    }, 1800);
+  };
+
   const handleFinish = async () => {
     if (!sessionId) return;
     if (sprintTimerRef.current) {
@@ -2096,6 +2291,24 @@ export default function GamePage() {
               <div>
                 <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeWordleLabel}</p>
                 <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeWordleDesc}</p>
+              </div>
+            </button>
+            {/* Lingo (26 Kasım 2026, Behçet'in kullanıcı isteği) -- TRT1
+                "Lingo Türkiye" uyarlaması. */}
+            <button
+              onClick={() => {
+                setGameMode('lingo');
+                setDirection('meaning_to_word');
+                setStage('setup');
+              }}
+              className="w-full flex items-center gap-3 text-left border-2 border-gray-200 dark:border-slate-700 hover:border-[#378ADD] hover:bg-[#E6F1FB] rounded-xl px-4 py-3.5 transition-all"
+            >
+              <div className="w-9 h-9 shrink-0 rounded-lg bg-[#FDEAF0] flex items-center justify-center">
+                <Tv className="w-4 h-4 text-[#9F1D53]" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-gray-800 dark:text-slate-200">{t.modeLingoLabel}</p>
+                <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{t.modeLingoDesc}</p>
               </div>
             </button>
             <button
@@ -2609,6 +2822,7 @@ export default function GamePage() {
   if (!current) return null;
 
   const isWordle = gameMode === 'wordle';
+  const isLingo = gameMode === 'lingo';
   const isTyping = gameMode === 'typing';
   const isListening = gameMode === 'listening';
   const isSprint = gameMode === 'sprint';
@@ -2899,6 +3113,163 @@ export default function GamePage() {
             <p className="text-xs text-gray-400 dark:text-slate-500 text-center">
               {t.guessedLabel}: {guessedLetters.join(', ').toUpperCase()}
             </p>
+          )}
+        </>
+      )}
+
+      {isLingo && (
+        <>
+          {/* İpucu / anlam */}
+          <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 text-center">
+            <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+              {t.lingoHintLabel}
+            </p>
+            <p className="text-lg font-semibold text-gray-800 dark:text-slate-200">{current.meaning}</p>
+          </div>
+
+          {/* Kasa + kalan hak */}
+          <div className="w-full flex items-center justify-center gap-4">
+            <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
+              {t.lingoPotLabel}: <span className="font-bold text-gray-700 dark:text-slate-200">{lingoPot}</span>
+            </span>
+            <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
+              {t.lingoGuessesLeftTpl.replace('{n}', String(Math.max(0, lingoMaxGuesses - lingoGuesses.length)))}
+            </span>
+          </div>
+
+          {/* Tahmin tahtası -- her satır önceki bir tahmin, Wordle tarzı
+              renkli geri bildirim (bkz. backend games.py::_lingo_feedback).
+              Boş (henüz gönderilmemiş) satırda kilitli (daha önce doğru
+              pozisyonda bulunmuş) harfler önden dolu gösterilir -- asıl
+              Lingo mekaniği budur, bkz. 123_lingo_game_mode.sql yorumu. */}
+          <div className="w-full flex flex-col items-center gap-1.5 py-2">
+            {lingoGuesses.map((g, rowIdx) => (
+              <div key={rowIdx} className="flex gap-1.5">
+                {g.word.split('').map((ch, i) => {
+                  const fb = g.feedback[i];
+                  const cls =
+                    fb === 'correct'
+                      ? 'bg-[#3B6D11] border-[#3B6D11] text-white'
+                      : fb === 'present'
+                        ? 'bg-[#C98A1A] border-[#C98A1A] text-white'
+                        : 'bg-gray-200 dark:bg-slate-700 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-300';
+                  return (
+                    <span
+                      key={i}
+                      className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase border-2 ${cls}`}
+                    >
+                      {ch}
+                    </span>
+                  );
+                })}
+              </div>
+            ))}
+            {!roundResult && (
+              <div className="flex gap-1.5">
+                {Array.from({ length: lingoWordLength }).map((_, i) => {
+                  const lockedChar = lingoLocked[i];
+                  const typedChar = lingoInput[i];
+                  return (
+                    <span
+                      key={i}
+                      className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase border-2 ${
+                        lockedChar
+                          ? 'bg-[#EAF3DE] border-[#3B6D11]/40 text-[#3B6D11]'
+                          : typedChar
+                            ? 'border-[#378ADD] text-gray-800 dark:text-slate-100'
+                            : 'bg-gray-50 dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-transparent'
+                      }`}
+                    >
+                      {lockedChar ?? typedChar ?? '·'}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Sonuç rozeti */}
+          {roundResult && (
+            <div
+              className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-center ${
+                roundResult === 'won' ? 'bg-[#EAF3DE] text-[#3B6D11]' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
+              }`}
+            >
+              <p>{roundResult === 'won' ? t.lingoWonTitle : t.lingoLostTitle}</p>
+              {roundResult === 'lost' && revealedWord && (
+                <p className="mt-1 font-normal">{t.correctWordTpl.replace('{word}', revealedWord)}</p>
+              )}
+            </div>
+          )}
+
+          {/* Giriş */}
+          {!roundResult && (
+            <div className="w-full flex flex-col gap-3">
+              <input
+                type="text"
+                value={lingoInput}
+                onChange={(e) => {
+                  setLingoInput(e.target.value.slice(0, lingoWordLength));
+                  setLingoInputError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleLingoGuess();
+                }}
+                disabled={lingoBusy}
+                autoFocus
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder={t.lingoInputPlaceholder.replace('{n}', String(lingoWordLength))}
+                className="w-full border-2 rounded-xl px-4 py-3.5 text-base text-center font-medium transition-all outline-none border-gray-200 dark:border-slate-700 focus:border-[#378ADD]"
+              />
+
+              {lingoInputError && (
+                <p className="text-xs text-red-500 dark:text-red-400 text-center">{lingoInputError}</p>
+              )}
+
+              {user?.learning_lang === 'ar' && (
+                <div className="flex flex-col items-center gap-1.5">
+                  {ARABIC_KEYBOARD_ROWS.map((row, i) => (
+                    <div key={i} className="flex gap-1">
+                      {row.split('').map((letter) => (
+                        <button
+                          key={letter}
+                          type="button"
+                          onClick={() => insertArabicCharLingo(letter)}
+                          className="w-7 h-9 rounded-md border border-gray-200 dark:border-slate-700 text-sm font-semibold text-gray-800 dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          {letter}
+                        </button>
+                      ))}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={backspaceArabicLingo}
+                    className="w-16 h-9 rounded-md border border-gray-200 dark:border-slate-700 text-sm font-semibold text-gray-800 dark:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    ⌫
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleLingoGuess}
+                  disabled={lingoInput.trim().length !== lingoWordLength || lingoBusy}
+                  className="w-full bg-[#378ADD] hover:bg-[#2d73c4] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-medium transition-colors"
+                >
+                  {t.lingoSubmitBtn}
+                </button>
+                <button
+                  onClick={handleLingoSkip}
+                  className="w-full text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200 rounded-xl py-2 text-sm font-medium transition-colors"
+                >
+                  {t.typingSkipBtn}
+                </button>
+              </div>
+            </div>
           )}
         </>
       )}

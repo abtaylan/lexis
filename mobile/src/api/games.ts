@@ -6,6 +6,7 @@ import type {
   GameMode,
   GameSession,
   GuessLetterResult,
+  LingoGuessResult,
   NextWordResult,
   PoolSource,
   WeakDifficultyResult,
@@ -36,6 +37,10 @@ export const gamesApi = {
   },
   guessLetter: async (sessionId: string, letter: string): Promise<GuessLetterResult> => {
     const res = await api.post<GuessLetterResult>(`/games/sessions/${sessionId}/guess-letter`, { letter });
+    return res.data;
+  },
+  lingoGuess: async (sessionId: string, word: string): Promise<LingoGuessResult> => {
+    const res = await api.post<LingoGuessResult>(`/games/sessions/${sessionId}/lingo/guess`, { word });
     return res.data;
   },
   finishSession: async (sessionId: string): Promise<GameFinishResult> => {

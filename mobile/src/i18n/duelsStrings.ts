@@ -64,6 +64,18 @@ export type DuelsStrings = {
   wordleCompleteLabel: string;
   wordleFirstFinishLabel: string;
   wordleFailedLabel: string;
+
+  // ── Lingo modu (26 Kasım 2026, kullanıcı isteği -- TRT1 "Lingo
+  // Türkiye" uyarlaması, çok oyunculu düello) ──
+  modeLingoLabel: string;
+  lingoPotLabel: string;
+  lingoGuessesLeftTpl: string;
+  lingoInputPlaceholder: string;
+  lingoSubmitBtn: string;
+  lingoInvalidLengthTpl: string;
+  lingoCompleteLabel: string;
+  lingoFirstFinishLabel: string;
+  lingoFailedLabel: string;
 };
 
 export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
@@ -88,6 +100,10 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'Klasik (Çoktan Seçmeli)', modeWordleLabel: 'Adam Asmaca',
     livesLabel: 'Can', wordleCompleteLabel: 'Kelimeyi tamamladın! 🎉',
     wordleFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', wordleFailedLabel: 'Hakların bitti.',
+    modeLingoLabel: 'Lingo', lingoPotLabel: 'Kasa', lingoGuessesLeftTpl: '{n} hakkın kaldı',
+    lingoInputPlaceholder: 'Kelimeyi yaz', lingoSubmitBtn: 'Gönder',
+    lingoInvalidLengthTpl: 'Kelime {n} harfli olmalı', lingoCompleteLabel: 'Kelimeyi tamamladın! 🎉',
+    lingoFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', lingoFailedLabel: 'Hakların bitti.',
   },
   en: {
     title: 'Duel', subtitle: 'A live vocabulary competition with multiple players at once.',
@@ -110,6 +126,10 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'Quiz (Multiple Choice)', modeWordleLabel: 'Word Guess',
     livesLabel: 'Lives', wordleCompleteLabel: 'You completed the word! 🎉',
     wordleFirstFinishLabel: 'First to finish! +bonus 🏆', wordleFailedLabel: 'Out of guesses.',
+    modeLingoLabel: 'Lingo', lingoPotLabel: 'Pot', lingoGuessesLeftTpl: '{n} guesses left',
+    lingoInputPlaceholder: 'Type the word', lingoSubmitBtn: 'Submit',
+    lingoInvalidLengthTpl: 'The word must be {n} letters', lingoCompleteLabel: 'You completed the word! 🎉',
+    lingoFirstFinishLabel: 'First to finish! +bonus 🏆', lingoFailedLabel: 'Out of guesses.',
   },
   de: {
     title: 'Duell', subtitle: 'Ein Live-Vokabelwettbewerb mit mehreren Spielern gleichzeitig.',
@@ -132,6 +152,10 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'Quiz (Multiple-Choice)', modeWordleLabel: 'Wort erraten',
     livesLabel: 'Leben', wordleCompleteLabel: 'Du hast das Wort vervollständigt! 🎉',
     wordleFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', wordleFailedLabel: 'Keine Versuche mehr.',
+    modeLingoLabel: 'Lingo', lingoPotLabel: 'Topf', lingoGuessesLeftTpl: '{n} Versuche übrig',
+    lingoInputPlaceholder: 'Wort eingeben', lingoSubmitBtn: 'Absenden',
+    lingoInvalidLengthTpl: 'Das Wort muss {n} Buchstaben haben', lingoCompleteLabel: 'Du hast das Wort vervollständigt! 🎉',
+    lingoFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', lingoFailedLabel: 'Keine Versuche mehr.',
   },
   fr: {
     title: 'Duel', subtitle: 'Une compétition de vocabulaire en direct avec plusieurs joueurs à la fois.',
@@ -154,6 +178,10 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'Quiz (choix multiple)', modeWordleLabel: 'Deviner le mot',
     livesLabel: 'Vies', wordleCompleteLabel: 'Tu as complété le mot ! 🎉',
     wordleFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', wordleFailedLabel: "Plus d'essais.",
+    modeLingoLabel: 'Lingo', lingoPotLabel: 'Cagnotte', lingoGuessesLeftTpl: '{n} essais restants',
+    lingoInputPlaceholder: 'Écris le mot', lingoSubmitBtn: 'Valider',
+    lingoInvalidLengthTpl: 'Le mot doit comporter {n} lettres', lingoCompleteLabel: 'Tu as complété le mot ! 🎉',
+    lingoFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', lingoFailedLabel: "Plus d'essais.",
   },
   es: {
     title: 'Duelo', subtitle: 'Una competencia de vocabulario en vivo con varios jugadores a la vez.',
@@ -176,6 +204,10 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'Cuestionario (opción múltiple)', modeWordleLabel: 'Adivinar la palabra',
     livesLabel: 'Vidas', wordleCompleteLabel: '¡Completaste la palabra! 🎉',
     wordleFirstFinishLabel: '¡Primero en terminar! +bono 🏆', wordleFailedLabel: 'Sin intentos.',
+    modeLingoLabel: 'Lingo', lingoPotLabel: 'Bote', lingoGuessesLeftTpl: '{n} intentos restantes',
+    lingoInputPlaceholder: 'Escribe la palabra', lingoSubmitBtn: 'Enviar',
+    lingoInvalidLengthTpl: 'La palabra debe tener {n} letras', lingoCompleteLabel: '¡Completaste la palabra! 🎉',
+    lingoFirstFinishLabel: '¡Primero en terminar! +bono 🏆', lingoFailedLabel: 'Sin intentos.',
   },
   it: {
     title: 'Duello', subtitle: 'Una gara di vocabolario dal vivo con più giocatori contemporaneamente.',
@@ -198,6 +230,10 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'Quiz (scelta multipla)', modeWordleLabel: 'Indovina la parola',
     livesLabel: 'Vite', wordleCompleteLabel: 'Hai completato la parola! 🎉',
     wordleFirstFinishLabel: 'Primo a finire! +bonus 🏆', wordleFailedLabel: 'Tentativi esauriti.',
+    modeLingoLabel: 'Lingo', lingoPotLabel: 'Montepremi', lingoGuessesLeftTpl: '{n} tentativi rimasti',
+    lingoInputPlaceholder: 'Scrivi la parola', lingoSubmitBtn: 'Invia',
+    lingoInvalidLengthTpl: 'La parola deve avere {n} lettere', lingoCompleteLabel: 'Hai completato la parola! 🎉',
+    lingoFirstFinishLabel: 'Primo a finire! +bonus 🏆', lingoFailedLabel: 'Tentativi esauriti.',
   },
   ar: {
     title: 'مبارزة', subtitle: 'مسابقة مفردات مباشرة مع عدة لاعبين في آن واحد.',
@@ -220,6 +256,10 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'مسابقة (اختيار من متعدد)', modeWordleLabel: 'تخمين الكلمة',
     livesLabel: 'محاولات', wordleCompleteLabel: 'أكملت الكلمة! 🎉',
     wordleFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', wordleFailedLabel: 'نفدت محاولاتك.',
+    modeLingoLabel: 'لينجو', lingoPotLabel: 'الرصيد', lingoGuessesLeftTpl: 'تبقّت {n} محاولات',
+    lingoInputPlaceholder: 'اكتب الكلمة', lingoSubmitBtn: 'إرسال',
+    lingoInvalidLengthTpl: 'يجب أن تتكون الكلمة من {n} أحرف', lingoCompleteLabel: 'أكملت الكلمة! 🎉',
+    lingoFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', lingoFailedLabel: 'نفدت محاولاتك.',
   },
   ru: {
     title: 'Дуэль', subtitle: 'Живое соревнование по словарному запасу с несколькими игроками одновременно.',
@@ -242,6 +282,10 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'Викторина (с вариантами)', modeWordleLabel: 'Угадай слово',
     livesLabel: 'Жизни', wordleCompleteLabel: 'Вы завершили слово! 🎉',
     wordleFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', wordleFailedLabel: 'Попытки закончились.',
+    modeLingoLabel: 'Линго', lingoPotLabel: 'Банк', lingoGuessesLeftTpl: 'Осталось попыток: {n}',
+    lingoInputPlaceholder: 'Введите слово', lingoSubmitBtn: 'Отправить',
+    lingoInvalidLengthTpl: 'Слово должно состоять из {n} букв', lingoCompleteLabel: 'Вы завершили слово! 🎉',
+    lingoFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', lingoFailedLabel: 'Попытки закончились.',
   },
   ja: {
     title: 'デュエル', subtitle: '複数のプレイヤーと同時に対戦するライブ単語バトル。',
@@ -264,6 +308,10 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'クイズ（選択式）', modeWordleLabel: '単語当て',
     livesLabel: 'ライフ', wordleCompleteLabel: '単語を完成させました！🎉',
     wordleFirstFinishLabel: '最速クリア！+ボーナス 🏆', wordleFailedLabel: '挑戦回数が尽きました。',
+    modeLingoLabel: 'リンゴゲーム', lingoPotLabel: '持ち点', lingoGuessesLeftTpl: '残り{n}回',
+    lingoInputPlaceholder: '単語を入力', lingoSubmitBtn: '送信',
+    lingoInvalidLengthTpl: '単語は{n}文字である必要があります', lingoCompleteLabel: '単語を完成させました！🎉',
+    lingoFirstFinishLabel: '最速クリア！+ボーナス 🏆', lingoFailedLabel: '挑戦回数が尽きました。',
   },
   pt: {
     title: 'Duelo', subtitle: 'Uma competição de vocabulário ao vivo com vários jogadores ao mesmo tempo.',
@@ -286,5 +334,9 @@ export const DUELS_STRINGS: Record<Locale, DuelsStrings> = {
     modeQuizLabel: 'Quiz (Múltipla Escolha)', modeWordleLabel: 'Adivinhar Palavra',
     livesLabel: 'Vidas', wordleCompleteLabel: 'Você completou a palavra! 🎉',
     wordleFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', wordleFailedLabel: 'Sem mais tentativas.',
+    modeLingoLabel: 'Lingo', lingoPotLabel: 'Prêmio', lingoGuessesLeftTpl: '{n} tentativas restantes',
+    lingoInputPlaceholder: 'Digite a palavra', lingoSubmitBtn: 'Enviar',
+    lingoInvalidLengthTpl: 'A palavra deve ter {n} letras', lingoCompleteLabel: 'Você completou a palavra! 🎉',
+    lingoFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', lingoFailedLabel: 'Sem mais tentativas.',
   },
 };

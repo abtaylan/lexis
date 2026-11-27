@@ -48,6 +48,7 @@ import type {
   PlacementStatusResult,
   DuelMode,
   DuelGuessLetterResponse,
+  DuelLingoGuessResponse,
   AddWordFromQuestionResult,
   ExamQuestionSuggestionInput,
   ExamQuestionSuggestionResult,
@@ -1298,7 +1299,11 @@ export type GameMode =
   // Havuz'a ek, tüm gramer konularını kapsayan "Gramer Pratiği" seçeneği.
   // Kutudan tıklayarak değil, kullanıcı cümleyi kendi yazıyor (bkz. games.py
   // _choose_grammar_sentence). sentence_building'den bağımsız bir mod.
-  | 'grammar_sentence';
+  | 'grammar_sentence'
+  // 26 Kasım 2026, Behçet'in kullanıcı isteği — TRT1 "Lingo Türkiye"
+  // uyarlaması: tam kelime tahmini + Wordle tarzı geri bildirim + kilitli
+  // harf mekaniği (bkz. backend games.py docstring'i).
+  | 'lingo';
 export type PoolSource = 'own' | 'general';
 // multiple_choice modunda soru yönü. wordle modunda kullanılmaz (her zaman anlam
 // gösterilip kelime bulunur). "definition_to_word" (Faz 2, monolingual) sadece
@@ -1334,6 +1339,12 @@ export interface NextWordResult {
   word_length?: number | null;
   revealed?: string | null;
   max_wrong_guesses?: number | null;
+  // ── lingo moduna özel alanlar (26 Kasım 2026) ──
+  lingo_word_length?: number | null;
+  lingo_locked?: (string | null)[] | null;
+  lingo_max_guesses?: number | null;
+  lingo_guesses_used?: number | null;
+  lingo_pot?: number | null;
   // ── sentence_building (cümle kurma) moduna özel alan ──
   sentence_tokens?: string[] | null;
   // ── grammar_sentence (Gramer Pratiği) moduna özel alanlar — bkz. backend
@@ -1366,6 +1377,25 @@ export interface GuessLetterResult {
   guessed_letters: string[];
   wrong_guesses: number;
   max_wrong_guesses: number;
+  is_complete: boolean;
+  is_game_over: boolean;
+  word?: string | null;
+  xp_awarded: number;
+  leveled_up: boolean;
+  new_level: number | null;
+}
+
+// 26 Kasım 2026 -- POST /games/sessions/{id}/lingo/guess yanıtı.
+// GuessLetterResult ile AYNI ilke, farkı tam-kelime tahmini + pozisyon
+// bazlı geri bildirim + kilitli harfler (backend games.py::
+// LingoGuessResponse ile AYNI alanlar).
+export interface LingoGuessResult {
+  guess: string;
+  feedback: string[];
+  locked: (string | null)[];
+  guesses_used: number;
+  max_guesses: number;
+  pot: number;
   is_complete: boolean;
   is_game_over: boolean;
   word?: string | null;
@@ -1421,6 +1451,11 @@ export const gamesApi = {
 
   guessLetter: async (sessionId: string, letter: string): Promise<GuessLetterResult> => {
     const res = await api.post<GuessLetterResult>(`/games/sessions/${sessionId}/guess-letter`, { letter });
+    return res.data;
+  },
+
+  lingoGuess: async (sessionId: string, word: string): Promise<LingoGuessResult> => {
+    const res = await api.post<LingoGuessResult>(`/games/sessions/${sessionId}/lingo/guess`, { word });
     return res.data;
   },
 
@@ -1653,6 +1688,11 @@ export const duelsApi = {
   // bir harf tahmini gonderir (bkz. backend duels.py::submit_round_guess_letter).
   guessLetter: async (duelId: string, letter: string): Promise<DuelGuessLetterResponse> => {
     const res = await api.post<DuelGuessLetterResponse>(`/duels/${duelId}/rounds/guess-letter`, { letter });
+    return res.data;
+  },
+
+  guessWord: async (duelId: string, word: string): Promise<DuelLingoGuessResponse> => {
+    const res = await api.post<DuelLingoGuessResponse>(`/duels/${duelId}/rounds/guess-word`, { word });
     return res.data;
   },
 };

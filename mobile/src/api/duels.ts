@@ -6,6 +6,7 @@ import type {
   DuelGuessLetterResponse,
   DuelInviteItem,
   DuelInvitesListResponse,
+  DuelLingoGuessResponse,
   DuelListResponse,
   DuelMode,
   DuelResponse,
@@ -93,6 +94,12 @@ export const duelsApi = {
   // bir harf tahmini gonderir (bkz. backend duels.py::submit_round_guess_letter).
   guessLetter: async (duelId: string, letter: string): Promise<DuelGuessLetterResponse> => {
     const res = await api.post<DuelGuessLetterResponse>(`/duels/${duelId}/rounds/guess-letter`, { letter });
+    return res.data;
+  },
+  // 26 Kasim 2026 -- mode='lingo' duellolarina ozel: su anki turda TAM bir
+  // kelime tahmini gonderir (bkz. backend duels.py::submit_round_guess_word).
+  guessWord: async (duelId: string, word: string): Promise<DuelLingoGuessResponse> => {
+    const res = await api.post<DuelLingoGuessResponse>(`/duels/${duelId}/rounds/guess-word`, { word });
     return res.data;
   },
 };
