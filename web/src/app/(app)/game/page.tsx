@@ -137,6 +137,21 @@ type Strings = {
   lingoLostTitle: string;
   lingoInvalidLengthTpl: string;
   lingoBonusLabel: string;
+  // 27 Kasım 2026 -- süre/final sistemi (TRT1 "Lingo Türkiye" formatı,
+  // Behçet'in kullanıcı isteği): final dışı kelimede deneme başına 10 sn,
+  // final bölümünde (4/5/6/7 harfli) ortak 120 sn + 6 harfliden sonra
+  // risk/bank seçimi (bkz. backend games.py lingo_guess/lingo_timeout/
+  // lingo_final_choice docstring'leri).
+  lingoTimeLeftTpl: string;
+  lingoFinalBadgeTpl: string;
+  lingoFinalPotLabel: string;
+  lingoFinalChoiceTitle: string;
+  lingoFinalChoicePromptTpl: string;
+  lingoFinalRiskBtn: string;
+  lingoFinalBankBtn: string;
+  lingoTimeoutRowLabel: string;
+  lingoGrandPrizeWonTitle: string;
+  lingoGrandPrizeLostTitle: string;
   // Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (mobile/src/app/(app)/game.tsx
   // ile aynı 3 yeni mod — bkz. backend games.py docstring'i).
   modeFillBlankLabel: string;
@@ -258,6 +273,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: 'Kasa bitti',
     lingoInvalidLengthTpl: 'Tahminin {n} harfli olmalı.',
     lingoBonusLabel: 'Bonus Kelime — 2 katı ödül!',
+    lingoTimeLeftTpl: '{s} sn',
+    lingoFinalBadgeTpl: 'FİNAL • {n} harfli',
+    lingoFinalPotLabel: 'Final Kasası',
+    lingoFinalChoiceTitle: 'Riske at mı, bankaya mı?',
+    lingoFinalChoicePromptTpl: 'Final kasanda {n} puan var. Büyük ödül kelimesine (7 harfli) oynarsan kazanırsan ekstra ödül alırsın, kaybedersen bu puanın TAMAMINI kaybedersin.',
+    lingoFinalRiskBtn: 'Büyük Ödüle Oyna',
+    lingoFinalBankBtn: 'Puanı Bankaya Yatır',
+    lingoTimeoutRowLabel: 'Süre doldu',
+    lingoGrandPrizeWonTitle: 'BÜYÜK ÖDÜLÜ KAZANDIN! 🏆',
+    lingoGrandPrizeLostTitle: 'Süre doldu, büyük ödül elinden kaçtı 😢',
     exampleHintLabel: 'Örnek cümle:',
     modeFillBlankLabel: 'Boşluk Doldurma',
     modeFillBlankDesc: 'Cümledeki boşluğu doğru kelimeyle doldur',
@@ -372,6 +397,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: 'Out of guesses',
     lingoInvalidLengthTpl: 'Your guess must be {n} letters.',
     lingoBonusLabel: 'Bonus Word — double reward!',
+    lingoTimeLeftTpl: '{s}s',
+    lingoFinalBadgeTpl: 'FINAL • {n} letters',
+    lingoFinalPotLabel: 'Final Pot',
+    lingoFinalChoiceTitle: 'Risk it or bank it?',
+    lingoFinalChoicePromptTpl: 'You have {n} points in the final pot. Go for the grand-prize word (7 letters) — win extra if you get it, lose it ALL if you don\'t.',
+    lingoFinalRiskBtn: 'Go For The Grand Prize',
+    lingoFinalBankBtn: 'Bank The Points',
+    lingoTimeoutRowLabel: 'Time\'s up',
+    lingoGrandPrizeWonTitle: 'YOU WON THE GRAND PRIZE! 🏆',
+    lingoGrandPrizeLostTitle: 'Time\'s up — the grand prize slipped away 😢',
     exampleHintLabel: 'Example sentence:',
     modeFillBlankLabel: 'Fill in the Blank',
     modeFillBlankDesc: 'Fill in the missing word in the sentence',
@@ -486,6 +521,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: 'انتهى الرصيد',
     lingoInvalidLengthTpl: 'يجب أن تكون كلمتك من {n} أحرف.',
     lingoBonusLabel: 'كلمة إضافية — مكافأة مضاعفة!',
+    lingoTimeLeftTpl: '{s} ث',
+    lingoFinalBadgeTpl: 'النهائي • {n} أحرف',
+    lingoFinalPotLabel: 'رصيد النهائي',
+    lingoFinalChoiceTitle: 'المخاطرة أم الحفظ في البنك؟',
+    lingoFinalChoicePromptTpl: 'لديك {n} نقطة في رصيد النهائي. جرّب كلمة الجائزة الكبرى (7 أحرف) لتربح أكثر إذا عرفتها، أو تخسر كل شيء إذا لم تعرفها.',
+    lingoFinalRiskBtn: 'العب من أجل الجائزة الكبرى',
+    lingoFinalBankBtn: 'احفظ النقاط في البنك',
+    lingoTimeoutRowLabel: 'انتهى الوقت',
+    lingoGrandPrizeWonTitle: 'لقد فزت بالجائزة الكبرى! 🏆',
+    lingoGrandPrizeLostTitle: 'انتهى الوقت، فاتتك الجائزة الكبرى 😢',
     exampleHintLabel: 'جملة مثال:',
     modeFillBlankLabel: 'إكمال الفراغ',
     modeFillBlankDesc: 'أكمل الكلمة الناقصة في الجملة',
@@ -600,6 +645,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: 'Банк исчерпан',
     lingoInvalidLengthTpl: 'Слово должно быть из {n} букв.',
     lingoBonusLabel: 'Бонусное слово — двойная награда!',
+    lingoTimeLeftTpl: '{s} с',
+    lingoFinalBadgeTpl: 'ФИНАЛ • {n} букв',
+    lingoFinalPotLabel: 'Финальный банк',
+    lingoFinalChoiceTitle: 'Рискнуть или забрать банк?',
+    lingoFinalChoicePromptTpl: 'У вас {n} очков в финальном банке. Сыграйте на суперприз (слово из 7 букв) — выиграете больше, если угадаете, но потеряете ВСЁ, если нет.',
+    lingoFinalRiskBtn: 'Играть на суперприз',
+    lingoFinalBankBtn: 'Забрать очки в банк',
+    lingoTimeoutRowLabel: 'Время вышло',
+    lingoGrandPrizeWonTitle: 'ВЫ ВЫИГРАЛИ СУПЕРПРИЗ! 🏆',
+    lingoGrandPrizeLostTitle: 'Время вышло, суперприз упущен 😢',
     exampleHintLabel: 'Пример предложения:',
     modeFillBlankLabel: 'Заполни пропуск',
     modeFillBlankDesc: 'Вставь пропущенное слово в предложение',
@@ -714,6 +769,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: 'Topf aufgebraucht',
     lingoInvalidLengthTpl: 'Dein Wort muss {n} Buchstaben haben.',
     lingoBonusLabel: 'Bonuswort — doppelte Belohnung!',
+    lingoTimeLeftTpl: '{s} s',
+    lingoFinalBadgeTpl: 'FINALE • {n} Buchstaben',
+    lingoFinalPotLabel: 'Finaltopf',
+    lingoFinalChoiceTitle: 'Riskieren oder einsacken?',
+    lingoFinalChoicePromptTpl: 'Du hast {n} Punkte im Finaltopf. Spiel um das Hauptgewinn-Wort (7 Buchstaben) — gewinnst du, gibt\'s extra Punkte, verlierst du, ist ALLES weg.',
+    lingoFinalRiskBtn: 'Um den Hauptgewinn spielen',
+    lingoFinalBankBtn: 'Punkte einsacken',
+    lingoTimeoutRowLabel: 'Zeit abgelaufen',
+    lingoGrandPrizeWonTitle: 'DU HAST DEN HAUPTGEWINN GEWONNEN! 🏆',
+    lingoGrandPrizeLostTitle: 'Zeit abgelaufen — der Hauptgewinn ist futsch 😢',
     exampleHintLabel: 'Beispielsatz:',
     modeFillBlankLabel: 'Lückentext',
     modeFillBlankDesc: 'Fülle die Lücke im Satz mit dem richtigen Wort',
@@ -828,6 +893,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: 'Cagnotte épuisée',
     lingoInvalidLengthTpl: 'Ton mot doit faire {n} lettres.',
     lingoBonusLabel: 'Mot bonus — récompense doublée !',
+    lingoTimeLeftTpl: '{s} s',
+    lingoFinalBadgeTpl: 'FINALE • {n} lettres',
+    lingoFinalPotLabel: 'Cagnotte finale',
+    lingoFinalChoiceTitle: 'Tenter le tout ou tout garder ?',
+    lingoFinalChoicePromptTpl: 'Tu as {n} points dans la cagnotte finale. Tente le mot du gros lot (7 lettres) : gagne plus si tu trouves, perds TOUT si tu échoues.',
+    lingoFinalRiskBtn: 'Tenter le gros lot',
+    lingoFinalBankBtn: 'Garder les points',
+    lingoTimeoutRowLabel: 'Temps écoulé',
+    lingoGrandPrizeWonTitle: 'TU AS GAGNÉ LE GROS LOT ! 🏆',
+    lingoGrandPrizeLostTitle: 'Temps écoulé, le gros lot t\'a échappé 😢',
     exampleHintLabel: "Phrase d'exemple :",
     modeFillBlankLabel: 'Texte à trous',
     modeFillBlankDesc: 'Complète le mot manquant dans la phrase',
@@ -942,6 +1017,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: 'Bote agotado',
     lingoInvalidLengthTpl: 'Tu palabra debe tener {n} letras.',
     lingoBonusLabel: 'Palabra bonus — ¡recompensa doble!',
+    lingoTimeLeftTpl: '{s} s',
+    lingoFinalBadgeTpl: 'FINAL • {n} letras',
+    lingoFinalPotLabel: 'Bote final',
+    lingoFinalChoiceTitle: '¿Arriesgar o asegurar?',
+    lingoFinalChoicePromptTpl: 'Tienes {n} puntos en el bote final. Ve por la palabra del gran premio (7 letras): ganas más si aciertas, pierdes TODO si fallas.',
+    lingoFinalRiskBtn: 'Ir por el gran premio',
+    lingoFinalBankBtn: 'Asegurar los puntos',
+    lingoTimeoutRowLabel: 'Se acabó el tiempo',
+    lingoGrandPrizeWonTitle: '¡GANASTE EL GRAN PREMIO! 🏆',
+    lingoGrandPrizeLostTitle: 'Se acabó el tiempo, se escapó el gran premio 😢',
     exampleHintLabel: 'Frase de ejemplo:',
     modeFillBlankLabel: 'Rellenar el Hueco',
     modeFillBlankDesc: 'Completa la palabra que falta en la frase',
@@ -1056,6 +1141,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: 'Montepremi esaurito',
     lingoInvalidLengthTpl: 'La tua parola deve avere {n} lettere.',
     lingoBonusLabel: 'Parola bonus — ricompensa doppia!',
+    lingoTimeLeftTpl: '{s} s',
+    lingoFinalBadgeTpl: 'FINALE • {n} lettere',
+    lingoFinalPotLabel: 'Montepremi finale',
+    lingoFinalChoiceTitle: 'Rischiare o incassare?',
+    lingoFinalChoicePromptTpl: 'Hai {n} punti nel montepremi finale. Tenta la parola del gran premio (7 lettere): vinci di più se indovini, perdi TUTTO se sbagli.',
+    lingoFinalRiskBtn: 'Tenta il gran premio',
+    lingoFinalBankBtn: 'Incassa i punti',
+    lingoTimeoutRowLabel: 'Tempo scaduto',
+    lingoGrandPrizeWonTitle: 'HAI VINTO IL GRAN PREMIO! 🏆',
+    lingoGrandPrizeLostTitle: 'Tempo scaduto, il gran premio è sfumato 😢',
     exampleHintLabel: 'Frase di esempio:',
     modeFillBlankLabel: 'Completa la Frase',
     modeFillBlankDesc: 'Completa la parola mancante nella frase',
@@ -1170,6 +1265,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: '賞金がなくなりました',
     lingoInvalidLengthTpl: '単語は{n}文字である必要があります。',
     lingoBonusLabel: 'ボーナスワード — 報酬2倍!',
+    lingoTimeLeftTpl: '残り{s}秒',
+    lingoFinalBadgeTpl: 'ファイナル • {n}文字',
+    lingoFinalPotLabel: 'ファイナル賞金',
+    lingoFinalChoiceTitle: 'リスクを取る?それとも確保する?',
+    lingoFinalChoicePromptTpl: 'ファイナル賞金は{n}ポイントです。大賞(7文字の単語)に挑戦すれば当たれば追加報酬、外れれば全て失います。',
+    lingoFinalRiskBtn: '大賞に挑戦する',
+    lingoFinalBankBtn: 'ポイントを確保する',
+    lingoTimeoutRowLabel: '時間切れ',
+    lingoGrandPrizeWonTitle: '大賞を獲得しました! 🏆',
+    lingoGrandPrizeLostTitle: '時間切れ、大賞を逃しました 😢',
     exampleHintLabel: '例文:',
     modeFillBlankLabel: '穴埋め問題',
     modeFillBlankDesc: '文中の空欄に正しい単語を入力しよう',
@@ -1284,6 +1389,16 @@ const STRINGS: Record<Locale, Strings> = {
     lingoLostTitle: 'Prémio esgotado',
     lingoInvalidLengthTpl: 'A tua palavra deve ter {n} letras.',
     lingoBonusLabel: 'Palavra Bónus — recompensa em dobro!',
+    lingoTimeLeftTpl: '{s} s',
+    lingoFinalBadgeTpl: 'FINAL • {n} letras',
+    lingoFinalPotLabel: 'Prémio final',
+    lingoFinalChoiceTitle: 'Arriscar ou guardar?',
+    lingoFinalChoicePromptTpl: 'Tens {n} pontos no prémio final. Tenta a palavra do grande prémio (7 letras): ganhas mais se acertares, perdes TUDO se falhares.',
+    lingoFinalRiskBtn: 'Tentar o grande prémio',
+    lingoFinalBankBtn: 'Guardar os pontos',
+    lingoTimeoutRowLabel: 'Tempo esgotado',
+    lingoGrandPrizeWonTitle: 'GANHASTE O GRANDE PRÉMIO! 🏆',
+    lingoGrandPrizeLostTitle: 'Tempo esgotado, o grande prémio escapou 😢',
     exampleHintLabel: 'Frase de exemplo:',
     modeFillBlankLabel: 'Preencher a Lacuna',
     modeFillBlankDesc: 'Preenche a palavra em falta na frase',
@@ -1486,6 +1601,32 @@ export default function GamePage() {
   const [lingoBusy, setLingoBusy] = useState(false);
   const [lingoInputError, setLingoInputError] = useState('');
   const [lingoIsBonus, setLingoIsBonus] = useState(false);
+  // 27 Kasım 2026 -- süre/final sistemi (TRT1 "Lingo Türkiye" formatı,
+  // Behçet'in kullanıcı isteği). lingoAttemptEndsAt: final DIŞI kelimede
+  // bu denemenin 10 sn'lik bitiş zamanı (ISO). lingoIsFinal/lingoFinalPot/
+  // lingoFinalClockEndsAt: dizinin son 4 basamağı (4/5/6/7 harfli) --
+  // ORTAK, sıfırlanmayan 120 sn'lik saat + o ana kadar biriken kasa.
+  // lingoAwaitingFinalChoice: 6 harfli bilindi, 7 harfliye (büyük ödül)
+  // geçmeden önce risk/bank seçimi bekleniyor -- next-word bu sırada
+  // çağrılmaz (bkz. backend guard'ı). lingoFinalResult: son /lingo/guess
+  // ya da /lingo/timeout ya da /lingo/final/choice yanıtının
+  // lingo_final_result'ı -- SADECE "grand_prize_won"/"grand_prize_lost"
+  // için özel bir başlık göstermek amacıyla tutuluyor (diğerleri normal
+  // won/lost rozetini kullanıyor). lingoSecondsLeft, lingoTimerRef ve
+  // lingoTimeoutFiredRef aşağıdaki sprintSecondsLeft/sprintTimerRef ile
+  // AYNI interval deseni (farkı: mutlak ISO zaman damgasından
+  // HESAPLANIYOR, kendi başına azalan bir sayaç değil -- sekme arka
+  // planda kalıp geri geldiğinde bile doğru kalsın diye).
+  const [lingoAttemptEndsAt, setLingoAttemptEndsAt] = useState<string | null>(null);
+  const [lingoIsFinal, setLingoIsFinal] = useState(false);
+  const [lingoFinalPot, setLingoFinalPot] = useState<number | null>(null);
+  const [lingoFinalClockEndsAt, setLingoFinalClockEndsAt] = useState<string | null>(null);
+  const [lingoAwaitingFinalChoice, setLingoAwaitingFinalChoice] = useState(false);
+  const [lingoFinalChoiceBusy, setLingoFinalChoiceBusy] = useState(false);
+  const [lingoFinalResult, setLingoFinalResult] = useState<string | null>(null);
+  const [lingoSecondsLeft, setLingoSecondsLeft] = useState<number | null>(null);
+  const lingoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lingoTimeoutFiredRef = useRef(false);
 
   // ── yazma (typing) state — dinleme ve sprint modları da bunu paylaşır,
   // çünkü doğruluk kontrolü üçünde de aynı: current.word ile karşılaştırma ──
@@ -1658,6 +1799,13 @@ export default function GamePage() {
       setLingoIsBonus(!!nw.lingo_is_bonus);
       setLingoInput('');
       setLingoInputError('');
+      setLingoAttemptEndsAt(nw.lingo_attempt_ends_at ?? null);
+      setLingoIsFinal(!!nw.lingo_is_final);
+      setLingoFinalPot(nw.lingo_final_pot ?? null);
+      setLingoFinalClockEndsAt(nw.lingo_final_clock_ends_at ?? null);
+      setLingoAwaitingFinalChoice(false);
+      setLingoFinalResult(null);
+      lingoTimeoutFiredRef.current = false;
       setTypedAnswer('');
       setTypingResult(null);
       setSentenceTiles(
@@ -2180,7 +2328,19 @@ export default function GamePage() {
     }, 1800);
   };
 
-  // ── Lingo tam-kelime tahmini (26 Kasım 2026) ──
+  // ── Lingo tam-kelime tahmini (26 Kasım 2026, 27 Kasım 2026 süre/final
+  // güncellemesi) -- her yanıttan sonra yeni deneme/final sayaç
+  // alanlarını da günceller (bkz. yukarıdaki state yorumu). ──
+  const applyLingoTimerFields = (res: LingoGuessResult) => {
+    setLingoAttemptEndsAt(res.lingo_attempt_ends_at ?? null);
+    setLingoIsFinal(!!res.lingo_is_final);
+    if (res.lingo_final_pot !== undefined && res.lingo_final_pot !== null) {
+      setLingoFinalPot(res.lingo_final_pot);
+    }
+    setLingoFinalClockEndsAt(res.lingo_final_clock_ends_at ?? null);
+    setLingoFinalResult(res.lingo_final_result ?? null);
+  };
+
   const handleLingoGuess = async () => {
     if (lingoBusy || roundResult || !sessionId) return;
     const guess = lingoInput.trim().toLowerCase();
@@ -2198,25 +2358,96 @@ export default function GamePage() {
       setLingoInput('');
       setXpEarned((x) => x + res.xp_awarded);
       if (res.leveled_up) setLevelUp(res.new_level);
+      applyLingoTimerFields(res);
 
       if (res.is_complete) {
         setScore((s) => s + 1);
         setRoundResult('won');
         setRevealedWord(res.word ?? null);
-        setTimeout(() => {
-          if (sessionId) loadNext(sessionId, true, poolSource);
-        }, 1600);
+        if (res.lingo_awaiting_final_choice) {
+          // 6 harfli final kelimesi bilindi -- 7 harfliye (büyük ödül)
+          // geçmeden önce risk/bank seçimi gösterilecek, next-word'ü
+          // kullanıcı seçim yapana kadar ÇAĞIRMIYORUZ (bkz. backend guard'ı).
+          setLingoAwaitingFinalChoice(true);
+        } else {
+          setTimeout(() => {
+            if (sessionId) loadNext(sessionId, true, poolSource);
+          }, 1600);
+        }
       } else if (res.is_game_over) {
         setRoundResult('lost');
         setRevealedWord(res.word ?? null);
         setTimeout(() => {
           if (sessionId) loadNext(sessionId, true, poolSource);
         }, 2000);
+      } else {
+        lingoTimeoutFiredRef.current = false;
       }
     } catch {
       /* sessiz */
     } finally {
       setLingoBusy(false);
+    }
+  };
+
+  // 27 Kasım 2026 -- kullanıcı kendi süresi (final dışı 10 sn / final
+  // ortak 120 sn) içinde bir tahmin göndermezse çağrılır (bkz. aşağıdaki
+  // sayaç useEffect'i). handleLingoGuess ile AYNI yanıt şekli, farkı
+  // sunucuya "word" göndermemesi.
+  const handleLingoTimeout = useCallback(async () => {
+    if (!sessionId || lingoBusy || roundResult || lingoTimeoutFiredRef.current) return;
+    lingoTimeoutFiredRef.current = true;
+    setLingoBusy(true);
+    try {
+      const res: LingoGuessResult = await gamesApi.lingoTimeout(sessionId);
+      if (!res.lingo_is_final) {
+        setLingoGuesses((prev) => [...prev, { word: res.guess, feedback: res.feedback }]);
+        setLingoLocked(res.locked);
+        setLingoPot(res.pot);
+      }
+      setXpEarned((x) => x + res.xp_awarded);
+      if (res.leveled_up) setLevelUp(res.new_level);
+      applyLingoTimerFields(res);
+
+      if (res.is_game_over) {
+        setRoundResult('lost');
+        setRevealedWord(res.word ?? null);
+        setTimeout(() => {
+          if (sessionId) loadNext(sessionId, true, poolSource);
+        }, 2000);
+      } else {
+        lingoTimeoutFiredRef.current = false;
+      }
+    } catch {
+      /* sessiz */
+    } finally {
+      setLingoBusy(false);
+    }
+  }, [sessionId, lingoBusy, roundResult, poolSource, loadNext]);
+
+  // 27 Kasım 2026 -- final'in 6 harflisinden sonraki risk/bank seçimi.
+  const handleLingoFinalChoice = async (choice: 'risk' | 'bank') => {
+    if (!sessionId || lingoFinalChoiceBusy) return;
+    setLingoFinalChoiceBusy(true);
+    try {
+      const res: LingoGuessResult = await gamesApi.lingoFinalChoice(sessionId, choice);
+      setXpEarned((x) => x + res.xp_awarded);
+      if (res.leveled_up) setLevelUp(res.new_level);
+      setLingoFinalResult(res.lingo_final_result ?? null);
+      setLingoAwaitingFinalChoice(false);
+      if (choice === 'bank') {
+        setLingoFinalPot(0);
+        setTimeout(() => {
+          if (sessionId) loadNext(sessionId, true, poolSource);
+        }, 1400);
+      } else if (sessionId) {
+        // Risk: kalan süreyle 7 harfli (büyük ödül) hemen çekilir.
+        loadNext(sessionId, true, poolSource);
+      }
+    } catch {
+      /* sessiz */
+    } finally {
+      setLingoFinalChoiceBusy(false);
     }
   };
 
@@ -2234,6 +2465,10 @@ export default function GamePage() {
     if (sprintTimerRef.current) {
       clearInterval(sprintTimerRef.current);
       sprintTimerRef.current = null;
+    }
+    if (lingoTimerRef.current) {
+      clearInterval(lingoTimerRef.current);
+      lingoTimerRef.current = null;
     }
     setStage('loading');
     try {
@@ -2272,6 +2507,61 @@ export default function GamePage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameMode, stage]);
+
+  // 27 Kasım 2026 -- Lingo süre sayacı: final DIŞI kelimede
+  // lingoAttemptEndsAt'i, final bölümünde (lingoIsFinal) ortak
+  // lingoFinalClockEndsAt'i izler. Mutlak ISO zaman damgasından her
+  // saniye YENİDEN hesaplanır (sprintSecondsLeft gibi kendi başına
+  // azalan bir sayaç değil) ki sekme arka plana alınıp geri gelindiğinde
+  // bile doğru kalsın. Risk/bank seçimi beklenirken (lingoAwaitingFinalChoice)
+  // saat DURAKLATILMIŞ sayılır -- hiç işlemez.
+  useEffect(() => {
+    // NOT: burada senkron setState YOK (react-hooks/set-state-in-effect) --
+    // devre dışı kalan durumlarda lingoSecondsLeft'i sıfırlamıyoruz, çünkü
+    // JSX zaten rozeti SADECE "!roundResult" iken gösteriyor (bkz. render
+    // kısmı), bu yüzden eski bir sayı burada kalsa bile hiç görünmüyor.
+    if (
+      gameMode !== 'lingo' ||
+      stage !== 'playing' ||
+      roundResult ||
+      lingoAwaitingFinalChoice
+    ) {
+      if (lingoTimerRef.current) {
+        clearInterval(lingoTimerRef.current);
+        lingoTimerRef.current = null;
+      }
+      return;
+    }
+    const deadlineStr = lingoIsFinal ? lingoFinalClockEndsAt : lingoAttemptEndsAt;
+    if (!deadlineStr) {
+      return;
+    }
+    const deadline = new Date(deadlineStr).getTime();
+    const tick = () => {
+      const secs = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setLingoSecondsLeft(secs);
+      if (secs <= 0) {
+        handleLingoTimeout();
+      }
+    };
+    tick();
+    lingoTimerRef.current = setInterval(tick, 1000);
+    return () => {
+      if (lingoTimerRef.current) {
+        clearInterval(lingoTimerRef.current);
+        lingoTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    gameMode,
+    stage,
+    roundResult,
+    lingoAwaitingFinalChoice,
+    lingoIsFinal,
+    lingoFinalClockEndsAt,
+    lingoAttemptEndsAt,
+  ]);
 
   // ── dinleme (listening) — her yeni kelimede otomatik bir kez seslendir ──
   useEffect(() => {
@@ -3156,7 +3446,7 @@ export default function GamePage() {
               düzeltmesi) -- 12 adımlık sekansta 2 bonus basamak var
               (3x4 sonrası ve 3x5 sonrası), bu turu tamamlarsan ödül 2
               katına çıkar -- bkz. backend LINGO_BONUS_MULTIPLIER. */}
-          {lingoIsBonus && (
+          {lingoIsBonus && !lingoIsFinal && (
             <div className="w-full flex items-center justify-center">
               <span className="inline-flex items-center gap-1.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold px-3 py-1.5 rounded-full">
                 ✨ {t.lingoBonusLabel}
@@ -3164,7 +3454,20 @@ export default function GamePage() {
             </div>
           )}
 
-          {/* İpucu / anlam */}
+          {/* FİNAL rozeti (27 Kasım 2026) -- dizinin son 4 basamağı
+              (4/5/6/7 harfli), ORTAK 120 sn'lik saat + risk/bank seçimi
+              burada başlıyor (bkz. backend _lingo_segment). */}
+          {lingoIsFinal && (
+            <div className="w-full flex items-center justify-center">
+              <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-yellow-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-sm">
+                🏁 {t.lingoFinalBadgeTpl.replace('{n}', String(lingoWordLength))}
+              </span>
+            </div>
+          )}
+
+          {/* İpucu / anlam -- Lingo'da kullanıcı isteği üzerine anlam
+              HER ZAMAN gösterilir (diğer modların aksine, bkz. backend
+              NextWordResponse.meaning -- 27 Kasım 2026 notu). */}
           <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 text-center">
             <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">
               {t.lingoHintLabel}
@@ -3172,14 +3475,34 @@ export default function GamePage() {
             <p className="text-lg font-semibold text-gray-800 dark:text-slate-200">{current.meaning}</p>
           </div>
 
-          {/* Kasa + kalan hak */}
-          <div className="w-full flex items-center justify-center gap-4">
-            <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
-              {t.lingoPotLabel}: <span className="font-bold text-gray-700 dark:text-slate-200">{lingoPot}</span>
-            </span>
-            <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
-              {t.lingoGuessesLeftTpl.replace('{n}', String(Math.max(0, lingoMaxGuesses - lingoGuesses.length)))}
-            </span>
+          {/* Kasa + kalan hak + süre sayacı (27 Kasım 2026) */}
+          <div className="w-full flex items-center justify-center gap-3 flex-wrap">
+            {!lingoIsFinal && (
+              <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
+                {t.lingoPotLabel}: <span className="font-bold text-gray-700 dark:text-slate-200">{lingoPot}</span>
+              </span>
+            )}
+            {lingoIsFinal && lingoFinalPot !== null && (
+              <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
+                {t.lingoFinalPotLabel}: <span className="font-bold text-amber-600 dark:text-amber-400">{lingoFinalPot}</span>
+              </span>
+            )}
+            {!lingoIsFinal && (
+              <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
+                {t.lingoGuessesLeftTpl.replace('{n}', String(Math.max(0, lingoMaxGuesses - lingoGuesses.length)))}
+              </span>
+            )}
+            {lingoSecondsLeft !== null && !roundResult && (
+              <span
+                className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                  lingoSecondsLeft <= 3
+                    ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
+                    : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                }`}
+              >
+                ⏱ {t.lingoTimeLeftTpl.replace('{s}', String(lingoSecondsLeft))}
+              </span>
+            )}
           </div>
 
           {/* Tahmin tahtası -- her satır önceki bir tahmin, Wordle tarzı
@@ -3188,27 +3511,37 @@ export default function GamePage() {
               pozisyonda bulunmuş) harfler önden dolu gösterilir -- asıl
               Lingo mekaniği budur, bkz. 123_lingo_game_mode.sql yorumu. */}
           <div className="w-full flex flex-col items-center gap-1.5 py-2">
-            {lingoGuesses.map((g, rowIdx) => (
-              <div key={rowIdx} className="flex gap-1.5">
-                {g.word.split('').map((ch, i) => {
-                  const fb = g.feedback[i];
-                  const cls =
-                    fb === 'correct'
-                      ? 'bg-[#3B6D11] border-[#3B6D11] text-white'
-                      : fb === 'present'
-                        ? 'bg-[#C98A1A] border-[#C98A1A] text-white'
-                        : 'bg-gray-200 dark:bg-slate-700 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-300';
-                  return (
-                    <span
-                      key={i}
-                      className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase border-2 ${cls}`}
-                    >
-                      {ch}
-                    </span>
-                  );
-                })}
-              </div>
-            ))}
+            {lingoGuesses.map((g, rowIdx) =>
+              g.word === '' ? (
+                // 27 Kasım 2026 -- süresi geçen deneme (/lingo/timeout),
+                // YANLIŞ bir tahmin gibi sayılır ama gösterilecek harf yok.
+                <div key={rowIdx} className="flex gap-1.5">
+                  <span className="px-4 h-11 flex items-center justify-center rounded-lg text-xs font-bold uppercase bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border-2 border-dashed border-gray-300 dark:border-slate-600">
+                    ⏱ {t.lingoTimeoutRowLabel}
+                  </span>
+                </div>
+              ) : (
+                <div key={rowIdx} className="flex gap-1.5">
+                  {g.word.split('').map((ch, i) => {
+                    const fb = g.feedback[i];
+                    const cls =
+                      fb === 'correct'
+                        ? 'bg-[#3B6D11] border-[#3B6D11] text-white'
+                        : fb === 'present'
+                          ? 'bg-[#C98A1A] border-[#C98A1A] text-white'
+                          : 'bg-gray-200 dark:bg-slate-700 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-300';
+                    return (
+                      <span
+                        key={i}
+                        className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase border-2 ${cls}`}
+                      >
+                        {ch}
+                      </span>
+                    );
+                  })}
+                </div>
+              )
+            )}
             {!roundResult && (
               <div className="flex gap-1.5">
                 {Array.from({ length: lingoWordLength }).map((_, i) => {
@@ -3233,22 +3566,58 @@ export default function GamePage() {
             )}
           </div>
 
-          {/* Sonuç rozeti */}
+          {/* Sonuç rozeti -- büyük ödül kazanma/kaybetme (27 Kasım 2026)
+              için ayrı, daha belirgin başlıklar kullanılır. */}
           {roundResult && (
             <div
               className={`w-full rounded-xl px-4 py-3 text-sm font-semibold text-center ${
                 roundResult === 'won' ? 'bg-[#EAF3DE] text-[#3B6D11]' : 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400'
               }`}
             >
-              <p>{roundResult === 'won' ? t.lingoWonTitle : t.lingoLostTitle}</p>
+              <p>
+                {lingoFinalResult === 'grand_prize_won'
+                  ? t.lingoGrandPrizeWonTitle
+                  : lingoFinalResult === 'grand_prize_lost'
+                    ? t.lingoGrandPrizeLostTitle
+                    : roundResult === 'won'
+                      ? t.lingoWonTitle
+                      : t.lingoLostTitle}
+              </p>
               {roundResult === 'lost' && revealedWord && (
                 <p className="mt-1 font-normal">{t.correctWordTpl.replace('{word}', revealedWord)}</p>
               )}
             </div>
           )}
 
+          {/* Risk/bank seçimi (27 Kasım 2026) -- 6 harfli final kelimesi
+              bilindikten sonra, 7 harfliye (büyük ödül) geçmeden önce. */}
+          {lingoAwaitingFinalChoice && (
+            <div className="w-full bg-amber-50 dark:bg-amber-500/10 border-2 border-amber-300 dark:border-amber-500/30 rounded-2xl p-5 flex flex-col items-center gap-3 text-center">
+              <p className="text-sm font-bold text-amber-800 dark:text-amber-300">{t.lingoFinalChoiceTitle}</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                {t.lingoFinalChoicePromptTpl.replace('{n}', String(lingoFinalPot ?? 0))}
+              </p>
+              <div className="w-full flex flex-col gap-2">
+                <button
+                  onClick={() => handleLingoFinalChoice('risk')}
+                  disabled={lingoFinalChoiceBusy}
+                  className="w-full bg-[#9F1D53] hover:bg-[#7e1742] disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 text-sm font-bold transition-colors"
+                >
+                  {t.lingoFinalRiskBtn}
+                </button>
+                <button
+                  onClick={() => handleLingoFinalChoice('bank')}
+                  disabled={lingoFinalChoiceBusy}
+                  className="w-full bg-white dark:bg-slate-800 border-2 border-amber-400 dark:border-amber-500/40 text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 text-sm font-bold transition-colors"
+                >
+                  {t.lingoFinalBankBtn}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Giriş */}
-          {!roundResult && (
+          {!roundResult && !lingoAwaitingFinalChoice && (
             <div className="w-full flex flex-col gap-3">
               <input
                 type="text"

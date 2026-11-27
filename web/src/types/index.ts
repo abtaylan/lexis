@@ -1396,6 +1396,14 @@ export interface DuelRoundPublic {
   // LINGO_LENGTH_SEQUENCE'ın bir "bonus" basamağında mı -- true ise
   // tamamlama ödülü 2 katı.
   lingo_is_bonus?: boolean | null;
+  // 27 Kasım 2026, kullanıcı isteği -- SADECE lingo modunda doldurulur
+  // (diğer modlar bilerek anlamı hiç göndermez). Bu kullanıcının KENDİ
+  // native_lang'ine göre -- o dil için çeviri yoksa null.
+  meaning?: string | null;
+  // 27 Kasım 2026 -- deneme başına 10 sn sayaç (round'un eski düz 60 sn'lik
+  // ortak ends_at'i yerine; bkz. backend duels.py submit_round_guess_word
+  // yorumu). Bu kullanıcıya özel.
+  lingo_attempt_ends_at?: string | null;
   started_at?: string | null;
   ends_at?: string | null;
 }
@@ -1440,6 +1448,7 @@ export interface DuelLingoGuessResponse {
   score: number;
   first_to_finish: boolean;
   lingo_is_bonus?: boolean;
+  lingo_attempt_ends_at?: string | null;
 }
 
 export interface DuelInviteItem {

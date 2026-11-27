@@ -1349,6 +1349,19 @@ export interface NextWordResult {
   // 27 Kasım 2026 -- bu kelime 12 adımlık LINGO_LENGTH_SEQUENCE'ın bir
   // "bonus" basamağında mı (3x4 -> bonus -> 3x5 -> bonus -> final 4-5-6-7).
   lingo_is_bonus?: boolean | null;
+  // 27 Kasım 2026 -- süre/final sistemi (TRT1 "Lingo Türkiye" formatı).
+  // lingo_attempt_ends_at: final DIŞI kelimelerde her denemenin kendi 10
+  // saniyelik sayacı (yanlış/zaman aşımı -> yeniden başlar). lingo_is_final:
+  // bu kelime dizinin son 4 basamağından biri mi (4/5/6/7 harfli final).
+  // lingo_final_pot: final boyunca BİRİKEN (henüz XP'ye çevrilmemiş) ortak
+  // kasa. lingo_final_clock_ends_at: finalin TEK, ORTAK, sıfırlanmayan 120
+  // saniyelik saati. lingo_awaiting_final_choice: 6 harfli bilindi, 7
+  // harfliye (büyük ödül) geçmeden önce risk/bank seçimi bekleniyor.
+  lingo_attempt_ends_at?: string | null;
+  lingo_is_final?: boolean;
+  lingo_final_pot?: number | null;
+  lingo_final_clock_ends_at?: string | null;
+  lingo_awaiting_final_choice?: boolean;
   // ── sentence_building (cümle kurma) moduna özel alan ──
   sentence_tokens?: string[] | null;
   // ── grammar_sentence (Gramer Pratiği) moduna özel alanlar — bkz. backend
@@ -1407,6 +1420,17 @@ export interface LingoGuessResult {
   leveled_up: boolean;
   new_level: number | null;
   lingo_is_bonus?: boolean;
+  // 27 Kasım 2026 -- /lingo/guess, /lingo/timeout, /lingo/final/choice
+  // ÜÇÜNÜN DE DÖNDÜĞÜ AYNI şekil (backend LingoGuessResponse, bkz. yukarıdaki
+  // NextWordResult'taki eşdeğer alanların açıklaması).
+  lingo_attempt_ends_at?: string | null;
+  lingo_is_final?: boolean;
+  lingo_final_pot?: number | null;
+  lingo_final_clock_ends_at?: string | null;
+  lingo_awaiting_final_choice?: boolean;
+  // "stage_won" | "grand_prize_won" | "grand_prize_lost" | "final_timeout"
+  // | "banked" | "risked" -- bkz. backend schemas/games.py yorumu.
+  lingo_final_result?: string | null;
 }
 
 export interface GameFinishResult {
@@ -1461,6 +1485,23 @@ export const gamesApi = {
 
   lingoGuess: async (sessionId: string, word: string): Promise<LingoGuessResult> => {
     const res = await api.post<LingoGuessResult>(`/games/sessions/${sessionId}/lingo/guess`, { word });
+    return res.data;
+  },
+
+  // 27 Kasım 2026 -- kullanıcı kendi 10 sn'lik deneme süresi (final dışı)
+  // ya da finalin ortak 120 sn'lik saati dolduğunda istemci bunu çağırır.
+  lingoTimeout: async (sessionId: string): Promise<LingoGuessResult> => {
+    const res = await api.post<LingoGuessResult>(`/games/sessions/${sessionId}/lingo/timeout`, {});
+    return res.data;
+  },
+
+  // 27 Kasım 2026 -- 6 harfli final kelimesi bilindikten sonra 7 harfliye
+  // (büyük ödül) geçmeden önceki risk/bank seçimi.
+  lingoFinalChoice: async (
+    sessionId: string,
+    choice: 'risk' | 'bank'
+  ): Promise<LingoGuessResult> => {
+    const res = await api.post<LingoGuessResult>(`/games/sessions/${sessionId}/lingo/final/choice`, { choice });
     return res.data;
   },
 
@@ -1698,6 +1739,14 @@ export const duelsApi = {
 
   guessWord: async (duelId: string, word: string): Promise<DuelLingoGuessResponse> => {
     const res = await api.post<DuelLingoGuessResponse>(`/duels/${duelId}/rounds/guess-word`, { word });
+    return res.data;
+  },
+
+  // 27 Kasım 2026 -- kullanıcı kendi 10 sn'lik deneme süresi içinde tahmin
+  // göndermediğinde istemci bunu çağırır (bkz. backend duels.py::
+  // lingo_round_timeout).
+  lingoTimeout: async (duelId: string): Promise<DuelLingoGuessResponse> => {
+    const res = await api.post<DuelLingoGuessResponse>(`/duels/${duelId}/rounds/lingo-timeout`, {});
     return res.data;
   },
 };

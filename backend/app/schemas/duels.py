@@ -79,6 +79,11 @@ class DuelRoundPublic(BaseModel):
     # multiple_choice alanları:
     definition: str | None = None
     options: list[str] | None = None
+    # 27 Kasim 2026, kullanici istegi -- SADECE lingo modunda doldurulur
+    # (digerleri BILEREK anlami hic gondermez, bkz. duels.py modul
+    # docstring'i). Bu kullanicinin KENDI native_lang'ine gore (bkz.
+    # _fetch_lingo_meaning) -- o dil icin ceviri yoksa null.
+    meaning: str | None = None
     # wordle alanları (18 Eylül 2026) -- bu kullanıcının BU turdaki kendi
     # ilerlemesi (duel_answers.guessed_letters/wrong_guesses'ten). revealed,
     # games.py::_reveal_pattern ile AYNI formatta ("a p p _ _").
@@ -105,6 +110,14 @@ class DuelRoundPublic(BaseModel):
     # LINGO_LENGTH_SEQUENCE'ın bir "bonus" basamağında mı (bkz.
     # 125_lingo_bonus_rounds.sql) -- true ise tamamlama ödülü 2 katı.
     lingo_is_bonus: bool | None = None
+    # 27 Kasim 2026 -- deneme basina 10 sn sayac (kullanicinin kendi
+    # istegi: "her kelime icin 10 saniye ... yanlis olursa 2. deneme icin
+    # tekrardan 10 saniye baslayacak"). Round'un eski duz 60 sn'lik ortak
+    # ends_at'i KALDIRILDI (lingo icin) -- bkz. duels.py submit_round_
+    # guess_word / lingo_timeout. Bu alan BU KULLANICIYA ozel (duel_answers.
+    # lingo_attempt_ends_at'ten), henuz hic tahmin yoksa round'un
+    # started_at + 10 sn olarak hesaplanir (bkz. _round_public_response).
+    lingo_attempt_ends_at: datetime | None = None
     started_at: datetime | None = None
     ends_at: datetime | None = None
 
@@ -208,3 +221,4 @@ class DuelLingoGuessResponse(BaseModel):
     score: int
     first_to_finish: bool = False
     lingo_is_bonus: bool = False
+    lingo_attempt_ends_at: datetime | None = None

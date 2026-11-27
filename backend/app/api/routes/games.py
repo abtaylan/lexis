@@ -102,7 +102,7 @@ LEXIS_XP_YENI_KURALLAR.md
 import logging
 import random
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -119,6 +119,7 @@ from app.schemas.games import (
     GameWordOption,
     GuessLetterRequest,
     GuessLetterResponse,
+    LingoFinalChoiceRequest,
     LingoGuessRequest,
     LingoGuessResponse,
     NextWordResponse,
@@ -161,6 +162,32 @@ LINGO_LENGTH_SEQUENCE: list[tuple[int, bool]] = [
     (5, False), (5, False), (5, False), (5, True),
     (4, False), (5, False), (6, False), (7, False),
 ]
+# 27 Kasim 2026 kullanici istegi -- "lingoda sure de olmasi lazim, her
+# kelime icin 10 saniye": NORMAL (final disi) kelimelerde her TEK deneme
+# 10 saniyeyle sinirli -- yanlis tahmin VEYA sure asimi yeni bir 10 saniye
+# baslatir (bkz. lingo_guess / lingo_timeout). FINAL bolumunde (dizinin
+# son 4 elemani: 4,5,6,7 harf -- indeks % 12 >= LINGO_FINAL_SEGMENT_START)
+# bunun yerine TV formatindaki gibi PAYLASILAN, kelimeler arasinda
+# SIFIRLANMAYAN 120 saniyelik TEK bir saat kullanilir; 6 harfliyi
+# cozdukten sonra 7 harfliye (en degerli kelime) gecmeden once "hepsini
+# riske at ya da kazandigini bankaya at" secimi sorulur (bkz.
+# LingoFinalChoiceRequest, lingo_final_choice). Kullanicinin kendi
+# ifadesiyle TRT1 "Lingo Turkiye" final bolumunun birebir ayni.
+#
+# BILINCLI SADELESTIRME: bu final/double-or-nothing yapisi su an SADECE
+# tek-oyunculu (sisteme karsi) modda var -- duello modunda (duels.py)
+# sadece 10 saniyelik deneme sayaci var, final/double-or-nothing yok.
+# Sebep: duello turlari TUM katilimcilar icin ONCEDEN tek seferde uretilip
+# (bkz. _generate_lingo_rounds) duel.current_round_index ile SENKRON
+# ilerliyor -- "bankaya at" secen bir oyuncunun 7 harfli turu hic
+# OYNAMAMASI gerekiyor ama diger oyuncu devam edebilmeli, bu da mevcut
+# senkron-tur modeline ozenli bir yeniden tasarim gerektiriyor. Ayri bir
+# is olarak ele alinacak.
+LINGO_ATTEMPT_SECONDS = 10
+LINGO_FINAL_SECONDS = 120
+LINGO_FINAL_SEGMENT_START = 8  # LINGO_LENGTH_SEQUENCE[8:12] = final: 4,5,6,7 harf
+LINGO_FINAL_WORD_XP = {4: 20, 5: 30, 6: 40}  # final'de 4/5/6 harfliyi cozunce kasaya eklenen XP
+LINGO_FINAL_GRAND_PRIZE_XP = 100  # 7 harfliyi de cozerse kasaya EK olarak eklenen buyuk odul
 
 
 def _get_profile_langs(user_id: str) -> tuple[str, str]:
@@ -624,6 +651,17 @@ def _lingo_feedback(guess: str, target: str) -> list[str]:
     return result
 
 
+def _lingo_segment(word_index: int) -> tuple[bool, int]:
+    """word_index (12'lik LINGO_LENGTH_SEQUENCE dongusundeki HAM indeks,
+    % islemi bu fonksiyonun icinde yapilir) -> (is_final, final_stage).
+    final_stage: 0=4 harf, 1=5 harf, 2=6 harf, 3=7 harf (buyuk odul) --
+    final disindaysa -1 doner."""
+    pos = word_index % len(LINGO_LENGTH_SEQUENCE)
+    if pos < LINGO_FINAL_SEGMENT_START:
+        return False, -1
+    return True, pos - LINGO_FINAL_SEGMENT_START
+
+
 def _fetch_word_text(word_id: str | None, general_word_id: str | None) -> str:
     # BUG FIX (27 Eylul 2026): `.single()` PostgREST'te 0 (veya 1'den fazla)
     # satir donerse `if not row.data` kontrolune HIC ULASMADAN supabase-py
@@ -847,7 +885,13 @@ async def next_word(
         if mode == GameMode.lingo.value:
             lingo_learning_lang, lingo_native_lang = _get_profile_langs(current_user.id)
             lingo_attempted = _attempted_ids(session_id, "general_word_id")
-            word_index = int((session.get("state") or {}).get("lingo_word_index", 0))
+            lingo_state = session.get("state") or {}
+            if lingo_state.get("lingo_awaiting_final_choice"):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Once final secimini yapin (risk/bank) -- /lingo/final/choice.",
+                )
+            word_index = int(lingo_state.get("lingo_word_index", 0))
             length, lingo_is_bonus = LINGO_LENGTH_SEQUENCE[word_index % len(LINGO_LENGTH_SEQUENCE)]
             lingo_chosen = _choose_word_by_length(
                 lingo_learning_lang, lingo_native_lang, length, lingo_attempted
@@ -863,18 +907,50 @@ async def next_word(
             if lingo_chosen is None:
                 return NextWordResponse(finished=True)
 
-            supabase_admin.table("game_sessions").update(
-                {
-                    "state": {
-                        "current_word_id": None,
-                        "current_general_word_id": lingo_chosen["id"],
-                        "lingo_guesses": [],
-                        "lingo_pot": LINGO_START_POT,
-                        "lingo_word_index": word_index + 1,
-                        "lingo_is_bonus": lingo_is_bonus,
-                    }
-                }
-            ).eq("id", session_id).execute()
+            now = datetime.now(UTC)
+            is_final, final_stage = _lingo_segment(word_index)
+            new_state = {
+                "current_word_id": None,
+                "current_general_word_id": lingo_chosen["id"],
+                "lingo_guesses": [],
+                "lingo_pot": LINGO_START_POT,
+                "lingo_word_index": word_index + 1,
+                "lingo_is_bonus": lingo_is_bonus,
+            }
+            attempt_ends_at: datetime | None = None
+            final_clock_ends_at: datetime | None = None
+            final_pot = 0
+            if is_final:
+                if final_stage == 0:
+                    # Final'in ilk kelimesi (4 harf) -- saat ve kasa sifirdan baslar.
+                    final_clock_ends_at = now + timedelta(seconds=LINGO_FINAL_SECONDS)
+                    final_pot = 0
+                else:
+                    # 5/6/7 harf -- saat SIFIRLANMAZ, onceki asamadan devam eder
+                    # (7 harfliye gecisteki "risk" secimi zaten /lingo/final/
+                    # choice icinde kalan sureyle yeni bir ends_at kurup
+                    # state'e yaziyor -- burada sadece aynen tasiniyor).
+                    final_clock_ends_at = (
+                        datetime.fromisoformat(lingo_state["lingo_final_clock_ends_at"])
+                        if lingo_state.get("lingo_final_clock_ends_at")
+                        else now + timedelta(seconds=LINGO_FINAL_SECONDS)
+                    )
+                    final_pot = int(lingo_state.get("lingo_final_pot", 0))
+                new_state["lingo_final_clock_ends_at"] = final_clock_ends_at.isoformat()
+                new_state["lingo_final_pot"] = final_pot
+            else:
+                attempt_ends_at = now + timedelta(seconds=LINGO_ATTEMPT_SECONDS)
+                new_state["lingo_attempt_ends_at"] = attempt_ends_at.isoformat()
+                # Savunma: final disi bir kelimeye gecerken eski final
+                # state'inden artik bir seyi tasimiyoruz (normalde zaten
+                # final_choice/timeout tarafindan temizlenmis olur).
+                new_state["lingo_final_pot"] = 0
+                new_state["lingo_final_clock_ends_at"] = None
+                new_state["lingo_awaiting_final_choice"] = False
+
+            supabase_admin.table("game_sessions").update({"state": new_state}).eq(
+                "id", session_id
+            ).execute()
 
             return NextWordResponse(
                 finished=False,
@@ -886,6 +962,10 @@ async def next_word(
                 lingo_guesses_used=0,
                 lingo_pot=LINGO_START_POT,
                 lingo_is_bonus=lingo_is_bonus,
+                lingo_attempt_ends_at=attempt_ends_at,
+                lingo_is_final=is_final,
+                lingo_final_pot=final_pot if is_final else None,
+                lingo_final_clock_ends_at=final_clock_ends_at,
             )
 
         if pool_source == "own":
@@ -1427,7 +1507,14 @@ async def lingo_guess(
     sunucu Wordle tarzi pozisyon bazli geri bildirim doner (correct/
     present/absent) ve dogru pozisyonda bulunan harfler bu turdaki TUM
     tahminler boyunca kalici olarak 'locked' kalir -- asil Lingo'nun
-    Wordle'dan farki budur."""
+    Wordle'dan farki budur.
+
+    27 Kasim 2026 -- sure/final guncellemesi: final disi kelimelerde HER
+    denemenin kendi 10 saniyelik sayaci var (yanlis/zaman asimi -> sayac
+    yeniden baslar, bkz. LINGO_ATTEMPT_SECONDS). Final bolumunde (dizinin
+    son 4 elemani, bkz. _lingo_segment) tek, ORTAK 120 saniyelik bir saat
+    var -- bu uc noktada deneme basina sifirlanmaz, sadece yukarida zaten
+    gecmis mi diye kontrol edilir (bkz. asagidaki sure kontrolu)."""
     session = _get_session(session_id, current_user.id)
     if session.get("ended_at"):
         raise HTTPException(status_code=400, detail="Oturum zaten bitmiş.")
@@ -1435,6 +1522,11 @@ async def lingo_guess(
         raise HTTPException(status_code=400, detail="Bu endpoint sadece lingo modu içindir.")
 
     state = session.get("state") or {}
+    if state.get("lingo_awaiting_final_choice"):
+        raise HTTPException(
+            status_code=400,
+            detail="Önce final seçiminizi yapın (risk/bank) -- /lingo/final/choice.",
+        )
     word_id = state.get("current_word_id")
     general_word_id = state.get("current_general_word_id")
     if not word_id and not general_word_id:
@@ -1446,6 +1538,23 @@ async def lingo_guess(
     target = word_text.lower()
     length = len(target)
 
+    word_index_for_segment = max(int(state.get("lingo_word_index", 1)) - 1, 0)
+    is_final, final_stage = _lingo_segment(word_index_for_segment)
+    now = datetime.now(UTC)
+
+    if not is_final:
+        attempt_ends_at_raw = state.get("lingo_attempt_ends_at")
+        if attempt_ends_at_raw and now > datetime.fromisoformat(attempt_ends_at_raw):
+            raise HTTPException(
+                status_code=408, detail="Süre doldu -- /lingo/timeout çağırın."
+            )
+    else:
+        final_ends_at_raw = state.get("lingo_final_clock_ends_at")
+        if final_ends_at_raw and now > datetime.fromisoformat(final_ends_at_raw):
+            raise HTTPException(
+                status_code=408, detail="Final süresi doldu -- /lingo/timeout çağırın."
+            )
+
     guess = req.word.strip().lower()
     if len(guess) != length:
         raise HTTPException(
@@ -1455,10 +1564,12 @@ async def lingo_guess(
     guesses = list(state.get("lingo_guesses", []))
     pot = int(state.get("lingo_pot", LINGO_START_POT))
     lingo_is_bonus = bool(state.get("lingo_is_bonus", False))
+    final_pot = int(state.get("lingo_final_pot", 0))
 
     feedback = _lingo_feedback(guess, target)
     guesses.append({"word": guess, "feedback": feedback})
-    pot = max(0, pot - 1)
+    if not is_final:
+        pot = max(0, pot - 1)
 
     locked: list[str | None] = [None] * length
     for g in guesses:
@@ -1467,16 +1578,107 @@ async def lingo_guess(
                 locked[i] = g["word"][i]
 
     is_complete = guess == target
-    is_game_over = (not is_complete) and (
-        len(guesses) >= LINGO_MAX_GUESSES or pot <= 0
-    )
+    if is_final:
+        # Final bolumunde deneme sayisi SINIRSIZ -- sadece ortak saat
+        # sinirlar (bkz. yukaridaki sure kontrolu / /lingo/timeout).
+        is_game_over = False
+    else:
+        is_game_over = (not is_complete) and (
+            len(guesses) >= LINGO_MAX_GUESSES or pot <= 0
+        )
     round_ended = is_complete or is_game_over
 
     xp_awarded = 0
     leveled_up = False
     new_level = None
+    final_result: str | None = None
+    next_attempt_ends_at: datetime | None = None
+    awaiting_choice = False
+    final_clock_ends_at_out: datetime | None = (
+        datetime.fromisoformat(state["lingo_final_clock_ends_at"])
+        if state.get("lingo_final_clock_ends_at")
+        else None
+    )
 
-    if round_ended:
+    new_state = {**state, "lingo_guesses": guesses, "lingo_pot": pot}
+
+    if is_final and is_complete:
+        if final_stage in (0, 1):
+            final_pot += LINGO_FINAL_WORD_XP[length]
+            new_state["lingo_final_pot"] = final_pot
+            new_state["lingo_guesses"] = []
+            new_state["current_word_id"] = None
+            new_state["current_general_word_id"] = None
+            final_result = "stage_won"
+        elif final_stage == 2:
+            # 6 harfliyi de bildi -- 7 harfliye (buyuk odul) gecmeden once
+            # risk/bank secimi sunulacak; saat burada "duraklatiliyor"
+            # (kalan sure anlik olarak state'e yazilir, bkz.
+            # lingo_final_choice).
+            final_pot += LINGO_FINAL_WORD_XP[length]
+            remaining_ms = 0
+            if state.get("lingo_final_clock_ends_at"):
+                remaining_ms = max(
+                    0,
+                    int(
+                        (
+                            datetime.fromisoformat(state["lingo_final_clock_ends_at"]) - now
+                        ).total_seconds()
+                        * 1000
+                    ),
+                )
+            new_state["lingo_final_pot"] = final_pot
+            new_state["lingo_final_remaining_ms"] = remaining_ms
+            new_state["lingo_awaiting_final_choice"] = True
+            new_state["lingo_guesses"] = []
+            new_state["current_word_id"] = None
+            new_state["current_general_word_id"] = None
+            awaiting_choice = True
+            final_result = "stage_won"
+        else:
+            # 7 harfli (buyuk odul) bilindi -- final tamamen kazanildi.
+            total = final_pot + LINGO_FINAL_GRAND_PRIZE_XP
+            xp_result = await award_xp(
+                user_id=current_user.id,
+                source_type="game_lingo_final",
+                amount=total,
+                source_id=session_id,
+            )
+            xp_awarded = xp_result.amount_awarded
+            leveled_up = xp_result.leveled_up
+            new_level = xp_result.level
+            final_result = "grand_prize_won"
+            next_cycle_start = ((word_index_for_segment // 12) + 1) * 12
+            new_state["lingo_final_pot"] = 0
+            new_state["lingo_final_clock_ends_at"] = None
+            new_state["lingo_awaiting_final_choice"] = False
+            new_state["lingo_word_index"] = next_cycle_start
+            new_state["current_word_id"] = None
+            new_state["current_general_word_id"] = None
+            final_clock_ends_at_out = None
+
+        supabase_admin.table("game_attempts").insert(
+            {
+                "session_id": session_id,
+                "word_id": word_id,
+                "general_word_id": general_word_id,
+                "is_correct": True,
+                "attempts_count": len(guesses),
+                "xp_awarded": xp_awarded,
+            }
+        ).execute()
+        _sync_word_progress(current_user.id, word_id, general_word_id, True)
+        lingo_learning_lang, _ = _get_profile_langs(current_user.id)
+        await update_streak(current_user.id, "word_reviewed", learning_lang=lingo_learning_lang)
+
+        new_score = session["score"] + 1
+        new_xp_earned = session["xp_earned"] + xp_awarded
+        supabase_admin.table("game_sessions").update(
+            {"score": new_score, "xp_earned": new_xp_earned, "state": new_state}
+        ).eq("id", session_id).execute()
+
+    elif round_ended:
+        # Final disi kelime -- normal kazanma/kaybetme (eski davranis).
         if is_complete:
             xp_result = await award_xp(
                 user_id=current_user.id,
@@ -1498,31 +1700,28 @@ async def lingo_guess(
                 "xp_awarded": xp_awarded,
             }
         ).execute()
-
         _sync_word_progress(current_user.id, word_id, general_word_id, is_complete)
-
         lingo_learning_lang, _ = _get_profile_langs(current_user.id)
         await update_streak(current_user.id, "word_reviewed", learning_lang=lingo_learning_lang)
 
         new_score = session["score"] + (1 if is_complete else 0)
         new_xp_earned = session["xp_earned"] + xp_awarded
+        new_state["current_word_id"] = None
+        new_state["current_general_word_id"] = None
+        new_state.pop("lingo_attempt_ends_at", None)
         supabase_admin.table("game_sessions").update(
-            {
-                "score": new_score,
-                "xp_earned": new_xp_earned,
-                "state": {
-                    **state,
-                    "current_word_id": None,
-                    "current_general_word_id": None,
-                    "lingo_guesses": guesses,
-                    "lingo_pot": pot,
-                },
-            }
+            {"score": new_score, "xp_earned": new_xp_earned, "state": new_state}
         ).eq("id", session_id).execute()
     else:
-        supabase_admin.table("game_sessions").update(
-            {"state": {**state, "lingo_guesses": guesses, "lingo_pot": pot}}
-        ).eq("id", session_id).execute()
+        # Tur devam ediyor -- yanlis tahmin: final disinda yeniden 10 sn
+        # baslatilir (kullanicinin istedigi mekanik), final'de ortak saat
+        # aynen devam eder (hic dokunulmaz).
+        if not is_final:
+            next_attempt_ends_at = now + timedelta(seconds=LINGO_ATTEMPT_SECONDS)
+            new_state["lingo_attempt_ends_at"] = next_attempt_ends_at.isoformat()
+        supabase_admin.table("game_sessions").update({"state": new_state}).eq(
+            "id", session_id
+        ).execute()
 
     return LingoGuessResponse(
         guess=guess,
@@ -1533,11 +1732,278 @@ async def lingo_guess(
         pot=pot,
         is_complete=is_complete,
         is_game_over=is_game_over,
-        word=word_text if round_ended else None,
+        word=word_text if (round_ended or (is_final and is_complete)) else None,
         xp_awarded=xp_awarded,
         leveled_up=leveled_up,
         new_level=new_level,
         lingo_is_bonus=lingo_is_bonus,
+        lingo_attempt_ends_at=next_attempt_ends_at,
+        lingo_is_final=is_final,
+        lingo_final_pot=final_pot if is_final else None,
+        lingo_final_clock_ends_at=final_clock_ends_at_out,
+        lingo_awaiting_final_choice=awaiting_choice,
+        lingo_final_result=final_result,
+    )
+
+
+@router.post(
+    "/sessions/{session_id}/lingo/timeout",
+    response_model=LingoGuessResponse,
+    status_code=201,
+)
+async def lingo_timeout(
+    session_id: str,
+    current_user=Depends(get_current_user),
+):
+    """İstemci, kullanıcı süresi içinde (final dışı kelimede 10 sn, final
+    bölümünde ortak 120 sn) bir tahmin göndermediğinde bu uç noktayı
+    çağırır. Final dışı kelimede bu durum YANLIŞ bir tahmin gibi sayılır
+    (kasa 1 azalır, sayaç yeniden başlar -- kullanıcının kendi tarif ettiği
+    mekanik). Final bölümünde ortak saat biterse o ana kadar toplanan
+    final kasası bankaya yatırılır; 7 harfli (büyük ödül) için 'risk'
+    seçilmişken süre biterse TÜM final kasası kaybedilir."""
+    session = _get_session(session_id, current_user.id)
+    if session.get("ended_at"):
+        raise HTTPException(status_code=400, detail="Oturum zaten bitmiş.")
+    if session["mode"] != GameMode.lingo.value:
+        raise HTTPException(status_code=400, detail="Bu endpoint sadece lingo modu içindir.")
+
+    state = session.get("state") or {}
+    if state.get("lingo_awaiting_final_choice"):
+        raise HTTPException(
+            status_code=400,
+            detail="Önce final seçiminizi yapın (risk/bank) -- /lingo/final/choice.",
+        )
+    word_id = state.get("current_word_id")
+    general_word_id = state.get("current_general_word_id")
+    if not word_id and not general_word_id:
+        raise HTTPException(
+            status_code=400, detail="Aktif bir tur yok, önce next-word çağırın."
+        )
+
+    word_text = _fetch_word_text(word_id, general_word_id)
+    word_index_for_segment = max(int(state.get("lingo_word_index", 1)) - 1, 0)
+    is_final, final_stage = _lingo_segment(word_index_for_segment)
+
+    guesses = list(state.get("lingo_guesses", []))
+    pot = int(state.get("lingo_pot", LINGO_START_POT))
+    lingo_is_bonus = bool(state.get("lingo_is_bonus", False))
+    final_pot = int(state.get("lingo_final_pot", 0))
+
+    xp_awarded = 0
+    leveled_up = False
+    new_level = None
+    final_result: str | None = None
+    next_attempt_ends_at: datetime | None = None
+
+    new_state = {**state}
+
+    if is_final:
+        if final_stage == 3:
+            # Riski gormus, buyuk odulu zamaninda bilememis -- TUM final
+            # kasasi elinden alinir (kullanicinin kendi tarif ettigi kural).
+            final_result = "grand_prize_lost"
+            final_pot = 0
+        else:
+            # 4/5/6 harfli asamada sure bitti -- o ana kadar kazanilmis
+            # final kasasi (varsa) korunur, final bolumu burada biter.
+            final_result = "final_timeout"
+        if final_pot > 0:
+            xp_result = await award_xp(
+                user_id=current_user.id,
+                source_type="game_lingo_final",
+                amount=final_pot,
+                source_id=session_id,
+            )
+            xp_awarded = xp_result.amount_awarded
+            leveled_up = xp_result.leveled_up
+            new_level = xp_result.level
+        next_cycle_start = ((word_index_for_segment // 12) + 1) * 12
+        new_state["lingo_final_pot"] = 0
+        new_state["lingo_final_clock_ends_at"] = None
+        new_state["lingo_awaiting_final_choice"] = False
+        new_state["lingo_word_index"] = next_cycle_start
+        new_state["current_word_id"] = None
+        new_state["current_general_word_id"] = None
+        new_state["lingo_guesses"] = []
+
+        supabase_admin.table("game_attempts").insert(
+            {
+                "session_id": session_id,
+                "word_id": word_id,
+                "general_word_id": general_word_id,
+                "is_correct": False,
+                "attempts_count": len(guesses),
+                "xp_awarded": xp_awarded,
+            }
+        ).execute()
+        _sync_word_progress(current_user.id, word_id, general_word_id, False)
+
+        new_xp_earned = session["xp_earned"] + xp_awarded
+        supabase_admin.table("game_sessions").update(
+            {"xp_earned": new_xp_earned, "state": new_state}
+        ).eq("id", session_id).execute()
+
+        is_complete = False
+        is_game_over = True
+        locked: list[str | None] = [None] * len(word_text)
+        feedback: list[str] = ["absent"] * len(word_text)
+    else:
+        # Final disi kelime -- suresi gecen deneme YANLIS tahmin gibi sayilir.
+        now = datetime.now(UTC)
+        pot = max(0, pot - 1)
+        guesses.append({"word": "", "feedback": ["absent"] * len(word_text)})
+        is_complete = False
+        is_game_over = len(guesses) >= LINGO_MAX_GUESSES or pot <= 0
+
+        locked = [None] * len(word_text)
+        for g in guesses:
+            for i, f in enumerate(g.get("feedback", [])):
+                if f == "correct" and g.get("word"):
+                    locked[i] = g["word"][i]
+        feedback = ["absent"] * len(word_text)
+
+        new_state["lingo_guesses"] = guesses
+        new_state["lingo_pot"] = pot
+
+        if is_game_over:
+            supabase_admin.table("game_attempts").insert(
+                {
+                    "session_id": session_id,
+                    "word_id": word_id,
+                    "general_word_id": general_word_id,
+                    "is_correct": False,
+                    "attempts_count": len(guesses),
+                    "xp_awarded": 0,
+                }
+            ).execute()
+            _sync_word_progress(current_user.id, word_id, general_word_id, False)
+            new_state["current_word_id"] = None
+            new_state["current_general_word_id"] = None
+            new_state.pop("lingo_attempt_ends_at", None)
+            supabase_admin.table("game_sessions").update({"state": new_state}).eq(
+                "id", session_id
+            ).execute()
+        else:
+            next_attempt_ends_at = now + timedelta(seconds=LINGO_ATTEMPT_SECONDS)
+            new_state["lingo_attempt_ends_at"] = next_attempt_ends_at.isoformat()
+            supabase_admin.table("game_sessions").update({"state": new_state}).eq(
+                "id", session_id
+            ).execute()
+
+    return LingoGuessResponse(
+        guess="",
+        feedback=feedback,
+        locked=locked,
+        guesses_used=len(guesses),
+        max_guesses=LINGO_MAX_GUESSES,
+        pot=pot,
+        is_complete=is_complete,
+        is_game_over=is_game_over,
+        word=word_text if (is_game_over or is_final) else None,
+        xp_awarded=xp_awarded,
+        leveled_up=leveled_up,
+        new_level=new_level,
+        lingo_is_bonus=lingo_is_bonus,
+        lingo_attempt_ends_at=next_attempt_ends_at,
+        lingo_is_final=is_final,
+        lingo_final_pot=final_pot if is_final else None,
+        lingo_final_clock_ends_at=None,
+        lingo_awaiting_final_choice=False,
+        lingo_final_result=final_result,
+    )
+
+
+@router.post(
+    "/sessions/{session_id}/lingo/final/choice",
+    response_model=LingoGuessResponse,
+    status_code=201,
+)
+async def lingo_final_choice(
+    session_id: str,
+    req: LingoFinalChoiceRequest,
+    current_user=Depends(get_current_user),
+):
+    """6 harfli kelime bilindikten sonra 7 harfli (büyük ödül) kelimeye
+    geçmeden önce sunulan risk/bank seçimi (kullanıcının kendi tarif
+    ettiği TRT1 "Lingo Türkiye" final mekaniği). 'risk': kalan süreyle 7
+    harfliye devam edilir (bilirse final kasası + büyük ödül kazanılır,
+    bilemezse/süre biterse TÜM final kasası kaybedilir). 'bank': o ana
+    kadarki final kasası hemen XP olarak ödüllendirilir ve final bölümü
+    burada tamamlanır (7 harfli hiç oynanmaz)."""
+    session = _get_session(session_id, current_user.id)
+    if session.get("ended_at"):
+        raise HTTPException(status_code=400, detail="Oturum zaten bitmiş.")
+    if session["mode"] != GameMode.lingo.value:
+        raise HTTPException(status_code=400, detail="Bu endpoint sadece lingo modu içindir.")
+
+    state = session.get("state") or {}
+    if not state.get("lingo_awaiting_final_choice"):
+        raise HTTPException(status_code=400, detail="Şu an bekleyen bir final seçimi yok.")
+
+    word_index_for_segment = max(int(state.get("lingo_word_index", 1)) - 1, 0)
+    final_pot = int(state.get("lingo_final_pot", 0))
+    now = datetime.now(UTC)
+
+    xp_awarded = 0
+    leveled_up = False
+    new_level = None
+    new_state = {**state, "lingo_awaiting_final_choice": False}
+    final_clock_ends_at: datetime | None = None
+    final_result: str
+
+    if req.choice == "bank":
+        if final_pot > 0:
+            xp_result = await award_xp(
+                user_id=current_user.id,
+                source_type="game_lingo_final",
+                amount=final_pot,
+                source_id=session_id,
+            )
+            xp_awarded = xp_result.amount_awarded
+            leveled_up = xp_result.leveled_up
+            new_level = xp_result.level
+        next_cycle_start = ((word_index_for_segment // 12) + 1) * 12
+        new_state["lingo_final_pot"] = 0
+        new_state["lingo_final_clock_ends_at"] = None
+        new_state["lingo_word_index"] = next_cycle_start
+        new_state["current_word_id"] = None
+        new_state["current_general_word_id"] = None
+        new_state["lingo_guesses"] = []
+        new_xp_earned = session["xp_earned"] + xp_awarded
+        supabase_admin.table("game_sessions").update(
+            {"xp_earned": new_xp_earned, "state": new_state}
+        ).eq("id", session_id).execute()
+        final_result = "banked"
+    else:
+        remaining_ms = max(int(state.get("lingo_final_remaining_ms", 0)), 0)
+        final_clock_ends_at = now + timedelta(milliseconds=remaining_ms)
+        new_state["lingo_final_clock_ends_at"] = final_clock_ends_at.isoformat()
+        supabase_admin.table("game_sessions").update({"state": new_state}).eq(
+            "id", session_id
+        ).execute()
+        final_result = "risked"
+
+    return LingoGuessResponse(
+        guess="",
+        feedback=[],
+        locked=[],
+        guesses_used=0,
+        max_guesses=LINGO_MAX_GUESSES,
+        pot=0,
+        is_complete=False,
+        is_game_over=False,
+        word=None,
+        xp_awarded=xp_awarded,
+        leveled_up=leveled_up,
+        new_level=new_level,
+        lingo_is_bonus=False,
+        lingo_attempt_ends_at=None,
+        lingo_is_final=True,
+        lingo_final_pot=0 if req.choice == "bank" else final_pot,
+        lingo_final_clock_ends_at=final_clock_ends_at,
+        lingo_awaiting_final_choice=False,
+        lingo_final_result=final_result,
     )
 
 

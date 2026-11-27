@@ -90,6 +90,17 @@ export default function DuelRoomScreen() {
     lingoGuessResultRef.current = lingoGuessResult;
   }, [lingoGuessResult]);
 
+  // 27 Kasım 2026 -- deneme başına 10 sn sayaç (web'deki duel sayfasıyla
+  // AYNI mantık, bkz. oradaki yorum): round.lingo_attempt_ends_at her yeni
+  // denemede (yanlış tahmin / timeout) değiştiği için bu ref'i O DEĞER
+  // DEĞİŞTİĞİNDE sıfırlıyoruz -- aşağıdaki "now" tabanlı sayaç 0'a inince
+  // handleLingoTimeout tek seferlik tetiklenir (final/risk-bank mekaniği
+  // düello tarafında bu pass'te YOK -- sadece tek-oyunculu modda var).
+  const lingoTimeoutFiredRef = useRef(false);
+  useEffect(() => {
+    lingoTimeoutFiredRef.current = false;
+  }, [round?.lingo_attempt_ends_at]);
+
   const tick = useCallback(async () => {
     if (!duelId) return;
     try {
@@ -241,6 +252,34 @@ export default function DuelRoomScreen() {
     }
   };
 
+  // 27 Kasım 2026 -- kullanıcı kendi 10 sn'lik deneme süresi içinde bir
+  // tahmin göndermediğinde çağrılır (bkz. aşağıdaki sayaç useEffect'i).
+  // handleGuessWord ile AYNI ilke, farkı sunucuya "word" göndermemesi.
+  const handleLingoTimeout = useCallback(async () => {
+    if (!round || !duelId || lingoBusy || lingoGuessResultRef.current?.is_round_over) return;
+    setLingoBusy(true);
+    try {
+      const res = await duelsApi.lingoTimeout(duelId);
+      setLingoGuessResult(res);
+      setRound((prev) =>
+        prev
+          ? {
+              ...prev,
+              lingo_guesses: [...(prev.lingo_guesses ?? []), { word: res.guess, feedback: res.feedback }],
+              lingo_locked: res.locked,
+              lingo_pot: res.pot,
+              lingo_guesses_used: res.guesses_used,
+              lingo_attempt_ends_at: res.lingo_attempt_ends_at ?? null,
+            }
+          : prev
+      );
+    } catch {
+      // sessiz -- polling zaten durumu tazeleyecek
+    } finally {
+      setLingoBusy(false);
+    }
+  }, [round, duelId, lingoBusy]);
+
   if (loading && !duel) {
     return (
       <ScreenContainer>
@@ -268,7 +307,27 @@ export default function DuelRoomScreen() {
   const isLingo = duel.mode === 'lingo';
   const keyboardRows = duel.learning_lang === 'ar' ? ARABIC_KEYBOARD_ROWS : KEYBOARD_ROWS;
   const secondsLeft = round?.ends_at ? Math.max(0, Math.ceil((new Date(round.ends_at).getTime() - now) / 1000)) : null;
+  // 27 Kasım 2026 -- deneme başına 10 sn sayaç: "now" zaten 500ms'de bir
+  // güncelleniyor (bkz. yukarıdaki useEffect), buradan SADECE lingo
+  // modunda ve round bitmemişken türetiliyor (round.ends_at'ten türetilen
+  // genel secondsLeft ile AYNI ilke).
+  const lingoAttemptSecondsLeft =
+    round?.mode === 'lingo' && round.lingo_attempt_ends_at && !lingoGuessResult?.is_round_over
+      ? Math.max(0, Math.ceil((new Date(round.lingo_attempt_ends_at).getTime() - now) / 1000))
+      : null;
   const sortedParticipants = [...duel.participants].sort((a, b) => b.score - a.score);
+
+  useEffect(() => {
+    if (
+      lingoAttemptSecondsLeft === null ||
+      lingoAttemptSecondsLeft > 0 ||
+      lingoTimeoutFiredRef.current
+    ) {
+      return;
+    }
+    lingoTimeoutFiredRef.current = true;
+    handleLingoTimeout();
+  }, [lingoAttemptSecondsLeft, handleLingoTimeout]);
 
   return (
     <ScreenContainer>
@@ -429,9 +488,11 @@ export default function DuelRoomScreen() {
               harf değil TAM KELİME tahmini: solo moddaki game.tsx'teki
               Lingo render bloğuyla BİREBİR AYNI mantık, burada round'un
               (tüm katılımcılar için ortak) lingo_word_length alanı
-              kullanılıyor. İpucu/anlam GÖSTERİLMİYOR -- wordle duellosunun
-              minimalizmiyle AYNI (bkz. yukarıdaki round && isWordle bloğu,
-              o da current.meaning göstermiyor). */}
+              kullanılıyor. 27 Kasım 2026 güncellemesi: anlam artık
+              BİLEREK gösteriliyor (aşağıdaki round.meaning kutusu --
+              kullanıcı isteği, bkz. backend _fetch_lingo_meaning), bu
+              noktada wordle duellosundan (current.meaning'siz, bkz.
+              yukarıdaki round && isWordle bloğu) FARKLILAŞIYOR. */}
           {round && isLingo && (
             <>
               {/* Bonus Kelime rozeti (27 Kasım 2026) -- solo moddaki AYNI
@@ -445,7 +506,22 @@ export default function DuelRoomScreen() {
                 </View>
               )}
 
-              <View style={styles.livesRow}>
+              {/* Anlamı (27 Kasım 2026, kullanıcı isteği) -- diğer düello
+                  modlarının aksine Lingo'da anlam BİLEREK gösterilir
+                  (zayıf İngilizce/kelime bilgisi için pedagojik amaç --
+                  bkz. backend duels.py::_fetch_lingo_meaning). Bu
+                  kullanıcının KENDİ native_lang'ine göre -- o dil için
+                  çeviri yoksa kutu hiç gösterilmez. */}
+              {round.meaning && (
+                <Card style={{ alignItems: 'center' }}>
+                  <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>
+                    {t.lingoMeaningLabel}
+                  </Text>
+                  <Text style={{ color: c.text, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{round.meaning}</Text>
+                </Card>
+              )}
+
+              <View style={[styles.livesRow, { flexWrap: 'wrap' }]}>
                 <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginRight: 4 }}>
                   {t.lingoPotLabel}: {round.lingo_pot ?? 10}
                 </Text>
@@ -455,22 +531,52 @@ export default function DuelRoomScreen() {
                     String(Math.max(0, (round.lingo_max_guesses ?? 5) - (round.lingo_guesses_used ?? round.lingo_guesses?.length ?? 0)))
                   )}
                 </Text>
+                {/* 27 Kasım 2026 -- deneme başına 10 sn sayaç (eski düz
+                    60 sn'lik ortak süre yerine). */}
+                {lingoAttemptSecondsLeft !== null && (
+                  <View
+                    style={{
+                      marginLeft: spacing.sm,
+                      borderRadius: radius.full,
+                      paddingHorizontal: spacing.sm,
+                      paddingVertical: 2,
+                      backgroundColor: lingoAttemptSecondsLeft <= 3 ? c.dangerSoft : c.primarySoft,
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: lingoAttemptSecondsLeft <= 3 ? c.danger : c.primary }}>
+                      ⏱ {t.lingoTimeLeftTpl.replace('{s}', String(lingoAttemptSecondsLeft))}
+                    </Text>
+                  </View>
+                )}
               </View>
 
-              {(round.lingo_guesses ?? []).map((g, gi) => (
-                <View key={gi} style={styles.revealRow}>
-                  {g.word.split('').map((ch, i) => {
-                    const fb = g.feedback[i];
-                    const bg = fb === 'correct' ? c.successSoft : fb === 'present' ? c.warningSoft : c.border;
-                    const fg = fb === 'correct' ? c.success : fb === 'present' ? c.warning : c.textMuted;
-                    return (
-                      <View key={i} style={[styles.letterBox, { borderColor: bg, backgroundColor: bg }]}>
-                        <Text style={{ fontSize: 18, fontWeight: '700', color: fg, textTransform: 'uppercase' }}>{ch}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              ))}
+              {(round.lingo_guesses ?? []).map((g, gi) =>
+                g.word === '' ? (
+                  // 27 Kasım 2026 -- süresi geçen deneme (/rounds/
+                  // lingo-timeout), YANLIŞ bir tahmin gibi sayılır ama
+                  // gösterilecek harf yok.
+                  <View key={gi} style={styles.revealRow}>
+                    <View style={[styles.letterBox, { width: undefined, paddingHorizontal: spacing.sm, borderColor: c.border, backgroundColor: c.border, borderStyle: 'dashed' }]}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase' }}>
+                        ⏱ {t.lingoTimeoutRowLabel}
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <View key={gi} style={styles.revealRow}>
+                    {g.word.split('').map((ch, i) => {
+                      const fb = g.feedback[i];
+                      const bg = fb === 'correct' ? c.successSoft : fb === 'present' ? c.warningSoft : c.border;
+                      const fg = fb === 'correct' ? c.success : fb === 'present' ? c.warning : c.textMuted;
+                      return (
+                        <View key={i} style={[styles.letterBox, { borderColor: bg, backgroundColor: bg }]}>
+                          <Text style={{ fontSize: 18, fontWeight: '700', color: fg, textTransform: 'uppercase' }}>{ch}</Text>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )
+              )}
 
               {!lingoGuessResult?.is_round_over && (
                 <View style={styles.revealRow}>

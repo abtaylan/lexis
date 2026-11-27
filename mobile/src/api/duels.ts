@@ -102,4 +102,10 @@ export const duelsApi = {
     const res = await api.post<DuelLingoGuessResponse>(`/duels/${duelId}/rounds/guess-word`, { word });
     return res.data;
   },
+  // 27 Kasım 2026 -- kullanıcı kendi 10 sn'lik deneme süresi içinde tahmin
+  // göndermediğinde çağrılır (bkz. backend duels.py::lingo_round_timeout).
+  lingoTimeout: async (duelId: string): Promise<DuelLingoGuessResponse> => {
+    const res = await api.post<DuelLingoGuessResponse>(`/duels/${duelId}/rounds/lingo-timeout`, {});
+    return res.data;
+  },
 };

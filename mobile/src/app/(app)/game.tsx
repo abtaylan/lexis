@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
@@ -191,6 +191,22 @@ export default function GameScreen() {
   const [lingoBusy, setLingoBusy] = useState(false);
   const [lingoInputError, setLingoInputError] = useState('');
   const [lingoIsBonus, setLingoIsBonus] = useState(false);
+  // 27 Kasım 2026 -- süre/final sistemi (TRT1 "Lingo Türkiye" formatı,
+  // web/game/page.tsx'teki AYNI state deseni -- bkz. o dosyadaki uzun
+  // açıklama yorumu). lingoSecondsLeft mutlak ISO zaman damgasından her
+  // saniye YENİDEN hesaplanır (sprintSecondsLeft gibi kendi başına azalan
+  // bir sayaç değil) ki uygulama arka plana alınıp geri gelindiğinde bile
+  // doğru kalsın.
+  const [lingoAttemptEndsAt, setLingoAttemptEndsAt] = useState<string | null>(null);
+  const [lingoIsFinal, setLingoIsFinal] = useState(false);
+  const [lingoFinalPot, setLingoFinalPot] = useState<number | null>(null);
+  const [lingoFinalClockEndsAt, setLingoFinalClockEndsAt] = useState<string | null>(null);
+  const [lingoAwaitingFinalChoice, setLingoAwaitingFinalChoice] = useState(false);
+  const [lingoFinalChoiceBusy, setLingoFinalChoiceBusy] = useState(false);
+  const [lingoFinalResult, setLingoFinalResult] = useState<string | null>(null);
+  const [lingoSecondsLeft, setLingoSecondsLeft] = useState<number | null>(null);
+  const lingoTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lingoTimeoutFiredRef = useRef(false);
 
   // ── yazma (typing) state — web'deki gibi dinleme/sprint modları da bunu
   // paylaşacak (bkz. handleTypingSubmit): doğruluk kontrolü current.word ile
@@ -350,6 +366,13 @@ export default function GameScreen() {
       setLingoIsBonus(!!nw.lingo_is_bonus);
       setLingoInput('');
       setLingoInputError('');
+      setLingoAttemptEndsAt(nw.lingo_attempt_ends_at ?? null);
+      setLingoIsFinal(!!nw.lingo_is_final);
+      setLingoFinalPot(nw.lingo_final_pot ?? null);
+      setLingoFinalClockEndsAt(nw.lingo_final_clock_ends_at ?? null);
+      setLingoAwaitingFinalChoice(false);
+      setLingoFinalResult(null);
+      lingoTimeoutFiredRef.current = false;
       setTypedAnswer('');
       setTypingResult(null);
       setSentenceTiles(
@@ -891,6 +914,18 @@ export default function GameScreen() {
 
   // ── Lingo tahmin gönderme (26 Kasım 2026) -- handleGuessLetter ile AYNI
   // XP-invalidate deseni, ama tek harf yerine TAM KELIME gönderiliyor. ──
+  // 27 Kasım 2026 -- her yanıttan sonra yeni deneme/final sayaç alanlarını
+  // da günceller (bkz. web/game/page.tsx::applyLingoTimerFields ile AYNI).
+  const applyLingoTimerFields = (res: LingoGuessResult) => {
+    setLingoAttemptEndsAt(res.lingo_attempt_ends_at ?? null);
+    setLingoIsFinal(!!res.lingo_is_final);
+    if (res.lingo_final_pot !== undefined && res.lingo_final_pot !== null) {
+      setLingoFinalPot(res.lingo_final_pot);
+    }
+    setLingoFinalClockEndsAt(res.lingo_final_clock_ends_at ?? null);
+    setLingoFinalResult(res.lingo_final_result ?? null);
+  };
+
   const handleLingoGuess = async () => {
     if (lingoBusy || roundResult || !sessionId) return;
     const word = lingoInput.trim();
@@ -911,21 +946,93 @@ export default function GameScreen() {
       queryClient.invalidateQueries({ queryKey: ['xp'] });
       queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
       if (res.leveled_up) setLevelUp(res.new_level);
+      applyLingoTimerFields(res);
 
       if (res.is_complete) {
         setScore((s) => s + 1);
         setRoundResult('won');
         setRevealedWord(res.word ?? null);
-        setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 1600);
+        if (res.lingo_awaiting_final_choice) {
+          // 6 harfli final kelimesi bilindi -- 7 harfliye (büyük ödül)
+          // geçmeden önce risk/bank seçimi gösterilecek, next-word'ü
+          // kullanıcı seçim yapana kadar ÇAĞIRMIYORUZ (bkz. backend guard'ı).
+          setLingoAwaitingFinalChoice(true);
+        } else {
+          setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 1600);
+        }
       } else if (res.is_game_over) {
         setRoundResult('lost');
         setRevealedWord(res.word ?? null);
         setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 2000);
+      } else {
+        lingoTimeoutFiredRef.current = false;
       }
     } catch {
       /* sessiz */
     } finally {
       setLingoBusy(false);
+    }
+  };
+
+  // 27 Kasım 2026 -- kullanıcı kendi süresi (final dışı 10 sn / final
+  // ortak 120 sn) içinde bir tahmin göndermezse çağrılır (bkz. aşağıdaki
+  // sayaç useEffect'i). handleLingoGuess ile AYNI yanıt şekli, farkı
+  // sunucuya "word" göndermemesi.
+  const handleLingoTimeout = useCallback(async () => {
+    if (!sessionId || lingoBusy || roundResult || lingoTimeoutFiredRef.current) return;
+    lingoTimeoutFiredRef.current = true;
+    setLingoBusy(true);
+    try {
+      const res = await gamesApi.lingoTimeout(sessionId);
+      if (!res.lingo_is_final) {
+        setLingoGuesses((prev) => [...prev, { word: res.guess, feedback: res.feedback }]);
+        setLingoLocked(res.locked);
+        setLingoPot(res.pot);
+      }
+      setXpEarned((x) => x + res.xp_awarded);
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
+      if (res.leveled_up) setLevelUp(res.new_level);
+      applyLingoTimerFields(res);
+
+      if (res.is_game_over) {
+        setRoundResult('lost');
+        setRevealedWord(res.word ?? null);
+        setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 2000);
+      } else {
+        lingoTimeoutFiredRef.current = false;
+      }
+    } catch {
+      /* sessiz */
+    } finally {
+      setLingoBusy(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId, lingoBusy, roundResult, poolSource]);
+
+  // 27 Kasım 2026 -- final'in 6 harflisinden sonraki risk/bank seçimi.
+  const handleLingoFinalChoice = async (choice: 'risk' | 'bank') => {
+    if (!sessionId || lingoFinalChoiceBusy) return;
+    setLingoFinalChoiceBusy(true);
+    try {
+      const res = await gamesApi.lingoFinalChoice(sessionId, choice);
+      setXpEarned((x) => x + res.xp_awarded);
+      queryClient.invalidateQueries({ queryKey: ['xp'] });
+      queryClient.invalidateQueries({ queryKey: ['stats-summary'] });
+      if (res.leveled_up) setLevelUp(res.new_level);
+      setLingoFinalResult(res.lingo_final_result ?? null);
+      setLingoAwaitingFinalChoice(false);
+      if (choice === 'bank') {
+        setLingoFinalPot(0);
+        setTimeout(() => sessionId && loadNext(sessionId, true, poolSource), 1400);
+      } else if (sessionId) {
+        // Risk: kalan süreyle 7 harfli (büyük ödül) hemen çekilir.
+        loadNext(sessionId, true, poolSource);
+      }
+    } catch {
+      /* sessiz */
+    } finally {
+      setLingoFinalChoiceBusy(false);
     }
   };
 
@@ -941,6 +1048,10 @@ export default function GameScreen() {
     if (sprintTimerRef.current) {
       clearInterval(sprintTimerRef.current);
       sprintTimerRef.current = null;
+    }
+    if (lingoTimerRef.current) {
+      clearInterval(lingoTimerRef.current);
+      lingoTimerRef.current = null;
     }
     setStage('loading');
     try {
@@ -978,6 +1089,56 @@ export default function GameScreen() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameMode, stage]);
+
+  // 27 Kasım 2026 -- Lingo süre sayacı (web/game/page.tsx'teki AYNI
+  // desen): final DIŞI kelimede lingoAttemptEndsAt'i, final bölümünde
+  // (lingoIsFinal) ortak lingoFinalClockEndsAt'i izler. NOT: erken-çıkış
+  // dallarında senkron setState YOK (react-hooks/set-state-in-effect) --
+  // render zaten rozeti SADECE "!roundResult" iken gösteriyor, bu yüzden
+  // eski bir sayı burada kalsa bile hiç görünmüyor.
+  useEffect(() => {
+    if (
+      gameMode !== 'lingo' ||
+      stage !== 'playing' ||
+      roundResult ||
+      lingoAwaitingFinalChoice
+    ) {
+      if (lingoTimerRef.current) {
+        clearInterval(lingoTimerRef.current);
+        lingoTimerRef.current = null;
+      }
+      return;
+    }
+    const deadlineStr = lingoIsFinal ? lingoFinalClockEndsAt : lingoAttemptEndsAt;
+    if (!deadlineStr) {
+      return;
+    }
+    const deadline = new Date(deadlineStr).getTime();
+    const tick = () => {
+      const secs = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      setLingoSecondsLeft(secs);
+      if (secs <= 0) {
+        handleLingoTimeout();
+      }
+    };
+    tick();
+    lingoTimerRef.current = setInterval(tick, 1000);
+    return () => {
+      if (lingoTimerRef.current) {
+        clearInterval(lingoTimerRef.current);
+        lingoTimerRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    gameMode,
+    stage,
+    roundResult,
+    lingoAwaitingFinalChoice,
+    lingoIsFinal,
+    lingoFinalClockEndsAt,
+    lingoAttemptEndsAt,
+  ]);
 
   // ── dinleme (listening) — her yeni kelimede otomatik bir kez seslendir ──
   useEffect(() => {
@@ -1614,10 +1775,23 @@ export default function GameScreen() {
               düzeltmesi) -- 12 adımlık sekansta 2 bonus basamak var
               (3x4 sonrası ve 3x5 sonrası), bu turu tamamlarsan ödül 2
               katına çıkar. */}
-          {lingoIsBonus && (
+          {lingoIsBonus && !lingoIsFinal && (
             <View style={{ alignItems: 'center', marginBottom: spacing.sm }}>
               <View style={{ backgroundColor: c.warningSoft, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.xs }}>
                 <Text style={{ color: c.amber, fontSize: 12, fontWeight: '700' }}>✨ {gt.lingoBonusLabel}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* FİNAL rozeti (27 Kasım 2026) -- dizinin son 4 basamağı
+              (4/5/6/7 harfli), ORTAK 120 sn'lik saat + risk/bank seçimi
+              burada başlıyor. */}
+          {lingoIsFinal && (
+            <View style={{ alignItems: 'center', marginBottom: spacing.sm }}>
+              <View style={{ backgroundColor: c.amber, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.xs }}>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+                  🏁 {gt.lingoFinalBadgeTpl.replace('{n}', String(lingoWordLength))}
+                </Text>
               </View>
             </View>
           )}
@@ -1629,29 +1803,67 @@ export default function GameScreen() {
             <Text style={{ color: c.text, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>{current.meaning}</Text>
           </Card>
 
-          <View style={styles.livesRow}>
-            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginRight: 4 }}>
-              {gt.lingoPotLabel}: {lingoPot}
-            </Text>
-            <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginLeft: spacing.sm }}>
-              {gt.lingoGuessesLeftTpl.replace('{n}', String(Math.max(0, lingoMaxGuesses - lingoGuesses.length)))}
-            </Text>
+          <View style={[styles.livesRow, { flexWrap: 'wrap' }]}>
+            {!lingoIsFinal && (
+              <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginRight: 4 }}>
+                {gt.lingoPotLabel}: {lingoPot}
+              </Text>
+            )}
+            {lingoIsFinal && lingoFinalPot !== null && (
+              <Text style={{ color: c.amber, fontSize: 11, fontWeight: '700', marginRight: 4 }}>
+                {gt.lingoFinalPotLabel}: {lingoFinalPot}
+              </Text>
+            )}
+            {!lingoIsFinal && (
+              <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginLeft: spacing.sm }}>
+                {gt.lingoGuessesLeftTpl.replace('{n}', String(Math.max(0, lingoMaxGuesses - lingoGuesses.length)))}
+              </Text>
+            )}
+            {/* 27 Kasım 2026 -- süre sayacı (final dışında deneme başına
+                10 sn, final'de ortak 120 sn). */}
+            {lingoSecondsLeft !== null && !roundResult && (
+              <View
+                style={{
+                  marginLeft: spacing.sm,
+                  borderRadius: radius.full,
+                  paddingHorizontal: spacing.sm,
+                  paddingVertical: 2,
+                  backgroundColor: lingoSecondsLeft <= 3 ? c.dangerSoft : c.primarySoft,
+                }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '700', color: lingoSecondsLeft <= 3 ? c.danger : c.primary }}>
+                  ⏱ {gt.lingoTimeLeftTpl.replace('{s}', String(lingoSecondsLeft))}
+                </Text>
+              </View>
+            )}
           </View>
 
-          {lingoGuesses.map((g, gi) => (
-            <View key={gi} style={styles.revealRow}>
-              {g.word.split('').map((ch, i) => {
-                const fb = g.feedback[i];
-                const bg = fb === 'correct' ? c.successSoft : fb === 'present' ? c.warningSoft : c.border;
-                const fg = fb === 'correct' ? c.success : fb === 'present' ? c.warning : c.textMuted;
-                return (
-                  <View key={i} style={[styles.letterBox, { borderColor: bg, backgroundColor: bg }]}>
-                    <Text style={{ fontSize: 18, fontWeight: '700', color: fg, textTransform: 'uppercase' }}>{ch}</Text>
-                  </View>
-                );
-              })}
-            </View>
-          ))}
+          {lingoGuesses.map((g, gi) =>
+            g.word === '' ? (
+              // 27 Kasım 2026 -- süresi geçen deneme (/lingo/timeout),
+              // YANLIŞ bir tahmin gibi sayılır ama gösterilecek harf yok.
+              <View key={gi} style={styles.revealRow}>
+                <View style={[styles.letterBox, { width: undefined, paddingHorizontal: spacing.sm, borderColor: c.border, backgroundColor: c.border, borderStyle: 'dashed' }]}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: c.textMuted, textTransform: 'uppercase' }}>
+                    ⏱ {gt.lingoTimeoutRowLabel}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View key={gi} style={styles.revealRow}>
+                {g.word.split('').map((ch, i) => {
+                  const fb = g.feedback[i];
+                  const bg = fb === 'correct' ? c.successSoft : fb === 'present' ? c.warningSoft : c.border;
+                  const fg = fb === 'correct' ? c.success : fb === 'present' ? c.warning : c.textMuted;
+                  return (
+                    <View key={i} style={[styles.letterBox, { borderColor: bg, backgroundColor: bg }]}>
+                      <Text style={{ fontSize: 18, fontWeight: '700', color: fg, textTransform: 'uppercase' }}>{ch}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )
+          )}
 
           {!roundResult && (
             <View style={styles.revealRow}>
@@ -1682,7 +1894,13 @@ export default function GameScreen() {
           {roundResult && (
             <Card style={{ backgroundColor: roundResult === 'won' ? c.successSoft : c.dangerSoft, borderColor: roundResult === 'won' ? c.successSoft : c.dangerSoft, alignItems: 'center', marginBottom: spacing.md }}>
               <Text style={{ color: roundResult === 'won' ? c.success : c.danger, fontWeight: '700' }}>
-                {roundResult === 'won' ? gt.lingoWonTitle : gt.lingoLostTitle}
+                {lingoFinalResult === 'grand_prize_won'
+                  ? gt.lingoGrandPrizeWonTitle
+                  : lingoFinalResult === 'grand_prize_lost'
+                    ? gt.lingoGrandPrizeLostTitle
+                    : roundResult === 'won'
+                      ? gt.lingoWonTitle
+                      : gt.lingoLostTitle}
               </Text>
               {roundResult === 'lost' && revealedWord && (
                 <Text style={{ color: c.danger, marginTop: 4 }}>{gt.correctWordTpl.replace('{word}', revealedWord)}</Text>
@@ -1690,7 +1908,31 @@ export default function GameScreen() {
             </Card>
           )}
 
-          {!roundResult && (
+          {/* Risk/bank seçimi (27 Kasım 2026) -- 6 harfli final kelimesi
+              bilindikten sonra, 7 harfliye (büyük ödül) geçmeden önce. */}
+          {lingoAwaitingFinalChoice && (
+            <Card style={{ backgroundColor: c.warningSoft, borderColor: c.amber, alignItems: 'center', marginBottom: spacing.md, gap: spacing.sm }}>
+              <Text style={{ color: c.amber, fontWeight: '700', fontSize: 14 }}>{gt.lingoFinalChoiceTitle}</Text>
+              <Text style={{ color: c.amber, fontSize: 12, textAlign: 'center' }}>
+                {gt.lingoFinalChoicePromptTpl.replace('{n}', String(lingoFinalPot ?? 0))}
+              </Text>
+              <View style={{ width: '100%', gap: spacing.sm, marginTop: spacing.xs }}>
+                <Button
+                  title={gt.lingoFinalRiskBtn}
+                  onPress={() => handleLingoFinalChoice('risk')}
+                  disabled={lingoFinalChoiceBusy}
+                />
+                <Button
+                  title={gt.lingoFinalBankBtn}
+                  onPress={() => handleLingoFinalChoice('bank')}
+                  disabled={lingoFinalChoiceBusy}
+                  variant="ghost"
+                />
+              </View>
+            </Card>
+          )}
+
+          {!roundResult && !lingoAwaitingFinalChoice && (
             <>
               <TextInput
                 value={lingoInput}

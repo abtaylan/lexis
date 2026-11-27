@@ -96,6 +96,27 @@ class NextWordResponse(BaseModel):
     # LINGO_LENGTH_SEQUENCE'ın bir "bonus" basamağında mı ("3x4 → bonus →
     # 3x5 → bonus → final 4-5-6-7") — true ise tamamlama ödülü 2 katı.
     lingo_is_bonus: bool | None = None
+    # 27 Kasim 2026 kullanici istegi -- her deneme icin 10 saniyelik sure
+    # (yanlis/sure-asimi yeni bir 10 saniye baslatir) + final (4-5-6-7 harf)
+    # bolumunde PAYLASILAN 120 saniyelik tek bir saat (kelimeler arasinda
+    # SIFIRLANMAZ) + 7 harfliye gecmeden "hepsini riske at ya da bankaya
+    # at" secimi (bkz. LINGO_FINAL_* sabitleri, lingo_guess, lingo_timeout,
+    # lingo_final_choice).
+    lingo_attempt_ends_at: datetime | None = None
+    lingo_is_final: bool = False
+    lingo_final_pot: int | None = None
+    lingo_final_clock_ends_at: datetime | None = None
+    lingo_awaiting_final_choice: bool = False
+    lingo_final_result: str | None = None
+    # "stage_won" (4/5 harfli final kelimesi bilindi) | "grand_prize_won"
+    # (7 harfli bilindi) | "grand_prize_lost" (risk secilip 7 harflide
+    # sure doldu -- tum final kasasi gitti) | "final_timeout" (4/5/6
+    # harflide sure doldu -- o ana kadarki kasa kalir) | "banked"
+    # (6 harfliden sonra bank secildi) | "risked" (6 harfliden sonra
+    # risk secildi, 7 harfliye geciliyor)
+    xp_awarded: int = 0
+    leveled_up: bool = False
+    new_level: int | None = None
     # ── sentence_building (cümle kurma) moduna özel alan ──
     # DOĞRU sırada gönderilir (word_to_meaning'de kelimenin kendisinin
     # gönderilmesiyle AYNI güven modeli) — istemci kendi karıştırır, kendi
@@ -194,6 +215,28 @@ class LingoGuessResponse(BaseModel):
     leveled_up: bool = False
     new_level: int | None = None
     lingo_is_bonus: bool = False
+    lingo_attempt_ends_at: datetime | None = None
+    lingo_is_final: bool = False
+    lingo_final_pot: int | None = None
+    lingo_final_clock_ends_at: datetime | None = None
+    lingo_awaiting_final_choice: bool = False
+    lingo_final_result: str | None = None
+    # "stage_won" (4/5 harfli final kelimesi bilindi) | "grand_prize_won"
+    # (7 harfli bilindi) | "grand_prize_lost" (risk secilip 7 harflide
+    # sure doldu -- tum final kasasi gitti) | "final_timeout" (4/5/6
+    # harflide sure doldu -- o ana kadarki kasa kalir) | "banked"
+    # (6 harfliden sonra bank secildi) | "risked" (6 harfliden sonra
+    # risk secildi, 7 harfliye geciliyor)
+
+
+class LingoFinalChoiceRequest(BaseModel):
+    """27 Kasim 2026 -- final bolumunde 6 harfli kelime cozulunce, 7 harfli
+    "buyuk odul" kelimesine gecmeden once sorulan secim. 'risk': kalan sure
+    icinde 7 harfliyi dener, kazanirsa final kasasi + buyuk odul XP'si
+    verilir, kaybederse/sure dolarsa HER SEYI kaybeder. 'bank': final
+    kasasindaki XP'yi hemen alir, 7 harfliyi hic denemez."""
+
+    choice: str = Field(pattern="^(risk|bank)$")
 
 
 # ── Zayıf zorluk seviyesi istatistiği (V2 madde #6 — Faz 2) ────────

@@ -52,7 +52,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Düello Bitti', backToLobbyBtn: 'Lobiye Dön',
     youLabel: '(sen)', scoreLabel: 'puan', waitingRoundLabel: 'Sıradaki tur hazırlanıyor…',
     livesLabel: 'Can', wordleCompleteLabel: 'Kelimeyi tamamladın! 🎉',
-    wordleFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', wordleFailedLabel: 'Hakların bitti.', lingoPotLabel: 'Kasa', lingoGuessesLeftTpl: '{n} hakkın kaldı', lingoInputPlaceholder: '{n} harfli kelimeyi yaz…', lingoSubmitBtn: 'Tahmin Et', lingoInvalidLengthTpl: 'Tahminin {n} harfli olmalı.', lingoCompleteLabel: 'Kelimeyi tamamladın! 🎉', lingoFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', lingoFailedLabel: 'Kasan bitti.', lingoBonusLabel: 'Bonus Kelime — 2 katı ödül!',
+    wordleFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', wordleFailedLabel: 'Hakların bitti.', lingoPotLabel: 'Kasa', lingoGuessesLeftTpl: '{n} hakkın kaldı', lingoInputPlaceholder: '{n} harfli kelimeyi yaz…', lingoSubmitBtn: 'Tahmin Et', lingoInvalidLengthTpl: 'Tahminin {n} harfli olmalı.', lingoCompleteLabel: 'Kelimeyi tamamladın! 🎉', lingoFirstFinishLabel: 'İlk bitiren sensin! +bonus 🏆', lingoFailedLabel: 'Kasan bitti.', lingoBonusLabel: 'Bonus Kelime — 2 katı ödül!', lingoMeaningLabel: 'Anlamı', lingoTimeLeftTpl: '{s} sn', lingoTimeoutRowLabel: 'Süre doldu',
   },
   en: {
     loading: 'Loading…', error: 'Something went wrong.',
@@ -65,7 +65,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duel Over', backToLobbyBtn: 'Back to Lobby',
     youLabel: '(you)', scoreLabel: 'pts', waitingRoundLabel: 'Preparing the next round…',
     livesLabel: 'Lives', wordleCompleteLabel: 'You completed the word! 🎉',
-    wordleFirstFinishLabel: 'First to finish! +bonus 🏆', wordleFailedLabel: 'Out of guesses.', lingoPotLabel: 'Pot', lingoGuessesLeftTpl: '{n} guesses left', lingoInputPlaceholder: 'Type a {n}-letter word…', lingoSubmitBtn: 'Guess', lingoInvalidLengthTpl: 'Your guess must be {n} letters.', lingoCompleteLabel: 'You completed the word! 🎉', lingoFirstFinishLabel: 'First to finish! +bonus 🏆', lingoFailedLabel: 'Out of guesses.', lingoBonusLabel: 'Bonus Word — double reward!',
+    wordleFirstFinishLabel: 'First to finish! +bonus 🏆', wordleFailedLabel: 'Out of guesses.', lingoPotLabel: 'Pot', lingoGuessesLeftTpl: '{n} guesses left', lingoInputPlaceholder: 'Type a {n}-letter word…', lingoSubmitBtn: 'Guess', lingoInvalidLengthTpl: 'Your guess must be {n} letters.', lingoCompleteLabel: 'You completed the word! 🎉', lingoFirstFinishLabel: 'First to finish! +bonus 🏆', lingoFailedLabel: 'Out of guesses.', lingoBonusLabel: 'Bonus Word — double reward!', lingoMeaningLabel: 'Meaning', lingoTimeLeftTpl: '{s}s', lingoTimeoutRowLabel: "Time's up",
   },
   de: {
     loading: 'Wird geladen…', error: 'Etwas ist schiefgelaufen.',
@@ -78,7 +78,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duell beendet', backToLobbyBtn: 'Zurück zur Lobby',
     youLabel: '(du)', scoreLabel: 'Pkt.', waitingRoundLabel: 'Nächste Runde wird vorbereitet…',
     livesLabel: 'Leben', wordleCompleteLabel: 'Du hast das Wort vervollständigt! 🎉',
-    wordleFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', wordleFailedLabel: 'Keine Versuche mehr.', lingoPotLabel: 'Topf', lingoGuessesLeftTpl: 'Noch {n} Versuche', lingoInputPlaceholder: 'Gib ein {n}-buchstabiges Wort ein…', lingoSubmitBtn: 'Raten', lingoInvalidLengthTpl: 'Dein Wort muss {n} Buchstaben haben.', lingoCompleteLabel: 'Du hast das Wort vervollständigt! 🎉', lingoFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', lingoFailedLabel: 'Kein Guthaben mehr.', lingoBonusLabel: 'Bonuswort — doppelte Belohnung!',
+    wordleFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', wordleFailedLabel: 'Keine Versuche mehr.', lingoPotLabel: 'Topf', lingoGuessesLeftTpl: 'Noch {n} Versuche', lingoInputPlaceholder: 'Gib ein {n}-buchstabiges Wort ein…', lingoSubmitBtn: 'Raten', lingoInvalidLengthTpl: 'Dein Wort muss {n} Buchstaben haben.', lingoCompleteLabel: 'Du hast das Wort vervollständigt! 🎉', lingoFirstFinishLabel: 'Zuerst fertig! +Bonus 🏆', lingoFailedLabel: 'Kein Guthaben mehr.', lingoBonusLabel: 'Bonuswort — doppelte Belohnung!', lingoMeaningLabel: 'Bedeutung', lingoTimeLeftTpl: '{s} s', lingoTimeoutRowLabel: 'Zeit abgelaufen',
   },
   fr: {
     loading: 'Chargement…', error: "Une erreur s'est produite.",
@@ -91,7 +91,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duel terminé', backToLobbyBtn: 'Retour au lobby',
     youLabel: '(toi)', scoreLabel: 'pts', waitingRoundLabel: 'Préparation de la prochaine manche…',
     livesLabel: 'Vies', wordleCompleteLabel: 'Tu as complété le mot ! 🎉',
-    wordleFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', wordleFailedLabel: "Plus d'essais.", lingoPotLabel: 'Cagnotte', lingoGuessesLeftTpl: 'Il te reste {n} essais', lingoInputPlaceholder: 'Tape un mot de {n} lettres…', lingoSubmitBtn: 'Deviner', lingoInvalidLengthTpl: 'Ton mot doit faire {n} lettres.', lingoCompleteLabel: 'Tu as complété le mot ! 🎉', lingoFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', lingoFailedLabel: 'Cagnotte épuisée.', lingoBonusLabel: 'Mot bonus — récompense doublée !',
+    wordleFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', wordleFailedLabel: "Plus d'essais.", lingoPotLabel: 'Cagnotte', lingoGuessesLeftTpl: 'Il te reste {n} essais', lingoInputPlaceholder: 'Tape un mot de {n} lettres…', lingoSubmitBtn: 'Deviner', lingoInvalidLengthTpl: 'Ton mot doit faire {n} lettres.', lingoCompleteLabel: 'Tu as complété le mot ! 🎉', lingoFirstFinishLabel: 'Premier à terminer ! +bonus 🏆', lingoFailedLabel: 'Cagnotte épuisée.', lingoBonusLabel: 'Mot bonus — récompense doublée !', lingoMeaningLabel: 'Sens', lingoTimeLeftTpl: '{s} s', lingoTimeoutRowLabel: 'Temps écoulé',
   },
   es: {
     loading: 'Cargando…', error: 'Algo salió mal.',
@@ -104,7 +104,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duelo terminado', backToLobbyBtn: 'Volver al lobby',
     youLabel: '(tú)', scoreLabel: 'pts', waitingRoundLabel: 'Preparando la siguiente ronda…',
     livesLabel: 'Vidas', wordleCompleteLabel: '¡Completaste la palabra! 🎉',
-    wordleFirstFinishLabel: '¡Primero en terminar! +bono 🏆', wordleFailedLabel: 'Sin intentos.', lingoPotLabel: 'Bote', lingoGuessesLeftTpl: 'Te quedan {n} intentos', lingoInputPlaceholder: 'Escribe una palabra de {n} letras…', lingoSubmitBtn: 'Adivinar', lingoInvalidLengthTpl: 'Tu palabra debe tener {n} letras.', lingoCompleteLabel: '¡Completaste la palabra! 🎉', lingoFirstFinishLabel: '¡Primero en terminar! +bono 🏆', lingoFailedLabel: 'Bote agotado.', lingoBonusLabel: 'Palabra bonus — ¡recompensa doble!',
+    wordleFirstFinishLabel: '¡Primero en terminar! +bono 🏆', wordleFailedLabel: 'Sin intentos.', lingoPotLabel: 'Bote', lingoGuessesLeftTpl: 'Te quedan {n} intentos', lingoInputPlaceholder: 'Escribe una palabra de {n} letras…', lingoSubmitBtn: 'Adivinar', lingoInvalidLengthTpl: 'Tu palabra debe tener {n} letras.', lingoCompleteLabel: '¡Completaste la palabra! 🎉', lingoFirstFinishLabel: '¡Primero en terminar! +bono 🏆', lingoFailedLabel: 'Bote agotado.', lingoBonusLabel: 'Palabra bonus — ¡recompensa doble!', lingoMeaningLabel: 'Significado', lingoTimeLeftTpl: '{s} s', lingoTimeoutRowLabel: 'Se acabó el tiempo',
   },
   it: {
     loading: 'Caricamento…', error: 'Qualcosa è andato storto.',
@@ -117,7 +117,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duello finito', backToLobbyBtn: 'Torna alla lobby',
     youLabel: '(tu)', scoreLabel: 'pt', waitingRoundLabel: 'Preparazione del prossimo turno…',
     livesLabel: 'Vite', wordleCompleteLabel: 'Hai completato la parola! 🎉',
-    wordleFirstFinishLabel: 'Primo a finire! +bonus 🏆', wordleFailedLabel: 'Tentativi esauriti.', lingoPotLabel: 'Montepremi', lingoGuessesLeftTpl: 'Ti restano {n} tentativi', lingoInputPlaceholder: 'Scrivi una parola di {n} lettere…', lingoSubmitBtn: 'Indovina', lingoInvalidLengthTpl: 'La tua parola deve avere {n} lettere.', lingoCompleteLabel: 'Hai completato la parola! 🎉', lingoFirstFinishLabel: 'Primo a finire! +bonus 🏆', lingoFailedLabel: 'Montepremi esaurito.', lingoBonusLabel: 'Parola bonus — ricompensa doppia!',
+    wordleFirstFinishLabel: 'Primo a finire! +bonus 🏆', wordleFailedLabel: 'Tentativi esauriti.', lingoPotLabel: 'Montepremi', lingoGuessesLeftTpl: 'Ti restano {n} tentativi', lingoInputPlaceholder: 'Scrivi una parola di {n} lettere…', lingoSubmitBtn: 'Indovina', lingoInvalidLengthTpl: 'La tua parola deve avere {n} lettere.', lingoCompleteLabel: 'Hai completato la parola! 🎉', lingoFirstFinishLabel: 'Primo a finire! +bonus 🏆', lingoFailedLabel: 'Montepremi esaurito.', lingoBonusLabel: 'Parola bonus — ricompensa doppia!', lingoMeaningLabel: 'Significato', lingoTimeLeftTpl: '{s} s', lingoTimeoutRowLabel: 'Tempo scaduto',
   },
   ar: {
     loading: 'جارٍ التحميل…', error: 'حدث خطأ ما.',
@@ -130,7 +130,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'انتهت المبارزة', backToLobbyBtn: 'العودة إلى الصالة',
     youLabel: '(أنت)', scoreLabel: 'نقطة', waitingRoundLabel: 'يتم تجهيز الجولة التالية…',
     livesLabel: 'محاولات', wordleCompleteLabel: 'أكملت الكلمة! 🎉',
-    wordleFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', wordleFailedLabel: 'نفدت محاولاتك.', lingoPotLabel: 'الرصيد', lingoGuessesLeftTpl: 'تبقّى لك {n} محاولات', lingoInputPlaceholder: 'اكتب كلمة من {n} أحرف…', lingoSubmitBtn: 'خمّن', lingoInvalidLengthTpl: 'يجب أن تكون كلمتك من {n} أحرف.', lingoCompleteLabel: 'أكملت الكلمة! 🎉', lingoFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', lingoFailedLabel: 'نفد رصيدك.', lingoBonusLabel: 'كلمة إضافية — مكافأة مضاعفة!',
+    wordleFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', wordleFailedLabel: 'نفدت محاولاتك.', lingoPotLabel: 'الرصيد', lingoGuessesLeftTpl: 'تبقّى لك {n} محاولات', lingoInputPlaceholder: 'اكتب كلمة من {n} أحرف…', lingoSubmitBtn: 'خمّن', lingoInvalidLengthTpl: 'يجب أن تكون كلمتك من {n} أحرف.', lingoCompleteLabel: 'أكملت الكلمة! 🎉', lingoFirstFinishLabel: 'الأول في الإنهاء! +مكافأة 🏆', lingoFailedLabel: 'نفد رصيدك.', lingoBonusLabel: 'كلمة إضافية — مكافأة مضاعفة!', lingoMeaningLabel: 'المعنى', lingoTimeLeftTpl: '{s} ث', lingoTimeoutRowLabel: 'انتهى الوقت',
   },
   ru: {
     loading: 'Загрузка…', error: 'Что-то пошло не так.',
@@ -143,7 +143,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Дуэль окончена', backToLobbyBtn: 'Вернуться в лобби',
     youLabel: '(ты)', scoreLabel: 'очк.', waitingRoundLabel: 'Подготовка следующего раунда…',
     livesLabel: 'Жизни', wordleCompleteLabel: 'Вы завершили слово! 🎉',
-    wordleFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', wordleFailedLabel: 'Попытки закончились.', lingoPotLabel: 'Банк', lingoGuessesLeftTpl: 'Осталось попыток: {n}', lingoInputPlaceholder: 'Введите слово из {n} букв…', lingoSubmitBtn: 'Угадать', lingoInvalidLengthTpl: 'Слово должно быть из {n} букв.', lingoCompleteLabel: 'Вы завершили слово! 🎉', lingoFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', lingoFailedLabel: 'Банк исчерпан.', lingoBonusLabel: 'Бонусное слово — двойная награда!',
+    wordleFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', wordleFailedLabel: 'Попытки закончились.', lingoPotLabel: 'Банк', lingoGuessesLeftTpl: 'Осталось попыток: {n}', lingoInputPlaceholder: 'Введите слово из {n} букв…', lingoSubmitBtn: 'Угадать', lingoInvalidLengthTpl: 'Слово должно быть из {n} букв.', lingoCompleteLabel: 'Вы завершили слово! 🎉', lingoFirstFinishLabel: 'Первый финишировавший! +бонус 🏆', lingoFailedLabel: 'Банк исчерпан.', lingoBonusLabel: 'Бонусное слово — двойная награда!', lingoMeaningLabel: 'Значение', lingoTimeLeftTpl: '{s} с', lingoTimeoutRowLabel: 'Время вышло',
   },
   ja: {
     loading: '読み込み中…', error: '問題が発生しました。',
@@ -156,7 +156,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'デュエル終了', backToLobbyBtn: 'ロビーに戻る',
     youLabel: '(あなた)', scoreLabel: '点', waitingRoundLabel: '次のラウンドを準備中…',
     livesLabel: 'ライフ', wordleCompleteLabel: '単語を完成させました！🎉',
-    wordleFirstFinishLabel: '最速クリア！+ボーナス 🏆', wordleFailedLabel: '挑戦回数が尽きました。', lingoPotLabel: '賞金', lingoGuessesLeftTpl: '残り{n}回', lingoInputPlaceholder: '{n}文字の単語を入力…', lingoSubmitBtn: '回答する', lingoInvalidLengthTpl: '単語は{n}文字である必要があります。', lingoCompleteLabel: '単語を完成させました！🎉', lingoFirstFinishLabel: '最速クリア！+ボーナス 🏆', lingoFailedLabel: '賞金がなくなりました。', lingoBonusLabel: 'ボーナスワード — 報酬2倍!',
+    wordleFirstFinishLabel: '最速クリア！+ボーナス 🏆', wordleFailedLabel: '挑戦回数が尽きました。', lingoPotLabel: '賞金', lingoGuessesLeftTpl: '残り{n}回', lingoInputPlaceholder: '{n}文字の単語を入力…', lingoSubmitBtn: '回答する', lingoInvalidLengthTpl: '単語は{n}文字である必要があります。', lingoCompleteLabel: '単語を完成させました！🎉', lingoFirstFinishLabel: '最速クリア！+ボーナス 🏆', lingoFailedLabel: '賞金がなくなりました。', lingoBonusLabel: 'ボーナスワード — 報酬2倍!', lingoMeaningLabel: '意味', lingoTimeLeftTpl: '残り{s}秒', lingoTimeoutRowLabel: '時間切れ',
   },
   pt: {
     loading: 'Carregando…', error: 'Algo deu errado.',
@@ -169,7 +169,7 @@ const L: Record<Locale, Record<string, string>> = {
     finishedTitle: 'Duelo Encerrado', backToLobbyBtn: 'Voltar ao Lobby',
     youLabel: '(você)', scoreLabel: 'pts', waitingRoundLabel: 'Preparando a próxima rodada…',
     livesLabel: 'Vidas', wordleCompleteLabel: 'Você completou a palavra! 🎉',
-    wordleFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', wordleFailedLabel: 'Sem mais tentativas.', lingoPotLabel: 'Prémio', lingoGuessesLeftTpl: 'Restam-te {n} tentativas', lingoInputPlaceholder: 'Escreve uma palavra de {n} letras…', lingoSubmitBtn: 'Adivinhar', lingoInvalidLengthTpl: 'A tua palavra deve ter {n} letras.', lingoCompleteLabel: 'Você completou a palavra! 🎉', lingoFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', lingoFailedLabel: 'Prémio esgotado.', lingoBonusLabel: 'Palavra Bónus — recompensa em dobro!',
+    wordleFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', wordleFailedLabel: 'Sem mais tentativas.', lingoPotLabel: 'Prémio', lingoGuessesLeftTpl: 'Restam-te {n} tentativas', lingoInputPlaceholder: 'Escreve uma palavra de {n} letras…', lingoSubmitBtn: 'Adivinhar', lingoInvalidLengthTpl: 'A tua palavra deve ter {n} letras.', lingoCompleteLabel: 'Você completou a palavra! 🎉', lingoFirstFinishLabel: 'Primeiro a terminar! +bônus 🏆', lingoFailedLabel: 'Prémio esgotado.', lingoBonusLabel: 'Palavra Bónus — recompensa em dobro!', lingoMeaningLabel: 'Significado', lingoTimeLeftTpl: '{s} s', lingoTimeoutRowLabel: 'Tempo esgotado',
   },
 };
 
@@ -235,6 +235,19 @@ export default function DuelRoomPage() {
   useEffect(() => {
     lingoGuessResultRef.current = lingoGuessResult;
   }, [lingoGuessResult]);
+
+  // 27 Kasım 2026 -- deneme başına 10 sn sayaç (round'un eski düz 60 sn'lik
+  // ortak ends_at'i yerine; bkz. backend duels.py submit_round_guess_word /
+  // lingo_round_timeout). round.lingo_attempt_ends_at her yeni denemede
+  // (yanlış tahmin / timeout) değiştiği için bu ref'i O DEĞER DEĞİŞTİĞİNDE
+  // sıfırlıyoruz -- aşağıdaki "now" tabanlı sayaç 0'a inince
+  // handleLingoTimeout tek seferlik tetiklenir (final/risk-bank mekaniği
+  // düello tarafında bu pass'te YOK -- bkz. backend LINGO_ROUND_DURATION_
+  // SECONDS yorumu, sadece tek-oyunculu modda var).
+  const lingoTimeoutFiredRef = useRef(false);
+  useEffect(() => {
+    lingoTimeoutFiredRef.current = false;
+  }, [round?.lingo_attempt_ends_at]);
 
   const tick = useCallback(async () => {
     try {
@@ -404,6 +417,55 @@ export default function DuelRoomPage() {
       setLingoBusy(false);
     }
   };
+
+  // 27 Kasım 2026 -- kullanıcı kendi 10 sn'lik deneme süresi içinde bir
+  // tahmin göndermediğinde çağrılır (bkz. aşağıdaki sayaç useEffect'i).
+  // handleGuessWord ile AYNI ilke, farkı sunucuya "word" göndermemesi.
+  const handleLingoTimeout = useCallback(async () => {
+    if (!round || lingoBusy || lingoGuessResultRef.current?.is_round_over) return;
+    setLingoBusy(true);
+    try {
+      const res = await duelsApi.lingoTimeout(duelId);
+      setLingoGuessResult(res);
+      setRound((prev) =>
+        prev
+          ? {
+              ...prev,
+              lingo_guesses: [...(prev.lingo_guesses ?? []), { word: res.guess, feedback: res.feedback }],
+              lingo_locked: res.locked,
+              lingo_pot: res.pot,
+              lingo_guesses_used: res.guesses_used,
+              lingo_attempt_ends_at: res.lingo_attempt_ends_at ?? null,
+            }
+          : prev
+      );
+    } catch {
+      /* sessiz -- polling zaten durumu tazeleyecek */
+    } finally {
+      setLingoBusy(false);
+    }
+  }, [round, lingoBusy, duelId]);
+
+  // 27 Kasım 2026 -- deneme başına 10 sn sayaç: "now" zaten 500ms'de bir
+  // güncelleniyor (bkz. yukarıdaki useEffect), buradan SADECE lingo
+  // modunda ve round bitmemişken türetiliyor (round.ends_at'ten türetilen
+  // genel secondsLeft ile AYNI ilke, bkz. aşağısı).
+  const lingoAttemptSecondsLeft =
+    round?.mode === 'lingo' && round.lingo_attempt_ends_at && !lingoGuessResult?.is_round_over
+      ? Math.max(0, Math.ceil((new Date(round.lingo_attempt_ends_at).getTime() - now) / 1000))
+      : null;
+
+  useEffect(() => {
+    if (
+      lingoAttemptSecondsLeft === null ||
+      lingoAttemptSecondsLeft > 0 ||
+      lingoTimeoutFiredRef.current
+    ) {
+      return;
+    }
+    lingoTimeoutFiredRef.current = true;
+    handleLingoTimeout();
+  }, [lingoAttemptSecondsLeft, handleLingoTimeout]);
 
   if (loading && !duel) {
     return (
@@ -600,7 +662,22 @@ export default function DuelRoomPage() {
                 </div>
               )}
 
-              <div className="w-full flex items-center justify-center gap-4">
+              {/* Anlamı (27 Kasım 2026, kullanıcı isteği) -- diğer düello
+                  modlarının aksine Lingo'da anlam BİLEREK gösterilir
+                  (zayıf İngilizce/kelime bilgisi için pedagojik amaç --
+                  bkz. backend duels.py::_fetch_lingo_meaning). Bu
+                  kullanıcının KENDİ native_lang'ine göre -- o dil için
+                  çeviri yoksa kutu hiç gösterilmez. */}
+              {round.meaning && (
+                <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 text-center">
+                  <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+                    {t.lingoMeaningLabel}
+                  </p>
+                  <p className="text-lg font-semibold text-gray-800 dark:text-slate-200">{round.meaning}</p>
+                </div>
+              )}
+
+              <div className="w-full flex items-center justify-center gap-3 flex-wrap">
                 <span className="text-xs font-medium text-gray-400 dark:text-slate-500">
                   {t.lingoPotLabel}: <span className="font-bold text-gray-700 dark:text-slate-200">{round.lingo_pot ?? 10}</span>
                 </span>
@@ -610,30 +687,55 @@ export default function DuelRoomPage() {
                     String(Math.max(0, (round.lingo_max_guesses ?? 5) - (round.lingo_guesses_used ?? (round.lingo_guesses ?? []).length)))
                   )}
                 </span>
+                {/* 27 Kasım 2026 -- deneme başına 10 sn sayaç (eski düz
+                    60 sn'lik ortak süre yerine, bkz. yukarıdaki
+                    lingoAttemptSecondsLeft türetimi). */}
+                {lingoAttemptSecondsLeft !== null && (
+                  <span
+                    className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                      lingoAttemptSecondsLeft <= 3
+                        ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
+                        : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
+                    }`}
+                  >
+                    ⏱ {t.lingoTimeLeftTpl.replace('{s}', String(lingoAttemptSecondsLeft))}
+                  </span>
+                )}
               </div>
 
               <div className="w-full flex flex-col items-center gap-1.5 py-2">
-                {(round.lingo_guesses ?? []).map((g, rowIdx) => (
-                  <div key={rowIdx} className="flex gap-1.5">
-                    {g.word.split('').map((ch, i) => {
-                      const fb = g.feedback[i];
-                      const cls =
-                        fb === 'correct'
-                          ? 'bg-[#3B6D11] border-[#3B6D11] text-white'
-                          : fb === 'present'
-                            ? 'bg-[#C98A1A] border-[#C98A1A] text-white'
-                            : 'bg-gray-200 dark:bg-slate-700 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-300';
-                      return (
-                        <span
-                          key={i}
-                          className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase border-2 ${cls}`}
-                        >
-                          {ch}
-                        </span>
-                      );
-                    })}
-                  </div>
-                ))}
+                {(round.lingo_guesses ?? []).map((g, rowIdx) =>
+                  g.word === '' ? (
+                    // 27 Kasım 2026 -- süresi geçen deneme (/rounds/
+                    // lingo-timeout), YANLIŞ bir tahmin gibi sayılır ama
+                    // gösterilecek harf yok.
+                    <div key={rowIdx} className="flex gap-1.5">
+                      <span className="px-4 h-11 flex items-center justify-center rounded-lg text-xs font-bold uppercase bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border-2 border-dashed border-gray-300 dark:border-slate-600">
+                        ⏱ {t.lingoTimeoutRowLabel}
+                      </span>
+                    </div>
+                  ) : (
+                    <div key={rowIdx} className="flex gap-1.5">
+                      {g.word.split('').map((ch, i) => {
+                        const fb = g.feedback[i];
+                        const cls =
+                          fb === 'correct'
+                            ? 'bg-[#3B6D11] border-[#3B6D11] text-white'
+                            : fb === 'present'
+                              ? 'bg-[#C98A1A] border-[#C98A1A] text-white'
+                              : 'bg-gray-200 dark:bg-slate-700 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-300';
+                        return (
+                          <span
+                            key={i}
+                            className={`w-9 h-11 flex items-center justify-center rounded-lg text-xl font-bold uppercase border-2 ${cls}`}
+                          >
+                            {ch}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
                 {!lingoGuessResult?.is_round_over && (
                   <div className="flex gap-1.5">
                     {Array.from({ length: round.lingo_word_length ?? 5 }).map((_, i) => {

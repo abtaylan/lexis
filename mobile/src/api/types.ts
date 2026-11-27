@@ -718,6 +718,19 @@ export interface NextWordResult {
   // 27 Kasım 2026 -- bu kelime 12 adımlık LINGO_LENGTH_SEQUENCE'ın bir
   // "bonus" basamağında mı (3x4 -> bonus -> 3x5 -> bonus -> final 4-5-6-7).
   lingo_is_bonus?: boolean | null;
+  // 27 Kasım 2026 -- süre/final sistemi (TRT1 "Lingo Türkiye" formatı).
+  // lingo_attempt_ends_at: final DIŞI kelimelerde her denemenin kendi 10
+  // saniyelik sayacı. lingo_is_final: bu kelime dizinin son 4 basamağından
+  // biri mi (4/5/6/7 harfli final). lingo_final_pot: final boyunca
+  // BİRİKEN ortak kasa. lingo_final_clock_ends_at: finalin TEK, ORTAK,
+  // sıfırlanmayan 120 saniyelik saati. lingo_awaiting_final_choice: 6
+  // harfli bilindi, 7 harfliye (büyük ödül) geçmeden önce risk/bank
+  // seçimi bekleniyor.
+  lingo_attempt_ends_at?: string | null;
+  lingo_is_final?: boolean;
+  lingo_final_pot?: number | null;
+  lingo_final_clock_ends_at?: string | null;
+  lingo_awaiting_final_choice?: boolean;
   // ── sentence_building (cümle kurma) moduna özel alan ──
   sentence_tokens?: string[] | null;
   // ── grammar_sentence (Gramer Pratiği) moduna özel alanlar ──
@@ -772,6 +785,16 @@ export interface LingoGuessResult {
   leveled_up: boolean;
   new_level: number | null;
   lingo_is_bonus?: boolean;
+  // 27 Kasım 2026 -- /lingo/guess, /lingo/timeout, /lingo/final/choice
+  // ÜÇÜNÜN DE DÖNDÜĞÜ AYNI şekil (bkz. NextWordResult'taki eşdeğer alanlar).
+  lingo_attempt_ends_at?: string | null;
+  lingo_is_final?: boolean;
+  lingo_final_pot?: number | null;
+  lingo_final_clock_ends_at?: string | null;
+  lingo_awaiting_final_choice?: boolean;
+  // "stage_won" | "grand_prize_won" | "grand_prize_lost" | "final_timeout"
+  // | "banked" | "risked"
+  lingo_final_result?: string | null;
 }
 
 export interface GameFinishResult {
@@ -1244,6 +1267,13 @@ export interface DuelRoundPublic {
   // LINGO_LENGTH_SEQUENCE'ın bir "bonus" basamağında mı -- true ise
   // tamamlama ödülü 2 katı.
   lingo_is_bonus?: boolean | null;
+  // 27 Kasım 2026, kullanıcı isteği -- SADECE lingo modunda doldurulur
+  // (diğer modlar bilerek anlamı hiç göndermez). Bu kullanıcının KENDİ
+  // native_lang'ine göre -- o dil için çeviri yoksa null.
+  meaning?: string | null;
+  // 27 Kasım 2026 -- deneme başına 10 sn sayaç (round'un eski düz 60
+  // sn'lik ortak ends_at'i yerine). Bu kullanıcıya özel.
+  lingo_attempt_ends_at?: string | null;
   started_at: string | null;
   ends_at: string | null;
 }
@@ -1288,6 +1318,7 @@ export interface DuelLingoGuessResponse {
   score: number;
   first_to_finish: boolean;
   lingo_is_bonus?: boolean;
+  lingo_attempt_ends_at?: string | null;
 }
 
 export interface DuelInviteItem {

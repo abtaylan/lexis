@@ -111,6 +111,14 @@ XPSourceType = Literal[
     # kelime cozme odulunden (game_crossword_word) AYRI loglanir ki analitikte
     # karismasin (bkz. backend/app/api/routes/crossword.py get_hint).
     "game_crossword_hint",
+    # 27 Kasim 2026 -- Lingo suresi + final/double-or-nothing sistemi
+    # (TRT1 "Lingo Turkiye" formati). Normal kelimelerdeki odul HALA
+    # "game_lingo" ile loglanir (degismedi) -- bu YENI kaynak SADECE final
+    # bolumunde (4/5/6/7 harfli, dizinin son 4 elemani) kazanilan/bankaya
+    # yatirilan puanlar icin kullanilir, ki analitikte normal Lingo
+    # turlarindan ayrilsin (bkz. backend/app/api/routes/games.py
+    # lingo_guess / lingo_timeout / lingo_final_choice).
+    "game_lingo_final",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -135,6 +143,10 @@ XP_AMOUNTS: dict[str, int] = {
     # `amount=` olarak gecilir (kalan kasa puanina gore degisir) -- bu
     # deger sadece guvenlik agi/varsayilan (amount verilmeden cagrilirsa).
     "game_lingo": 10,
+    # Final bolumunde gercek miktar HER ZAMAN acik `amount=` olarak gecilir
+    # (bankaya yatirilan kasa + varsa buyuk odul) -- bu deger sadece
+    # guvenlik agi/varsayilan.
+    "game_lingo_final": 20,
     "game_multiple_choice": 3,
     "game_multiple_choice_reverse": 6,
     # Faz 2 — İngilizce tanım -> İngilizce kelime (monolingual, en zor yön)

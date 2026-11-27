@@ -104,8 +104,26 @@ LINGO_LENGTH_SEQUENCE: list[tuple[int, bool]] = [
     (4, False), (5, False), (6, False), (7, False),
 ]
 # Tam kelime yazmak tek harf tiklamaktan daha uzun surdugu icin wordle
-# duellosundan (45sn) biraz daha uzun bir sure.
+# duellosundan (45sn) biraz daha uzun bir sure. 27 Kasim 2026 guncellemesi
+# sonrasi bu artik OYUNCUYA GOSTERILEN/UYGULANAN bir sayac DEGIL -- sadece
+# begin_current_round'un round_row.ends_at'ini doldurmak icin kullaniliyor,
+# ki advance_round bir katilimci hic tahmin göndermeden ortadan kaybolursa
+# turu sonsuza kadar bekletmesin (arka plan guvenlik agi). Oyuncunun
+# GERCEKTEN hissettigi sure artik SADECE asagidaki LINGO_ATTEMPT_SECONDS --
+# kullanicinin kendi istegi ("lingo da sure de olmasi lazim, her kelime
+# icin 10 saniye ... yanlis olursa 2. deneme icin tekrardan 10 saniye
+# baslayacak") uzerine, games.py::LINGO_ATTEMPT_SECONDS ile AYNI deger
+# (cross-module import yerine bilincli tekrar, bu dosyadaki diger
+# sabitlerle ayni ilke). ONEMLI KAPSAM KARARI (27 Kasim 2026): kullanicinin
+# tarif ettigi TRT1 "Lingo Turkiye" final/risk-bank (double-or-nothing)
+# bolumu SADECE tek-oyunculu modda (games.py) uygulandi -- duello
+# round'lari duel-seviyesinde PAYLASILAN tek bir current_round_index
+# uzerinden senkron ilerledigi icin (bir oyuncu "banka yatirip" diger
+# oyuncu devam ederken round'lar ayrisir -- mevcut mimari buna uygun
+# degil), bu pass'te duelloya SADECE 10 sn/deneme sayaci eklendi; final/
+# risk-bank mekanigi duello icin AYRI bir takip isi olarak ERTELENDI.
 LINGO_ROUND_DURATION_SECONDS = 60
+LINGO_ATTEMPT_SECONDS = 10
 LINGO_COMPLETE_POINTS = 10
 LINGO_FIRST_FINISH_BONUS = 5
 
@@ -401,6 +419,50 @@ def _reveal_pattern(word: str, guessed_letters: list[str]) -> str:
     return " ".join(chars)
 
 
+def _get_user_native_lang(user_id: str) -> str:
+    """games.py::_get_profile_langs'in SADECE native_lang doneni --
+    cross-module import yerine bilincli tekrar (bu dosyadaki diger
+    sabit/yardimcilarla AYNI ilke). 27 Kasim 2026 -- SADECE Lingo modunun
+    anlam gosterimi icin eklendi (bkz. _round_public_response lingo dali);
+    modulun geri kalani BILINCLI OLARAK native_lang KULLANMAZ (yukaridaki
+    modul docstring'ine bkz. -- katilimcilarin FARKLI ana dili olabilir)."""
+    profile = (
+        supabase_admin.table("profiles")
+        .select("native_lang")
+        .eq("id", user_id)
+        .single()
+        .execute()
+    )
+    return (profile.data or {}).get("native_lang", "tr")
+
+
+def _fetch_lingo_meaning(learning_lang: str, word_text: str, native_lang: str) -> str | None:
+    """27 Kasim 2026, kullanici istegi: "kelimenin turkcesinin gozukmesi
+    iyi bir sey ... normalde kelime ile ilgili hic kopya olmamasi lazim"
+    -- Lingo'da (diger duello modlarinin aksine) kelimenin anlami BILEREK
+    gosteriliyor (pedagojik amac: zayif Ingilizce/kelime bilgisi). Ancak
+    general_word_pool satirlari (source_lang, target_lang) ciftine gore
+    AYRI AYRI tutuluyor ve round URETILIRKEN hangi target_lang'tan
+    secildigi rastgele/ongorulemez (bkz. _fetch_length_candidates --
+    target_lang'a hic bakmiyor) -- o yuzden round_row.general_word_id'den
+    DOGRUDAN okumuyoruz, BU KULLANICININ KENDI native_lang'ine gore AYRI
+    bir satir ariyoruz. O dil icin ceviri hic backfill edilmemisse (kucuk
+    bir dil icin olasi) sessizce None doner (anlam kutusu hic gosterilmez,
+    kelimeyi tahmin etmeye engel olmaz)."""
+    row = (
+        supabase_admin.table("general_word_pool")
+        .select("meaning")
+        .eq("source_lang", learning_lang)
+        .eq("target_lang", native_lang)
+        .eq("word", word_text)
+        .eq("is_active", True)
+        .limit(1)
+        .execute()
+        .data
+    )
+    return (row[0].get("meaning") if row else None) or None
+
+
 def _fetch_round_word_text(round_row: dict) -> str:
     """duel_rounds.general_word_id NOT NULL FK oldugu icin tek SELECT."""
     row = (
@@ -602,7 +664,7 @@ def _round_public_response(duel: dict, round_row: dict, user_id: str) -> DuelRou
         length = len(word_text)
         answer_row = (
             supabase_admin.table("duel_answers")
-            .select("lingo_guesses, lingo_pot")
+            .select("lingo_guesses, lingo_pot, lingo_attempt_ends_at, is_correct")
             .eq("duel_round_id", round_row["id"])
             .eq("user_id", user_id)
             .execute()
@@ -614,6 +676,28 @@ def _round_public_response(duel: dict, round_row: dict, user_id: str) -> DuelRou
             if answer_row and answer_row[0].get("lingo_pot") is not None
             else LINGO_START_POT
         )
+        # 27 Kasim 2026 -- deneme basina 10 sn sayac: henuz hic tahmin
+        # gonderilmediyse (duel_answers satiri yok) sayac round'un
+        # started_at'inden baslamis sayilir (DB'ye yazmadan turetilir);
+        # ilk yanlis tahminden SONRA artik duel_answers.lingo_attempt_
+        # ends_at'ten okunur (bkz. submit_round_guess_word / lingo_timeout).
+        # Tur zaten bu kullanici icin bittiyse (is_correct/pot<=0/max
+        # deneme) sayac anlamsiz -- None donulur.
+        round_over_for_user = bool(answer_row) and (
+            answer_row[0].get("is_correct")
+            or len(guesses) >= LINGO_MAX_GUESSES
+            or pot <= 0
+        )
+        if round_over_for_user:
+            attempt_ends_at = None
+        elif answer_row and answer_row[0].get("lingo_attempt_ends_at"):
+            attempt_ends_at = datetime.fromisoformat(answer_row[0]["lingo_attempt_ends_at"])
+        elif round_row.get("started_at"):
+            attempt_ends_at = datetime.fromisoformat(
+                round_row["started_at"]
+            ) + timedelta(seconds=LINGO_ATTEMPT_SECONDS)
+        else:
+            attempt_ends_at = None
 
         locked: list[str | None] = [None] * length
         for g in guesses:
@@ -621,9 +705,13 @@ def _round_public_response(duel: dict, round_row: dict, user_id: str) -> DuelRou
                 if f == "correct":
                     locked[i] = g["word"][i]
 
+        native_lang = _get_user_native_lang(user_id)
+        meaning = _fetch_lingo_meaning(duel["learning_lang"], word_text, native_lang)
+
         return DuelRoundPublic(
             round_index=round_row["round_index"],
             mode="lingo",
+            meaning=meaning,
             lingo_word_length=length,
             lingo_locked=locked,
             lingo_guesses=guesses,
@@ -631,6 +719,7 @@ def _round_public_response(duel: dict, round_row: dict, user_id: str) -> DuelRou
             lingo_guesses_used=len(guesses),
             lingo_max_guesses=LINGO_MAX_GUESSES,
             lingo_is_bonus=bool(round_row.get("lingo_is_bonus", False)),
+            lingo_attempt_ends_at=attempt_ends_at,
             started_at=round_row.get("started_at"),
             ends_at=round_row.get("ends_at"),
         )
@@ -1477,9 +1566,6 @@ async def submit_round_guess_word(
 
     if not round_row.get("started_at"):
         raise HTTPException(status_code=400, detail="Tur henüz başlamadı.")
-    ends_at = datetime.fromisoformat(round_row["ends_at"])
-    if datetime.now(UTC) > ends_at:
-        raise HTTPException(status_code=400, detail="Bu tur için süre doldu.")
 
     word_text = _fetch_round_word_text(round_row)
     target = word_text.lower()
@@ -1491,7 +1577,7 @@ async def submit_round_guess_word(
 
     existing_rows = (
         supabase_admin.table("duel_answers")
-        .select("id, lingo_guesses, lingo_pot, is_correct")
+        .select("id, lingo_guesses, lingo_pot, lingo_attempt_ends_at, is_correct")
         .eq("duel_round_id", round_row["id"])
         .eq("user_id", current_user.id)
         .execute()
@@ -1509,6 +1595,22 @@ async def submit_round_guess_word(
     ):
         raise HTTPException(status_code=400, detail="Bu turu bu düelloda zaten tamamladınız.")
 
+    # 27 Kasim 2026 -- round'un eski duz ortak ends_at'i yerine KULLANICI
+    # BASINA 10 sn/deneme sayaci (bkz. _round_public_response / yukaridaki
+    # LINGO_ATTEMPT_SECONDS yorumu). Ilk deneme icin baslangic noktasi
+    # round'un started_at'i, sonraki denemeler icin duel_answers'ta
+    # saklanan deger.
+    if existing and existing.get("lingo_attempt_ends_at"):
+        attempt_deadline = datetime.fromisoformat(existing["lingo_attempt_ends_at"])
+    else:
+        attempt_deadline = datetime.fromisoformat(
+            round_row["started_at"]
+        ) + timedelta(seconds=LINGO_ATTEMPT_SECONDS)
+    if datetime.now(UTC) > attempt_deadline:
+        raise HTTPException(
+            status_code=408, detail="Süre doldu -- /rounds/lingo-timeout çağırın."
+        )
+
     feedback = _lingo_feedback(guess, target)
     guesses.append({"word": guess, "feedback": feedback})
     pot = max(0, pot - 1)
@@ -1522,6 +1624,7 @@ async def submit_round_guess_word(
     is_complete = guess == target
     is_round_over = is_complete or len(guesses) >= LINGO_MAX_GUESSES or pot <= 0
     first_to_finish = False
+    next_attempt_ends_at: datetime | None = None
 
     if is_complete:
         prior_finishers = (
@@ -1535,6 +1638,8 @@ async def submit_round_guess_word(
         )
         first_to_finish = prior_finishers == 0
 
+    if not is_round_over:
+        next_attempt_ends_at = datetime.now(UTC) + timedelta(seconds=LINGO_ATTEMPT_SECONDS)
     row_payload = {
         "duel_round_id": round_row["id"],
         "user_id": current_user.id,
@@ -1542,6 +1647,9 @@ async def submit_round_guess_word(
         "is_correct": is_complete,
         "lingo_guesses": guesses,
         "lingo_pot": pot,
+        "lingo_attempt_ends_at": (
+            next_attempt_ends_at.isoformat() if next_attempt_ends_at else None
+        ),
     }
     if existing:
         supabase_admin.table("duel_answers").update(row_payload).eq("id", existing["id"]).execute()
@@ -1580,6 +1688,109 @@ async def submit_round_guess_word(
         score=score,
         first_to_finish=first_to_finish,
         lingo_is_bonus=lingo_is_bonus,
+        lingo_attempt_ends_at=next_attempt_ends_at,
+    )
+
+
+@router.post("/{duel_id}/rounds/lingo-timeout", response_model=DuelLingoGuessResponse)
+async def lingo_round_timeout(
+    duel_id: str,
+    current_user=Depends(get_current_user),
+):
+    """İstemci, kullanıcı kendi 10 saniyelik deneme süresi içinde bir
+    tahmin göndermediğinde bu uç noktayı çağırır -- games.py::lingo_timeout
+    ile AYNI ilke: süresi geçen deneme YANLIŞ bir tahmin gibi sayılır
+    (kasa 1 azalır, sayaç yeniden başlar; bkz. submit_round_guess_word'teki
+    yorum). Düello final/risk-bank bölümü bu pass'te KAPSAM DIŞI
+    bırakıldığı için (bkz. LINGO_ROUND_DURATION_SECONDS yorumu) burada
+    sadece normal kelime mantığı var."""
+    duel = _get_duel_or_404(duel_id)
+    if duel["status"] != "active":
+        raise HTTPException(status_code=400, detail="Düello aktif değil.")
+    if duel["mode"] != "lingo":
+        raise HTTPException(status_code=400, detail="Bu uç nokta sadece lingo modu içindir.")
+    round_row = _get_round_or_404(duel_id, duel["current_round_index"])
+
+    if not round_row.get("started_at"):
+        raise HTTPException(status_code=400, detail="Tur henüz başlamadı.")
+
+    word_text = _fetch_round_word_text(round_row)
+    length = len(word_text)
+
+    existing_rows = (
+        supabase_admin.table("duel_answers")
+        .select("id, lingo_guesses, lingo_pot, is_correct")
+        .eq("duel_round_id", round_row["id"])
+        .eq("user_id", current_user.id)
+        .execute()
+        .data
+    )
+    existing = existing_rows[0] if existing_rows else None
+    guesses = list((existing or {}).get("lingo_guesses") or [])
+    pot = int(
+        (existing or {}).get("lingo_pot")
+        if existing and existing.get("lingo_pot") is not None
+        else LINGO_START_POT
+    )
+    if existing and (
+        existing.get("is_correct") or len(guesses) >= LINGO_MAX_GUESSES or pot <= 0
+    ):
+        raise HTTPException(status_code=400, detail="Bu turu bu düelloda zaten tamamladınız.")
+
+    guesses.append({"word": "", "feedback": ["absent"] * length})
+    pot = max(0, pot - 1)
+    is_round_over = len(guesses) >= LINGO_MAX_GUESSES or pot <= 0
+
+    locked: list[str | None] = [None] * length
+    for g in guesses:
+        for i, f in enumerate(g.get("feedback", [])):
+            if f == "correct" and g.get("word"):
+                locked[i] = g["word"][i]
+
+    next_attempt_ends_at: datetime | None = None
+    if not is_round_over:
+        next_attempt_ends_at = datetime.now(UTC) + timedelta(seconds=LINGO_ATTEMPT_SECONDS)
+
+    row_payload = {
+        "duel_round_id": round_row["id"],
+        "user_id": current_user.id,
+        "selected_option": word_text if is_round_over else None,
+        "is_correct": False,
+        "lingo_guesses": guesses,
+        "lingo_pot": pot,
+        "lingo_attempt_ends_at": (
+            next_attempt_ends_at.isoformat() if next_attempt_ends_at else None
+        ),
+    }
+    if existing:
+        supabase_admin.table("duel_answers").update(row_payload).eq("id", existing["id"]).execute()
+    else:
+        supabase_admin.table("duel_answers").insert(row_payload).execute()
+
+    participant = (
+        supabase_admin.table("duel_participants")
+        .select("score")
+        .eq("duel_id", duel_id)
+        .eq("user_id", current_user.id)
+        .single()
+        .execute()
+    )
+    score = (participant.data or {}).get("score", 0)
+
+    return DuelLingoGuessResponse(
+        guess="",
+        feedback=["absent"] * length,
+        locked=locked,
+        guesses_used=len(guesses),
+        max_guesses=LINGO_MAX_GUESSES,
+        pot=pot,
+        is_complete=False,
+        is_round_over=is_round_over,
+        word=word_text if is_round_over else None,
+        score=score,
+        first_to_finish=False,
+        lingo_is_bonus=bool(round_row.get("lingo_is_bonus", False)),
+        lingo_attempt_ends_at=next_attempt_ends_at,
     )
 
 
