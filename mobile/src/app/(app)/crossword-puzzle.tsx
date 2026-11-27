@@ -16,7 +16,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import Svg, { Line } from 'react-native-svg';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { ArrowDown, ArrowRight, CheckCircle2, Delete, Lightbulb, Shuffle, Sparkles, Trophy, Volume2 } from 'lucide-react-native';
+import { ArrowDown, ArrowLeft, ArrowRight, CheckCircle2, Delete, Lightbulb, Shuffle, Sparkles, Trophy, Volume2 } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
 import { useAuth } from '@/store/auth';
 import { crosswordApi } from '@/api/crossword';
@@ -542,6 +542,9 @@ export default function CrosswordPuzzleScreen() {
     return (
       <ScreenContainer>
         <ScreenNavBar />
+        <Pressable onPress={() => router.back()} hitSlop={10} style={{ alignSelf: 'flex-start', marginBottom: spacing.sm }}>
+          <ArrowLeft color={c.textMuted} size={22} />
+        </Pressable>
         <Text style={{ color: c.danger, textAlign: 'center', marginTop: spacing.md }}>{error}</Text>
       </ScreenContainer>
     );
@@ -554,6 +557,9 @@ export default function CrosswordPuzzleScreen() {
   return (
     <ScreenContainer>
       <ScreenNavBar />
+      <Pressable onPress={() => router.back()} hitSlop={10} style={{ alignSelf: 'flex-start', marginBottom: spacing.sm }}>
+        <ArrowLeft color={c.textMuted} size={22} />
+      </Pressable>
       <View style={styles.headerRow}>
         <Text style={[styles.h1, { color: c.text }]}>
           {t.levelLabel} {puzzle.level}
@@ -617,7 +623,11 @@ export default function CrosswordPuzzleScreen() {
                       ]}
                     >
                       {!!number && <Text style={[styles.cellNumber, { color: c.textMuted }]}>{number}</Text>}
-                      <Text allowFontScaling={false} style={[styles.cellLetter, { color: isSolved ? c.success : c.text }]}>
+                      <Text
+                        key={`${key}-${gridLetters[key] ?? 'bos'}`}
+                        allowFontScaling={false}
+                        style={[styles.cellLetter, { color: isSolved ? c.success : c.text }]}
+                      >
                         {gridLetters[key] ?? ''}
                       </Text>
                     </Pressable>
@@ -800,7 +810,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cellNumber: { position: 'absolute', top: 1, left: 2, fontSize: 8, fontWeight: '600' },
-  cellLetter: { fontSize: 15, lineHeight: 19, fontWeight: '700' },
+  cellLetter: { fontSize: 15, lineHeight: 19, fontWeight: '700', minWidth: 12, textAlign: 'center' },
   progressBox: {
     width: 32,
     height: 32,
