@@ -7,6 +7,7 @@ import { useAuth } from '@/store/auth';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { BackHomeBar } from '@/components/layout/BackHomeBar';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
+import { FeatureAnnounceModal } from '@/components/layout/FeatureAnnounceModal';
 import { markAppNavReset, markAppNavStep } from '@/lib/navBack';
 
 // Kullanıcı geri bildirimi (24 Eylül 2026): Dashboard zaten ana ekran
@@ -62,6 +63,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-slate-50">
+      <FeatureAnnounceModal />
       <Sidebar />
       {/*
         KULLANICI RAPORU (15 Eylül 2026, mobil ekran videosu): "mobil cihazda,

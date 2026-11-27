@@ -27,6 +27,7 @@ import { LevelGoalCard } from '@/components/LevelGoalCard';
 import { DailyWordCard } from '@/components/DailyWordCard';
 import { MascotGreeting } from '@/components/MascotGreeting';
 import { OnboardingTour } from '@/components/OnboardingTour';
+import { FeatureAnnounceModal } from '@/components/FeatureAnnounceModal';
 import { AdBanner } from '@/components/ads/AdBanner';
 import { bulkStorage } from '@/utils/storage';
 
@@ -293,6 +294,7 @@ export default function DashboardScreen() {
           (showTrigger={false} sadece görünür ikonu gizliyor, bkz.
           OnboardingTour.tsx), sadece elle yeniden açma yolu şimdilik yok. */}
       <OnboardingTour showTrigger={false} />
+      <FeatureAnnounceModal />
       <DashboardHeader
         greeting={`${greetingText}${user?.display_name ? `, ${user.display_name}` : ''} 👋`}
         subtitle={t('dailySummarySubtitle')}
