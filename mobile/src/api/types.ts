@@ -715,6 +715,9 @@ export interface NextWordResult {
   lingo_max_guesses?: number | null;
   lingo_guesses_used?: number | null;
   lingo_pot?: number | null;
+  // 27 Kasım 2026 -- bu kelime 12 adımlık LINGO_LENGTH_SEQUENCE'ın bir
+  // "bonus" basamağında mı (3x4 -> bonus -> 3x5 -> bonus -> final 4-5-6-7).
+  lingo_is_bonus?: boolean | null;
   // ── sentence_building (cümle kurma) moduna özel alan ──
   sentence_tokens?: string[] | null;
   // ── grammar_sentence (Gramer Pratiği) moduna özel alanlar ──
@@ -768,6 +771,7 @@ export interface LingoGuessResult {
   xp_awarded: number;
   leveled_up: boolean;
   new_level: number | null;
+  lingo_is_bonus?: boolean;
 }
 
 export interface GameFinishResult {
@@ -1236,6 +1240,10 @@ export interface DuelRoundPublic {
   lingo_pot?: number | null;
   lingo_guesses_used?: number | null;
   lingo_max_guesses?: number | null;
+  // 27 Kasım 2026 (Behçet'in format düzeltmesi) -- bu round 12 adımlık
+  // LINGO_LENGTH_SEQUENCE'ın bir "bonus" basamağında mı -- true ise
+  // tamamlama ödülü 2 katı.
+  lingo_is_bonus?: boolean | null;
   started_at: string | null;
   ends_at: string | null;
 }
@@ -1279,6 +1287,7 @@ export interface DuelLingoGuessResponse {
   word: string | null;
   score: number;
   first_to_finish: boolean;
+  lingo_is_bonus?: boolean;
 }
 
 export interface DuelInviteItem {

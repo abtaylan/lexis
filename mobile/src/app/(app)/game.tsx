@@ -189,6 +189,7 @@ export default function GameScreen() {
   const [lingoInput, setLingoInput] = useState('');
   const [lingoBusy, setLingoBusy] = useState(false);
   const [lingoInputError, setLingoInputError] = useState('');
+  const [lingoIsBonus, setLingoIsBonus] = useState(false);
 
   // ── yazma (typing) state — web'deki gibi dinleme/sprint modları da bunu
   // paylaşacak (bkz. handleTypingSubmit): doğruluk kontrolü current.word ile
@@ -345,6 +346,7 @@ export default function GameScreen() {
       setLingoGuesses([]);
       setLingoPot(nw.lingo_pot ?? 10);
       setLingoMaxGuesses(nw.lingo_max_guesses ?? 5);
+      setLingoIsBonus(!!nw.lingo_is_bonus);
       setLingoInput('');
       setLingoInputError('');
       setTypedAnswer('');
@@ -1607,6 +1609,18 @@ export default function GameScreen() {
           "Lingo Türkiye"nin imza mekaniği. */}
       {isLingo && (
         <>
+          {/* Bonus Kelime rozeti (27 Kasım 2026, Behçet'in format
+              düzeltmesi) -- 12 adımlık sekansta 2 bonus basamak var
+              (3x4 sonrası ve 3x5 sonrası), bu turu tamamlarsan ödül 2
+              katına çıkar. */}
+          {lingoIsBonus && (
+            <View style={{ alignItems: 'center', marginBottom: spacing.sm }}>
+              <View style={{ backgroundColor: c.warningSoft, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.xs }}>
+                <Text style={{ color: c.amber, fontSize: 12, fontWeight: '700' }}>✨ {gt.lingoBonusLabel}</Text>
+              </View>
+            </View>
+          )}
+
           <Card style={{ alignItems: 'center', marginBottom: spacing.md }}>
             <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>
               {gt.lingoHintLabel}

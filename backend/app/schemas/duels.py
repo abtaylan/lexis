@@ -101,6 +101,10 @@ class DuelRoundPublic(BaseModel):
     lingo_pot: int | None = None
     lingo_guesses_used: int | None = None
     lingo_max_guesses: int | None = None
+    # 27 Kasım 2026 (Behçet'in format düzeltmesi) -- bu round 12 adımlık
+    # LINGO_LENGTH_SEQUENCE'ın bir "bonus" basamağında mı (bkz.
+    # 125_lingo_bonus_rounds.sql) -- true ise tamamlama ödülü 2 katı.
+    lingo_is_bonus: bool | None = None
     started_at: datetime | None = None
     ends_at: datetime | None = None
 
@@ -203,3 +207,4 @@ class DuelLingoGuessResponse(BaseModel):
     word: str | None = None
     score: int
     first_to_finish: bool = False
+    lingo_is_bonus: bool = False

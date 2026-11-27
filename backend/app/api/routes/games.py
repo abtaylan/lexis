@@ -145,13 +145,22 @@ DISTRACTOR_FETCH_LIMIT = 30
 # Adam asmaca (wordle) modu için izin verilen yanlış tahmin hakkı
 MAX_WRONG_GUESSES = 6
 
-# Lingo modu sabitleri (26 Kasim 2026) -- bkz. 123_lingo_game_mode.sql.
-# Gercek TRT1 "Lingo Turkiye" formati 4 -> 5 -> 6 harfe yukseliyor; Lexis'te
-# oturum bitmeyen bir akis oldugu icin bu dizi tekrar eder (indeks %
-# len(dizi)) -- kullanici istedigi kadar oynayabilir.
+# Lingo modu sabitleri (26 Kasim 2026, guncelleme 27 Kasim 2026) -- bkz.
+# 123_lingo_game_mode.sql + 125_lingo_bonus_rounds.sql. Behcet'in 27 Kasim
+# 2026 duzeltmesi uzerine, dizi artik GERCEK TRT1 "Lingo Turkiye" formatina
+# BIREBIR uyuyor: 3x4 harf -> bonus(4 harf) -> 3x5 harf -> bonus(5 harf) ->
+# final bolumu: 4,5,6,7 harf sirayla. Her eleman (uzunluk, bonus_mu) ikilisi
+# -- bonus adimini TAMAMLAYAN kullanici o turun kazancinin 2 katini alir
+# (bkz. lingo_guess). Oturum bitmeyen bir akis oldugu icin dizi tekrar eder
+# (indeks % len(dizi)) -- kullanici istedigi kadar oynayabilir.
 LINGO_MAX_GUESSES = 5
 LINGO_START_POT = 10
-LINGO_LENGTH_SEQUENCE = [4, 4, 5, 5, 6, 6]
+LINGO_BONUS_MULTIPLIER = 2
+LINGO_LENGTH_SEQUENCE: list[tuple[int, bool]] = [
+    (4, False), (4, False), (4, False), (4, True),
+    (5, False), (5, False), (5, False), (5, True),
+    (4, False), (5, False), (6, False), (7, False),
+]
 
 
 def _get_profile_langs(user_id: str) -> tuple[str, str]:
@@ -839,7 +848,7 @@ async def next_word(
             lingo_learning_lang, lingo_native_lang = _get_profile_langs(current_user.id)
             lingo_attempted = _attempted_ids(session_id, "general_word_id")
             word_index = int((session.get("state") or {}).get("lingo_word_index", 0))
-            length = LINGO_LENGTH_SEQUENCE[word_index % len(LINGO_LENGTH_SEQUENCE)]
+            length, lingo_is_bonus = LINGO_LENGTH_SEQUENCE[word_index % len(LINGO_LENGTH_SEQUENCE)]
             lingo_chosen = _choose_word_by_length(
                 lingo_learning_lang, lingo_native_lang, length, lingo_attempted
             )
@@ -847,7 +856,7 @@ async def next_word(
                 # Bu uzunlukta havuzda kelime kalmadi -- bir sonraki
                 # uzunluga gecip bir kez daha dene (dizi dongusel).
                 word_index += 1
-                length = LINGO_LENGTH_SEQUENCE[word_index % len(LINGO_LENGTH_SEQUENCE)]
+                length, lingo_is_bonus = LINGO_LENGTH_SEQUENCE[word_index % len(LINGO_LENGTH_SEQUENCE)]
                 lingo_chosen = _choose_word_by_length(
                     lingo_learning_lang, lingo_native_lang, length, lingo_attempted
                 )
@@ -862,6 +871,7 @@ async def next_word(
                         "lingo_guesses": [],
                         "lingo_pot": LINGO_START_POT,
                         "lingo_word_index": word_index + 1,
+                        "lingo_is_bonus": lingo_is_bonus,
                     }
                 }
             ).eq("id", session_id).execute()
@@ -875,6 +885,7 @@ async def next_word(
                 lingo_max_guesses=LINGO_MAX_GUESSES,
                 lingo_guesses_used=0,
                 lingo_pot=LINGO_START_POT,
+                lingo_is_bonus=lingo_is_bonus,
             )
 
         if pool_source == "own":
@@ -1443,6 +1454,7 @@ async def lingo_guess(
 
     guesses = list(state.get("lingo_guesses", []))
     pot = int(state.get("lingo_pot", LINGO_START_POT))
+    lingo_is_bonus = bool(state.get("lingo_is_bonus", False))
 
     feedback = _lingo_feedback(guess, target)
     guesses.append({"word": guess, "feedback": feedback})
@@ -1469,7 +1481,7 @@ async def lingo_guess(
             xp_result = await award_xp(
                 user_id=current_user.id,
                 source_type="game_lingo",
-                amount=max(1, pot),
+                amount=max(1, pot) * (LINGO_BONUS_MULTIPLIER if lingo_is_bonus else 1),
                 source_id=session_id,
             )
             xp_awarded = xp_result.amount_awarded
@@ -1525,6 +1537,7 @@ async def lingo_guess(
         xp_awarded=xp_awarded,
         leveled_up=leveled_up,
         new_level=new_level,
+        lingo_is_bonus=lingo_is_bonus,
     )
 
 

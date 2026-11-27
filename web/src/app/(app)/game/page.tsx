@@ -137,6 +137,7 @@ type Strings = {
   lingoWonTitle: string;
   lingoLostTitle: string;
   lingoInvalidLengthTpl: string;
+  lingoBonusLabel: string;
   // Boşluk Doldurma / Doğru mu Yanlış mı / Kelime Zinciri (mobile/src/app/(app)/game.tsx
   // ile aynı 3 yeni mod — bkz. backend games.py docstring'i).
   modeFillBlankLabel: string;
@@ -248,7 +249,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Hakların bitti',
     correctWordTpl: 'Doğru kelime: {word}',
     modeLingoLabel: 'Lingo',
-    modeLingoDesc: 'TRT\'deki Lingo Türkiye gibi, tam kelimeyi tahmin et',
+    modeLingoDesc: 'Tam kelimeyi tahmin et, doğru harfler yerinde kalır',
     lingoHintLabel: 'İpucu (anlamı)',
     lingoPotLabel: 'Kasa',
     lingoGuessesLeftTpl: '{n} hakkın kaldı',
@@ -257,6 +258,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: 'Kelimeyi buldun! 🎉',
     lingoLostTitle: 'Kasa bitti',
     lingoInvalidLengthTpl: 'Tahminin {n} harfli olmalı.',
+    lingoBonusLabel: 'Bonus Kelime — 2 katı ödül!',
     exampleHintLabel: 'Örnek cümle:',
     modeFillBlankLabel: 'Boşluk Doldurma',
     modeFillBlankDesc: 'Cümledeki boşluğu doğru kelimeyle doldur',
@@ -361,7 +363,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Out of lives',
     correctWordTpl: 'Correct word: {word}',
     modeLingoLabel: 'Lingo',
-    modeLingoDesc: 'Guess the whole word, like the Lingo TV game show',
+    modeLingoDesc: 'Guess the whole word — correct letters lock in place',
     lingoHintLabel: 'Hint (meaning)',
     lingoPotLabel: 'Pot',
     lingoGuessesLeftTpl: '{n} guesses left',
@@ -370,6 +372,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: 'You got it! 🎉',
     lingoLostTitle: 'Out of guesses',
     lingoInvalidLengthTpl: 'Your guess must be {n} letters.',
+    lingoBonusLabel: 'Bonus Word — double reward!',
     exampleHintLabel: 'Example sentence:',
     modeFillBlankLabel: 'Fill in the Blank',
     modeFillBlankDesc: 'Fill in the missing word in the sentence',
@@ -474,7 +477,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'انتهت محاولاتك',
     correctWordTpl: 'الكلمة الصحيحة: {word}',
     modeLingoLabel: 'لينجو',
-    modeLingoDesc: 'خمّن الكلمة كاملة، كما في برنامج لينجو التلفزيوني',
+    modeLingoDesc: 'خمّن الكلمة كاملة، الأحرف الصحيحة تبقى في مكانها',
     lingoHintLabel: 'تلميح (المعنى)',
     lingoPotLabel: 'الرصيد',
     lingoGuessesLeftTpl: 'تبقّى لك {n} محاولات',
@@ -483,6 +486,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: 'لقد عرفتها! 🎉',
     lingoLostTitle: 'انتهى الرصيد',
     lingoInvalidLengthTpl: 'يجب أن تكون كلمتك من {n} أحرف.',
+    lingoBonusLabel: 'كلمة إضافية — مكافأة مضاعفة!',
     exampleHintLabel: 'جملة مثال:',
     modeFillBlankLabel: 'إكمال الفراغ',
     modeFillBlankDesc: 'أكمل الكلمة الناقصة في الجملة',
@@ -587,7 +591,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Жизни закончились',
     correctWordTpl: 'Правильное слово: {word}',
     modeLingoLabel: 'Линго',
-    modeLingoDesc: 'Угадай слово целиком, как в телешоу Lingo',
+    modeLingoDesc: 'Угадай слово целиком — правильные буквы остаются на месте',
     lingoHintLabel: 'Подсказка (значение)',
     lingoPotLabel: 'Банк',
     lingoGuessesLeftTpl: 'Осталось попыток: {n}',
@@ -596,6 +600,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: 'Вы угадали! 🎉',
     lingoLostTitle: 'Банк исчерпан',
     lingoInvalidLengthTpl: 'Слово должно быть из {n} букв.',
+    lingoBonusLabel: 'Бонусное слово — двойная награда!',
     exampleHintLabel: 'Пример предложения:',
     modeFillBlankLabel: 'Заполни пропуск',
     modeFillBlankDesc: 'Вставь пропущенное слово в предложение',
@@ -700,7 +705,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Keine Leben mehr',
     correctWordTpl: 'Richtiges Wort: {word}',
     modeLingoLabel: 'Lingo',
-    modeLingoDesc: 'Errate das ganze Wort, wie in der TV-Show Lingo',
+    modeLingoDesc: 'Errate das ganze Wort — richtige Buchstaben bleiben stehen',
     lingoHintLabel: 'Hinweis (Bedeutung)',
     lingoPotLabel: 'Topf',
     lingoGuessesLeftTpl: 'Noch {n} Versuche',
@@ -709,6 +714,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: 'Du hast es erraten! 🎉',
     lingoLostTitle: 'Topf aufgebraucht',
     lingoInvalidLengthTpl: 'Dein Wort muss {n} Buchstaben haben.',
+    lingoBonusLabel: 'Bonuswort — doppelte Belohnung!',
     exampleHintLabel: 'Beispielsatz:',
     modeFillBlankLabel: 'Lückentext',
     modeFillBlankDesc: 'Fülle die Lücke im Satz mit dem richtigen Wort',
@@ -813,7 +819,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Plus de vies',
     correctWordTpl: 'Mot correct : {word}',
     modeLingoLabel: 'Lingo',
-    modeLingoDesc: 'Devine le mot entier, comme dans le jeu télévisé Lingo',
+    modeLingoDesc: 'Devine le mot entier — les lettres correctes restent en place',
     lingoHintLabel: 'Indice (sens)',
     lingoPotLabel: 'Cagnotte',
     lingoGuessesLeftTpl: 'Il te reste {n} essais',
@@ -822,6 +828,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: 'Tu l\'as trouvé ! 🎉',
     lingoLostTitle: 'Cagnotte épuisée',
     lingoInvalidLengthTpl: 'Ton mot doit faire {n} lettres.',
+    lingoBonusLabel: 'Mot bonus — récompense doublée !',
     exampleHintLabel: "Phrase d'exemple :",
     modeFillBlankLabel: 'Texte à trous',
     modeFillBlankDesc: 'Complète le mot manquant dans la phrase',
@@ -926,7 +933,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Sin vidas',
     correctWordTpl: 'Palabra correcta: {word}',
     modeLingoLabel: 'Lingo',
-    modeLingoDesc: 'Adivina la palabra completa, como en el concurso Lingo',
+    modeLingoDesc: 'Adivina la palabra completa — las letras correctas se quedan fijas',
     lingoHintLabel: 'Pista (significado)',
     lingoPotLabel: 'Bote',
     lingoGuessesLeftTpl: 'Te quedan {n} intentos',
@@ -935,6 +942,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: '¡La adivinaste! 🎉',
     lingoLostTitle: 'Bote agotado',
     lingoInvalidLengthTpl: 'Tu palabra debe tener {n} letras.',
+    lingoBonusLabel: 'Palabra bonus — ¡recompensa doble!',
     exampleHintLabel: 'Frase de ejemplo:',
     modeFillBlankLabel: 'Rellenar el Hueco',
     modeFillBlankDesc: 'Completa la palabra que falta en la frase',
@@ -1039,7 +1047,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Vite finite',
     correctWordTpl: 'Parola corretta: {word}',
     modeLingoLabel: 'Lingo',
-    modeLingoDesc: 'Indovina la parola intera, come nel gioco TV Lingo',
+    modeLingoDesc: 'Indovina la parola intera — le lettere corrette restano fisse',
     lingoHintLabel: 'Indizio (significato)',
     lingoPotLabel: 'Montepremi',
     lingoGuessesLeftTpl: 'Ti restano {n} tentativi',
@@ -1048,6 +1056,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: 'L\'hai indovinata! 🎉',
     lingoLostTitle: 'Montepremi esaurito',
     lingoInvalidLengthTpl: 'La tua parola deve avere {n} lettere.',
+    lingoBonusLabel: 'Parola bonus — ricompensa doppia!',
     exampleHintLabel: 'Frase di esempio:',
     modeFillBlankLabel: 'Completa la Frase',
     modeFillBlankDesc: 'Completa la parola mancante nella frase',
@@ -1152,7 +1161,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'ライフがなくなりました',
     correctWordTpl: '正解の単語: {word}',
     modeLingoLabel: 'Lingo',
-    modeLingoDesc: '意味を頼りに単語全体を当てる、Lingoのようなゲーム',
+    modeLingoDesc: '単語全体を当てよう — 正解した文字はそのまま固定される',
     lingoHintLabel: 'ヒント(意味)',
     lingoPotLabel: '賞金',
     lingoGuessesLeftTpl: '残り{n}回',
@@ -1161,6 +1170,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: '正解です! 🎉',
     lingoLostTitle: '賞金がなくなりました',
     lingoInvalidLengthTpl: '単語は{n}文字である必要があります。',
+    lingoBonusLabel: 'ボーナスワード — 報酬2倍!',
     exampleHintLabel: '例文:',
     modeFillBlankLabel: '穴埋め問題',
     modeFillBlankDesc: '文中の空欄に正しい単語を入力しよう',
@@ -1265,7 +1275,7 @@ const STRINGS: Record<Locale, Strings> = {
     wordleLostTitle: 'Sem vidas',
     correctWordTpl: 'Palavra correta: {word}',
     modeLingoLabel: 'Lingo',
-    modeLingoDesc: 'Adivinha a palavra inteira, como no concurso de TV Lingo',
+    modeLingoDesc: 'Adivinha a palavra inteira — as letras certas ficam fixas',
     lingoHintLabel: 'Dica (significado)',
     lingoPotLabel: 'Prémio',
     lingoGuessesLeftTpl: 'Restam-te {n} tentativas',
@@ -1274,6 +1284,7 @@ const STRINGS: Record<Locale, Strings> = {
     lingoWonTitle: 'Conseguiste! 🎉',
     lingoLostTitle: 'Prémio esgotado',
     lingoInvalidLengthTpl: 'A tua palavra deve ter {n} letras.',
+    lingoBonusLabel: 'Palavra Bónus — recompensa em dobro!',
     exampleHintLabel: 'Frase de exemplo:',
     modeFillBlankLabel: 'Preencher a Lacuna',
     modeFillBlankDesc: 'Preenche a palavra em falta na frase',
@@ -1454,6 +1465,7 @@ export default function GamePage() {
   const [lingoInput, setLingoInput] = useState('');
   const [lingoBusy, setLingoBusy] = useState(false);
   const [lingoInputError, setLingoInputError] = useState('');
+  const [lingoIsBonus, setLingoIsBonus] = useState(false);
 
   // ── yazma (typing) state — dinleme ve sprint modları da bunu paylaşır,
   // çünkü doğruluk kontrolü üçünde de aynı: current.word ile karşılaştırma ──
@@ -1623,6 +1635,7 @@ export default function GamePage() {
       setLingoGuesses([]);
       setLingoPot(nw.lingo_pot ?? 10);
       setLingoMaxGuesses(nw.lingo_max_guesses ?? 5);
+      setLingoIsBonus(!!nw.lingo_is_bonus);
       setLingoInput('');
       setLingoInputError('');
       setTypedAnswer('');
@@ -3119,6 +3132,18 @@ export default function GamePage() {
 
       {isLingo && (
         <>
+          {/* Bonus Kelime rozeti (27 Kasım 2026, Behçet'in format
+              düzeltmesi) -- 12 adımlık sekansta 2 bonus basamak var
+              (3x4 sonrası ve 3x5 sonrası), bu turu tamamlarsan ödül 2
+              katına çıkar -- bkz. backend LINGO_BONUS_MULTIPLIER. */}
+          {lingoIsBonus && (
+            <div className="w-full flex items-center justify-center">
+              <span className="inline-flex items-center gap-1.5 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/30 text-amber-700 dark:text-amber-400 text-xs font-bold px-3 py-1.5 rounded-full">
+                ✨ {t.lingoBonusLabel}
+              </span>
+            </div>
+          )}
+
           {/* İpucu / anlam */}
           <div className="w-full bg-white dark:bg-slate-900 border border-gray-100 dark:border-slate-800 rounded-2xl shadow-sm p-6 text-center">
             <p className="text-xs font-semibold text-gray-400 dark:text-slate-500 uppercase tracking-wide mb-2">

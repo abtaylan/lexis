@@ -92,6 +92,10 @@ class NextWordResponse(BaseModel):
     lingo_max_guesses: int | None = None
     lingo_guesses_used: int | None = None
     lingo_pot: int | None = None  # kalan "kasa" puanı — kelimeyi ne kadar erken bulursan o kadar yüksek kalır
+    # 27 Kasım 2026 (Behçet'in format düzeltmesi): bu kelime 12 adımlık
+    # LINGO_LENGTH_SEQUENCE'ın bir "bonus" basamağında mı ("3x4 → bonus →
+    # 3x5 → bonus → final 4-5-6-7") — true ise tamamlama ödülü 2 katı.
+    lingo_is_bonus: bool | None = None
     # ── sentence_building (cümle kurma) moduna özel alan ──
     # DOĞRU sırada gönderilir (word_to_meaning'de kelimenin kendisinin
     # gönderilmesiyle AYNI güven modeli) — istemci kendi karıştırır, kendi
@@ -189,6 +193,7 @@ class LingoGuessResponse(BaseModel):
     xp_awarded: int = 0
     leveled_up: bool = False
     new_level: int | None = None
+    lingo_is_bonus: bool = False
 
 
 # ── Zayıf zorluk seviyesi istatistiği (V2 madde #6 — Faz 2) ────────

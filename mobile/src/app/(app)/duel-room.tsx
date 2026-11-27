@@ -434,6 +434,17 @@ export default function DuelRoomScreen() {
               o da current.meaning göstermiyor). */}
           {round && isLingo && (
             <>
+              {/* Bonus Kelime rozeti (27 Kasım 2026) -- solo moddaki AYNI
+                  rozet, duello turlarında da round.lingo_is_bonus true ise
+                  gösterilir. */}
+              {round.lingo_is_bonus && (
+                <View style={{ alignItems: 'center' }}>
+                  <View style={{ backgroundColor: c.warningSoft, borderRadius: radius.full, paddingHorizontal: spacing.md, paddingVertical: spacing.xs }}>
+                    <Text style={{ color: c.amber, fontSize: 12, fontWeight: '700' }}>✨ {t.lingoBonusLabel}</Text>
+                  </View>
+                </View>
+              )}
+
               <View style={styles.livesRow}>
                 <Text style={{ color: c.textMuted, fontSize: 11, fontWeight: '600', marginRight: 4 }}>
                   {t.lingoPotLabel}: {round.lingo_pot ?? 10}

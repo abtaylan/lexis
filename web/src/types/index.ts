@@ -1392,6 +1392,10 @@ export interface DuelRoundPublic {
   lingo_pot?: number | null;
   lingo_guesses_used?: number | null;
   lingo_max_guesses?: number | null;
+  // 27 Kasım 2026 (Behçet'in format düzeltmesi) -- bu round 12 adımlık
+  // LINGO_LENGTH_SEQUENCE'ın bir "bonus" basamağında mı -- true ise
+  // tamamlama ödülü 2 katı.
+  lingo_is_bonus?: boolean | null;
   started_at?: string | null;
   ends_at?: string | null;
 }
@@ -1435,6 +1439,7 @@ export interface DuelLingoGuessResponse {
   word: string | null;
   score: number;
   first_to_finish: boolean;
+  lingo_is_bonus?: boolean;
 }
 
 export interface DuelInviteItem {

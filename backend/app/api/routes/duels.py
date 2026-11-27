@@ -91,7 +91,18 @@ BOT_ANSWER_ACCURACY = {"kolay": 0.5, "orta": 0.7, "zor": 0.85, "usta": 0.95}
 # arasinda bagimlilik kurulmuyor).
 LINGO_MAX_GUESSES = 5
 LINGO_START_POT = 10
-LINGO_LENGTH_SEQUENCE = [4, 4, 5, 5, 6, 6]
+# 27 Kasim 2026 (Behcet'in format duzeltmesi) -- games.py::LINGO_LENGTH_
+# SEQUENCE ile AYNI 12 adimlik (uzunluk, bonus_mu) dizisi: 3x4 -> bonus(4)
+# -> 3x5 -> bonus(5) -> final: 4,5,6,7. Hangi round'un bonus oldugu
+# round URETILIRKEN duel_rounds.lingo_is_bonus'a YAZILIR (bkz.
+# 125_lingo_bonus_rounds.sql) -- length'ten geri turetilemez cunku ayni
+# uzunluk hem normal hem bonus basamakta tekrar eder.
+LINGO_BONUS_MULTIPLIER = 2
+LINGO_LENGTH_SEQUENCE: list[tuple[int, bool]] = [
+    (4, False), (4, False), (4, False), (4, True),
+    (5, False), (5, False), (5, False), (5, True),
+    (4, False), (5, False), (6, False), (7, False),
+]
 # Tam kelime yazmak tek harf tiklamaktan daha uzun surdugu icin wordle
 # duellosundan (45sn) biraz daha uzun bir sure.
 LINGO_ROUND_DURATION_SECONDS = 60
@@ -521,7 +532,7 @@ def _generate_lingo_rounds(duel_id: str, learning_lang: str, round_count: int) -
     actual_index = 0
 
     for index in range(round_count):
-        length = LINGO_LENGTH_SEQUENCE[index % len(LINGO_LENGTH_SEQUENCE)]
+        length, is_bonus = LINGO_LENGTH_SEQUENCE[index % len(LINGO_LENGTH_SEQUENCE)]
         candidates = [
             w
             for w in _fetch_length_candidates(learning_lang, length)
@@ -540,6 +551,7 @@ def _generate_lingo_rounds(duel_id: str, learning_lang: str, round_count: int) -
                 "general_word_id": chosen["id"],
                 "options": [],
                 "correct_option": chosen["word"],
+                "lingo_is_bonus": is_bonus,
             }
         )
         actual_index += 1
@@ -618,6 +630,7 @@ def _round_public_response(duel: dict, round_row: dict, user_id: str) -> DuelRou
             lingo_pot=pot,
             lingo_guesses_used=len(guesses),
             lingo_max_guesses=LINGO_MAX_GUESSES,
+            lingo_is_bonus=bool(round_row.get("lingo_is_bonus", False)),
             started_at=round_row.get("started_at"),
             ends_at=round_row.get("ends_at"),
         )
@@ -946,9 +959,11 @@ def _submit_bot_lingo_progress(duel_id: str, round_row: dict, bot_id: str, diffi
             .single()
             .execute()
         )
-        score = (participant.data or {}).get("score", 0) + LINGO_COMPLETE_POINTS
+        lingo_bonus_multiplier = LINGO_BONUS_MULTIPLIER if round_row.get("lingo_is_bonus") else 1
+        round_points = LINGO_COMPLETE_POINTS
         if first_to_finish:
-            score += LINGO_FIRST_FINISH_BONUS
+            round_points += LINGO_FIRST_FINISH_BONUS
+        score = (participant.data or {}).get("score", 0) + round_points * lingo_bonus_multiplier
         supabase_admin.table("duel_participants").update({"score": score}).eq(
             "duel_id", duel_id
         ).eq("user_id", bot_id).execute()
@@ -1541,11 +1556,13 @@ async def submit_round_guess_word(
         .single()
         .execute()
     )
+    lingo_is_bonus = bool(round_row.get("lingo_is_bonus", False))
     score = (participant.data or {}).get("score", 0)
     if is_complete:
-        score += LINGO_COMPLETE_POINTS
+        round_points = LINGO_COMPLETE_POINTS
         if first_to_finish:
-            score += LINGO_FIRST_FINISH_BONUS
+            round_points += LINGO_FIRST_FINISH_BONUS
+        score += round_points * (LINGO_BONUS_MULTIPLIER if lingo_is_bonus else 1)
         supabase_admin.table("duel_participants").update({"score": score}).eq(
             "duel_id", duel_id
         ).eq("user_id", current_user.id).execute()
@@ -1562,6 +1579,7 @@ async def submit_round_guess_word(
         word=word_text if is_round_over else None,
         score=score,
         first_to_finish=first_to_finish,
+        lingo_is_bonus=lingo_is_bonus,
     )
 
 
