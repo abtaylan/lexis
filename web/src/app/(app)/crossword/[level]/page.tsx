@@ -138,11 +138,13 @@ function LetterWheel({
   letters,
   tapOrder,
   onTap,
+  onShuffle,
   disabled,
 }: {
   letters: string[];
   tapOrder: number[];
   onTap: (idx: number) => void;
+  onShuffle: () => void;
   disabled?: boolean;
 }) {
   const radius = letters.length <= 4 ? 52 : letters.length <= 6 ? 64 : 76;
@@ -173,6 +175,21 @@ function LetterWheel({
           );
         })}
       </svg>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={onShuffle}
+        className="absolute flex items-center justify-center rounded-full border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-500 dark:text-slate-400 hover:border-[#378ADD] hover:text-[#378ADD] transition-colors"
+        style={{
+          width: circleSize,
+          height: circleSize,
+          left: center - circleSize / 2,
+          top: center - circleSize / 2,
+          zIndex: 2,
+        }}
+      >
+        <Shuffle className="w-4 h-4" />
+      </button>
       {letters.map((ch, i) => {
         const pos = positions[i];
         const order = tapOrder.indexOf(i);
@@ -572,7 +589,7 @@ export default function CrosswordPuzzlePage() {
                         </span>
                       )}
                       <span
-                        className={`font-bold text-sm uppercase ${
+                        className={`font-bold text-sm ${
                           isSolved ? 'text-[#3B6D11]' : 'text-gray-900 dark:text-slate-100'
                         }`}
                       >
@@ -594,7 +611,7 @@ export default function CrosswordPuzzlePage() {
             {t.resultCorrect}
           </div>
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-extrabold text-gray-900 dark:text-slate-100 uppercase">{resultPanel.word}</h3>
+            <h3 className="text-xl font-extrabold text-gray-900 dark:text-slate-100">{resultPanel.word}</h3>
             <button
               type="button"
               onClick={() => speakWord(resultPanel.speakText)}
@@ -637,7 +654,7 @@ export default function CrosswordPuzzlePage() {
             {Array.from({ length: activeWord.answer_length }, (_, i) => (
               <div
                 key={i}
-                className={`w-8 h-8 rounded-md border-2 flex items-center justify-center text-sm font-bold uppercase ${
+                className={`w-8 h-8 rounded-md border-2 flex items-center justify-center text-sm font-bold ${
                   shakeActive
                     ? 'border-red-400 bg-red-50 dark:bg-red-500/10'
                     : 'border-[#378ADD] bg-[#E6F1FB] dark:bg-blue-500/10'
@@ -653,20 +670,13 @@ export default function CrosswordPuzzlePage() {
             tapOrder={tapOrder}
             disabled={pending.has(activeWord.word_id)}
             onTap={handleTapLetter}
+            onShuffle={() => {
+              setWheelLetters((prev) => shuffleArray(prev));
+              setTapOrder([]);
+            }}
           />
 
           <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setWheelLetters((prev) => shuffleArray(prev));
-                setTapOrder([]);
-              }}
-              className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-slate-400 hover:text-[#378ADD] px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"
-            >
-              <Shuffle className="w-3.5 h-3.5" />
-              {t.shuffleLabel}
-            </button>
             <button
               type="button"
               disabled={tapOrder.length === 0}

@@ -129,12 +129,14 @@ function LetterWheel({
   letters,
   tapOrder,
   onTap,
+  onShuffle,
   disabled,
   c,
 }: {
   letters: string[];
   tapOrder: number[];
   onTap: (idx: number) => void;
+  onShuffle: () => void;
   disabled?: boolean;
   c: ReturnType<typeof useThemeColors>;
 }) {
@@ -166,6 +168,24 @@ function LetterWheel({
           );
         })}
       </Svg>
+      <Pressable
+        disabled={disabled}
+        onPress={onShuffle}
+        style={[
+          styles.wheelCenterBtn,
+          {
+            width: circleSize,
+            height: circleSize,
+            borderRadius: circleSize / 2,
+            left: center - circleSize / 2,
+            top: center - circleSize / 2,
+            backgroundColor: c.surface,
+            borderColor: c.border,
+          },
+        ]}
+      >
+        <Shuffle color={c.textMuted} size={16} />
+      </Pressable>
       {letters.map((ch, i) => {
         const pos = positions[i];
         const order = tapOrder.indexOf(i);
@@ -601,7 +621,7 @@ export default function CrosswordPuzzleScreen() {
             <Text style={{ color: c.success, fontWeight: '700', fontSize: 13 }}>{t.resultCorrect}</Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.sm }}>
-            <Text style={{ color: c.text, fontSize: 20, fontWeight: '800', textTransform: 'uppercase' }}>
+            <Text style={{ color: c.text, fontSize: 20, fontWeight: '800' }}>
               {resultPanel.word}
             </Text>
             <Pressable onPress={() => speakWord(resultPanel.speakText)} style={[styles.speakBtn, { backgroundColor: c.surface }]}>
@@ -654,7 +674,7 @@ export default function CrosswordPuzzleScreen() {
                   },
                 ]}
               >
-                <Text style={{ fontSize: 14, fontWeight: '700', color: c.text, textTransform: 'uppercase' }}>
+                <Text style={{ fontSize: 14, fontWeight: '700', color: c.text }}>
                   {tapOrder[i] !== undefined ? wheelLetters[tapOrder[i]] : ''}
                 </Text>
               </View>
@@ -666,20 +686,14 @@ export default function CrosswordPuzzleScreen() {
             tapOrder={tapOrder}
             disabled={pending.has(activeWord.word_id)}
             onTap={handleTapLetter}
+            onShuffle={() => {
+              setWheelLetters((prev) => shuffleArray(prev));
+              setTapOrder([]);
+            }}
             c={c}
           />
 
           <View style={{ flexDirection: 'row', gap: spacing.md }}>
-            <Pressable
-              onPress={() => {
-                setWheelLetters((prev) => shuffleArray(prev));
-                setTapOrder([]);
-              }}
-              style={styles.wheelActionBtn}
-            >
-              <Shuffle color={c.textMuted} size={14} />
-              <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '600' }}>{t.shuffleLabel}</Text>
-            </Pressable>
             <Pressable
               disabled={tapOrder.length === 0}
               onPress={() => setTapOrder((prev) => prev.slice(0, -1))}
@@ -781,6 +795,13 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  wheelCenterBtn: {
+    position: 'absolute',
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
   },
   wheelBadge: {
     position: 'absolute',

@@ -120,8 +120,23 @@ def _public_words(puzzle: dict, solved_word_ids: set[str] | None = None) -> list
     cozulmemis kelimelerde answer alani hic yok."""
     solved_word_ids = solved_word_ids or set()
     words = puzzle.get("crossword_puzzle_words") or []
+    # 27 Kasim 2026 kullanici istegi -- harf carki SADECE kelimenin kendi
+    # harflerinden olusursa cok kolay oluyor: cark'a, bu bulmacadaki TUM
+    # kelimelerin harflerinden (hangi alfabe/script olursa olsun -- Latin,
+    # Kiril, Arap, CJK... -- boylece celdirici HER ZAMAN ayni script'ten
+    # secilir) kelimenin kendi harflerinde bulunmayan 2 adet FARKLI celdirici
+    # harf de karistirilir. Dogru cevap kontrolu (attempt_word) sadece
+    # GERCEK answer'i kiyasladigi icin celdiricilerin varligi puzzle
+    # dogrulugunu etkilemez, sadece carki zorlastirir.
+    _DECOY_COUNT = 2
+    all_letters = {ch for w2 in words for ch in w2["answer"]}
     out = []
     for w in words:
+        answer_letters = list(w["answer"])
+        decoy_pool = list(all_letters - set(answer_letters))
+        decoys = random.sample(decoy_pool, min(_DECOY_COUNT, len(decoy_pool)))
+        wheel_letters = answer_letters + decoys
+        random.shuffle(wheel_letters)
         row = {
             "word_id": w["id"],
             "clue_text": w["clue_text"],
@@ -131,11 +146,12 @@ def _public_words(puzzle: dict, solved_word_ids: set[str] | None = None) -> list
             "answer_length": w["answer_length"],
             # 27 Kasim 2026 -- kelime carki tasarimi: harf carkinin kurulabilmesi
             # icin HENUZ COZULMEMIS kelimelerde de cevabin harf KUMESI (SIRASI
-            # KARISTIRILMIS) gonderiliyor -- answer alaninin kendisi (dogru
-            # SIRAYLA) hala sadece cozulunce gonderiliyor, bu yuzden dogru
-            # sirayi istemci asla bilmiyor (anagram/kelime-oyunu janrinda
-            # standart davranis -- harf kumesi zaten ipucuyla birlikte acik).
-            "letters": random.sample(list(w["answer"]), w["answer_length"]),
+            # KARISTIRILMIS, + 2 celdirici harf) gonderiliyor -- answer alaninin
+            # kendisi (dogru SIRAYLA) hala sadece cozulunce gonderiliyor, bu
+            # yuzden dogru sirayi istemci asla bilmiyor (anagram/kelime-oyunu
+            # janrinda standart davranis -- harf kumesi zaten ipucuyla birlikte
+            # acik).
+            "letters": wheel_letters,
         }
         if w["id"] in solved_word_ids:
             row["answer"] = w["answer"]
