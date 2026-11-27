@@ -516,7 +516,7 @@ def get_or_create_puzzle(
 
     query = (
         supabase_admin.table("crossword_puzzles")
-        .select("*, crossword_puzzle_words(*)")
+        .select("*, crossword_puzzle_words(*, general_word_pool(definition, example), words(example))")
         .eq("learning_lang", learning_lang)
         .eq("native_lang", native_lang)
         .eq("level", level)

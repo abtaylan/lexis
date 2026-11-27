@@ -1,34 +1,26 @@
 // src/app/(app)/crossword-puzzle.tsx — Çengel Bulmaca oynanış ekranı
-// (18 Kasım 2026 kullanıcı isteği). Hücre bazlı grid: her hücre kendi
-// TextInput'u, kesişen kelimeler aynı hücreyi (dolayısıyla aynı harfi)
-// paylaşır. Bir kelimenin TÜM hücreleri dolunca otomatik olarak sunucuya
-// kontrol ettirilir (bkz. useEffect aşağıda) — ayrı bir "Kontrol Et"
-// butonuna gerek yok, kullanıcı isteğiyle birebir: "her kelime bilinince
-// XP kazanılsın".
+// (18 Kasım 2026 kullanıcı isteği; 27 Kasım 2026 kullanıcı isteği: harf
+// çarkı tasarımına geçiş). web/src/app/(app)/crossword/[level]/page.tsx ile
+// AYNI mantık — artık harfler klavyeyle değil, grid'in altındaki dairesel
+// harf çarkına SIRAYLA dokunarak giriliyor (anagram/kelime-oyunu janrı).
+// Aktif kelimenin grid hücreleri tam eşleşene kadar BOŞ kalır (çark
+// yanındaki ayrı ilerleme kutucukları canlı ilerlemeyi gösterir).
 //
 // Güvenlik: doğru cevaplar istemciye asla gönderilmez (bkz. backend
-// crossword.py) — TEK istisna, zaten çözülmüş kelimeler: bu ekran yarım
-// bırakılan bir seviyeye geri dönüldüğünde onları BOŞ değil DOLU göstermek
-// için backend'in sağladığı `answer` alanını (sadece solved_word_ids için
-// dolu gelir) kullanır.
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  NativeSyntheticEvent,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TextInputKeyPressEventData,
-  View,
-} from 'react-native';
+// crossword.py) — TEK istisna, zaten çözülmüş kelimeler. Çarkın
+// kurulabilmesi için her kelimenin harf KÜMESİ (sırası karıştırılmış,
+// `letters` alanı) çözülmeden önce de gönderilir — anagram/kelime-oyunu
+// janrında standart davranış, doğru SIRAYI vermez.
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Line } from 'react-native-svg';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowDown, ArrowRight, CheckCircle2, Sparkles, Trophy } from 'lucide-react-native';
+import * as Speech from 'expo-speech';
+import { ArrowDown, ArrowRight, CheckCircle2, Delete, Lightbulb, Shuffle, Sparkles, Trophy, Volume2 } from 'lucide-react-native';
 import { useLocale } from '@/i18n';
+import { useAuth } from '@/store/auth';
 import { crosswordApi } from '@/api/crossword';
+import { isRewardedAvailable, showRewardedAd } from '@/lib/adsManager';
 import type { CrosswordLevelResponse, CrosswordMode, CrosswordWord } from '@/api/types';
 import { useThemeColors } from '@/hooks/useThemeColors';
 import { radius, spacing } from '@/constants/theme';
@@ -47,6 +39,16 @@ const L: Record<'tr' | 'en', Record<string, string>> = {
     nextLevelBtn: 'Sonraki Seviyeye Geç',
     backToListBtn: 'Seviye Listesine Dön',
     allDoneTitle: 'Tüm seviyeleri bitirdin! 🏆',
+    acrossLabel: 'Yatay',
+    downLabel: 'Dikey',
+    lettersLabel: 'harf',
+    shuffleLabel: 'Karıştır',
+    backspaceLabel: 'Sil',
+    hintBtn: 'İpucu (-10 XP)',
+    hintAdBtn: 'Reklam izle, ipucu al',
+    resultCorrect: 'Doğru',
+    resultDefinitionLabel: 'Tanım',
+    resultContinue: 'Devam',
   },
   en: {
     error: 'Something went wrong.',
@@ -57,12 +59,46 @@ const L: Record<'tr' | 'en', Record<string, string>> = {
     nextLevelBtn: 'Go to Next Level',
     backToListBtn: 'Back to Level List',
     allDoneTitle: "You've finished every level! 🏆",
+    acrossLabel: 'Across',
+    downLabel: 'Down',
+    lettersLabel: 'letters',
+    shuffleLabel: 'Shuffle',
+    backspaceLabel: 'Delete',
+    hintBtn: 'Hint (-10 XP)',
+    hintAdBtn: 'Watch ad for a hint',
+    resultCorrect: 'Correct',
+    resultDefinitionLabel: 'Definition',
+    resultContinue: 'Continue',
   },
+};
+
+// web/src/app/(app)/crossword/[level]/page.tsx ve mobile/src/app/(app)/
+// game.tsx ile AYNI harita -- speakWord'ün hangi BCP-47 kodunu kullanacağını
+// belirler.
+const SPEECH_LANG_MAP: Record<string, string> = {
+  en: 'en-US',
+  tr: 'tr-TR',
+  de: 'de-DE',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  it: 'it-IT',
+  ja: 'ja-JP',
+  ar: 'ar-SA',
+  ru: 'ru-RU',
 };
 
 function errorDetail(err: unknown): string {
   const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
   return typeof detail === 'string' ? detail : '';
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 const CELL = 30;
@@ -77,10 +113,107 @@ function cellsForWord(w: CrosswordWord): string[] {
   return keys;
 }
 
+function wheelPositions(count: number, radius: number): { x: number; y: number }[] {
+  const out: { x: number; y: number }[] = [];
+  for (let i = 0; i < count; i++) {
+    const angle = (2 * Math.PI * i) / count - Math.PI / 2;
+    out.push({ x: radius * Math.cos(angle), y: radius * Math.sin(angle) });
+  }
+  return out;
+}
+
+// Grid'in altındaki dairesel harf çarkı -- harfler SIRAYLA dokunularak
+// seçilir, seçilen harfler arasına bağlantı çizgisi çizilir (bkz.
+// web/src/app/(app)/crossword/[level]/page.tsx'teki AYNI bileşen).
+function LetterWheel({
+  letters,
+  tapOrder,
+  onTap,
+  disabled,
+  c,
+}: {
+  letters: string[];
+  tapOrder: number[];
+  onTap: (idx: number) => void;
+  disabled?: boolean;
+  c: ReturnType<typeof useThemeColors>;
+}) {
+  const circleRadius = letters.length <= 4 ? 52 : letters.length <= 6 ? 64 : 76;
+  const circleSize = 44;
+  const size = circleRadius * 2 + circleSize + 16;
+  const center = size / 2;
+  const positions = useMemo(() => wheelPositions(letters.length, circleRadius), [letters.length, circleRadius]);
+
+  return (
+    <View style={{ width: size, height: size }}>
+      <Svg width={size} height={size} style={StyleSheet.absoluteFill} pointerEvents="none">
+        {tapOrder.map((idx, i) => {
+          if (i === 0) return null;
+          const prev = positions[tapOrder[i - 1]];
+          const cur = positions[idx];
+          if (!prev || !cur) return null;
+          return (
+            <Line
+              key={idx}
+              x1={center + prev.x}
+              y1={center + prev.y}
+              x2={center + cur.x}
+              y2={center + cur.y}
+              stroke={c.primary}
+              strokeWidth={3}
+              strokeLinecap="round"
+            />
+          );
+        })}
+      </Svg>
+      {letters.map((ch, i) => {
+        const pos = positions[i];
+        const order = tapOrder.indexOf(i);
+        const isUsed = order !== -1;
+        return (
+          <Pressable
+            key={i}
+            disabled={disabled || isUsed}
+            onPress={() => onTap(i)}
+            style={[
+              styles.wheelCircle,
+              {
+                width: circleSize,
+                height: circleSize,
+                borderRadius: circleSize / 2,
+                left: center + pos.x - circleSize / 2,
+                top: center + pos.y - circleSize / 2,
+                backgroundColor: isUsed ? c.primary : c.surface,
+                borderColor: isUsed ? c.primary : c.border,
+              },
+            ]}
+          >
+            <Text style={{ fontSize: 16, fontWeight: '700', color: isUsed ? '#FFFFFF' : c.text }}>{ch}</Text>
+            {isUsed && (
+              <View style={[styles.wheelBadge, { backgroundColor: c.accent }]}>
+                <Text style={styles.wheelBadgeText}>{order + 1}</Text>
+              </View>
+            )}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+type ResultPanelState = {
+  word: string;
+  meaning: string;
+  example?: string;
+  definition?: string;
+  speakText: string;
+};
+
 export default function CrosswordPuzzleScreen() {
   const c = useThemeColors();
   const { locale } = useLocale();
   const t = L[locale === 'tr' ? 'tr' : 'en'];
+  const { user } = useAuth();
   const { level: levelParam, mode: modeParam } = useLocalSearchParams<{ level: string; mode?: string }>();
   const levelNum = Number(levelParam) || 1;
   const mode: CrosswordMode =
@@ -92,11 +225,50 @@ export default function CrosswordPuzzleScreen() {
   const [solvedWordIds, setSolvedWordIds] = useState<string[]>([]);
   const [activeWordId, setActiveWordId] = useState<string | null>(null);
   const [pending, setPending] = useState<Set<string>>(new Set());
-  const [shakeKeys, setShakeKeys] = useState<Set<string>>(new Set());
   const [xpToast, setXpToast] = useState<number | null>(null);
   const [completion, setCompletion] = useState<{ xp: number; nextLevel: number | null } | null>(null);
 
-  const inputRefs = useRef<Record<string, TextInput | null>>({});
+  const [wheelLetters, setWheelLetters] = useState<string[]>([]);
+  const [tapOrder, setTapOrder] = useState<number[]>([]);
+  const [shakeActive, setShakeActive] = useState(false);
+  const [resultPanel, setResultPanel] = useState<ResultPanelState | null>(null);
+  const [hintedWordIds, setHintedWordIds] = useState<Set<string>>(new Set());
+  const [hintBusy, setHintBusy] = useState(false);
+  const [hintXpToast, setHintXpToast] = useState<number | null>(null);
+  const [adAvailable, setAdAvailable] = useState(false);
+
+  // mobile/src/app/(app)/game.tsx'teki speakWord ile AYNI desen.
+  const speakWord = (text: string) => {
+    if (!text) return;
+    const langCode = SPEECH_LANG_MAP[user?.learning_lang ?? ''];
+    try {
+      Speech.stop();
+      Speech.speak(text, {
+        language: langCode,
+        onError: () => {
+          if (langCode) {
+            try {
+              Speech.speak(text);
+            } catch {
+              /* sessiz */
+            }
+          }
+        },
+      });
+    } catch {
+      /* sessiz — cihaz TTS desteklemiyor olabilir */
+    }
+  };
+
+  // İpucu sisteminde, ilk ipucu kullanılmış bir kelime için ikinci (ve
+  // sonraki) ipuçları ödüllü reklam gerektirir (bkz. RewardedAdButton.tsx
+  // ile aynı yoklama deseni) -- reklam arka planda yükleniyor olabilir.
+  useEffect(() => {
+    const check = () => setAdAvailable(isRewardedAvailable());
+    check();
+    const id = setInterval(check, 2000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     setPuzzle(null);
@@ -104,6 +276,8 @@ export default function CrosswordPuzzleScreen() {
     setSolvedWordIds([]);
     setActiveWordId(null);
     setCompletion(null);
+    setResultPanel(null);
+    setHintedWordIds(new Set());
     crosswordApi
       .level(levelNum, mode)
       .then((res) => {
@@ -154,6 +328,20 @@ export default function CrosswordPuzzleScreen() {
     };
   }, [puzzle]);
 
+  const activeWord = activeWordId ? wordsById.get(activeWordId) : undefined;
+
+  // Aktif kelime (ya da bulmacanın kendisi) değişince çarkı sıfırla.
+  useEffect(() => {
+    if (!activeWord) {
+      setWheelLetters([]);
+      setTapOrder([]);
+      return;
+    }
+    setWheelLetters(shuffleArray(activeWord.letters));
+    setTapOrder([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWordId, puzzle]);
+
   const handleCheck = useCallback(
     async (wordId: string, answer: string) => {
       setPending((p) => new Set(p).add(wordId));
@@ -161,6 +349,25 @@ export default function CrosswordPuzzleScreen() {
         const result = await crosswordApi.attemptWord(levelNum, wordId, answer, mode);
         if (result.correct) {
           setSolvedWordIds((prev) => (prev.includes(wordId) ? prev : [...prev, wordId]));
+          const w = wordsById.get(wordId);
+          if (w && result.answer) {
+            const keys = cellsForWord(w);
+            const upper = result.answer.toUpperCase();
+            setGridLetters((prev) => {
+              const next = { ...prev };
+              keys.forEach((key, i) => {
+                next[key] = upper[i] ?? '';
+              });
+              return next;
+            });
+            setResultPanel({
+              word: result.answer,
+              meaning: w.clue_text,
+              example: result.example,
+              definition: result.definition,
+              speakText: mode === 'reverse' ? w.clue_text : result.answer,
+            });
+          }
           if (result.word_xp_awarded > 0) {
             setXpToast(result.word_xp_awarded);
             setTimeout(() => setXpToast(null), 1500);
@@ -169,21 +376,9 @@ export default function CrosswordPuzzleScreen() {
             setCompletion({ xp: result.completion_xp_awarded, nextLevel: result.next_level });
           }
         } else {
-          const w = wordsById.get(wordId);
-          if (w) {
-            const keys = cellsForWord(w);
-            setShakeKeys(new Set(keys));
-            setTimeout(() => setShakeKeys(new Set()), 450);
-            setGridLetters((prev) => {
-              const next = { ...prev };
-              for (const key of keys) {
-                const owners = cellMap.get(key) ?? [];
-                const confirmedElsewhere = owners.some((oid) => oid !== wordId && solvedWordIds.includes(oid));
-                if (!confirmedElsewhere) delete next[key];
-              }
-              return next;
-            });
-          }
+          setShakeActive(true);
+          setTimeout(() => setShakeActive(false), 450);
+          setTapOrder([]);
         }
       } catch {
         setError(t.error);
@@ -195,83 +390,106 @@ export default function CrosswordPuzzleScreen() {
         });
       }
     },
-    [levelNum, mode, wordsById, cellMap, solvedWordIds, t.error]
+    [levelNum, mode, wordsById, t.error]
   );
 
-  // Herhangi bir kelimenin TÜM hücreleri dolunca otomatik kontrol.
-  useEffect(() => {
-    if (!puzzle || completion) return;
-    for (const w of puzzle.words) {
-      if (solvedWordIds.includes(w.word_id) || pending.has(w.word_id)) continue;
-      const keys = cellsForWord(w);
-      const filled = keys.every((key) => (gridLetters[key] ?? '').length === 1);
-      if (filled) {
-        void handleCheck(w.word_id, keys.map((key) => gridLetters[key]).join(''));
-        break;
+  const handleTapLetter = (idx: number) => {
+    if (!activeWord) return;
+    setTapOrder((prev) => {
+      if (prev.includes(idx)) return prev;
+      const next = [...prev, idx];
+      if (next.length === activeWord.answer_length) {
+        const built = next.map((i) => wheelLetters[i]).join('');
+        setTimeout(() => void handleCheck(activeWord.word_id, built), 150);
       }
+      return next;
+    });
+  };
+
+  // İpucu sisteminden dönen harfi, çarkta henüz kullanılmamış eşleşen bir
+  // harfe otomatik dokunulmuş gibi ekler -- mevcut dokunma sırası / tam
+  // doluncа otomatik kontrol mantığını aynen kullanır (bkz. web/src/app/
+  // (app)/crossword/[level]/page.tsx'teki AYNI fonksiyon).
+  const appendHintLetter = (letter: string) => {
+    if (!activeWord) return;
+    setTapOrder((prev) => {
+      const idx = wheelLetters.findIndex((ch, i) => ch === letter && !prev.includes(i));
+      if (idx === -1) return prev;
+      const next = [...prev, idx];
+      if (next.length === activeWord.answer_length) {
+        const built = next.map((i) => wheelLetters[i]).join('');
+        setTimeout(() => void handleCheck(activeWord.word_id, built), 150);
+      }
+      return next;
+    });
+  };
+
+  // 27 Kasım 2026 kullanıcı isteği -- ipucu satın alma sistemi: bir kelime
+  // için ilk ipucu XP harcar (backend HINT_XP_COST), aynı kelime için
+  // sonraki ipuçları ödüllü reklam gerektirir. hintedWordIds yalnızca
+  // iyimser (optimistic) istemci durumu; asıl doğrulama backend'de
+  // (user_crossword_sessions.hinted_word_ids) -- backend 400 dönerse ("...
+  // reklam izlemeyi gerektiriyor") istemci durumunu buna göre düzeltiyoruz.
+  const handleHint = async () => {
+    if (!activeWord || hintBusy) return;
+    setHintBusy(true);
+    try {
+      const res = await crosswordApi.hint(levelNum, activeWord.word_id, tapOrder.length, false, mode);
+      setHintedWordIds((prev) => new Set(prev).add(activeWord.word_id));
+      if (res.xp_spent > 0) {
+        setHintXpToast(res.xp_spent);
+        setTimeout(() => setHintXpToast(null), 1500);
+      }
+      appendHintLetter(res.letter);
+    } catch (err) {
+      const detail = errorDetail(err);
+      if (detail && detail.includes('reklam')) {
+        setHintedWordIds((prev) => new Set(prev).add(activeWord.word_id));
+      }
+      setError(detail || t.error);
+    } finally {
+      setHintBusy(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gridLetters]);
+  };
+
+  const handleHintAd = async () => {
+    if (!activeWord || hintBusy) return;
+    setHintBusy(true);
+    try {
+      const watched = await showRewardedAd();
+      if (!watched) return;
+      const res = await crosswordApi.hint(levelNum, activeWord.word_id, tapOrder.length, true, mode);
+      if (res.xp_spent > 0) {
+        setHintXpToast(res.xp_spent);
+        setTimeout(() => setHintXpToast(null), 1500);
+      }
+      appendHintLetter(res.letter);
+    } catch (err) {
+      setError(errorDetail(err) || t.error);
+    } finally {
+      setHintBusy(false);
+    }
+  };
 
   const selectWord = (wordId: string) => {
     setActiveWordId(wordId);
-    const w = wordsById.get(wordId);
-    if (!w) return;
-    const keys = cellsForWord(w);
-    const firstEmpty = keys.find((key) => !gridLetters[key]) ?? keys[0];
-    requestAnimationFrame(() => inputRefs.current[firstEmpty]?.focus());
   };
 
-  const handleCellFocus = (key: string) => {
-    const wordIds = cellMap.get(key) ?? [];
-    if (wordIds.length === 0) return;
-    if (activeWordId && wordIds.includes(activeWordId)) return;
-    const unsolved = wordIds.find((id) => !solvedWordIds.includes(id));
-    setActiveWordId(unsolved ?? wordIds[0]);
+  const handleCellPress = (key: string) => {
+    const owners = cellMap.get(key) ?? [];
+    if (owners.length === 0) return;
+    const unsolved = owners.find((id) => !solvedWordIds.includes(id));
+    setActiveWordId(unsolved ?? owners[0]);
   };
 
-  // 23 Kasım 2026 kullanıcı isteği: kesişim hücresi başka (zaten çözülmüş)
-  // bir kelimeden geliyorsa editable={false} oluyor ve odak oraya gidince
-  // kullanıcı o hücreye hiç yazamadığı için bir sonraki harfe asla
-  // geçemiyordu ("kesişen yerde harfe basınca bir sonraki harfe geçmiyor").
-  // Otomatik ilerlemede zaten çözülmüş hücreleri atlayıp ilk YAZILABİLİR
-  // hücreye odaklanıyoruz.
-  const handleChangeCell = (key: string, idx: number, text: string) => {
-    const word = activeWordId ? wordsById.get(activeWordId) : undefined;
-    const letter = text.slice(-1).toUpperCase();
-    setGridLetters((prev) => ({ ...prev, [key]: letter }));
-    if (letter && word) {
-      const keys = cellsForWord(word);
-      let nextIdx = idx + 1;
-      while (nextIdx < word.answer_length) {
-        const nextKey = keys[nextIdx];
-        const owners = cellMap.get(nextKey) ?? [];
-        const isPrefilled = owners.some((id) => id !== word.word_id && solvedWordIds.includes(id));
-        if (!isPrefilled) {
-          inputRefs.current[nextKey]?.focus();
-          break;
-        }
-        nextIdx++;
-      }
-    }
-  };
-
-  const handleKeyPress = (key: string, idx: number, e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
-    if (e.nativeEvent.key !== 'Backspace' || gridLetters[key] || idx <= 0) return;
-    const word = activeWordId ? wordsById.get(activeWordId) : undefined;
-    if (!word) return;
-    const keys = cellsForWord(word);
-    let prevIdx = idx - 1;
-    while (prevIdx >= 0) {
-      const prevKey = keys[prevIdx];
-      const owners = cellMap.get(prevKey) ?? [];
-      const isPrefilled = owners.some((id) => id !== word.word_id && solvedWordIds.includes(id));
-      if (!isPrefilled) {
-        inputRefs.current[prevKey]?.focus();
-        break;
-      }
-      prevIdx--;
-    }
+  const handleContinue = () => {
+    setResultPanel(null);
+    if (completion) return;
+    const currentIdx = wordsSorted.findIndex((w) => w.word_id === activeWordId);
+    const next =
+      wordsSorted.slice(currentIdx + 1).find((w) => !solvedWordIds.includes(w.word_id)) ??
+      wordsSorted.find((w) => !solvedWordIds.includes(w.word_id));
+    if (next) setActiveWordId(next.word_id);
   };
 
   if (!puzzle && !error) {
@@ -296,19 +514,9 @@ export default function CrosswordPuzzleScreen() {
 
   if (!puzzle) return null;
 
-  const activeWord = activeWordId ? wordsById.get(activeWordId) : undefined;
   const activeWordKeys = activeWord ? new Set(cellsForWord(activeWord)) : new Set<string>();
 
-  // 23 Kasım 2026 kullanıcı isteği (ekran görüntüsü): klavye açılınca alttaki
-  // kelime/ipucu listesi ekranın dışında kalıp görünmüyordu — AgeGateScreen'
-  // deki (20 Kasım 2026) aynı kökten sorun: ScreenContainer'ın varsayılan
-  // ScrollView'i, klavye kapalıyken içerik zaten sığdığı için klavye
-  // açıldığında kaydıracak fazladan alana sahip değildi. Tüm ekranı
-  // KeyboardAvoidingView ile sarmalamak (sadece iOS — Android zaten
-  // windowSoftInputMode resize ile hallediyor) görünür alanı klavye kadar
-  // küçültüp ScrollView'e ihtiyaç duyduğu fazladan kaydırma alanını veriyor.
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScreenContainer>
       <ScreenNavBar />
       <View style={styles.headerRow}>
@@ -321,7 +529,7 @@ export default function CrosswordPuzzleScreen() {
       </View>
       <Text style={{ color: c.accent, fontSize: 12, fontWeight: '600', marginBottom: spacing.md }}>{puzzle.tier_name}</Text>
 
-      {completion && (
+      {completion && !resultPanel && (
         <Card style={{ backgroundColor: c.successSoft, borderColor: c.success, alignItems: 'center', marginBottom: spacing.lg }}>
           <Trophy color={c.success} size={28} />
           <Text style={{ color: c.success, fontWeight: '700', fontSize: 16, marginTop: 6 }}>{t.completeTitle}</Text>
@@ -347,7 +555,7 @@ export default function CrosswordPuzzleScreen() {
         </Card>
       )}
 
-      {!completion && (
+      {(!completion || resultPanel) && (
         <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ paddingBottom: spacing.sm }}>
           <View>
             {Array.from({ length: puzzle.grid_height }, (_, row) => (
@@ -359,40 +567,25 @@ export default function CrosswordPuzzleScreen() {
 
                   const isSolved = owners.some((id) => solvedWordIds.includes(id));
                   const isActive = activeWordKeys.has(key) && !isSolved;
-                  const isShaking = shakeKeys.has(key);
                   const number = numberAt.get(key);
-                  const wordIdxForActive = activeWord ? cellsForWord(activeWord).indexOf(key) : -1;
 
                   return (
-                    <View
+                    <Pressable
                       key={key}
+                      onPress={() => handleCellPress(key)}
                       style={[
                         styles.cell,
                         {
-                          borderColor: isShaking ? c.danger : isActive ? c.primary : isSolved ? c.success : c.border,
-                          backgroundColor: isShaking ? c.dangerSoft : isSolved ? c.successSoft : isActive ? c.primarySoft : c.surface,
+                          borderColor: isActive ? c.primary : isSolved ? c.success : c.border,
+                          backgroundColor: isSolved ? c.successSoft : isActive ? c.primarySoft : c.surface,
                         },
                       ]}
                     >
                       {!!number && <Text style={[styles.cellNumber, { color: c.textMuted }]}>{number}</Text>}
-                      <TextInput
-                        ref={(ref) => {
-                          inputRefs.current[key] = ref;
-                        }}
-                        value={gridLetters[key] ?? ''}
-                        editable={!isSolved}
-                        maxLength={1}
-                        autoCapitalize="characters"
-                        autoCorrect={false}
-                        onFocus={() => handleCellFocus(key)}
-                        onChangeText={(text) => handleChangeCell(key, wordIdxForActive, text)}
-                        onKeyPress={(e) => handleKeyPress(key, wordIdxForActive, e)}
-                        style={[
-                          styles.cellInput,
-                          { color: isSolved ? c.success : c.text },
-                        ]}
-                      />
-                    </View>
+                      <Text style={[styles.cellLetter, { color: isSolved ? c.success : c.text }]}>
+                        {gridLetters[key] ?? ''}
+                      </Text>
+                    </Pressable>
                   );
                 })}
               </View>
@@ -401,7 +594,124 @@ export default function CrosswordPuzzleScreen() {
         </ScrollView>
       )}
 
-      {!completion && (
+      {resultPanel && (
+        <Card style={{ backgroundColor: c.successSoft, borderColor: c.success, marginTop: spacing.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <CheckCircle2 color={c.success} size={16} />
+            <Text style={{ color: c.success, fontWeight: '700', fontSize: 13 }}>{t.resultCorrect}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: spacing.sm }}>
+            <Text style={{ color: c.text, fontSize: 20, fontWeight: '800', textTransform: 'uppercase' }}>
+              {resultPanel.word}
+            </Text>
+            <Pressable onPress={() => speakWord(resultPanel.speakText)} style={[styles.speakBtn, { backgroundColor: c.surface }]}>
+              <Volume2 color={c.primary} size={14} />
+            </Pressable>
+          </View>
+          <Text style={{ color: c.primary, fontWeight: '600', fontSize: 13, marginTop: 4 }}>{resultPanel.meaning}</Text>
+          {!!resultPanel.example && (
+            <Text style={{ color: c.textSecondary, fontSize: 13, fontStyle: 'italic', marginTop: spacing.sm }}>
+              “{resultPanel.example}”
+            </Text>
+          )}
+          {!!resultPanel.definition && (
+            <View style={{ borderTopWidth: 1, borderTopColor: c.border, marginTop: spacing.sm, paddingTop: spacing.sm }}>
+              <Text style={{ color: c.textMuted, fontSize: 12 }}>
+                <Text style={{ fontWeight: '700' }}>{t.resultDefinitionLabel}: </Text>
+                {resultPanel.definition}
+              </Text>
+            </View>
+          )}
+          <View style={{ marginTop: spacing.md }}>
+            <Button title={`${t.resultContinue} →`} onPress={handleContinue} />
+          </View>
+        </Card>
+      )}
+
+      {!completion && !resultPanel && activeWord && (
+        <View style={{ alignItems: 'center', gap: spacing.md, paddingVertical: spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            {activeWord.direction === 'across' ? (
+              <ArrowRight color={c.textMuted} size={14} />
+            ) : (
+              <ArrowDown color={c.textMuted} size={14} />
+            )}
+            <Text style={{ color: c.textMuted, fontSize: 13 }}>
+              {activeWord.direction === 'across' ? t.acrossLabel : t.downLabel} · {activeWord.answer_length} {t.lettersLabel}
+            </Text>
+          </View>
+          <Text style={{ color: c.text, fontSize: 13, textAlign: 'center', maxWidth: 280 }}>{activeWord.clue_text}</Text>
+
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            {Array.from({ length: activeWord.answer_length }, (_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.progressBox,
+                  {
+                    borderColor: shakeActive ? c.danger : c.primary,
+                    backgroundColor: shakeActive ? c.dangerSoft : c.primarySoft,
+                  },
+                ]}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: c.text, textTransform: 'uppercase' }}>
+                  {tapOrder[i] !== undefined ? wheelLetters[tapOrder[i]] : ''}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <LetterWheel
+            letters={wheelLetters}
+            tapOrder={tapOrder}
+            disabled={pending.has(activeWord.word_id)}
+            onTap={handleTapLetter}
+            c={c}
+          />
+
+          <View style={{ flexDirection: 'row', gap: spacing.md }}>
+            <Pressable
+              onPress={() => {
+                setWheelLetters((prev) => shuffleArray(prev));
+                setTapOrder([]);
+              }}
+              style={styles.wheelActionBtn}
+            >
+              <Shuffle color={c.textMuted} size={14} />
+              <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '600' }}>{t.shuffleLabel}</Text>
+            </Pressable>
+            <Pressable
+              disabled={tapOrder.length === 0}
+              onPress={() => setTapOrder((prev) => prev.slice(0, -1))}
+              style={[styles.wheelActionBtn, { opacity: tapOrder.length === 0 ? 0.4 : 1 }]}
+            >
+              <Delete color={c.textMuted} size={14} />
+              <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '600' }}>{t.backspaceLabel}</Text>
+            </Pressable>
+            {!hintedWordIds.has(activeWord.word_id) ? (
+              <Pressable
+                disabled={hintBusy}
+                onPress={() => void handleHint()}
+                style={[styles.wheelActionBtn, { opacity: hintBusy ? 0.4 : 1 }]}
+              >
+                <Lightbulb color={c.textMuted} size={14} />
+                <Text style={{ color: c.textMuted, fontSize: 12, fontWeight: '600' }}>{t.hintBtn}</Text>
+              </Pressable>
+            ) : adAvailable ? (
+              <Pressable
+                disabled={hintBusy}
+                onPress={() => void handleHintAd()}
+                style={[styles.wheelActionBtn, { opacity: hintBusy ? 0.4 : 1 }]}
+              >
+                <Lightbulb color={c.accent} size={14} />
+                <Text style={{ color: c.accent, fontSize: 12, fontWeight: '600' }}>{t.hintAdBtn}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      )}
+
+      {!completion && !resultPanel && (
         <View style={{ marginTop: spacing.lg, gap: spacing.xs }}>
           {wordsSorted.map((w) => {
             const isSolved = solvedWordIds.includes(w.word_id);
@@ -435,13 +745,18 @@ export default function CrosswordPuzzleScreen() {
           <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>+{xpToast} XP</Text>
         </View>
       )}
+
+      {hintXpToast !== null && (
+        <View style={[styles.toast, { backgroundColor: c.textMuted, bottom: 70 }]}>
+          <Lightbulb color="#FFFFFF" size={14} />
+          <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>-{hintXpToast} XP</Text>
+        </View>
+      )}
     </ScreenContainer>
-    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   h1: { fontSize: 20, fontWeight: '700' },
   cell: {
@@ -452,14 +767,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cellNumber: { position: 'absolute', top: 1, left: 2, fontSize: 8, fontWeight: '600' },
-  cellInput: {
-    width: CELL - 4,
-    height: CELL - 4,
-    textAlign: 'center',
-    fontSize: 15,
-    fontWeight: '700',
-    padding: 0,
+  cellLetter: { fontSize: 15, fontWeight: '700' },
+  progressBox: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  wheelCircle: {
+    position: 'absolute',
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wheelBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  wheelBadgeText: { color: '#FFFFFF', fontSize: 9, fontWeight: '700' },
+  wheelActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12 },
+  speakBtn: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   clueRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 8, borderRadius: radius.sm, borderWidth: 1 },
   toast: {
     position: 'absolute',

@@ -129,6 +129,7 @@ import type {
   CrosswordLevelResponse,
   CrosswordMode,
   CrosswordAttemptResult,
+  CrosswordHintResult,
 } from '@/types';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -2136,6 +2137,20 @@ export const crosswordApi = {
     const res = await api.post<CrosswordAttemptResult>(
       `/crossword/levels/${level}/words/${wordId}/attempt`,
       { answer },
+      { params: { mode } }
+    );
+    return res.data;
+  },
+  hint: async (
+    level: number,
+    wordId: string,
+    revealedCount: number,
+    viaAd: boolean = false,
+    mode: CrosswordMode = 'standard'
+  ): Promise<CrosswordHintResult> => {
+    const res = await api.post<CrosswordHintResult>(
+      `/crossword/levels/${level}/words/${wordId}/hint`,
+      { revealed_count: revealedCount, via_ad: viaAd },
       { params: { mode } }
     );
     return res.data;

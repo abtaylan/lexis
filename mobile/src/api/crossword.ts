@@ -5,7 +5,7 @@
 // reverse/own_pool, bkz. api/types.ts CrosswordMode) — backend'e query
 // param olarak iletilir, verilmezse backend varsayılanı (standard) kullanır.
 import { api } from './client';
-import type { CrosswordAttemptResult, CrosswordLevelResponse, CrosswordLevelsResponse, CrosswordMode } from './types';
+import type { CrosswordAttemptResult, CrosswordHintResult, CrosswordLevelResponse, CrosswordLevelsResponse, CrosswordMode } from './types';
 
 export const crosswordApi = {
   levels: async (mode: CrosswordMode = 'standard'): Promise<CrosswordLevelsResponse> => {
@@ -25,6 +25,20 @@ export const crosswordApi = {
     const res = await api.post<CrosswordAttemptResult>(
       `/crossword/levels/${level}/words/${wordId}/attempt`,
       { answer },
+      { params: { mode } }
+    );
+    return res.data;
+  },
+  hint: async (
+    level: number,
+    wordId: string,
+    revealedCount: number,
+    viaAd: boolean = false,
+    mode: CrosswordMode = 'standard'
+  ): Promise<CrosswordHintResult> => {
+    const res = await api.post<CrosswordHintResult>(
+      `/crossword/levels/${level}/words/${wordId}/hint`,
+      { revealed_count: revealedCount, via_ad: viaAd },
       { params: { mode } }
     );
     return res.data;

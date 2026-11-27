@@ -1888,10 +1888,21 @@ export interface CrosswordWord {
   col_start: number;
   direction: 'across' | 'down';
   answer_length: number;
+  // 27 Kasim 2026 -- kelime carki: cevabin harf kumesi (SIRASI KARISTIRILMIS),
+  // HENUZ COZULMEMIS kelimeler dahil HER ZAMAN dolu gelir (bkz. backend
+  // crossword.py _public_words) -- dogru sirayi vermez, sadece carkta hangi
+  // harflerin bulundugunu bildirir.
+  letters: string[];
   // Sadece bu kelime zaten cozulmusse dolu gelir (bkz. backend crossword.py
   // _public_words) -- yarim birakilan bir seviyeye geri donuldugunde
   // cozulmus kelimeleri BOS degil DOLU gostermek icin.
   answer?: string;
+  // 27 Kasim 2026 -- kelime carki tasarimi: dogru cevaplaninca gosterilen
+  // sonuc panelinde ornek cumle + tanim (answer ile AYNI gating: sadece
+  // cozulmus kelimede dolu gelir). own_pool (Kelimelerim) kaynakli
+  // kelimelerde definition hic yok, example olabilir.
+  example?: string;
+  definition?: string;
 }
 
 export interface CrosswordLevelResponse {
@@ -1906,6 +1917,12 @@ export interface CrosswordLevelResponse {
   completed: boolean;
 }
 
+export interface CrosswordHintResult {
+  position: number;
+  letter: string;
+  xp_spent: number;
+}
+
 export interface CrosswordAttemptResult {
   correct: boolean;
   already_solved: boolean;
@@ -1914,4 +1931,9 @@ export interface CrosswordAttemptResult {
   word_xp_awarded: number;
   completion_xp_awarded: number;
   next_level: number | null;
+  // 27 Kasim 2026 -- kelime carki sonuc paneli icin: SADECE correct=true
+  // iken dolu gelir (bkz. backend crossword.py attempt_word).
+  answer?: string;
+  example?: string;
+  definition?: string;
 }

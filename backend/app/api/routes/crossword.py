@@ -26,6 +26,8 @@ bir kullanicinin own_pool bulmacasi baskasina asla donulmez."""
 
 from __future__ import annotations
 
+import random
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
@@ -57,6 +59,25 @@ def _user_langs(user_id: str) -> tuple[str, str]:
 
 class CrosswordAttemptIn(BaseModel):
     answer: str
+
+
+# 27 Kasim 2026 kullanici istegi: harf carki ipucu sistemi -- bir kelime
+# icin ILK ipucu HINT_XP_COST kadar XP harcar, aynI kelime icin SONRAKI
+# ipucular (via_ad=True) reklam izlemeyi GEREKTIRIR, XP ile atlanamaz (bkz.
+# get_hint). Kelime cozmenin odulunden (game_crossword_word: 6 XP) daha
+# pahali tutuldu ki "ipucuyla coz, XP'de net kazan" dongusu olusmasin.
+HINT_XP_COST = 10
+
+
+class CrosswordHintIn(BaseModel):
+    # İstemcinin o kelime icin o ana kadar DOGRU yerlestirdigi harf sayisi --
+    # sunucu bir sonraki (henuz bilinmeyen) pozisyondaki harfi dondurur.
+    # Cevabin KENDISI asla istemciden gelmez/dogrulanmaz, sadece bu sayac.
+    revealed_count: int = 0
+    # Istemci bir odullu reklam izlettiyse True gecer -- bu durumda XP
+    # HARCANMAZ (ilk kullanimsa bile), ama yine de "bu kelime icin en az bir
+    # ipucu kullanildi" olarak isaretlenir (bkz. hinted_word_ids).
+    via_ad: bool = False
 
 
 @router.get("/levels")
@@ -108,9 +129,26 @@ def _public_words(puzzle: dict, solved_word_ids: set[str] | None = None) -> list
             "col_start": w["col_start"],
             "direction": w["direction"],
             "answer_length": w["answer_length"],
+            # 27 Kasim 2026 -- kelime carki tasarimi: harf carkinin kurulabilmesi
+            # icin HENUZ COZULMEMIS kelimelerde de cevabin harf KUMESI (SIRASI
+            # KARISTIRILMIS) gonderiliyor -- answer alaninin kendisi (dogru
+            # SIRAYLA) hala sadece cozulunce gonderiliyor, bu yuzden dogru
+            # sirayi istemci asla bilmiyor (anagram/kelime-oyunu janrinda
+            # standart davranis -- harf kumesi zaten ipucuyla birlikte acik).
+            "letters": random.sample(list(w["answer"]), w["answer_length"]),
         }
         if w["id"] in solved_word_ids:
             row["answer"] = w["answer"]
+            # 27 Kasim 2026 kullanici istegi: kelime-carki tasarimina gecis --
+            # dogru cevaplanan kelime icin ornek cumle + tanim da donuluyor
+            # (bkz. crossword_service.get_or_create_puzzle'daki embed select).
+            # Tam olarak biri dolu olur (general_word_pool ya da words), own_pool
+            # (words) icin definition hic yok -- o durumda alan atlanir.
+            source = w.get("general_word_pool") or w.get("words") or {}
+            if source.get("example"):
+                row["example"] = source["example"]
+            if source.get("definition"):
+                row["definition"] = source["definition"]
         out.append(row)
     return out
 
@@ -206,6 +244,21 @@ async def attempt_word(
         completion_xp_awarded = xp_result.amount_awarded
         next_level = crossword_service.advance_user_progress(current_user.id, learning_lang, level, mode)
 
+    # 27 Kasim 2026 -- kelime carki: dogru cevaplaninca mobil/web'in sonuc
+    # panelini (kelime + anlam + ornek cumle + tanim) dolduabilmesi icin
+    # answer/example/definition de donuluyor -- _public_words'teki ile AYNI
+    # kaynak (get_or_create_puzzle'in embed select'i), sadece burada "henuz
+    # bir sonraki GET /levels/{level} gelmeden" aninda lazim oldugu icin
+    # ayrica eklendi.
+    extra: dict = {}
+    if is_correct:
+        extra["answer"] = word_row["answer"]
+        source = word_row.get("general_word_pool") or word_row.get("words") or {}
+        if source.get("example"):
+            extra["example"] = source["example"]
+        if source.get("definition"):
+            extra["definition"] = source["definition"]
+
     return {
         "correct": is_correct,
         "already_solved": already_solved,
@@ -214,4 +267,80 @@ async def attempt_word(
         "word_xp_awarded": word_xp_awarded,
         "completion_xp_awarded": completion_xp_awarded,
         "next_level": next_level,
+        **extra,
+    }
+
+
+@router.post("/levels/{level}/words/{word_id}/hint")
+async def get_hint(
+    level: int,
+    word_id: str,
+    hint_in: CrosswordHintIn,
+    mode: str = Query("standard"),
+    current_user=Depends(get_current_user),
+):
+    """Harf carki icin tek-harf ipucu. Guvenlik: cevabin KENDISI hicbir zaman
+    donulmez/istemciden alinmaz -- sadece revealed_count pozisyonundaki TEK
+    harf hesaplanip donulur. Ilk ipucu (bu kelime icin hinted_word_ids'te
+    yoksa) HINT_XP_COST kadar XP harcar (yetersizse 400); via_ad=True
+    gecilirse (odullu reklam izlendiyse) XP hic harcanmaz. Ikinci ve sonraki
+    ipucular (kelime zaten hinted_word_ids'teyse) via_ad=True ZORUNLUDUR --
+    XP ile atlanamaz (bkz. modul ust bilgisindeki CrosswordHintIn notu)."""
+    mode = _validate_mode(mode)
+    learning_lang, native_lang = _user_langs(current_user.id)
+    user_id_for_pool = current_user.id if mode == "own_pool" else None
+    try:
+        puzzle = crossword_service.get_or_create_puzzle(mode, learning_lang, native_lang, level, user_id=user_id_for_pool)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    words = puzzle.get("crossword_puzzle_words") or []
+    word_row = next((w for w in words if w["id"] == word_id), None)
+    if word_row is None:
+        raise HTTPException(status_code=404, detail="Bulmacada bu kelime yok.")
+
+    session = _get_or_create_session(current_user.id, puzzle["id"])
+    solved_ids: list[str] = list(session.get("solved_word_ids") or [])
+    if word_id in solved_ids:
+        raise HTTPException(status_code=400, detail="Bu kelime zaten cozulmus.")
+
+    answer: str = word_row["answer"]
+    position = max(0, hint_in.revealed_count)
+    if position >= len(answer):
+        raise HTTPException(status_code=400, detail="Gecersiz pozisyon.")
+
+    hinted_ids: list[str] = list(session.get("hinted_word_ids") or [])
+    is_first_hint = word_id not in hinted_ids
+    xp_spent = 0
+
+    if not is_first_hint and not hint_in.via_ad:
+        raise HTTPException(
+            status_code=400,
+            detail="Bu kelime icin bir sonraki ipucu reklam izlemeyi gerektiriyor.",
+        )
+
+    if is_first_hint and not hint_in.via_ad:
+        profile = (
+            supabase_admin.table("profiles").select("total_xp").eq("id", current_user.id).single().execute()
+        ).data or {}
+        if (profile.get("total_xp") or 0) < HINT_XP_COST:
+            raise HTTPException(status_code=400, detail="Yetersiz XP.")
+        await award_xp(
+            user_id=current_user.id,
+            source_type="game_crossword_hint",
+            amount=-HINT_XP_COST,
+            source_id=puzzle["id"],
+        )
+        xp_spent = HINT_XP_COST
+
+    if is_first_hint:
+        hinted_ids.append(word_id)
+        supabase_admin.table("user_crossword_sessions").update(
+            {"hinted_word_ids": hinted_ids}
+        ).eq("id", session["id"]).execute()
+
+    return {
+        "position": position,
+        "letter": answer[position],
+        "xp_spent": xp_spent,
     }

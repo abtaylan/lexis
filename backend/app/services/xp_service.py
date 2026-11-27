@@ -106,6 +106,11 @@ XPSourceType = Literal[
     # deger sadece eksik-amount savunmasi).
     "game_crossword_word",
     "game_crossword_complete",
+    # 27 Kasim 2026 -- cengel bulmaca harf carki ipucu sistemi: bir kelime
+    # icin ILK ipucu XP HARCAR (award_xp'ye NEGATIF amount ile cagrilir) --
+    # kelime cozme odulunden (game_crossword_word) AYRI loglanir ki analitikte
+    # karismasin (bkz. backend/app/api/routes/crossword.py get_hint).
+    "game_crossword_hint",
 ]
 
 # XP miktarlari - tek yerden ayarlanabilir (ilk kullanim sonrasi dengeleme gerekebilir)
@@ -204,6 +209,10 @@ XP_AMOUNTS: dict[str, int] = {
     # acikca gecilir (bkz. yukaridaki Literal yorum notu).
     "game_crossword_word": 6,
     "game_crossword_complete": 20,
+    # NEGATIF -- bu bir odul degil, ipucu MALIYETI (bkz. yukaridaki not).
+    # Çağıran kod (get_hint) her zaman açık amount=-HINT_XP_COST geçer; bu
+    # sadece eksik-amount çağrısına karşı güvenlik ağı.
+    "game_crossword_hint": -10,
 }
 
 LEVEL_BASE = 50
