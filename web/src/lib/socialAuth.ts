@@ -23,7 +23,18 @@ export async function completeSocialSignIn(
     daily_goal: me.daily_goal ?? 5,
     native_lang: me.native_lang,
     learning_lang: me.learning_lang,
+    learning_langs: me.learning_langs,
     created_at: me.created_at || new Date().toISOString(),
+    // KOK NEDEN DUZELTMESI (27 Kasim 2026, Behcet'in kullanici raporu --
+    // "premium uyeyim ama her girişte degilmis gibi oluyor"): /auth/me
+    // bu alanlari ZATEN dogru donduruyordu ama burada kurulan User
+    // nesnesine hic kopyalanmiyordu -- sonuc undefined (=falsy), ve
+    // login() bunu localStorage'a YAZIP eski dogru degerin ustune
+    // yaziyordu. /premium sayfasina gidince subscriptionApi.getStatus()
+    // ile duzeliyordu ama bir sonraki girişte tekrar kayboluyordu.
+    is_premium: me.is_premium,
+    premium_until: me.premium_until,
+    referral_code: me.referral_code,
   };
   loginToStore(res.access_token, user);
   return user;
