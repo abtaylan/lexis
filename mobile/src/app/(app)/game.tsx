@@ -1148,6 +1148,12 @@ export default function GameScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameMode, stage, current?.word]);
 
+  // 28 Kasim 2026 -- bug fix: bu hook onceden asagida, kosullu return'lerden
+  // SONRA cagriliyordu (Rules of Hooks ihlali -> "Rendered more hooks than
+  // during the previous render" -- Adam Asmaca'ya girerken crash). Tum
+  // hook'lar kosulsuz, erken return'lerden ONCE cagrilmali.
+  const { width: windowWidth } = useWindowDimensions();
+
   // ── Mod seçimi ──
   if (stage === 'mode') {
     return (
@@ -1532,7 +1538,6 @@ export default function GameScreen() {
   const isChain = gameMode === 'word_chain';
   const keyboardRows = getKeyboardRowsForLanguage(user?.learning_lang);
   const letterGuessSupported = isLetterGuessSupported(user?.learning_lang);
-  const { width: windowWidth } = useWindowDimensions();
   const keyGapSize = 6;
   const maxRowLen = Math.max(...keyboardRows.map((row) => row.length), 1);
   const keyboardAreaWidth = Math.min(windowWidth - spacing.lg * 2, 520);
